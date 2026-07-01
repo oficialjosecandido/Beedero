@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(mkdir -p backend frontend)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8000/api/discovery/ -H \"Content-Type: application/json\")",
+      "Bash(sleep 1 && cat /tmp/beedero_runserver.log | tail -20)",
+      "Read(//private/tmp/**)",
+      "Bash(rmdir frontend *)",
+      "Bash(npx --yes create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir=false --import-alias \"@/*\" --use-npm --yes)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" http://localhost:8000/api/public/orgs/nonexistent/)",
+      "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s http://localhost:8000/api/public/orgs/acme/)",
+      "Bash(curl -s -D - -o /tmp/public.html http://localhost:3000/o/acme)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"dashboard\\(no-cookie\\): %{http_code}\\\\n\" http://localhost:3000/dashboard)",
+      "Bash(curl -s -D - -o /dev/null http://localhost:3000/dashboard)",
+      "Bash(TOKEN=$\\(curl -s -X POST http://localhost:8000/api/auth/token/ -H \"Content-Type: application/json\" \\\\ *)",
+      "Bash(echo \"--- public page must NOT contain restricted content ---\" *)",
+      "Bash(npx eslint *)",
+      "Bash(pkill -f \"manage.py runserver\")",
+      "Bash(pkill -f \"next dev\")"
+    ]
+  }
+}
