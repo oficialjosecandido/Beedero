@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 backend/db.sqlite3
 backend/.env
+backend/staticfiles/
 *.egg-info/
 
 # Node / Next.js

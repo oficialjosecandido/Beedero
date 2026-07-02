@@ -1,0 +1,24 @@
+name: Deploy backend to Azure
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: beedero-api
+          package: backend
+          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
