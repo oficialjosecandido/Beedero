@@ -6,19 +6,19 @@ import { loginAction } from "@/lib/auth-actions";
 export default function LoginPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
-      <h1 className="text-2xl font-semibold">Entrar</h1>
+      <h1 className="text-2xl font-semibold">Log in</h1>
       <AuthForm
         action={loginAction}
-        submitLabel="Entrar"
+        submitLabel="Log in"
         fields={[
-          { name: "username", label: "Utilizador", type: "text" },
+          { name: "username", label: "Username", type: "text" },
           { name: "password", label: "Password", type: "password" },
         ]}
       />
       <p className="text-sm text-zinc-600">
-        Ainda não tem conta?{" "}
+        Don&apos;t have an account yet?{" "}
         <Link href="/register" className="font-medium underline">
-          Criar conta
+          Create account
         </Link>
       </p>
     </div>

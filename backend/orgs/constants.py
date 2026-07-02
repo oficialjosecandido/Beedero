@@ -1,4 +1,4 @@
-"""Mapeamento das três naturezas de secção do perfil (doc §1)."""
+"""Mapping of the profile's three section natures (doc §1)."""
 
 from django.db import models
 
@@ -10,18 +10,18 @@ class Nature(models.TextChoices):
 
 
 class SectionKind(models.TextChoices):
-    # Identidade — tendencialmente pública, existe sempre
+    # Identity — tends to be public, always exists
     ABOUT = "about"
     TEAM = "team"
     PRODUCTS = "products"
     MARKET_THESIS = "market_thesis"
-    # Atividade — pública, feed temporal, existe sempre
+    # Activity — public, time-based feed, always exists
     NEWS = "news"
     MILESTONES = "milestones"
     EVENTS = "events"
     AWARDS = "awards"
     PRESS = "press"
-    # Fundraise — restrito, só existe quando em ronda ativa
+    # Fundraise — restricted, only exists during an active round
     VALUATION = "valuation"
     ASK = "ask"
     USE_OF_FUNDS = "use_of_funds"
@@ -48,7 +48,7 @@ NATURE_BY_KIND = {
     SectionKind.CAP_TABLE: Nature.FUNDRAISE,
 }
 
-# Kinds criados automaticamente ao criar a Organization (existem sempre).
+# Kinds created automatically when the Organization is created (always exist).
 ALWAYS_ON_KINDS = [
     SectionKind.ABOUT,
     SectionKind.TEAM,
@@ -61,7 +61,7 @@ ALWAYS_ON_KINDS = [
     SectionKind.PRESS,
 ]
 
-# Kinds criados só ao abrir ronda, arquivados ao fechar.
+# Kinds created only when a round opens, archived when it closes.
 FUNDRAISE_KINDS = [
     SectionKind.VALUATION,
     SectionKind.ASK,

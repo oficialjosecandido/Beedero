@@ -7,7 +7,7 @@ from .constants import ALWAYS_ON_KINDS, DEFAULT_VISIBILITY_BY_NATURE, NATURE_BY_
 class Visibility(models.TextChoices):
     PUBLIC = "public"
     RESTRICTED = "restricted"
-    PRIVATE = "private"  # só dentro da org
+    PRIVATE = "private"  # org-internal only
 
 
 class Organization(models.Model):
@@ -17,9 +17,9 @@ class Organization(models.Model):
     is_fundraising = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Atributos públicos e diretamente filtráveis pelo motor de descoberta (§6).
-    # Não substituem o OrgField genérico — são a fatia estável e sempre-pública
-    # usada só para filtros de discovery.
+    # Public attributes, directly filterable by the discovery engine (§6).
+    # They don't replace the generic OrgField — they're the stable, always-public
+    # slice used only for discovery filters.
     stage = models.CharField(max_length=20, blank=True)
     sector = models.CharField(max_length=50, blank=True)
     geo = models.CharField(max_length=50, blank=True)
@@ -47,7 +47,7 @@ class OrgSection(models.Model):
     kind = models.CharField(max_length=30, choices=SectionKind.choices)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
     position = models.PositiveIntegerField(default=0)
-    # Secções de fundraise são arquivadas (não apagadas) ao fechar a ronda.
+    # Fundraise sections are archived (not deleted) when the round closes.
     archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -64,11 +64,11 @@ class OrgSection(models.Model):
 
 
 class OrgField(models.Model):
-    """Campo granular dentro de uma secção. Cada linha tem a sua visibilidade -> protegível por RLS."""
+    """Granular field within a section. Each row has its own visibility -> RLS-protectable."""
 
     section = models.ForeignKey(OrgSection, related_name="fields", on_delete=models.CASCADE)
-    key = models.CharField(max_length=50)  # ex: "mrr", "valuation", "deck_url"
-    value = models.JSONField()  # flexível (JSONB no Postgres)
+    key = models.CharField(max_length=50)  # e.g.: "mrr", "valuation", "deck_url"
+    value = models.JSONField()  # flexible (JSONB on Postgres)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
 
     class Meta:
@@ -85,17 +85,17 @@ class OrgField(models.Model):
 
 class VisibilityGrant(models.Model):
     org = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    # alvo do grant: uma secção OU um campo específico
+    # grant target: a section OR a specific field
     section = models.ForeignKey(OrgSection, null=True, blank=True, on_delete=models.CASCADE)
     field = models.ForeignKey(OrgField, null=True, blank=True, on_delete=models.CASCADE)
 
     class Principal(models.TextChoices):
         USER = "user"
         ORG = "org"
-        ROLE = "role"  # ex: "verified_investor"
+        ROLE = "role"  # e.g.: "verified_investor"
 
     principal_type = models.CharField(max_length=10, choices=Principal.choices)
-    principal_id = models.CharField(max_length=100)  # user_id, org_id, ou nome do role
+    principal_id = models.CharField(max_length=100)  # user_id, org_id, or role name
 
     granted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True

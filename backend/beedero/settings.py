@@ -72,8 +72,8 @@ WSGI_APPLICATION = "beedero.wsgi.application"
 
 
 # Database
-# Produção: DATABASE_URL aponta para Postgres (aplicar também
-# backend/docs/rls_postgres.sql). Sem essa env var, cai para SQLite (dev local).
+# Production: DATABASE_URL points to Postgres (also apply
+# backend/docs/rls_postgres.sql). Without this env var, falls back to SQLite (local dev).
 if os.environ.get("DATABASE_URL"):
     DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"])}
 else:

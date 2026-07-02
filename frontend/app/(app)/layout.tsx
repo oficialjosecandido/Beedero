@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <form action={logoutAction}>
           <button type="submit" className="text-sm text-zinc-600 hover:text-black">
-            Sair
+            Log out
           </button>
         </form>
       </nav>

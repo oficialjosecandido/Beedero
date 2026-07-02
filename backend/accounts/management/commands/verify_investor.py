@@ -8,29 +8,29 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    """Verificação manual de investidor (§8 item 3): habilita o role
-    verified_investor, usado pelo VisibilityResolver para grants de fundraise."""
+    """Manual investor verification (§8 item 3): enables the
+    verified_investor role, used by VisibilityResolver for fundraise grants."""
 
-    help = "Marca o InvestorProfile de um utilizador como verificado."
+    help = "Marks a user's InvestorProfile as verified."
 
     def add_arguments(self, parser):
         parser.add_argument("email", type=str)
-        parser.add_argument("--revoke", action="store_true", help="Remove a verificação em vez de a conceder.")
+        parser.add_argument("--revoke", action="store_true", help="Remove the verification instead of granting it.")
 
     def handle(self, *args, **options):
         email = options["email"]
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist as exc:
-            raise CommandError(f"Não existe utilizador com email {email!r}.") from exc
+            raise CommandError(f"No user exists with email {email!r}.") from exc
 
         profile, _ = InvestorProfile.objects.get_or_create(user=user)
         if options["revoke"]:
             profile.is_verified = False
             profile.verified_at = None
-            self.stdout.write(self.style.WARNING(f"Verificação removida para {email}."))
+            self.stdout.write(self.style.WARNING(f"Verification removed for {email}."))
         else:
             profile.is_verified = True
             profile.verified_at = timezone.now()
-            self.stdout.write(self.style.SUCCESS(f"{email} verificado como investidor."))
+            self.stdout.write(self.style.SUCCESS(f"{email} verified as investor."))
         profile.save()

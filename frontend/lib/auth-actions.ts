@@ -13,7 +13,7 @@ export async function loginAction(_prevState: string | null, formData: FormData)
   try {
     tokens = await anonFetch("/auth/token/", { username, password });
   } catch (err) {
-    if (err instanceof ApiError) return "Credenciais inválidas.";
+    if (err instanceof ApiError) return "Invalid credentials.";
     throw err;
   }
 
@@ -32,7 +32,7 @@ export async function registerAction(_prevState: string | null, formData: FormDa
     if (err instanceof ApiError) {
       const body = err.body as Record<string, string[]> | null;
       const first = body && Object.values(body)[0]?.[0];
-      return first ?? "Não foi possível criar a conta.";
+      return first ?? "Could not create the account.";
     }
     throw err;
   }

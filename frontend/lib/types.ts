@@ -14,15 +14,15 @@ export type OrgProfile = {
 };
 
 export const SECTION_LABELS: Record<string, string> = {
-  about: "Sobre",
-  team: "Equipa",
-  products: "Produto",
-  market_thesis: "Tese de mercado",
-  news: "Novidades",
+  about: "About",
+  team: "Team",
+  products: "Product",
+  market_thesis: "Market thesis",
+  news: "News",
   milestones: "Milestones",
-  events: "Eventos",
-  awards: "Prémios",
-  press: "Imprensa",
+  events: "Events",
+  awards: "Awards",
+  press: "Press",
   valuation: "Valuation",
   ask: "Ask",
   use_of_funds: "Use of funds",

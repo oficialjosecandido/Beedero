@@ -19,8 +19,8 @@ function FieldValue({ value }: { value: unknown }) {
 }
 
 /**
- * §5.1: o frontend nunca decide visibilidade — só renderiza o que
- * `sections` contém. Secções ausentes simplesmente não aparecem.
+ * §5.1: the frontend never decides visibility — it only renders what
+ * `sections` contains. Absent sections simply don't appear.
  */
 export function OrgProfile({ data }: { data: OrgProfileData }) {
   const sectionEntries = Object.entries(data.sections);
@@ -32,12 +32,12 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           <h1 className="text-3xl font-semibold">{data.org.name}</h1>
           {data.org.is_verified && (
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-              Verificada
+              Verified
             </span>
           )}
           {data.org.is_fundraising && (
             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-              Em ronda
+              Fundraising
             </span>
           )}
         </div>
@@ -45,7 +45,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
       </header>
 
       {sectionEntries.length === 0 && (
-        <p className="text-sm text-zinc-500">Nada visível para si nesta página.</p>
+        <p className="text-sm text-zinc-500">Nothing visible to you on this page.</p>
       )}
 
       {sectionEntries.map(([kind, fields]) => (

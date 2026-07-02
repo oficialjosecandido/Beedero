@@ -1,13 +1,13 @@
--- Camada 1 (§3.1): Row-Level Security como rede de segurança ao nível da DB.
+-- Layer 1 (§3.1): Row-Level Security as a DB-level safety net.
 --
--- NÃO aplicado no MVP porque a base de dados é SQLite (RLS é Postgres-only).
--- Aplicar depois de migrar DATABASES.default.ENGINE para postgresql:
+-- NOT applied in the MVP because the database is SQLite (RLS is Postgres-only).
+-- Apply after migrating DATABASES.default.ENGINE to postgresql:
 --   psql $DATABASE_URL -f backend/docs/rls_postgres.sql
 --
--- Pressupõe que orgs.middleware.RLSViewerMiddleware está ativo (já está,
--- é no-op fora do Postgres) para injetar `beedero.viewer_id` por request via
--- SET LOCAL, e que a app corre com um role de DB não-privilegiado (não o
--- superuser — RLS é ignorado por table owners/superusers por definição).
+-- Assumes orgs.middleware.RLSViewerMiddleware is active (it already is,
+-- it's a no-op outside of Postgres) to inject `beedero.viewer_id` per request via
+-- SET LOCAL, and that the app runs with an unprivileged DB role (not the
+-- superuser — RLS is ignored by table owners/superusers by definition).
 
 ALTER TABLE orgs_orgfield ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orgs_orgfield FORCE ROW LEVEL SECURITY;
@@ -15,7 +15,7 @@ ALTER TABLE orgs_orgfield FORCE ROW LEVEL SECURITY;
 CREATE POLICY field_visibility ON orgs_orgfield
 USING (
     visibility = 'public'
-    OR EXISTS (  -- membro da org vê tudo (inclui private)
+    OR EXISTS (  -- org member sees everything (including private)
         SELECT 1
         FROM orgs_orgsection s
         JOIN orgs_orgmembership m ON m.org_id = s.org_id
@@ -27,9 +27,9 @@ USING (
             SELECT 1 FROM orgs_visibilitygrant g
             WHERE (g.expires_at IS NULL OR g.expires_at > now())
               AND (
-                    -- grant direto ao campo
+                    -- direct grant to the field
                     g.field_id = orgs_orgfield.id
-                    -- ou grant à secção inteira (ex: verified_investor ao abrir ronda)
+                    -- or grant to the whole section (e.g. verified_investor when opening a round)
                     OR g.section_id = orgs_orgfield.section_id
               )
               AND (
@@ -49,7 +49,7 @@ USING (
     )
 );
 
--- Nota: secções arquivadas (ronda fechada) já são excluídas pela camada 2
--- (VisibilityResolver filtra section__archived_at__isnull=True). Para
--- reforçar isto também aqui, junta `AND s.archived_at IS NULL` aos EXISTS
--- acima.
+-- Note: archived sections (closed round) are already excluded by layer 2
+-- (VisibilityResolver filters section__archived_at__isnull=True). To
+-- also enforce this here, add `AND s.archived_at IS NULL` to the EXISTS
+-- clauses above.

@@ -19,7 +19,7 @@ export async function createOrgAction(_prevState: string | null, formData: FormD
       },
     });
   } catch {
-    return "Não foi possível criar a organização.";
+    return "Could not create the organization.";
   }
   revalidatePath("/dashboard");
   redirect(`/dashboard/${slug}`);

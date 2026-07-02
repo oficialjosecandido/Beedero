@@ -22,7 +22,20 @@
       "Bash(echo \"--- public page must NOT contain restricted content ---\" *)",
       "Bash(npx eslint *)",
       "Bash(pkill -f \"manage.py runserver\")",
-      "Bash(pkill -f \"next dev\")"
+      "Bash(pkill -f \"next dev\")",
+      "Bash(az account *)",
+      "Bash(gh auth *)",
+      "Bash(az group *)",
+      "Bash(az provider *)",
+      "Bash(az postgres *)",
+      "Bash(az appservice *)",
+      "Bash(az webapp *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(gh repo *)",
+      "Bash(gh secret *)",
+      "Bash(echo \"api secret exit: $?\")",
+      "Bash(echo \"web secret exit: $?\")",
+      "Bash(git add *)"
     ]
   }
 }

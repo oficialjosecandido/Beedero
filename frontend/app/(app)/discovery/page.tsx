@@ -29,7 +29,7 @@ export default async function DiscoveryPage({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Setor
+          Sector
           <input
             name="sector"
             defaultValue={params.sector ?? ""}
@@ -37,7 +37,7 @@ export default async function DiscoveryPage({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Geografia
+          Geography
           <input
             name="geo"
             defaultValue={params.geo ?? ""}
@@ -51,19 +51,19 @@ export default async function DiscoveryPage({
             value="true"
             defaultChecked={params.fundraising === "true"}
           />
-          Em ronda
+          Fundraising
         </label>
         <button
           type="submit"
           className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
         >
-          Filtrar
+          Filter
         </button>
       </form>
 
       <div className="grid w-full max-w-3xl gap-3">
         {orgs.length === 0 && (
-          <p className="text-sm text-zinc-500">Sem resultados.</p>
+          <p className="text-sm text-zinc-500">No results.</p>
         )}
         {orgs.map((org) => (
           <Link
@@ -80,12 +80,12 @@ export default async function DiscoveryPage({
             <div className="flex gap-2">
               {org.is_verified && (
                 <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-                  Verificada
+                  Verified
                 </span>
               )}
               {org.is_fundraising && (
                 <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                  Em ronda
+                  Fundraising
                 </span>
               )}
             </div>

@@ -27,7 +27,7 @@ from .visibility import VisibilityResolver
 
 
 class PublicOrgProfileView(APIView):
-    """§4: GET /api/public/orgs/<slug>/ — sem auth, só campos public."""
+    """§4: GET /api/public/orgs/<slug>/ — no auth, public fields only."""
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -37,8 +37,8 @@ class PublicOrgProfileView(APIView):
 
 
 class OrgListCreateView(APIView):
-    """Não está na tabela §4, mas é indispensável: o founder precisa de criar
-    a sua org antes de haver algo para visitar."""
+    """Not in the §4 table, but indispensable: the founder needs to create
+    their org before there's anything to visit."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -52,9 +52,9 @@ class OrgListCreateView(APIView):
         slug = request.data.get("slug")
         name = request.data.get("name")
         if not slug or not name:
-            return Response({"detail": "slug e name são obrigatórios."}, status=400)
+            return Response({"detail": "slug and name are required."}, status=400)
         if Organization.objects.filter(slug=slug).exists():
-            return Response({"detail": "slug já em uso."}, status=400)
+            return Response({"detail": "slug already in use."}, status=400)
         org = Organization.objects.create(
             slug=slug,
             name=name,
@@ -67,7 +67,7 @@ class OrgListCreateView(APIView):
 
 
 class OrgProfileView(OrgLookupMixin, APIView):
-    """§4: GET /api/orgs/<slug>/ — perfil completo filtrado pelo VisibilityResolver."""
+    """§4: GET /api/orgs/<slug>/ — full profile filtered by VisibilityResolver."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -79,8 +79,8 @@ class OrgProfileView(OrgLookupMixin, APIView):
 
 
 class SectionListView(OrgLookupMixin, APIView):
-    """Não está na tabela §4, mas o dashboard precisa dos IDs de secção (não
-    só o kind) para poder direcionar grants a uma secção concreta."""
+    """Not in the §4 table, but the dashboard needs section IDs (not just
+    the kind) to be able to target grants at a specific section."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 
@@ -104,9 +104,9 @@ class SectionListView(OrgLookupMixin, APIView):
 
 
 class SectionFieldView(OrgLookupMixin, APIView):
-    """Não está na tabela §4, mas o dashboard precisa disto para o founder
-    conseguir preencher About/Team/Financials/Data Room. Visibilidade não
-    passada explicitamente herda a da secção (mesma regra do OrgField.save())."""
+    """Not in the §4 table, but the dashboard needs this so the founder
+    can fill in About/Team/Financials/Data Room. Visibility not explicitly
+    passed inherits the section's (same rule as OrgField.save())."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 
@@ -132,7 +132,7 @@ class SectionFieldView(OrgLookupMixin, APIView):
 
 
 class DataRoomView(OrgLookupMixin, APIView):
-    """§4: GET /api/orgs/<slug>/dataroom/ — grava audit log por documento aberto."""
+    """§4: GET /api/orgs/<slug>/dataroom/ — writes an audit log entry per opened document."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember | IsVerifiedInvestor]
 
@@ -161,7 +161,7 @@ class DataRoomView(OrgLookupMixin, APIView):
 
 
 class GrantListCreateView(OrgLookupMixin, APIView):
-    """§4: POST /api/orgs/<slug>/grants/ — abrir/fechar acesso, só o owner."""
+    """§4: POST /api/orgs/<slug>/grants/ — grant/revoke access, owner only."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
 
@@ -188,8 +188,8 @@ class GrantDetailView(OrgLookupMixin, APIView):
 
 
 class RoundOpenView(OrgLookupMixin, APIView):
-    """§4: POST /api/orgs/<slug>/rounds/ — abre ronda, cria secções fundraise
-    restricted e concede acesso automático ao role verified_investor."""
+    """§4: POST /api/orgs/<slug>/rounds/ — opens a round, creates restricted
+    fundraise sections, and grants automatic access to the verified_investor role."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
 
@@ -197,7 +197,7 @@ class RoundOpenView(OrgLookupMixin, APIView):
         org = self.get_org()
         round_ = getattr(org, "fundraiseround", None)
         if round_ and round_.is_open:
-            return Response({"detail": "Já existe uma ronda aberta."}, status=400)
+            return Response({"detail": "A round is already open."}, status=400)
 
         data = request.data
         if round_ is None:
@@ -243,7 +243,7 @@ class RoundCloseView(OrgLookupMixin, APIView):
         org.is_fundraising = False
         org.save(update_fields=["is_fundraising"])
 
-        # Arquivadas, não apagadas (§1): saem do resolver mas o histórico fica.
+        # Archived, not deleted (§1): they drop out of the resolver but history stays.
         OrgSection.objects.filter(org=org, kind__in=FUNDRAISE_KINDS).update(
             archived_at=timezone.now()
         )
@@ -251,7 +251,7 @@ class RoundCloseView(OrgLookupMixin, APIView):
 
 
 class FeedPostView(OrgLookupMixin, APIView):
-    """§4: POST /api/orgs/<slug>/feed/ — publicar novidade/milestone/evento/award."""
+    """§4: POST /api/orgs/<slug>/feed/ — publish news/milestone/event/award."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 

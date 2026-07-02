@@ -8,8 +8,8 @@ from .visibility import VisibilityResolver
 
 
 class OrgProfileSerializer:
-    """Camada 3 (§3.3): o schema de saída é construído a partir do que o
-    resolver autorizou — nunca por corte de um objeto completo."""
+    """Layer 3 (§3.3): the output schema is built from what the
+    resolver authorized — never by trimming a complete object."""
 
     def __init__(self, org, resolver: VisibilityResolver, request=None):
         self.org = org
@@ -33,8 +33,8 @@ class OrgProfileSerializer:
         }
 
     def _log_restricted(self, fields):
-        # §2.5: regista quem abriu que campo restrito, quando. Não regista
-        # membros a verem os campos da própria org — não é acesso de terceiro.
+        # §2.5: logs who opened which restricted field, when. Does not log
+        # members viewing their own org's fields — that's not third-party access.
         viewer = self.resolver.viewer
         if not viewer or not getattr(viewer, "is_authenticated", False) or self.resolver.is_member:
             return
@@ -68,7 +68,7 @@ class VisibilityGrantSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if not attrs.get("section") and not attrs.get("field"):
-            raise serializers.ValidationError("O grant precisa de section ou field.")
+            raise serializers.ValidationError("The grant needs a section or a field.")
         return attrs
 
 

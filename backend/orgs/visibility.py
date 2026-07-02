@@ -8,7 +8,7 @@ User = get_user_model()
 
 
 class VisibilityResolver:
-    """Ponto único de verdade. Todo o acesso a perfis passa por aqui (§3.2)."""
+    """Single source of truth. All profile access goes through here (§3.2)."""
 
     def __init__(self, viewer: User | None, org: Organization):
         self.viewer = viewer
@@ -27,17 +27,17 @@ class VisibilityResolver:
     def visible_fields(self) -> "QuerySet[OrgField]":
         qs = OrgField.objects.filter(section__org=self.org, section__archived_at__isnull=True)
         if self._member:
-            return qs  # membros veem tudo (inclui private)
+            return qs  # members see everything (including private)
         allowed = Q(visibility=Visibility.PUBLIC)
         if self.viewer and self.viewer.is_authenticated:
-            # restricted fica visível por grant direto ao campo OU por grant à
-            # secção inteira (ex: grant automático a verified_investor ao
-            # abrir ronda, antes de existirem campos preenchidos).
+            # restricted becomes visible via a direct grant to the field OR a grant
+            # to the whole section (e.g. automatic grant to verified_investor when
+            # opening a round, before any fields are filled in).
             restricted = Q(visibility=Visibility.RESTRICTED) & (
                 Q(id__in=self._granted_field_ids()) | Q(section_id__in=self._granted_section_ids())
             )
             allowed |= restricted
-        return qs.filter(allowed)  # 'private' nunca entra para não-membros
+        return qs.filter(allowed)  # 'private' never gets through for non-members
 
     def _granted_field_ids(self) -> set[int]:
         principals = self._viewer_principals()

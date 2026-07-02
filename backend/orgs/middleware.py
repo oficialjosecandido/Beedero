@@ -2,12 +2,12 @@ from django.db import connection
 
 
 class RLSViewerMiddleware:
-    """Camada 1 (defesa em profundidade, §3.1).
+    """Layer 1 (defense in depth, §3.1).
 
-    Injeta o viewer atual como GUC de sessão para que as políticas RLS do
-    Postgres (backend/docs/rls_postgres.sql) o consigam ler. É um no-op fora
-    do Postgres — no MVP corremos em SQLite, que não suporta RLS, por isso a
-    única linha de defesa real por agora é o VisibilityResolver (camada 2).
+    Injects the current viewer as a session GUC so Postgres RLS policies
+    (backend/docs/rls_postgres.sql) can read it. It's a no-op outside of
+    Postgres — in the MVP we run on SQLite, which doesn't support RLS, so the
+    only real line of defense for now is the VisibilityResolver (layer 2).
     """
 
     def __init__(self, get_response):
@@ -22,7 +22,7 @@ class RLSViewerMiddleware:
 
 
 class PrivateCacheMiddleware:
-    """§7: respostas autenticadas nunca em cache partilhada."""
+    """§7: authenticated responses never in shared cache."""
 
     def __init__(self, get_response):
         self.get_response = get_response

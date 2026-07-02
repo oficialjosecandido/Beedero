@@ -1,9 +1,9 @@
-"""Caminho público — separado por construção (§3.4).
+"""Public path — separated by construction (§3.4).
 
-Não autenticado, não conhece grants nem campos restritos/privados. Só
-consegue, por código, tocar em `visibility=public`. É fisicamente impossível
-vazar por aqui porque o filtro `PUBLIC` está escrito no próprio query, não
-depende de nenhuma decisão de runtime.
+Unauthenticated, has no knowledge of grants or restricted/private fields. It
+can only, by code, touch `visibility=public`. It's physically impossible to
+leak here because the `PUBLIC` filter is written into the query itself, it
+doesn't depend on any runtime decision.
 """
 
 from collections import defaultdict
@@ -18,7 +18,7 @@ def public_profile(slug: str) -> dict:
     fields = OrgField.objects.filter(
         section__org=org,
         section__archived_at__isnull=True,
-        visibility=Visibility.PUBLIC,  # e nada mais, sempre
+        visibility=Visibility.PUBLIC,  # and nothing else, ever
     ).select_related("section")
 
     sections = defaultdict(dict)

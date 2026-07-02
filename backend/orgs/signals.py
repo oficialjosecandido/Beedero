@@ -7,10 +7,10 @@ from .models import Organization, OrgSection
 
 @receiver(post_save, sender=Organization)
 def create_default_sections(sender, instance, created, **kwargs):
-    """Identidade + Atividade existem sempre (doc §1); criadas com a org."""
+    """Identity + Activity always exist (doc §1); created with the org."""
     if not created:
         return
-    # bulk_create ignora save(), e é o save() que aplica a visibilidade
-    # default por natureza — por isso criamos uma a uma.
+    # bulk_create bypasses save(), and it's save() that applies the
+    # per-nature default visibility — so we create them one at a time.
     for i, kind in enumerate(ALWAYS_ON_KINDS):
         OrgSection(org=instance, kind=kind, position=i).save()

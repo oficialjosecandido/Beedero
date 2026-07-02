@@ -11,9 +11,9 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col items-center gap-10 px-6 py-16">
       <div className="flex w-full max-w-2xl flex-col gap-4">
-        <h1 className="text-2xl font-semibold">As suas organizações</h1>
+        <h1 className="text-2xl font-semibold">Your organizations</h1>
         {orgs.length === 0 && (
-          <p className="text-sm text-zinc-500">Ainda não é membro de nenhuma organização.</p>
+          <p className="text-sm text-zinc-500">You&apos;re not a member of any organization yet.</p>
         )}
         <div className="flex flex-col gap-2">
           {orgs.map((m) => (
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex w-full max-w-2xl flex-col gap-4 border-t border-zinc-200 pt-8">
-        <h2 className="text-lg font-medium">Criar nova organização</h2>
+        <h2 className="text-lg font-medium">Create new organization</h2>
         <CreateOrgForm />
       </div>
     </div>

@@ -20,9 +20,9 @@ class MeView(APIView):
 
 
 class InvestorProfileView(APIView):
-    """Criação/edição do próprio perfil de investidor. A verificação
-    (is_verified) é manual no arranque — só o management command
-    verify_investor a pode ligar (§8 item 3)."""
+    """Creation/editing of one's own investor profile. Verification
+    (is_verified) is manual at launch — only the verify_investor
+    management command can turn it on (§8 item 3)."""
 
     permission_classes = [permissions.IsAuthenticated]
 

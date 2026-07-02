@@ -22,7 +22,7 @@ async function parse(res: Response) {
   return body;
 }
 
-/** §7: perfil público — cacheável, sem auth. */
+/** §7: public profile — cacheable, no auth. */
 export async function publicFetch(path: string, revalidate = 300) {
   const res = await fetch(`${BACKEND_URL}${path}`, {
     next: { revalidate },
@@ -30,7 +30,7 @@ export async function publicFetch(path: string, revalidate = 300) {
   return parse(res);
 }
 
-/** §7: qualquer resposta autenticada — nunca em cache partilhada. */
+/** §7: any authenticated response — never in shared cache. */
 export async function apiFetch(
   path: string,
   options: { method?: string; body?: unknown } = {}
@@ -48,7 +48,7 @@ export async function apiFetch(
   return parse(res);
 }
 
-/** Endpoints de auth não levam Bearer token (login/registo). */
+/** Auth endpoints don't carry a Bearer token (login/register). */
 export async function anonFetch(path: string, body: unknown) {
   const res = await fetch(`${BACKEND_URL}${path}`, {
     method: "POST",

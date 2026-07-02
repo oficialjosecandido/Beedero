@@ -141,7 +141,7 @@ def test_expired_grant_is_ignored(org, outsider):
 
 @pytest.mark.django_db
 def test_fundraise_sections_absent_when_not_fundraising(org, about_public_field, outsider):
-    # org nunca abriu ronda: nenhuma secção fundraise deve existir
+    # org has never opened a round: no fundraise section should exist
     kinds = set(org.sections.values_list("kind", flat=True))
     assert kinds == {
         SectionKind.ABOUT,

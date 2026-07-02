@@ -1,18 +1,18 @@
-"""Motor de descoberta (§6) — versão MVP.
+"""Discovery engine (§6) — MVP version.
 
-Regra dura: a descoberta só pode filtrar/ordenar por campos que o viewer
-teria direito a ver *naquele* perfil. Nunca se filtra sobre a tabela crua de
-campos privados/restritos sem checar visibilidade por org.
+Hard rule: discovery can only filter/sort by fields the viewer would be
+entitled to see *on that specific* profile. Never filter over the raw table
+of private/restricted fields without checking per-org visibility.
 
-Os filtros de identidade (stage/sector/geo) vivem em colunas simples e
-sempre-públicas da Organization (ver orgs/models.py) — não passam pelo
-OrgField genérico porque são precisamente o que a descoberta pública usa
-para indexar. Filtros por métricas restritas (ex. mrr) só se aplicam para
-investidores verificados, e mesmo assim só olhando para orgs onde esse
-campo específico está visível ao viewer (grant concreto), nunca à cega.
+Identity filters (stage/sector/geo) live in simple, always-public columns
+on Organization (see orgs/models.py) — they don't go through the generic
+OrgField because they're precisely what public discovery uses for
+indexing. Filters on restricted metrics (e.g. mrr) only apply for
+verified investors, and even then only look at orgs where that specific
+field is visible to the viewer (concrete grant), never blindly.
 
-A tabela desnormalizada por role fica para v2 (§8) — aqui resolve-se
-org-a-org, aceitável ao volume do MVP.
+The per-role denormalized table is left for v2 (§8) — here it's resolved
+org by org, acceptable at MVP volume.
 """
 
 from .models import Organization
@@ -44,8 +44,8 @@ def discover(viewer, params: dict):
     metric_min = params.get("metric_min")
     if metric_key in RESTRICTED_METRIC_KEYS and metric_min is not None:
         if not _is_verified_investor(viewer):
-            # utilizador não verificado: filtro restrito é ignorado, nunca
-            # aplicado às cegas.
+            # unverified user: restricted filter is ignored, never
+            # applied blindly.
             return qs.order_by("name")
         try:
             threshold = float(metric_min)

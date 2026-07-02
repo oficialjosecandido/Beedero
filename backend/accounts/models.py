@@ -3,15 +3,15 @@ from django.db import models
 
 
 class User(AbstractUser):
-    # investidor, founder, talento (futuro)
+    # investor, founder, talent (future)
     pass
 
 
 class InvestorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    is_verified = models.BooleanField(default=False)  # selo de verificação
+    is_verified = models.BooleanField(default=False)  # verification badge
     verified_at = models.DateTimeField(null=True, blank=True)
-    # JSONField em vez de ArrayField (Postgres-only) para portabilidade SQLite/Postgres.
+    # JSONField instead of ArrayField (Postgres-only) for SQLite/Postgres portability.
     stage_focus = models.JSONField(default=list, blank=True)
     sector_focus = models.JSONField(default=list, blank=True)
     geo_focus = models.JSONField(default=list, blank=True)

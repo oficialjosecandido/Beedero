@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Beedero",
-  description: "Perfis de startups para investidores.",
+  description: "Startup profiles for investors.",
 };
 
 export default function RootLayout({

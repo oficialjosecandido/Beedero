@@ -19,7 +19,7 @@ export function CreateOrgForm() {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Nome
+        Name
         <input name="name" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
       </label>
       <label className="flex flex-col gap-1 text-sm">
@@ -27,11 +27,11 @@ export function CreateOrgForm() {
         <input name="stage" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Setor
+        Sector
         <input name="sector" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Geografia
+        Geography
         <input name="geo" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
       </label>
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
@@ -40,7 +40,7 @@ export function CreateOrgForm() {
         disabled={pending}
         className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
       >
-        {pending ? "..." : "Criar organização"}
+        {pending ? "..." : "Create organization"}
       </button>
     </form>
   );
