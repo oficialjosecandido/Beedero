@@ -36,13 +36,19 @@ export async function apiFetch(
   options: { method?: string; body?: unknown } = {}
 ) {
   const token = await getAccessToken();
+  const isFormData = options.body instanceof FormData;
   const res = await fetch(`${BACKEND_URL}${path}`, {
     method: options.method ?? "GET",
     headers: {
-      "Content-Type": "application/json",
+      // For FormData, let fetch set Content-Type itself (needs the multipart boundary).
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: isFormData
+      ? (options.body as FormData)
+      : options.body !== undefined
+        ? JSON.stringify(options.body)
+        : undefined,
     cache: "no-store",
   });
   return parse(res);

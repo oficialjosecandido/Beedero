@@ -6,12 +6,12 @@ import { ApiError, anonFetch } from "./api";
 import { clearSession, setSession } from "./session";
 
 export async function loginAction(_prevState: string | null, formData: FormData) {
-  const username = String(formData.get("username") ?? "");
+  const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
   let tokens: { access: string; refresh: string };
   try {
-    tokens = await anonFetch("/auth/token/", { username, password });
+    tokens = await anonFetch("/auth/token/", { email, password });
   } catch (err) {
     if (err instanceof ApiError) return "Invalid credentials.";
     throw err;
@@ -22,12 +22,18 @@ export async function loginAction(_prevState: string | null, formData: FormData)
 }
 
 export async function registerAction(_prevState: string | null, formData: FormData) {
-  const username = String(formData.get("username") ?? "");
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
+
+  if (password !== confirmPassword) return "Passwords do not match.";
 
   try {
-    await anonFetch("/auth/register/", { username, email, password });
+    await anonFetch("/auth/register/", {
+      email,
+      password,
+      confirm_password: confirmPassword,
+    });
   } catch (err) {
     if (err instanceof ApiError) {
       const body = err.body as Record<string, string[]> | null;
@@ -38,11 +44,49 @@ export async function registerAction(_prevState: string | null, formData: FormDa
   }
 
   const tokens: { access: string; refresh: string } = await anonFetch("/auth/token/", {
-    username,
+    email,
     password,
   });
   await setSession(tokens.access, tokens.refresh);
   redirect("/dashboard");
+}
+
+export async function forgotPasswordAction(_prevState: string | null, formData: FormData) {
+  const email = String(formData.get("email") ?? "");
+
+  try {
+    await anonFetch("/auth/forgot-password/", { email });
+  } catch (err) {
+    if (err instanceof ApiError) return "Could not start password reset.";
+    throw err;
+  }
+
+  return "If an account exists, password reset instructions were sent.";
+}
+
+export async function resetPasswordAction(_prevState: string | null, formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
+
+  if (password !== confirmPassword) return "Passwords do not match.";
+
+  try {
+    await anonFetch("/auth/reset-password/", {
+      uid: formData.get("uid"),
+      token: formData.get("token"),
+      password,
+      confirm_password: confirmPassword,
+    });
+  } catch (err) {
+    if (err instanceof ApiError) {
+      const body = err.body as Record<string, string[] | string> | null;
+      const first = body && Object.values(body)[0];
+      return Array.isArray(first) ? first[0] : first ?? "Could not reset password.";
+    }
+    throw err;
+  }
+
+  redirect("/login");
 }
 
 export async function logoutAction() {

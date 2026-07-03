@@ -1,10 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
   closeRoundAction,
-  createGrantAction,
   deleteFieldAction,
-  deleteGrantAction,
   openRoundAction,
   postFeedAction,
   upsertFieldAction,
@@ -14,17 +13,10 @@ import { SECTION_LABELS } from "@/lib/types";
 
 type SectionField = { id: number; key: string; value: unknown; visibility: string };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
-type Grant = {
-  id: number;
-  section: number | null;
-  field: number | null;
-  principal_type: string;
-  principal_id: string;
-  expires_at: string | null;
-};
 type OrgSummary = { org: { slug: string; name: string; is_fundraising: boolean } };
 
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
+const IDENTITY_KINDS = ["about", "team", "products", "market_thesis"];
 
 export default async function DashboardOrgPage({
   params,
@@ -35,23 +27,33 @@ export default async function DashboardOrgPage({
 
   let profile: OrgSummary;
   let sections: Section[];
-  let grants: Grant[];
   try {
-    [profile, sections, grants] = await Promise.all([
+    [profile, sections] = await Promise.all([
       apiFetch(`/orgs/${slug}/`),
       apiFetch(`/orgs/${slug}/sections/`),
-      apiFetch(`/orgs/${slug}/grants/`),
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
     throw err;
   }
+  const profileFieldCount = sections
+    .filter((section) => IDENTITY_KINDS.includes(section.kind))
+    .reduce((count, section) => count + section.fields.length, 0);
+  const canPostUpdates = profileFieldCount >= 5;
 
   return (
     <div className="flex flex-1 justify-center px-6 py-16">
       <div className="flex w-full max-w-3xl flex-col gap-10">
         <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{profile.org.name}</h1>
+          <div>
+            <h1 className="text-2xl font-semibold">{profile.org.name}</h1>
+            <Link
+              href={`/dashboard/${slug}/access`}
+              className="mt-2 inline-flex text-sm font-medium text-emerald-700 underline"
+            >
+              Manage granted access
+            </Link>
+          </div>
           {profile.org.is_fundraising ? (
             <form action={closeRoundAction}>
               <input type="hidden" name="slug" value={slug} />
@@ -87,7 +89,16 @@ export default async function DashboardOrgPage({
         </header>
 
         <section className="flex flex-col gap-4 border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-medium">Post update</h2>
+          <div>
+            <h2 className="text-lg font-medium">Post update</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              {canPostUpdates
+                ? "Your organization profile has enough detail to post updates."
+                : `Add ${5 - profileFieldCount} more profile field${
+                    5 - profileFieldCount === 1 ? "" : "s"
+                  } before posting updates.`}
+            </p>
+          </div>
           <form action={postFeedAction} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="slug" value={slug} />
             <select name="kind" className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm">
@@ -108,7 +119,10 @@ export default async function DashboardOrgPage({
               placeholder="Text"
               className="w-64 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
             />
-            <button className="rounded-full bg-black px-4 py-1.5 text-sm text-white hover:bg-zinc-800">
+            <button
+              disabled={!canPostUpdates}
+              className="rounded-full bg-black px-4 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
               Publish
             </button>
           </form>
@@ -190,61 +204,6 @@ export default async function DashboardOrgPage({
           ))}
         </section>
 
-        <section className="flex flex-col gap-4 border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-medium">Granted access</h2>
-          <div className="flex flex-col gap-2">
-            {grants.length === 0 && <p className="text-sm text-zinc-500">No active grants.</p>}
-            {grants.map((g) => (
-              <div key={g.id} className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm">
-                <span>
-                  {g.principal_type}:{g.principal_id} → {g.section ? `section #${g.section}` : `field #${g.field}`}
-                </span>
-                <form action={deleteGrantAction}>
-                  <input type="hidden" name="slug" value={slug} />
-                  <input type="hidden" name="grant_id" value={g.id} />
-                  <button className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50">
-                    Revoke
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-          <form action={createGrantAction} className="flex flex-wrap items-end gap-2">
-            <input type="hidden" name="slug" value={slug} />
-            <select name="principal_type" className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm">
-              <option value="user">user</option>
-              <option value="org">org</option>
-              <option value="role">role</option>
-            </select>
-            <input
-              name="principal_id"
-              placeholder="id or 'verified_investor'"
-              required
-              className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-            />
-            <select name="section" className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm">
-              <option value="">(section)</option>
-              {sections.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {SECTION_LABELS[s.kind] ?? s.kind}
-                </option>
-              ))}
-            </select>
-            <select name="field" className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm">
-              <option value="">(or field)</option>
-              {sections.flatMap((s) =>
-                s.fields.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {s.kind}.{f.key}
-                  </option>
-                ))
-              )}
-            </select>
-            <button className="rounded-full bg-black px-4 py-1.5 text-sm text-white hover:bg-zinc-800">
-              Grant access
-            </button>
-          </form>
-        </section>
       </div>
     </div>
   );

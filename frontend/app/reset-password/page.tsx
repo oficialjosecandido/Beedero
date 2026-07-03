@@ -1,9 +1,15 @@
 import Link from "next/link";
 
-import { AuthForm } from "@/components/AuthForm";
-import { registerAction } from "@/lib/auth-actions";
+import { ResetPasswordForm } from "@/components/ResetPasswordForm";
 
-export default function RegisterPage() {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ uid?: string; token?: string }>;
+}) {
+  const { uid = "", token = "" } = await searchParams;
+  const validLink = Boolean(uid && token);
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-zinc-50 px-6 py-12 text-zinc-950">
       <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
@@ -12,22 +18,17 @@ export default function RegisterPage() {
             Beedero
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            Create account
+            Choose a new password
           </h1>
         </div>
-        <AuthForm
-          action={registerAction}
-          submitLabel="Create account"
-          fields={[
-            { name: "email", label: "Email", type: "email" },
-            { name: "password", label: "Password", type: "password" },
-            { name: "confirm_password", label: "Confirm password", type: "password" },
-          ]}
-        />
+        {validLink ? (
+          <ResetPasswordForm uid={uid} token={token} />
+        ) : (
+          <p className="text-sm text-red-600">This password reset link is invalid.</p>
+        )}
         <p className="text-center text-sm text-zinc-600">
-          Already have an account?{" "}
           <Link href="/login" className="font-medium text-emerald-700 underline">
-            Log in
+            Back to login
           </Link>
         </p>
       </div>

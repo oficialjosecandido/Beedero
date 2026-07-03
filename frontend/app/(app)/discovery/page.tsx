@@ -17,62 +17,80 @@ export default async function DiscoveryPage({
   const orgs: OrgSummary[] = await apiFetch(`/discovery/?${query.toString()}`);
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-8 px-6 py-16">
-      <h1 className="text-2xl font-semibold">Discovery</h1>
-      <form className="flex flex-wrap items-end gap-3" method="get">
-        <label className="flex flex-col gap-1 text-sm">
-          Stage
-          <input
-            name="stage"
-            defaultValue={params.stage ?? ""}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Sector
-          <input
-            name="sector"
-            defaultValue={params.sector ?? ""}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Geography
-          <input
-            name="geo"
-            defaultValue={params.geo ?? ""}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="fundraising"
-            value="true"
-            defaultChecked={params.fundraising === "true"}
-          />
-          Fundraising
-        </label>
-        <button
-          type="submit"
-          className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          Filter
-        </button>
-      </form>
+    <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
+      <div className="flex w-full max-w-5xl flex-col gap-8">
+        <div className="max-w-2xl">
+          <p className="mb-2 text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
+            Discovery
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
+            Find startups worth a closer look
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-zinc-600">
+            Filter by stage, sector, geography, and fundraising status.
+          </p>
+        </div>
 
-      <div className="grid w-full max-w-3xl gap-3">
+        <form
+          className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_1fr_auto_auto]"
+          method="get"
+        >
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+            Stage
+            <input
+              name="stage"
+              defaultValue={params.stage ?? ""}
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+            Sector
+            <input
+              name="sector"
+              defaultValue={params.sector ?? ""}
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+            Geography
+            <input
+              name="geo"
+              defaultValue={params.geo ?? ""}
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex items-center gap-2 self-end rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700">
+            <input
+              type="checkbox"
+              name="fundraising"
+              value="true"
+              defaultChecked={params.fundraising === "true"}
+              className="size-4 accent-emerald-700"
+            />
+            Fundraising
+          </label>
+          <button
+            type="submit"
+            className="self-end rounded-xl bg-emerald-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800"
+          >
+            Filter
+          </button>
+        </form>
+
+        <div className="grid w-full gap-3">
         {orgs.length === 0 && (
-          <p className="text-sm text-zinc-500">No results.</p>
+          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-500">
+            No results.
+          </div>
         )}
         {orgs.map((org) => (
           <Link
             key={org.slug}
             href={`/org/${org.slug}`}
-            className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 hover:bg-zinc-50"
+            className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
-              <p className="font-medium">{org.name}</p>
+              <p className="font-medium text-zinc-950">{org.name}</p>
               <p className="text-xs text-zinc-500">
                 {org.stage} · {org.sector} · {org.geo}
               </p>
@@ -91,7 +109,8 @@ export default async function DiscoveryPage({
             </div>
           </Link>
         ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -14,5 +14,8 @@ urlpatterns = [
     path("orgs/<slug:slug>/rounds/", views.RoundOpenView.as_view()),
     path("orgs/<slug:slug>/rounds/close/", views.RoundCloseView.as_view()),
     path("orgs/<slug:slug>/feed/", views.FeedPostView.as_view()),
+    path("orgs/<slug:slug>/follow/", views.FollowOrgView.as_view()),
+    path("feed/", views.FeedView.as_view()),
+    path("recommendations/", views.RecommendationView.as_view()),
     path("discovery/", views.DiscoveryView.as_view()),
 ]

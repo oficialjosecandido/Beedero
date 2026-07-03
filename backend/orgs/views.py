@@ -1,14 +1,16 @@
 from django.shortcuts import get_object_or_404
+from django.utils.text import slugify
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .constants import FUNDRAISE_KINDS, SectionKind
+from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
 from .discovery import discover
 from .models import (
     FundraiseRound,
     OrgField,
+    OrgFollow,
     OrgMembership,
     Organization,
     OrgSection,
@@ -24,6 +26,47 @@ from .serializers import (
     VisibilityGrantSerializer,
 )
 from .visibility import VisibilityResolver
+
+
+IDENTITY_FIELD_COUNT_KINDS = [
+    SectionKind.ABOUT,
+    SectionKind.TEAM,
+    SectionKind.PRODUCTS,
+    SectionKind.MARKET_THESIS,
+]
+
+
+def unique_org_slug(name: str) -> str:
+    base = slugify(name)[:45] or "organization"
+    slug = base
+    suffix = 2
+    while Organization.objects.filter(slug=slug).exists():
+        slug = f"{base}-{suffix}"
+        suffix += 1
+    return slug
+
+
+def ensure_default_beedero_follow(user):
+    if OrgFollow.objects.filter(user=user).exists():
+        return
+    org, _ = Organization.objects.get_or_create(
+        slug="beedero",
+        defaults={
+            "name": "Beedero",
+            "stage": "seed",
+            "sector": "software",
+            "geo": "remote",
+            "is_verified": True,
+        },
+    )
+    OrgFollow.objects.get_or_create(user=user, org=org)
+
+
+def org_profile_field_count(org):
+    return OrgField.objects.filter(
+        section__org=org,
+        section__kind__in=IDENTITY_FIELD_COUNT_KINDS,
+    ).count()
 
 
 class PublicOrgProfileView(APIView):
@@ -49,20 +92,34 @@ class OrgListCreateView(APIView):
         )
 
     def post(self, request):
-        slug = request.data.get("slug")
         name = request.data.get("name")
-        if not slug or not name:
-            return Response({"detail": "slug and name are required."}, status=400)
-        if Organization.objects.filter(slug=slug).exists():
-            return Response({"detail": "slug already in use."}, status=400)
+        if not name:
+            return Response({"detail": "name is required."}, status=400)
         org = Organization.objects.create(
-            slug=slug,
+            slug=unique_org_slug(name),
             name=name,
             stage=request.data.get("stage", ""),
             sector=request.data.get("sector", ""),
             geo=request.data.get("geo", ""),
         )
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
+
+        initial_fields = {
+            SectionKind.ABOUT: {"summary": request.data.get("about")},
+            SectionKind.TEAM: {"summary": request.data.get("team")},
+            SectionKind.PRODUCTS: {"summary": request.data.get("products")},
+            SectionKind.MARKET_THESIS: {"summary": request.data.get("market_thesis")},
+        }
+        for kind, fields in initial_fields.items():
+            section = OrgSection.objects.get(org=org, kind=kind)
+            for key, value in fields.items():
+                if value:
+                    OrgField.objects.update_or_create(
+                        section=section,
+                        key=key,
+                        defaults={"value": value},
+                    )
+
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
 
@@ -257,10 +314,76 @@ class FeedPostView(OrgLookupMixin, APIView):
 
     def post(self, request, slug):
         org = self.get_org()
+        if org_profile_field_count(org) < 5:
+            return Response(
+                {"detail": "Add at least 5 organization profile fields before posting updates."},
+                status=400,
+            )
         serializer = FeedPostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         field = serializer.create(org)
         return Response({"key": field.key, "value": field.value}, status=status.HTTP_201_CREATED)
+
+
+class FeedView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        ensure_default_beedero_follow(request.user)
+        followed_orgs = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
+        posts = (
+            OrgField.objects.filter(section__org_id__in=followed_orgs, section__kind__in=ACTIVITY_KINDS)
+            .select_related("section__org")
+            .order_by("-id")[:50]
+        )
+        return Response(
+            [
+                {
+                    "org": {
+                        "slug": post.section.org.slug,
+                        "name": post.section.org.name,
+                    },
+                    "kind": post.section.kind,
+                    "key": post.key,
+                    "value": post.value,
+                }
+                for post in posts
+            ]
+        )
+
+
+class RecommendationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        followed_org_ids = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
+        orgs = Organization.objects.exclude(id__in=followed_org_ids).order_by("-is_verified", "name")[:6]
+        return Response(
+            {
+                "organizations": [
+                    {
+                        "slug": org.slug,
+                        "name": org.name,
+                        "stage": org.stage,
+                        "sector": org.sector,
+                        "geo": org.geo,
+                        "is_verified": org.is_verified,
+                        "is_fundraising": org.is_fundraising,
+                    }
+                    for org in orgs
+                ],
+                "people": [],
+            }
+        )
+
+
+class FollowOrgView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug):
+        org = get_object_or_404(Organization, slug=slug)
+        OrgFollow.objects.get_or_create(user=request.user, org=org)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DiscoveryView(APIView):

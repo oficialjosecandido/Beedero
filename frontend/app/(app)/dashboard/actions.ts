@@ -6,23 +6,53 @@ import { redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
 export async function createOrgAction(_prevState: string | null, formData: FormData) {
-  const slug = String(formData.get("slug") ?? "");
+  let org: { slug: string; name: string };
   try {
-    await apiFetch("/orgs/", {
+    org = await apiFetch("/orgs/", {
       method: "POST",
       body: {
-        slug,
         name: formData.get("name"),
         stage: formData.get("stage") ?? "",
         sector: formData.get("sector") ?? "",
         geo: formData.get("geo") ?? "",
+        about: formData.get("about") ?? "",
+        team: formData.get("team") ?? "",
+        products: formData.get("products") ?? "",
+        market_thesis: formData.get("market_thesis") ?? "",
       },
     });
   } catch {
     return "Could not create the organization.";
   }
   revalidatePath("/dashboard");
-  redirect(`/dashboard/${slug}`);
+  redirect(`/dashboard/${org.slug}`);
+}
+
+export async function updateProfileAction(_prevState: string | null, formData: FormData) {
+  const body = new FormData();
+  body.set("full_name", formData.get("full_name") ?? "");
+  body.set("headline", formData.get("headline") ?? "");
+  body.set("bio", formData.get("bio") ?? "");
+  body.set("country", formData.get("country") ?? "");
+  const picture = formData.get("profile_picture");
+  if (picture instanceof File && picture.size > 0) {
+    body.set("profile_picture", picture);
+  }
+
+  try {
+    await apiFetch("/investors/me/", { method: "PUT", body });
+  } catch {
+    return "Could not save your profile.";
+  }
+  revalidatePath("/dashboard");
+  return null;
+}
+
+export async function followOrgAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  await apiFetch(`/orgs/${slug}/follow/`, { method: "POST" });
+  revalidatePath("/dashboard");
+  revalidatePath("/feed");
 }
 
 export async function upsertFieldAction(formData: FormData) {
@@ -80,6 +110,7 @@ export async function postFeedAction(formData: FormData) {
     },
   });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePath("/feed");
 }
 
 export async function createGrantAction(formData: FormData) {
@@ -96,6 +127,7 @@ export async function createGrantAction(formData: FormData) {
     },
   });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePath(`/dashboard/${slug}/access`);
 }
 
 export async function deleteGrantAction(formData: FormData) {
@@ -103,4 +135,5 @@ export async function deleteGrantAction(formData: FormData) {
   const grantId = String(formData.get("grant_id"));
   await apiFetch(`/orgs/${slug}/grants/${grantId}/`, { method: "DELETE" });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePath(`/dashboard/${slug}/access`);
 }

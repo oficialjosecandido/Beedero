@@ -20,6 +20,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 
 INSTALLED_APPS = [
@@ -31,6 +32,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
+    "storages",
     "accounts",
     "orgs",
 ]
@@ -100,7 +102,24 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Media (user uploads, e.g. profile pictures)
+# Production: AZURE_ACCOUNT_NAME/AZURE_ACCOUNT_KEY point to Blob Storage.
+# Without them, falls back to local disk storage (local dev).
+AZURE_ACCOUNT_NAME = os.environ.get("AZURE_ACCOUNT_NAME")
+AZURE_ACCOUNT_KEY = os.environ.get("AZURE_ACCOUNT_KEY")
+AZURE_CONTAINER = os.environ.get("AZURE_CONTAINER", "media")
+
+if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY:
+    default_storage_backend = {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+    MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/"
+else:
+    default_storage_backend = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+    MEDIA_URL = "media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+
 STORAGES = {
+    "default": default_storage_backend,
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

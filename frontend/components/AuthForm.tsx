@@ -13,26 +13,34 @@ export function AuthForm({
   fields: Field[];
   submitLabel: string;
 }) {
-  const [error, formAction, pending] = useActionState(action, null);
+  const [message, formAction, pending] = useActionState(action, null);
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
+    <form action={formAction} className="flex w-full flex-col gap-4">
       {fields.map((f) => (
-        <label key={f.name} className="flex flex-col gap-1 text-sm">
+        <label key={f.name} className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
           {f.label}
           <input
             name={f.name}
             type={f.type}
             required
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
       ))}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {message && (
+        <p
+          className={`text-sm ${
+            message.startsWith("If an account exists") ? "text-emerald-700" : "text-red-600"
+          }`}
+        >
+          {message}
+        </p>
+      )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-50"
       >
         {pending ? "..." : submitLabel}
       </button>
