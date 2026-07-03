@@ -1,12 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-beedero-black: #050604;
+  --color-beedero-yellow: #f9de4a;
+  --color-beedero-white: #ffffff;
+  --background: var(--color-beedero-white);
+  --foreground: var(--color-beedero-black);
   color-scheme: light;
 }
 
 @theme inline {
+  --color-beedero-black: var(--color-beedero-black);
+  --color-beedero-yellow: var(--color-beedero-yellow);
+  --color-beedero-white: var(--color-beedero-white);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

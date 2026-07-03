@@ -7,6 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,23 +104,22 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Media (user uploads, e.g. profile pictures)
-# Production: AZURE_ACCOUNT_NAME/AZURE_ACCOUNT_KEY point to Blob Storage.
-# Without them, falls back to local disk storage (local dev).
+# Media (user uploads, e.g. profile pictures) — always Azure Blob Storage,
+# in every environment. No local-disk fallback.
 AZURE_ACCOUNT_NAME = os.environ.get("AZURE_ACCOUNT_NAME")
 AZURE_ACCOUNT_KEY = os.environ.get("AZURE_ACCOUNT_KEY")
 AZURE_CONTAINER = os.environ.get("AZURE_CONTAINER", "media")
 
-if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY:
-    default_storage_backend = {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
-    MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/"
-else:
-    default_storage_backend = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
-    MEDIA_URL = "media/"
-    MEDIA_ROOT = BASE_DIR / "media"
+if not (AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY):
+    raise ImproperlyConfigured(
+        "AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY must be set — media storage "
+        "always uses Azure Blob Storage, there is no local-disk fallback."
+    )
+
+MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/"
 
 STORAGES = {
-    "default": default_storage_backend,
+    "default": {"BACKEND": "storages.backends.azure_storage.AzureStorage"},
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

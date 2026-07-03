@@ -18,6 +18,7 @@ export const SECTION_LABELS: Record<string, string> = {
   team: "Team",
   products: "Product",
   market_thesis: "Market thesis",
+  links: "Website & Social",
   news: "News",
   milestones: "Milestones",
   events: "Events",

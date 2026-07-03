@@ -19,7 +19,6 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
   return (
     <form
       action={formAction}
-      encType="multipart/form-data"
       className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
     >
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">

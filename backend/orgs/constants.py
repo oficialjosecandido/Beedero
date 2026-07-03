@@ -15,6 +15,7 @@ class SectionKind(models.TextChoices):
     TEAM = "team"
     PRODUCTS = "products"
     MARKET_THESIS = "market_thesis"
+    LINKS = "links"
     # Activity — public, time-based feed, always exists
     NEWS = "news"
     MILESTONES = "milestones"
@@ -35,6 +36,7 @@ NATURE_BY_KIND = {
     SectionKind.TEAM: Nature.IDENTITY,
     SectionKind.PRODUCTS: Nature.IDENTITY,
     SectionKind.MARKET_THESIS: Nature.IDENTITY,
+    SectionKind.LINKS: Nature.IDENTITY,
     SectionKind.NEWS: Nature.ACTIVITY,
     SectionKind.MILESTONES: Nature.ACTIVITY,
     SectionKind.EVENTS: Nature.ACTIVITY,
@@ -54,6 +56,7 @@ ALWAYS_ON_KINDS = [
     SectionKind.TEAM,
     SectionKind.PRODUCTS,
     SectionKind.MARKET_THESIS,
+    SectionKind.LINKS,
     SectionKind.NEWS,
     SectionKind.MILESTONES,
     SectionKind.EVENTS,
