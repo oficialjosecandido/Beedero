@@ -89,11 +89,21 @@ export default async function DiscoveryPage({
             href={`/org/${org.slug}`}
             className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
-              <p className="font-medium text-zinc-950">{org.name}</p>
-              <p className="text-xs text-zinc-500">
-                {org.stage} · {org.sector} · {org.geo}
-              </p>
+            <div className="flex items-center gap-3">
+              {org.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={org.logo} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
+              ) : (
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-500">
+                  {org.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div>
+                <p className="font-medium text-zinc-950">{org.name}</p>
+                <p className="text-xs text-zinc-500">
+                  {org.stage} · {org.sector} · {org.geo}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
               {org.is_verified && (

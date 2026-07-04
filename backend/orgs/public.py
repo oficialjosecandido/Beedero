@@ -29,6 +29,7 @@ def public_profile(slug: str) -> dict:
         "org": {
             "slug": org.slug,
             "name": org.name,
+            "logo": org.logo.url if org.logo else None,
             "is_verified": org.is_verified,
             "is_fundraising": org.is_fundraising,
         },

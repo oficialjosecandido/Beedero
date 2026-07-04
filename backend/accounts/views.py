@@ -3,16 +3,19 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, permissions
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import InvestorProfile
+from .models import InvestorPost, InvestorProfile
 from .serializers import (
     EmailTokenObtainPairSerializer,
+    InvestorPostSerializer,
     InvestorProfileSerializer,
     MeSerializer,
     RegisterSerializer,
@@ -98,6 +101,25 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+
+class InvestorPostListCreateView(generics.ListCreateAPIView):
+    """A verified investor's personal milestone/event/update posts, shown to
+    their followers' feed (§Feed people)."""
+
+    serializer_class = InvestorPostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return InvestorPost.objects.filter(author=self.request.user)
+
+    def perform_create(self, serializer):
+        if InvestorPost.objects.filter(
+            author=self.request.user,
+            created_at__date=timezone.localdate(),
+        ).exists():
+            raise ValidationError({"detail": "This profile has already shared a post today."})
+        serializer.save(author=self.request.user)
 
 
 class InvestorProfileView(APIView):

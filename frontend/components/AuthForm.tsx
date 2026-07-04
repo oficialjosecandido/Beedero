@@ -24,14 +24,14 @@ export function AuthForm({
             name={f.name}
             type={f.type}
             required
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </label>
       ))}
       {message && (
         <p
           className={`text-sm ${
-            message.startsWith("If an account exists") ? "text-emerald-700" : "text-red-600"
+            message.startsWith("If an account exists") ? "text-beedero-black" : "text-red-600"
           }`}
         >
           {message}
@@ -40,7 +40,7 @@ export function AuthForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-50"
+        className="rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
       >
         {pending ? "..." : submitLabel}
       </button>

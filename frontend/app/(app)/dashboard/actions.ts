@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export async function createOrgAction(_prevState: string | null, formData: FormData) {
   let org: { slug: string; name: string };
@@ -55,6 +55,13 @@ export async function followOrgAction(formData: FormData) {
   revalidatePath("/feed");
 }
 
+export async function followUserAction(formData: FormData) {
+  const userId = String(formData.get("user_id"));
+  await apiFetch(`/users/${userId}/follow/`, { method: "POST" });
+  revalidatePath("/dashboard");
+  revalidatePath("/feed");
+}
+
 export async function upsertFieldAction(formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));
@@ -98,19 +105,102 @@ export async function closeRoundAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
-export async function postFeedAction(formData: FormData) {
+function firstErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) throw err;
+  const body = err.body as Record<string, string[] | string> | null;
+  const detail = body?.detail;
+  const first = Array.isArray(detail) ? detail[0] : detail ?? (body && Object.values(body)[0]);
+  const value = Array.isArray(first) ? first[0] : first;
+  return typeof value === "string" ? value : fallback;
+}
+
+export async function postFeedAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
-  await apiFetch(`/orgs/${slug}/feed/`, {
-    method: "POST",
-    body: {
-      kind: formData.get("kind"),
-      title: formData.get("title"),
-      body: formData.get("body") ?? "",
-      occurred_at: new Date().toISOString(),
-    },
-  });
+  const body = new FormData();
+  body.set("kind", String(formData.get("kind")));
+  body.set("title", String(formData.get("title")));
+  body.set("body", String(formData.get("body") ?? ""));
+  body.set("occurred_at", new Date().toISOString());
+  const image = formData.get("image");
+  if (image instanceof File && image.size > 0) {
+    body.set("image", image);
+  }
+
+  try {
+    await apiFetch(`/orgs/${slug}/feed/`, { method: "POST", body });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not publish the update.");
+  }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath("/feed");
+  return null;
+}
+
+export async function uploadOrgLogoAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const logo = formData.get("logo");
+  if (!(logo instanceof File) || logo.size === 0) return;
+
+  const body = new FormData();
+  body.set("logo", logo);
+  await apiFetch(`/orgs/${slug}/logo/`, { method: "PUT", body });
+  revalidatePath(`/dashboard/${slug}`);
+  revalidatePath("/feed");
+  revalidatePath("/discovery");
+}
+
+export async function createInviteAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  await apiFetch(`/orgs/${slug}/invites/`, {
+    method: "POST",
+    body: { role: formData.get("role") },
+  });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function revokeInviteAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const inviteId = String(formData.get("invite_id"));
+  await apiFetch(`/orgs/${slug}/invites/${inviteId}/`, { method: "DELETE" });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function updateMemberRoleAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const memberId = String(formData.get("member_id"));
+  await apiFetch(`/orgs/${slug}/members/${memberId}/`, {
+    method: "PATCH",
+    body: { role: formData.get("role") },
+  });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function removeMemberAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const memberId = String(formData.get("member_id"));
+  await apiFetch(`/orgs/${slug}/members/${memberId}/`, { method: "DELETE" });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function createInvestorPostAction(_prevState: string | null, formData: FormData) {
+  const body = new FormData();
+  body.set("kind", String(formData.get("kind")));
+  body.set("title", String(formData.get("title")));
+  body.set("body", String(formData.get("body") ?? ""));
+  body.set("occurred_at", new Date().toISOString());
+  const image = formData.get("image");
+  if (image instanceof File && image.size > 0) {
+    body.set("image", image);
+  }
+
+  try {
+    await apiFetch("/investors/me/posts/", { method: "POST", body });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not publish your post.");
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/feed");
+  return null;
 }
 
 export async function createGrantAction(formData: FormData) {

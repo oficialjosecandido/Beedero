@@ -1,7 +1,14 @@
+import secrets
+
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from .constants import ALWAYS_ON_KINDS, DEFAULT_VISIBILITY_BY_NATURE, NATURE_BY_KIND, SectionKind
+
+
+def generate_invite_token():
+    return secrets.token_urlsafe(24)
 
 
 class Visibility(models.TextChoices):
@@ -13,6 +20,7 @@ class Visibility(models.TextChoices):
 class Organization(models.Model):
     slug = models.SlugField(unique=True)  # beedero.com/o/<slug>
     name = models.CharField(max_length=200)
+    logo = models.ImageField(upload_to="org_logos/", blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     is_fundraising = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -37,6 +45,33 @@ class OrgMembership(models.Model):
     org = models.ForeignKey(Organization, related_name="members", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+
+    class Meta:
+        unique_together = ("org", "user")
+
+
+class OrgInvite(models.Model):
+    """Shareable link that grants org membership on accept. Reusable until revoked."""
+
+    org = models.ForeignKey(Organization, related_name="invites", on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True, default=generate_invite_token)
+    role = models.CharField(max_length=20, choices=OrgMembership.Role.choices, default=OrgMembership.Role.MEMBER)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    uses_count = models.PositiveIntegerField(default=0)
+
+    @property
+    def is_active(self):
+        return self.revoked_at is None
+
+
+class OrgVisit(models.Model):
+    """One row per distinct outside (non-member) viewer of the org's profile."""
+
+    org = models.ForeignKey(Organization, related_name="visits", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("org", "user")
@@ -92,6 +127,7 @@ class OrgField(models.Model):
     key = models.CharField(max_length=50)  # e.g.: "mrr", "valuation", "deck_url"
     value = models.JSONField()  # flexible (JSONB on Postgres)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = ("section", "key")

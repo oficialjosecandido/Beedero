@@ -29,3 +29,24 @@ class InvestorProfile(models.Model):
     @property
     def is_complete(self):
         return all([self.full_name, self.headline, self.country])
+
+
+class InvestorPost(models.Model):
+    class Kind(models.TextChoices):
+        MILESTONE = "milestone"
+        EVENT = "event"
+        UPDATE = "update"
+
+    author = models.ForeignKey(User, related_name="posts", on_delete=models.CASCADE)
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    image = models.ImageField(upload_to="investor_posts/", blank=True, null=True)
+    occurred_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+
+    def __str__(self):
+        return f"{self.author}: {self.title}"

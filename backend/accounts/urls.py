@@ -11,4 +11,5 @@ urlpatterns = [
     path("auth/token/refresh/", TokenRefreshView.as_view()),
     path("auth/me/", views.MeView.as_view()),
     path("investors/me/", views.InvestorProfileView.as_view()),
+    path("investors/me/posts/", views.InvestorPostListCreateView.as_view()),
 ]

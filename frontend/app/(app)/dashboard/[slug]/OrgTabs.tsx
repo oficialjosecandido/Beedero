@@ -1,22 +1,53 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { useActionState } from "react";
 
 import {
   closeRoundAction,
+  createInviteAction,
   deleteFieldAction,
   openRoundAction,
   postFeedAction,
+  removeMemberAction,
+  revokeInviteAction,
+  updateMemberRoleAction,
   upsertFieldAction,
 } from "../actions";
 import { SECTION_LABELS } from "@/lib/types";
 
-type SectionField = { id: number; key: string; value: unknown; visibility: string };
+type SectionField = {
+  id: number;
+  key: string;
+  value: unknown;
+  visibility: string;
+  created_at?: string;
+};
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
+type Stats = { followers_count: number; visitors_count: number };
+type Member = { id: number; email: string; role: string };
+type Invite = {
+  id: number;
+  token: string;
+  role: string;
+  created_at: string;
+  revoked_at: string | null;
+  uses_count: number;
+  is_active: boolean;
+};
+type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string };
 
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
 const IDENTITY_KINDS = ["about", "team", "products", "market_thesis"];
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
+const ROLE_OPTIONS = ["owner", "admin", "member"];
+
+const POST_KIND_OPTIONS = [
+  { value: "milestones", label: "Milestone" },
+  { value: "events", label: "Event" },
+  { value: "news", label: "Update" },
+];
 
 const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
   { key: "website", label: "Website", placeholder: "https://yourcompany.com" },
@@ -28,13 +59,24 @@ const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "profile", label: "Profile" },
-  { id: "links", label: "Website & Social" },
   { id: "activity", label: "Activity" },
+  { id: "configurations", label: "Configurations" },
+  { id: "profile", label: "Profile" },
   { id: "fundraising", label: "Fundraising" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+function collectPosts(sections: Section[]) {
+  return sections
+    .filter((s) => ACTIVITY_KINDS.includes(s.kind))
+    .flatMap((section) =>
+      section.fields
+        .filter((f) => f.key.startsWith("post_"))
+        .map((field) => ({ section, field, value: field.value as PostValue }))
+    )
+    .sort((a, b) => (b.value.occurred_at ?? "").localeCompare(a.value.occurred_at ?? ""));
+}
 
 function SectionCard({ slug, section }: { slug: string; section: Section }) {
   return (
@@ -216,16 +258,309 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
   );
 }
 
-function OverviewTab({
+function OverviewTab({ stats }: { stats: Stats }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-medium text-zinc-500">Followers</p>
+        <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
+      </div>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
+        <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.visitors_count}</p>
+        <p className="mt-1 text-xs text-zinc-400">
+          Distinct people outside your organization who viewed this profile.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PostComposer({
   slug,
-  isFundraising,
   canPostUpdates,
+  hasPostedToday,
   profileFieldCount,
 }: {
   slug: string;
-  isFundraising: boolean;
   canPostUpdates: boolean;
+  hasPostedToday: boolean;
   profileFieldCount: number;
+}) {
+  const [error, formAction, pending] = useActionState(postFeedAction, null);
+
+  return (
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+    >
+      <input type="hidden" name="slug" value={slug} />
+      <h3 className="font-semibold text-zinc-900">Share an update</h3>
+      <p className="text-sm text-zinc-500">
+        {hasPostedToday
+          ? "This profile has already shared today's post. Come back tomorrow."
+          : canPostUpdates
+            ? "Milestones, events, and updates appear in your followers' feed."
+            : `Add ${5 - profileFieldCount} more profile field${
+                5 - profileFieldCount === 1 ? "" : "s"
+              } before posting updates.`}
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+          Type
+          <select name="kind" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm">
+            {POST_KIND_OPTIONS.map((k) => (
+              <option key={k.value} value={k.value}>
+                {k.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <input
+          name="title"
+          placeholder="Title"
+          required
+          className="min-w-[10rem] flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm"
+        />
+      </div>
+      <textarea
+        name="body"
+        placeholder="Say more..."
+        rows={3}
+        className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm"
+      />
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+        Photo (optional)
+        <input
+          type="file"
+          name="image"
+          accept="image/*"
+          className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+        />
+      </label>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <button
+        disabled={!canPostUpdates || pending}
+        className="self-start rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {pending ? "Publishing..." : "Publish"}
+      </button>
+    </form>
+  );
+}
+
+function PostCard({
+  slug,
+  kind,
+  field,
+  value,
+}: {
+  slug: string;
+  kind: string;
+  field: SectionField;
+  value: PostValue;
+}) {
+  return (
+    <article className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+          {SECTION_LABELS[kind] ?? kind}
+        </span>
+        <form action={deleteFieldAction}>
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="key" value={field.key} />
+          <button className="text-xs font-medium text-red-700 hover:underline">Delete</button>
+        </form>
+      </div>
+      {value.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={value.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
+      )}
+      <h3 className="text-lg font-semibold text-zinc-900">{value.title ?? "Update"}</h3>
+      {value.body && <p className="text-sm leading-6 text-zinc-600">{value.body}</p>}
+      {value.occurred_at && (
+        <p className="text-xs text-zinc-400">{new Date(value.occurred_at).toLocaleDateString()}</p>
+      )}
+    </article>
+  );
+}
+
+function ActivityTab({
+  slug,
+  sections,
+  canPostUpdates,
+  hasPostedToday,
+  profileFieldCount,
+}: {
+  slug: string;
+  sections: Section[];
+  canPostUpdates: boolean;
+  hasPostedToday: boolean;
+  profileFieldCount: number;
+}) {
+  const posts = collectPosts(sections);
+  return (
+    <div className="flex flex-col gap-4">
+      <PostComposer
+        slug={slug}
+        canPostUpdates={canPostUpdates}
+        hasPostedToday={hasPostedToday}
+        profileFieldCount={profileFieldCount}
+      />
+      {posts.length === 0 && (
+        <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">No posts yet.</p>
+      )}
+      {posts.map(({ section, field, value }) => (
+        <PostCard key={field.id} slug={slug} kind={section.kind} field={field} value={value} />
+      ))}
+    </div>
+  );
+}
+
+function TeamSection({ slug, members, canManage }: { slug: string; members: Member[]; canManage: boolean }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <h3 className="font-semibold text-zinc-900">Team</h3>
+      <div className="mt-3 flex flex-col gap-2">
+        {members.map((member) => (
+          <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
+            <span className="truncate text-zinc-700">{member.email}</span>
+            {canManage ? (
+              <div className="flex items-center gap-2">
+                <form action={updateMemberRoleAction}>
+                  <input type="hidden" name="slug" value={slug} />
+                  <input type="hidden" name="member_id" value={member.id} />
+                  <select
+                    name="role"
+                    defaultValue={member.role}
+                    onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                    className="rounded-lg border border-zinc-300 px-2 py-1 text-xs"
+                  >
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </form>
+                <form action={removeMemberAction}>
+                  <input type="hidden" name="slug" value={slug} />
+                  <input type="hidden" name="member_id" value={member.id} />
+                  <button className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50">
+                    Remove
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-zinc-400">{member.role}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <h3 className="font-semibold text-zinc-900">Invite links</h3>
+      <p className="mt-1 text-sm text-zinc-500">Share a link to let someone join your team directly.</p>
+      <div className="mt-3 flex flex-col gap-2">
+        {invites.length === 0 && <p className="text-sm text-zinc-400">No active invite links.</p>}
+        {invites.map((invite) => (
+          <div
+            key={invite.id}
+            className="flex flex-col gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-mono text-xs text-zinc-600">/invite/{invite.token}</p>
+              <p className="text-xs text-zinc-400">
+                {invite.role} · used {invite.uses_count}x
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${invite.token}`)}
+                className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium hover:bg-zinc-50"
+              >
+                Copy link
+              </button>
+              <form action={revokeInviteAction}>
+                <input type="hidden" name="slug" value={slug} />
+                <input type="hidden" name="invite_id" value={invite.id} />
+                <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                  Revoke
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+      <form
+        action={createInviteAction}
+        className="mt-3 flex items-center gap-2 border-t border-dashed border-zinc-200 pt-3"
+      >
+        <input type="hidden" name="slug" value={slug} />
+        <select name="role" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm">
+          {ROLE_OPTIONS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800">
+          Create invite link
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function ConfigurationsTab({
+  slug,
+  members,
+  invites,
+  canManage,
+  linksSection,
+}: {
+  slug: string;
+  members: Member[];
+  invites: Invite[];
+  canManage: boolean;
+  linksSection?: Section;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <TeamSection slug={slug} members={members} canManage={canManage} />
+      {canManage && <InvitesSection slug={slug} invites={invites} />}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h3 className="font-semibold text-zinc-900">Access</h3>
+        <p className="mt-1 text-sm text-zinc-500">
+          Grant restricted or private sections to specific people, organizations, or roles.
+        </p>
+        <Link
+          href={`/dashboard/${slug}/access`}
+          className="mt-3 inline-flex text-sm font-medium text-emerald-700 underline underline-offset-2"
+        >
+          Manage granted access
+        </Link>
+      </div>
+      <LinksTab slug={slug} section={linksSection} />
+    </div>
+  );
+}
+
+function FundraisingTab({
+  slug,
+  isFundraising,
+  fundraiseSections,
+}: {
+  slug: string;
+  isFundraising: boolean;
+  fundraiseSections: Section[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -282,43 +617,14 @@ function OverviewTab({
         )}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="font-semibold text-zinc-900">Post update</h3>
-        <p className="mt-1 text-sm text-zinc-500">
-          {canPostUpdates
-            ? "Your organization profile has enough detail to post updates."
-            : `Add ${5 - profileFieldCount} more profile field${
-                5 - profileFieldCount === 1 ? "" : "s"
-              } before posting updates.`}
+      {fundraiseSections.length === 0 && (
+        <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
+          No fundraise sections yet.
         </p>
-        <form action={postFeedAction} className="mt-4 flex flex-wrap items-end gap-2">
-          <input type="hidden" name="slug" value={slug} />
-          <select name="kind" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm">
-            {ACTIVITY_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {SECTION_LABELS[k]}
-              </option>
-            ))}
-          </select>
-          <input
-            name="title"
-            placeholder="Title"
-            required
-            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm"
-          />
-          <input
-            name="body"
-            placeholder="Text"
-            className="w-64 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm"
-          />
-          <button
-            disabled={!canPostUpdates}
-            className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Publish
-          </button>
-        </form>
-      </div>
+      )}
+      {fundraiseSections.map((section) => (
+        <SectionCard key={section.id} slug={slug} section={section} />
+      ))}
     </div>
   );
 }
@@ -329,33 +635,39 @@ export function OrgTabs({
   isFundraising,
   profileFieldCount,
   canPostUpdates,
+  hasPostedToday,
+  stats,
+  members,
+  invites,
+  canManage,
 }: {
   slug: string;
   sections: Section[];
   isFundraising: boolean;
   profileFieldCount: number;
   canPostUpdates: boolean;
+  hasPostedToday: boolean;
+  stats: Stats;
+  members: Member[];
+  invites: Invite[];
+  canManage: boolean;
 }) {
   const [active, setActive] = useState<TabId>("overview");
 
   const identitySections = sections.filter((s) => IDENTITY_KINDS.includes(s.kind));
-  const activitySections = sections.filter((s) => ACTIVITY_KINDS.includes(s.kind));
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
-
-  const visibleTabs = TABS.filter((tab) => tab.id !== "fundraising" || isFundraising);
-  const activeTab: TabId = visibleTabs.some((t) => t.id === active) ? active : "overview";
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex gap-1 overflow-x-auto rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-sm">
-        {visibleTabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActive(tab.id)}
             className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab.id ? "bg-emerald-700 text-white" : "text-zinc-600 hover:bg-zinc-100"
+              active === tab.id ? "bg-emerald-700 text-white" : "text-zinc-600 hover:bg-zinc-100"
             }`}
           >
             {tab.label}
@@ -363,16 +675,29 @@ export function OrgTabs({
         ))}
       </div>
 
-      {activeTab === "overview" && (
-        <OverviewTab
+      {active === "overview" && <OverviewTab stats={stats} />}
+
+      {active === "activity" && (
+        <ActivityTab
           slug={slug}
-          isFundraising={isFundraising}
+          sections={sections}
           canPostUpdates={canPostUpdates}
+          hasPostedToday={hasPostedToday}
           profileFieldCount={profileFieldCount}
         />
       )}
 
-      {activeTab === "profile" && (
+      {active === "configurations" && (
+        <ConfigurationsTab
+          slug={slug}
+          members={members}
+          invites={invites}
+          canManage={canManage}
+          linksSection={linksSection}
+        />
+      )}
+
+      {active === "profile" && (
         <div className="flex flex-col gap-4">
           {identitySections.map((section) => (
             <SectionCard key={section.id} slug={slug} section={section} />
@@ -380,27 +705,8 @@ export function OrgTabs({
         </div>
       )}
 
-      {activeTab === "links" && <LinksTab slug={slug} section={linksSection} />}
-
-      {activeTab === "activity" && (
-        <div className="flex flex-col gap-4">
-          {activitySections.map((section) => (
-            <SectionCard key={section.id} slug={slug} section={section} />
-          ))}
-        </div>
-      )}
-
-      {activeTab === "fundraising" && (
-        <div className="flex flex-col gap-4">
-          {fundraiseSections.length === 0 && (
-            <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
-              No fundraise sections yet.
-            </p>
-          )}
-          {fundraiseSections.map((section) => (
-            <SectionCard key={section.id} slug={slug} section={section} />
-          ))}
-        </div>
+      {active === "fundraising" && (
+        <FundraisingTab slug={slug} isFundraising={isFundraising} fundraiseSections={fundraiseSections} />
       )}
     </div>
   );

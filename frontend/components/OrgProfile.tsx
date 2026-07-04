@@ -2,11 +2,15 @@ import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
 function FieldValue({ value }: { value: unknown }) {
   if (value && typeof value === "object" && "title" in (value as Record<string, unknown>)) {
-    const post = value as { title: string; body?: string; occurred_at?: string };
+    const post = value as { title: string; body?: string; occurred_at?: string; image?: string };
     return (
       <div>
         <p className="font-medium">{post.title}</p>
         {post.body && <p className="text-sm text-zinc-600">{post.body}</p>}
+        {post.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />
+        )}
         {post.occurred_at && (
           <p className="text-xs text-zinc-400">
             {new Date(post.occurred_at).toLocaleDateString()}
@@ -28,7 +32,15 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
   return (
     <div className="flex w-full max-w-2xl flex-col gap-8">
       <header className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {data.org.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.org.logo} alt="" className="size-12 rounded-xl border border-zinc-200 object-cover" />
+          ) : (
+            <span className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-lg font-semibold text-zinc-500">
+              {data.org.name.charAt(0).toUpperCase()}
+            </span>
+          )}
           <h1 className="text-3xl font-semibold">{data.org.name}</h1>
           {data.org.is_verified && (
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">

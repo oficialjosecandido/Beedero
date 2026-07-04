@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { CreateOrgForm } from "@/components/CreateOrgForm";
+import { InvestorPostForm } from "@/components/InvestorPostForm";
 import { ProfileForm } from "@/components/ProfileForm";
 import { apiFetch } from "@/lib/api";
 import type { OrgSummary } from "@/lib/types";
-import { followOrgAction } from "./actions";
+import { followOrgAction, followUserAction } from "./actions";
 
-type Membership = { slug: string; name: string; role: string };
+type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type InvestorProfile = {
   full_name?: string;
   headline?: string;
@@ -16,7 +17,8 @@ type InvestorProfile = {
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
-type Recommendations = { organizations: OrgSummary[]; people: unknown[] };
+type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
+type Recommendations = { organizations: OrgSummary[]; people: PersonSummary[] };
 
 export default async function DashboardPage() {
   const [me, orgs, recommendations]: [Me, Membership[], Recommendations] = await Promise.all([
@@ -30,7 +32,7 @@ export default async function DashboardPage() {
     <main className="flex flex-1 flex-col items-center px-6 py-12">
       <div className="flex w-full max-w-5xl flex-col gap-10">
         <header>
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-beedero-black">
             Dashboard
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
@@ -60,7 +62,7 @@ export default async function DashboardPage() {
                 </p>
                 <Link
                   href="/feed"
-                  className="mt-4 inline-flex rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                  className="mt-4 inline-flex rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
                 >
                   Open feed
                 </Link>
@@ -84,13 +86,71 @@ export default async function DashboardPage() {
                     </div>
                     <form action={followOrgAction}>
                       <input type="hidden" name="slug" value={org.slug} />
-                      <button className="rounded-xl border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50">
+                      <button className="rounded-xl border border-beedero-black/15 px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow">
                         Follow
                       </button>
                     </form>
                   </div>
                 ))}
               </div>
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+              <div>
+                <h2 className="text-xl font-semibold">People to follow</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Follow other investors to see their milestones, events, and updates in your feed.
+                </p>
+              </div>
+              <div className="grid gap-3">
+                {recommendations.people.length === 0 && (
+                  <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
+                    No recommendations yet.
+                  </p>
+                )}
+                {recommendations.people.map((person) => (
+                  <div
+                    key={person.id}
+                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      {person.profile_picture ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={person.profile_picture}
+                          alt=""
+                          className="size-9 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-500">
+                          {person.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div>
+                        <p className="font-medium">{person.name}</p>
+                        {person.headline && <p className="text-xs text-zinc-500">{person.headline}</p>}
+                      </div>
+                    </div>
+                    <form action={followUserAction}>
+                      <input type="hidden" name="user_id" value={person.id} />
+                      <button className="rounded-xl border border-beedero-black/15 px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow">
+                        Follow
+                      </button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+              <div>
+                <h2 className="text-xl font-semibold">Share an update</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Post a milestone, event, or update to your followers&apos; feed, with an optional
+                  photo.
+                </p>
+              </div>
+              <InvestorPostForm />
             </section>
 
             <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
@@ -107,9 +167,19 @@ export default async function DashboardPage() {
                   <Link
                     key={m.slug}
                     href={`/dashboard/${m.slug}`}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm hover:border-emerald-200"
+                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm hover:border-beedero-yellow"
                   >
-                    <span className="font-medium">{m.name}</span>
+                    <span className="flex items-center gap-2 font-medium">
+                      {m.logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.logo} alt="" className="size-8 rounded-lg object-cover" />
+                      ) : (
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-500">
+                          {m.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      {m.name}
+                    </span>
                     <span className="text-xs text-zinc-500">{m.role}</span>
                   </Link>
                 ))}

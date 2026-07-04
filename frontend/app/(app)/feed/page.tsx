@@ -4,12 +4,15 @@ import { apiFetch } from "@/lib/api";
 import { SECTION_LABELS } from "@/lib/types";
 
 type FeedItem = {
-  org: { slug: string; name: string };
+  type: "org" | "person";
+  org?: { slug: string; name: string; logo?: string | null };
+  author?: { id: number; name: string };
   kind: string;
   key: string;
   value: {
     title?: string;
     body?: string;
+    image?: string | null;
     occurred_at?: string;
   };
 };
@@ -25,28 +28,41 @@ export default async function FeedPage() {
             Feed
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Updates from organizations you follow
+            Updates from people and organizations you follow
           </h1>
         </header>
 
         <div className="grid gap-4">
           {items.length === 0 && (
             <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-500">
-              No updates yet. Beedero is followed automatically until you follow other organizations.
+              No updates yet. Beedero is followed automatically until you follow other people and
+              organizations.
             </div>
           )}
           {items.map((item) => (
             <article
-              key={`${item.org.slug}-${item.key}`}
+              key={`${item.type}-${item.key}`}
               className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
             >
               <div className="flex items-center justify-between gap-4">
-                <Link
-                  href={`/org/${item.org.slug}`}
-                  className="font-semibold text-zinc-950 hover:text-emerald-700"
-                >
-                  {item.org.name}
-                </Link>
+                {item.type === "org" && item.org ? (
+                  <Link
+                    href={`/org/${item.org.slug}`}
+                    className="flex items-center gap-2 font-semibold text-zinc-950 hover:text-emerald-700"
+                  >
+                    {item.org.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.org.logo} alt="" className="size-8 rounded-lg object-cover" />
+                    ) : (
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-500">
+                        {item.org.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    {item.org.name}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-zinc-950">{item.author?.name ?? "Someone"}</span>
+                )}
                 <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
                   {SECTION_LABELS[item.kind] ?? item.kind}
                 </span>
@@ -56,6 +72,14 @@ export default async function FeedPage() {
               </h2>
               {item.value.body && (
                 <p className="mt-2 text-sm leading-6 text-zinc-600">{item.value.body}</p>
+              )}
+              {item.value.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.value.image}
+                  alt=""
+                  className="mt-3 max-h-96 w-full rounded-2xl object-cover"
+                />
               )}
               {item.value.occurred_at && (
                 <p className="mt-4 text-xs text-zinc-400">

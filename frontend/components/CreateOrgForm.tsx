@@ -35,18 +35,18 @@ export function CreateOrgForm() {
   const [error, formAction, pending] = useActionState(createOrgAction, null);
 
   return (
-    <form action={formAction} className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:grid-cols-2">
+    <form action={formAction} className="grid gap-4 rounded-3xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm md:grid-cols-2">
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700 md:col-span-2">
         Name
         <input
           name="name"
           required
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Stage
-        <select name="stage" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950">
+        <select name="stage" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
           {STAGES.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -56,7 +56,7 @@ export function CreateOrgForm() {
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Sector
-        <select name="sector" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950">
+        <select name="sector" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
           {SECTORS.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -66,7 +66,7 @@ export function CreateOrgForm() {
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700 md:col-span-2">
         Address / geography
-        <select name="geo" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950">
+        <select name="geo" className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
           {GEOGRAPHIES.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -75,7 +75,7 @@ export function CreateOrgForm() {
         </select>
       </label>
       <div className="md:col-span-2">
-        <p className="text-sm font-semibold text-zinc-900">Add organization fields</p>
+        <p className="text-sm font-semibold text-beedero-black">Add organization fields</p>
         <p className="mt-1 text-sm text-zinc-500">
           Add at least 5 profile fields before posting organization updates.
         </p>
@@ -91,7 +91,7 @@ export function CreateOrgForm() {
           <textarea
             name={name}
             rows={3}
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </label>
       ))}
@@ -99,7 +99,7 @@ export function CreateOrgForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 md:col-span-2"
+        className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50 md:col-span-2"
       >
         {pending ? "..." : "Create organization"}
       </button>

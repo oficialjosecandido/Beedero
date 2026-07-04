@@ -1,6 +1,7 @@
 export type OrgSummary = {
   slug: string;
   name: string;
+  logo?: string | null;
   stage?: string;
   sector?: string;
   geo?: string;

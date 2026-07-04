@@ -3,7 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 
-from .models import InvestorProfile
+from .models import InvestorPost, InvestorProfile
 
 User = get_user_model()
 
@@ -59,6 +59,19 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "is_complete",
         ]
         read_only_fields = ["is_verified", "verified_at"]
+
+
+class InvestorPostSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InvestorPost
+        fields = ["id", "kind", "title", "body", "image", "occurred_at", "created_at", "author_name"]
+        read_only_fields = ["id", "created_at", "author_name"]
+
+    def get_author_name(self, obj):
+        profile = getattr(obj.author, "investorprofile", None)
+        return (profile.full_name if profile and profile.full_name else None) or obj.author.email
 
 
 class MeSerializer(serializers.ModelSerializer):

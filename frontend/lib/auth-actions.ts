@@ -18,7 +18,7 @@ export async function loginAction(_prevState: string | null, formData: FormData)
   }
 
   await setSession(tokens.access, tokens.refresh);
-  redirect("/dashboard");
+  redirect("/feed");
 }
 
 export async function registerAction(_prevState: string | null, formData: FormData) {
@@ -48,7 +48,7 @@ export async function registerAction(_prevState: string | null, formData: FormDa
     password,
   });
   await setSession(tokens.access, tokens.refresh);
-  redirect("/dashboard");
+  redirect("/feed");
 }
 
 export async function forgotPasswordAction(_prevState: string | null, formData: FormData) {
