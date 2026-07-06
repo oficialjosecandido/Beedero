@@ -58,6 +58,18 @@ def unique_org_slug(name: str) -> str:
     return slug
 
 
+def _owner_email_verifies_org(email: str, name: str) -> bool:
+    """Auto-verify when the creator's email domain is an exact match for the
+    org name as a domain (name="Google" + owner@google.com verifies; a
+    look-alike like owner@google.com.info must not, so multi-label domains
+    are rejected rather than prefix-matched)."""
+    if "@" not in email:
+        return False
+    domain = email.rsplit("@", 1)[1].lower()
+    label, sep, rest = domain.partition(".")
+    return sep == "." and "." not in rest and label == slugify(name)
+
+
 def ensure_default_beedero_follow(user):
     if OrgFollow.objects.filter(user=user).exists():
         return
@@ -125,6 +137,7 @@ class OrgListCreateView(APIView):
             slug=unique_org_slug(name),
             name=name,
             one_liner=one_liner,
+            is_verified=_owner_email_verifies_org(request.user.email, name),
         )
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)

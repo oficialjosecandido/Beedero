@@ -39,7 +39,7 @@ export function OrgLogoForm({
     >
       <input type="hidden" name="slug" value={slug} />
       {image}
-      <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/0 text-[11px] font-medium text-transparent transition-colors group-hover:bg-black/50 group-hover:text-white">
+      <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-beedero-black/0 text-[11px] font-medium text-transparent transition-colors group-hover:bg-beedero-black/50 group-hover:text-beedero-white">
         Change
         <input
           type="file"

@@ -43,12 +43,12 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           )}
           <h1 className="text-3xl font-semibold">{data.org.name}</h1>
           {data.org.is_verified && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+            <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
               Verified
             </span>
           )}
           {data.org.is_fundraising && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+            <span className="rounded-full bg-beedero-black px-2 py-0.5 text-xs font-bold text-beedero-yellow">
               Fundraising
             </span>
           )}
@@ -61,7 +61,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
       )}
 
       {sectionEntries.map(([kind, fields]) => (
-        <section key={kind} className="flex flex-col gap-3 border-t border-zinc-200 pt-4">
+        <section key={kind} className="flex flex-col gap-3 border-t border-beedero-black/10 pt-4">
           <h2 className="text-lg font-medium">{SECTION_LABELS[kind] ?? kind}</h2>
           <div className="flex flex-col gap-3">
             {Object.entries(fields).map(([key, value]) => (

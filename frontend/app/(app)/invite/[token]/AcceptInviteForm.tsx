@@ -14,7 +14,7 @@ export function AcceptInviteForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-50"
+        className="rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
       >
         {pending ? "Joining..." : "Accept invite"}
       </button>

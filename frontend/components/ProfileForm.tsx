@@ -19,7 +19,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
   return (
     <form
       action={formAction}
-      className="grid gap-4 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
+      className="grid gap-4 rounded-3xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm"
     >
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Full name
@@ -27,7 +27,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="full_name"
           required
           defaultValue={profile?.full_name ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -37,7 +37,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           required
           placeholder="Investor, founder, operator..."
           defaultValue={profile?.headline ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -46,7 +46,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="country"
           required
           defaultValue={profile?.country ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         >
           <option value="" disabled>
             Select a country
@@ -64,7 +64,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="bio"
           rows={4}
           defaultValue={profile?.bio ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -81,14 +81,14 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           type="file"
           name="profile_picture"
           accept="image/*"
-          className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+          className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
         />
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-50"
+        className="rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
       >
         {pending ? "Saving..." : "Complete profile"}
       </button>

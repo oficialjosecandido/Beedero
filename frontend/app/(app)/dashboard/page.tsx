@@ -69,17 +69,21 @@ export default async function DashboardPage() {
               </div>
               <div className="grid gap-3">
                 {recommendations.organizations.length === 0 && (
-                  <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
+                  <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">
                     No recommendations yet.
                   </p>
                 )}
                 {recommendations.organizations.map((org) => (
                   <div
                     key={org.slug}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                    className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-4 py-3 shadow-sm"
                   >
                     <div>
-                      <p className="font-medium">{org.name}</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="font-medium">{org.name}</p>
+                        <p className="text-xs text-zinc-400">@{org.slug}</p>
+                      </div>
+                      {org.one_liner && <p className="text-xs text-zinc-600">{org.one_liner}</p>}
                       <p className="text-xs text-zinc-500">
                         {org.stage} · {org.sector} · {org.geo}
                       </p>
@@ -104,14 +108,14 @@ export default async function DashboardPage() {
               </div>
               <div className="grid gap-3">
                 {recommendations.people.length === 0 && (
-                  <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
+                  <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">
                     No recommendations yet.
                   </p>
                 )}
                 {recommendations.people.map((person) => (
                   <div
                     key={person.id}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                    className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-4 py-3 shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       {person.profile_picture ? (
@@ -167,7 +171,7 @@ export default async function DashboardPage() {
                   <Link
                     key={m.slug}
                     href={`/dashboard/${m.slug}`}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm hover:border-beedero-yellow"
+                    className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-4 py-3 shadow-sm hover:border-beedero-yellow"
                   >
                     <span className="flex items-center gap-2 font-medium">
                       {m.logo ? (

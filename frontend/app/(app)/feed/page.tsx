@@ -24,7 +24,7 @@ export default async function FeedPage() {
     <main className="flex flex-1 flex-col items-center px-6 py-12">
       <div className="flex w-full max-w-3xl flex-col gap-8">
         <header>
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
             Feed
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
@@ -34,7 +34,7 @@ export default async function FeedPage() {
 
         <div className="grid gap-4">
           {items.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-500">
+            <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
               No updates yet. Beedero is followed automatically until you follow other people and
               organizations.
             </div>
@@ -42,13 +42,13 @@ export default async function FeedPage() {
           {items.map((item) => (
             <article
               key={`${item.type}-${item.key}`}
-              className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
+              className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm"
             >
               <div className="flex items-center justify-between gap-4">
                 {item.type === "org" && item.org ? (
                   <Link
                     href={`/org/${item.org.slug}`}
-                    className="flex items-center gap-2 font-semibold text-zinc-950 hover:text-emerald-700"
+                    className="flex items-center gap-2 font-semibold text-zinc-950 hover:underline hover:decoration-beedero-yellow hover:decoration-2 hover:underline-offset-4"
                   >
                     {item.org.logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
