@@ -124,6 +124,21 @@ STORAGES = {
     },
 }
 
+# Transactional email (verification, password reset) — always Azure
+# Communication Services, in every environment. No unconfigured SMTP
+# fallback (that's what silently swallowed every verification email before).
+AZURE_COMMUNICATION_CONNECTION_STRING = os.environ.get("AZURE_COMMUNICATION_CONNECTION_STRING")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "")
+
+if not (AZURE_COMMUNICATION_CONNECTION_STRING and DEFAULT_FROM_EMAIL):
+    raise ImproperlyConfigured(
+        "AZURE_COMMUNICATION_CONNECTION_STRING and DEFAULT_FROM_EMAIL must be "
+        "set — transactional email always uses Azure Communication Services, "
+        "there is no SMTP fallback."
+    )
+
+EMAIL_BACKEND = "beedero.email_backend.AzureCommunicationEmailBackend"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # App Service termina TLS na edge e reencaminha em HTTP; sem isto o Django
