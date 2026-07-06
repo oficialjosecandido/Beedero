@@ -8,7 +8,10 @@ from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 
 from accounts.models import InvestorPost, InvestorProfile
-from billing.services import confirm_payment, maybe_refund_as_credit, start_commitment_fee
+from analytics.models import InterestSignal, ProfileView
+from beedero.ratelimit import enforce_rate_limit
+from billing.entitlements import has_entitlement
+from billing.services import maybe_refund_as_credit
 
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
@@ -129,6 +132,10 @@ class OrgListCreateView(APIView):
         """§2: creation is deliberately minimal — name + one_liner only, draft
         by default. Everything else (logo, sector, identity sections) is
         filled in progressively from the dashboard, never required upfront."""
+        enforce_rate_limit(f"create_org:user:{request.user.id}", limit=5, window_seconds=3600)
+        enforce_rate_limit(
+            f"create_org:ip:{request.META.get('REMOTE_ADDR')}", limit=10, window_seconds=3600
+        )
         name = request.data.get("name")
         one_liner = request.data.get("one_liner")
         if not name or not one_liner:
@@ -157,6 +164,11 @@ class OrgProfileView(OrgLookupMixin, APIView):
         resolver = VisibilityResolver(viewer=request.user, org=org)
         if not resolver.is_member:
             OrgVisit.objects.get_or_create(org=org, user=request.user)
+            ProfileView.objects.create(
+                org=org,
+                viewer=request.user,
+                viewer_is_investor=hasattr(request.user, "investorprofile"),
+            )
         data = OrgProfileSerializer(org, resolver, request=request).data()
         return Response(data)
 
@@ -187,7 +199,10 @@ class OrgLogoView(OrgLookupMixin, APIView):
 
 class OrgOnboardingView(OrgLookupMixin, APIView):
     """GET /api/orgs/<slug>/onboarding/ — owner/admin-only status, profile
-    strength meter, and refund checklist (doc §5)."""
+    strength meter, and checklist. `fee`/refund fields are legacy (the
+    commitment fee is inactive per freemium doc §7) and will be null for any
+    org activated after that change; kept so old paid orgs still report
+    correctly."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
 
@@ -213,12 +228,77 @@ class OrgOnboardingView(OrgLookupMixin, APIView):
         )
 
 
+class OrgInsightView(OrgLookupMixin, APIView):
+    """GET /api/orgs/<slug>/insight/ — the founder-insight product (doc §5),
+    built now and dormant: aggregate counts are always returned (the free
+    teaser), the detail lists are gated by `has_entitlement` and are `null`
+    until their feature is added to `billing.entitlements.PAID_FEATURES_LIVE`."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def get(self, request, slug):
+        org = self.get_org()
+
+        viewers_entitled = has_entitlement(org, "profile_viewers")
+        views_qs = ProfileView.objects.filter(org=org).select_related("viewer").order_by("-viewed_at")
+
+        signals_entitled = has_entitlement(org, "interest_signals")
+        signals_qs = (
+            InterestSignal.objects.filter(org=org).select_related("investor").order_by("-created_at")
+        )
+
+        deck_entitled = has_entitlement(org, "deck_analytics")
+        opens_qs = (
+            RestrictedAccessLog.objects.filter(org=org, section_kind=SectionKind.DATA_ROOM)
+            .select_related("viewer")
+            .order_by("-accessed_at")
+        )
+
+        return Response(
+            {
+                "profile_views_count": views_qs.count(),
+                "viewers": (
+                    [
+                        {"email": v.viewer.email if v.viewer else None, "viewed_at": v.viewed_at}
+                        for v in views_qs[:200]
+                    ]
+                    if viewers_entitled
+                    else None
+                ),
+                "interest_signals_count": signals_qs.count(),
+                "interest_signals": (
+                    [
+                        {"investor_email": s.investor.email, "kind": s.kind, "created_at": s.created_at}
+                        for s in signals_qs[:200]
+                    ]
+                    if signals_entitled
+                    else None
+                ),
+                "dataroom_opens_count": opens_qs.count(),
+                "dataroom_opens": (
+                    [
+                        {
+                            "investor_email": o.viewer.email if o.viewer else None,
+                            "field_key": o.field_key,
+                            "accessed_at": o.accessed_at,
+                        }
+                        for o in opens_qs[:200]
+                    ]
+                    if deck_entitled
+                    else None
+                ),
+            }
+        )
+
+
 class OrgActivateView(OrgLookupMixin, APIView):
     """POST /api/orgs/<slug>/activate/ — publish the org (draft -> live).
 
-    Dev stub: confirms the commitment fee immediately instead of waiting for
-    a payment webhook. Swap the `confirm_payment` call for a real provider
-    integration later without touching the rest of the state machine.
+    Freemium doc §7: publishing is free. The old anti-spam gate was a
+    commitment fee (`billing.services.confirm_payment`, still intact for a
+    possible future paid "featured" tier but no longer called here); the
+    replacement gate is a non-monetary one — the requesting owner/admin's
+    email must be verified.
     """
 
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
@@ -227,9 +307,13 @@ class OrgActivateView(OrgLookupMixin, APIView):
         org = self.get_org()
         if org.status == Organization.Status.LIVE:
             return Response({"detail": "Organization is already live."}, status=400)
-        fee = start_commitment_fee(org)
-        confirm_payment(fee, provider_ref="dev-stub")
-        org.refresh_from_db()
+        if not request.user.is_email_verified:
+            return Response(
+                {"detail": "Verify your email before publishing.", "action": "verify_email"},
+                status=403,
+            )
+        org.status = Organization.Status.LIVE
+        org.save(update_fields=["status"])
         return Response({"slug": org.slug, "status": org.status})
 
 
@@ -652,7 +736,9 @@ class FollowOrgView(APIView):
         org = get_object_or_404(Organization, slug=slug)
         if org.status != Organization.Status.LIVE:
             return Response({"detail": "This organization is still a draft."}, status=400)
-        OrgFollow.objects.get_or_create(user=request.user, org=org)
+        _, created = OrgFollow.objects.get_or_create(user=request.user, org=org)
+        if created and hasattr(request.user, "investorprofile"):
+            InterestSignal.objects.create(org=org, investor=request.user, kind=InterestSignal.Kind.FOLLOWED)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

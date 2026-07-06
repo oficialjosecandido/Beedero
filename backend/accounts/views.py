@@ -12,6 +12,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from beedero.ratelimit import enforce_rate_limit
+
 from .models import InvestorPost, InvestorProfile
 from .serializers import (
     EmailTokenObtainPairSerializer,
@@ -20,14 +22,85 @@ from .serializers import (
     MeSerializer,
     RegisterSerializer,
 )
+from .tokens import email_verification_token_generator
 
 User = get_user_model()
+
+
+def _client_ip(request):
+    return request.META.get("REMOTE_ADDR")
+
+
+def _send_verification_email(user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = email_verification_token_generator.make_token(user)
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
+    verify_url = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+    try:
+        send_mail(
+            "Verify your Beedero email",
+            f"Confirm your email to publish your organization: {verify_url}",
+            None,
+            [user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
+    return verify_url
 
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+
+    def create(self, request, *args, **kwargs):
+        enforce_rate_limit(f"register:{_client_ip(request)}", limit=10, window_seconds=3600)
+        response = super().create(request, *args, **kwargs)
+        user = User.objects.get(pk=response.data["id"])
+        verify_url = _send_verification_email(user)
+        if settings.DEBUG:
+            response.data["verify_email_url"] = verify_url
+        return response
+
+
+class VerifyEmailConfirmView(APIView):
+    """POST /api/auth/verify-email/confirm/ — uid+token from the emailed
+    link. AllowAny: the token itself (not a session) is the credential,
+    same pattern as password reset."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        uid = request.data.get("uid")
+        token = request.data.get("token")
+        try:
+            user = User.objects.get(pk=force_str(urlsafe_base64_decode(uid)))
+        except Exception:
+            return Response({"detail": "Invalid verification link."}, status=400)
+
+        if not email_verification_token_generator.check_token(user, token):
+            return Response({"detail": "Invalid or expired verification link."}, status=400)
+
+        if not user.is_email_verified:
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=["email_verified_at"])
+        return Response({"detail": "Email verified."})
+
+
+class VerifyEmailResendView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        enforce_rate_limit(f"resend_verify:{request.user.id}", limit=5, window_seconds=3600)
+        if request.user.is_email_verified:
+            return Response({"detail": "Email already verified."})
+        verify_url = _send_verification_email(request.user)
+        response = {"detail": "Verification email sent."}
+        if settings.DEBUG:
+            response["verify_email_url"] = verify_url
+        return Response(response)
 
 
 class EmailTokenObtainPairView(TokenObtainPairView):

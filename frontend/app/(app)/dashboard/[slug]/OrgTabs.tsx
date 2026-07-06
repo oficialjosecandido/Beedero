@@ -17,6 +17,7 @@ import {
   updateOrgProfileAction,
   upsertFieldAction,
 } from "../actions";
+import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { SECTION_LABELS } from "@/lib/types";
 
 type SectionField = {
@@ -280,7 +281,17 @@ const CHECKLIST_LABELS: Record<string, string> = {
   market: "Market thesis",
 };
 
-function OnboardingPanel({ slug, onboarding }: { slug: string; onboarding: Onboarding }) {
+function OnboardingPanel({
+  slug,
+  onboarding,
+  isEmailVerified,
+}: {
+  slug: string;
+  onboarding: Onboarding;
+  isEmailVerified: boolean;
+}) {
+  const [error, formAction, pending] = useActionState(activateOrgAction, null);
+
   return (
     <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
@@ -305,23 +316,26 @@ function OnboardingPanel({ slug, onboarding }: { slug: string; onboarding: Onboa
         ))}
       </ul>
       {onboarding.status === "draft" ? (
-        <form action={activateOrgAction} className="mt-4">
-          <input type="hidden" name="slug" value={slug} />
-          <button className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
-            Publish organization
-          </button>
-          <p className="mt-2 text-xs text-zinc-400">
-            Publishing charges a small refundable commitment fee — you get it back as credit once
-            your profile is complete.
-          </p>
-        </form>
-      ) : onboarding.refund_eligible ? (
-        <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
-          Profile complete — your commitment fee was refunded as credit ✅
-        </p>
+        <>
+          {!isEmailVerified && <VerifyEmailBanner />}
+          <form action={formAction} className="mt-4">
+            <input type="hidden" name="slug" value={slug} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+            >
+              {pending ? "Publishing..." : "Publish organization"}
+            </button>
+            <p className="mt-2 text-xs text-zinc-400">
+              Publishing is free. You just need a verified email.
+            </p>
+            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          </form>
+        </>
       ) : (
-        <p className="mt-4 text-sm text-zinc-500">
-          Complete your profile checklist above to get your commitment fee back as credit.
+        <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
+          Your organization is live and visible to investors 🎉
         </p>
       )}
     </div>
@@ -332,14 +346,18 @@ function OverviewTab({
   slug,
   stats,
   onboarding,
+  isEmailVerified,
 }: {
   slug: string;
   stats: Stats;
   onboarding: Onboarding | null;
+  isEmailVerified: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {onboarding && <OnboardingPanel slug={slug} onboarding={onboarding} />}
+      {onboarding && (
+        <OnboardingPanel slug={slug} onboarding={onboarding} isEmailVerified={isEmailVerified} />
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Followers</p>
@@ -797,6 +815,7 @@ export function OrgTabs({
   invites,
   canManage,
   onboarding,
+  isEmailVerified,
 }: {
   slug: string;
   org: OrgBasics;
@@ -810,6 +829,7 @@ export function OrgTabs({
   invites: Invite[];
   canManage: boolean;
   onboarding: Onboarding | null;
+  isEmailVerified: boolean;
 }) {
   const [active, setActive] = useState<TabId>("overview");
 
@@ -836,7 +856,14 @@ export function OrgTabs({
         ))}
       </div>
 
-      {active === "overview" && <OverviewTab slug={slug} stats={stats} onboarding={onboarding} />}
+      {active === "overview" && (
+        <OverviewTab
+          slug={slug}
+          stats={stats}
+          onboarding={onboarding}
+          isEmailVerified={isEmailVerified}
+        />
+      )}
 
       {active === "activity" && (
         <ActivityTab

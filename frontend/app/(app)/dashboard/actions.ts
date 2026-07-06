@@ -33,10 +33,24 @@ export async function updateOrgProfileAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
-export async function activateOrgAction(formData: FormData) {
+export async function activateOrgAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
-  await apiFetch(`/orgs/${slug}/activate/`, { method: "POST" });
+  try {
+    await apiFetch(`/orgs/${slug}/activate/`, { method: "POST" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not publish the organization.");
+  }
   revalidatePath(`/dashboard/${slug}`);
+  return null;
+}
+
+export async function resendVerificationEmailAction(_prevState: string | null, _formData: FormData) {
+  try {
+    await apiFetch("/auth/verify-email/resend/", { method: "POST" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not resend the verification email.");
+  }
+  return "Verification email sent. Check your inbox.";
 }
 
 export async function updateProfileAction(_prevState: string | null, formData: FormData) {

@@ -4,7 +4,11 @@ from django.db import models
 
 class User(AbstractUser):
     # investor, founder, talent (future)
-    pass
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
 
 class InvestorProfile(models.Model):

@@ -40,6 +40,9 @@ export default function Home() {
           <Link href="/discovery" className="hover:text-beedero-white">
             Discovery
           </Link>
+          <Link href="/pricing" className="hover:text-beedero-white">
+            Pricing
+          </Link>
           <Link href="/login" className="hover:text-beedero-white">
             Login
           </Link>

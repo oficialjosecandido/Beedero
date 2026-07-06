@@ -37,7 +37,7 @@ type Invite = {
   uses_count: number;
   is_active: boolean;
 };
-type Me = { email: string };
+type Me = { email: string; is_email_verified: boolean };
 type Onboarding = {
   status: "draft" | "live";
   completeness: number;
@@ -141,6 +141,7 @@ export default async function DashboardOrgPage({
           invites={invites}
           canManage={canManage}
           onboarding={onboarding}
+          isEmailVerified={me.is_email_verified}
         />
       </div>
     </div>

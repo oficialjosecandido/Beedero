@@ -78,10 +78,11 @@ class InvestorPostSerializer(serializers.ModelSerializer):
 class MeSerializer(serializers.ModelSerializer):
     investor_profile = InvestorProfileSerializer(source="investorprofile", read_only=True)
     memberships = serializers.SerializerMethodField()
+    is_email_verified = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
-        fields = ["id", "email", "investor_profile", "memberships"]
+        fields = ["id", "email", "is_email_verified", "investor_profile", "memberships"]
 
     def get_memberships(self, obj):
         return [{"org": m.org.slug, "role": m.role} for m in obj.orgmembership_set.select_related("org")]
