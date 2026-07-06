@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 
@@ -96,7 +97,13 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         email = attrs.get("email", "").strip().lower()
         user = User.objects.filter(email__iexact=email).first()
-        if user:
-            attrs["username"] = user.get_username()
         attrs.pop("email", None)
+        if not user:
+            # No account matches this email — reject here rather than falling
+            # through to simplejwt's validate(), which does attrs[username_field]
+            # unconditionally and would raise an unhandled KeyError.
+            raise AuthenticationFailed(
+                self.error_messages["no_active_account"], "no_active_account"
+            )
+        attrs["username"] = user.get_username()
         return super().validate(attrs)

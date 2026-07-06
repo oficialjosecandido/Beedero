@@ -75,18 +75,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "beedero.wsgi.application"
 
 
-# Database
-# Production: DATABASE_URL points to Postgres (also apply
-# backend/docs/rls_postgres.sql). Without this env var, falls back to SQLite (local dev).
-if os.environ.get("DATABASE_URL"):
-    DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"])}
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# Database — always Postgres via DATABASE_URL, in every environment (also
+# apply backend/docs/rls_postgres.sql). No SQLite fallback.
+if not os.environ.get("DATABASE_URL"):
+    raise ImproperlyConfigured(
+        "DATABASE_URL must be set — the app always uses Postgres, there is no "
+        "SQLite fallback."
+    )
+
+DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"])}
 
 AUTH_USER_MODEL = "accounts.User"
 
