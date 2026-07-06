@@ -8,7 +8,9 @@ from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 
 from accounts.models import InvestorPost, InvestorProfile
+from billing.services import confirm_payment, maybe_refund_as_credit, start_commitment_fee
 
+from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
 from .discovery import discover
 from .models import (
@@ -63,6 +65,8 @@ def ensure_default_beedero_follow(user):
         slug="beedero",
         defaults={
             "name": "Beedero",
+            "one_liner": "The onboarding layer for investor-ready organizations.",
+            "status": Organization.Status.LIVE,
             "stage": "seed",
             "sector": "software",
             "geo": "remote",
@@ -110,41 +114,30 @@ class OrgListCreateView(APIView):
         )
 
     def post(self, request):
+        """§2: creation is deliberately minimal — name + one_liner only, draft
+        by default. Everything else (logo, sector, identity sections) is
+        filled in progressively from the dashboard, never required upfront."""
         name = request.data.get("name")
-        if not name:
-            return Response({"detail": "name is required."}, status=400)
+        one_liner = request.data.get("one_liner")
+        if not name or not one_liner:
+            return Response({"detail": "name and one_liner are required."}, status=400)
         org = Organization.objects.create(
             slug=unique_org_slug(name),
             name=name,
-            stage=request.data.get("stage", ""),
-            sector=request.data.get("sector", ""),
-            geo=request.data.get("geo", ""),
+            one_liner=one_liner,
         )
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
-
-        initial_fields = {
-            SectionKind.ABOUT: {"summary": request.data.get("about")},
-            SectionKind.TEAM: {"summary": request.data.get("team")},
-            SectionKind.PRODUCTS: {"summary": request.data.get("products")},
-            SectionKind.MARKET_THESIS: {"summary": request.data.get("market_thesis")},
-        }
-        for kind, fields in initial_fields.items():
-            section = OrgSection.objects.get(org=org, kind=kind)
-            for key, value in fields.items():
-                if value:
-                    OrgField.objects.update_or_create(
-                        section=section,
-                        key=key,
-                        defaults={"value": value},
-                    )
-
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
 
 class OrgProfileView(OrgLookupMixin, APIView):
-    """§4: GET /api/orgs/<slug>/ — full profile filtered by VisibilityResolver."""
+    """§4: GET /api/orgs/<slug>/ — full profile filtered by VisibilityResolver.
+    PATCH — progressive owner/admin edits to the org's basic attributes."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == "PATCH":
+            return [permissions.IsAuthenticated(), IsOrgOwnerOrAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get(self, request, slug):
         org = self.get_org()
@@ -153,6 +146,14 @@ class OrgProfileView(OrgLookupMixin, APIView):
             OrgVisit.objects.get_or_create(org=org, user=request.user)
         data = OrgProfileSerializer(org, resolver, request=request).data()
         return Response(data)
+
+    def patch(self, request, slug):
+        org = self.get_org()
+        for field in ("name", "one_liner", "stage", "sector", "geo"):
+            if field in request.data:
+                setattr(org, field, request.data[field])
+        org.save()
+        return Response(_org_summary(org))
 
 
 class OrgLogoView(OrgLookupMixin, APIView):
@@ -167,7 +168,56 @@ class OrgLogoView(OrgLookupMixin, APIView):
             return Response({"detail": "logo file is required."}, status=400)
         org.logo = logo
         org.save(update_fields=["logo"])
+        maybe_refund_as_credit(org)
         return Response(_org_summary(org))
+
+
+class OrgOnboardingView(OrgLookupMixin, APIView):
+    """GET /api/orgs/<slug>/onboarding/ — owner/admin-only status, profile
+    strength meter, and refund checklist (doc §5)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        fee = getattr(org, "commitment_fee", None)
+        checklist = [
+            {"key": key, "done": _has(org, key), "hint": CHECKLIST_HINTS[key]}
+            for key in REFUND_REQUIREMENTS
+        ]
+        return Response(
+            {
+                "status": org.status,
+                "completeness": completeness(org),
+                "refund_eligible": is_refund_eligible(org),
+                "checklist": checklist,
+                "fee": (
+                    {"amount_cents": fee.amount_cents, "status": fee.status, "refund_as_credit": True}
+                    if fee
+                    else None
+                ),
+            }
+        )
+
+
+class OrgActivateView(OrgLookupMixin, APIView):
+    """POST /api/orgs/<slug>/activate/ — publish the org (draft -> live).
+
+    Dev stub: confirms the commitment fee immediately instead of waiting for
+    a payment webhook. Swap the `confirm_payment` call for a real provider
+    integration later without touching the rest of the state machine.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        if org.status == Organization.Status.LIVE:
+            return Response({"detail": "Organization is already live."}, status=400)
+        fee = start_commitment_fee(org)
+        confirm_payment(fee, provider_ref="dev-stub")
+        org.refresh_from_db()
+        return Response({"slug": org.slug, "status": org.status})
 
 
 class OrgStatsView(OrgLookupMixin, APIView):
@@ -333,6 +383,7 @@ class SectionFieldView(OrgLookupMixin, APIView):
         if visibility:
             field.visibility = visibility
         field.save()
+        maybe_refund_as_credit(org)
         return Response({"key": field.key, "value": field.value, "visibility": field.visibility})
 
     def delete(self, request, slug, kind, key):
@@ -549,7 +600,11 @@ class RecommendationView(APIView):
 
     def get(self, request):
         followed_org_ids = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
-        orgs = Organization.objects.exclude(id__in=followed_org_ids).order_by("-is_verified", "name")[:6]
+        orgs = (
+            Organization.objects.filter(status=Organization.Status.LIVE)
+            .exclude(id__in=followed_org_ids)
+            .order_by("-is_verified", "name")[:6]
+        )
 
         followed_user_ids = UserFollow.objects.filter(follower=request.user).values_list(
             "followed_id", flat=True
@@ -563,15 +618,7 @@ class RecommendationView(APIView):
         )
         return Response(
             {
-                "organizations": [
-                    {
-                        **_org_summary(org),
-                        "stage": org.stage,
-                        "sector": org.sector,
-                        "geo": org.geo,
-                    }
-                    for org in orgs
-                ],
+                "organizations": [_org_summary(org) for org in orgs],
                 "people": [
                     {
                         "id": p.user_id,
@@ -590,6 +637,8 @@ class FollowOrgView(APIView):
 
     def post(self, request, slug):
         org = get_object_or_404(Organization, slug=slug)
+        if org.status != Organization.Status.LIVE:
+            return Response({"detail": "This organization is still a draft."}, status=400)
         OrgFollow.objects.get_or_create(user=request.user, org=org)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -613,13 +662,5 @@ class DiscoveryView(APIView):
     def get(self, request):
         qs = discover(request.user, request.query_params)
         return Response(
-            [
-                {
-                    **_org_summary(o),
-                    "stage": o.stage,
-                    "sector": o.sector,
-                    "geo": o.geo,
-                }
-                for o in qs
-            ]
+            [_org_summary(o) for o in qs]
         )

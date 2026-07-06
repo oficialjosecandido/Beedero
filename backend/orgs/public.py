@@ -14,7 +14,7 @@ from .models import OrgField, Organization, Visibility
 
 
 def public_profile(slug: str) -> dict:
-    org = get_object_or_404(Organization, slug=slug)
+    org = get_object_or_404(Organization, slug=slug, status=Organization.Status.LIVE)
     fields = OrgField.objects.filter(
         section__org=org,
         section__archived_at__isnull=True,
@@ -29,6 +29,7 @@ def public_profile(slug: str) -> dict:
         "org": {
             "slug": org.slug,
             "name": org.name,
+            "one_liner": org.one_liner,
             "logo": org.logo.url if org.logo else None,
             "is_verified": org.is_verified,
             "is_fundraising": org.is_fundraising,

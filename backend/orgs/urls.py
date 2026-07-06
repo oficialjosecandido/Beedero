@@ -6,6 +6,8 @@ urlpatterns = [
     path("public/orgs/<slug:slug>/", views.PublicOrgProfileView.as_view()),
     path("orgs/", views.OrgListCreateView.as_view()),
     path("orgs/<slug:slug>/", views.OrgProfileView.as_view()),
+    path("orgs/<slug:slug>/onboarding/", views.OrgOnboardingView.as_view()),
+    path("orgs/<slug:slug>/activate/", views.OrgActivateView.as_view()),
     path("orgs/<slug:slug>/dataroom/", views.DataRoomView.as_view()),
     path("orgs/<slug:slug>/sections/", views.SectionListView.as_view()),
     path("orgs/<slug:slug>/sections/<str:kind>/fields/<str:key>/", views.SectionFieldView.as_view()),

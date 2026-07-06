@@ -18,8 +18,14 @@ class Visibility(models.TextChoices):
 
 
 class Organization(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft"
+        LIVE = "live"
+
     slug = models.SlugField(unique=True)  # beedero.com/o/<slug>
     name = models.CharField(max_length=200)
+    one_liner = models.CharField(max_length=140, blank=True, default="")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
     logo = models.ImageField(upload_to="org_logos/", blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     is_fundraising = models.BooleanField(default=False)

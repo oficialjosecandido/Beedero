@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useActionState } from "react";
 
 import {
+  activateOrgAction,
   closeRoundAction,
   createInviteAction,
   deleteFieldAction,
@@ -13,6 +14,7 @@ import {
   removeMemberAction,
   revokeInviteAction,
   updateMemberRoleAction,
+  updateOrgProfileAction,
   upsertFieldAction,
 } from "../actions";
 import { SECTION_LABELS } from "@/lib/types";
@@ -25,6 +27,7 @@ type SectionField = {
   created_at?: string;
 };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
+type OrgBasics = { slug: string; name: string; one_liner: string; stage: string; sector: string; geo: string };
 type Stats = { followers_count: number; visitors_count: number };
 type Member = { id: number; email: string; role: string };
 type Invite = {
@@ -35,6 +38,13 @@ type Invite = {
   revoked_at: string | null;
   uses_count: number;
   is_active: boolean;
+};
+type Onboarding = {
+  status: "draft" | "live";
+  completeness: number;
+  refund_eligible: boolean;
+  checklist: { key: string; done: boolean; hint: string }[];
+  fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
 type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string };
 
@@ -48,6 +58,10 @@ const POST_KIND_OPTIONS = [
   { value: "events", label: "Event" },
   { value: "news", label: "Update" },
 ];
+
+const STAGES = ["idea", "pre_seed", "seed", "series_a", "growth"];
+const SECTORS = ["software", "fintech", "health", "climate", "consumer", "marketplace", "other"];
+const GEOGRAPHIES = ["portugal", "europe", "north_america", "latin_america", "remote", "other"];
 
 const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
   { key: "website", label: "Website", placeholder: "https://yourcompany.com" },
@@ -258,19 +272,86 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
   );
 }
 
-function OverviewTab({ stats }: { stats: Stats }) {
+const CHECKLIST_LABELS: Record<string, string> = {
+  logo: "Logo",
+  about: "About",
+  team: "Team",
+  products: "Products",
+  market: "Market thesis",
+};
+
+function OnboardingPanel({ slug, onboarding }: { slug: string; onboarding: Onboarding }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-zinc-500">Followers</p>
-        <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900">Profile strength</h3>
+        <span className="text-sm font-medium text-zinc-500">{onboarding.completeness}%</span>
       </div>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
-        <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.visitors_count}</p>
-        <p className="mt-1 text-xs text-zinc-400">
-          Distinct people outside your organization who viewed this profile.
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className="h-2 rounded-full bg-emerald-600 transition-all"
+          style={{ width: `${onboarding.completeness}%` }}
+        />
+      </div>
+      <ul className="mt-4 flex flex-col gap-1.5">
+        {onboarding.checklist.map((item) => (
+          <li key={item.key} className="flex items-start gap-2 text-sm">
+            <span>{item.done ? "✅" : "⬜"}</span>
+            <span className={item.done ? "text-zinc-400 line-through" : "text-zinc-700"}>
+              {CHECKLIST_LABELS[item.key] ?? item.key}
+            </span>
+            {!item.done && <span className="text-xs text-zinc-400">— {item.hint}</span>}
+          </li>
+        ))}
+      </ul>
+      {onboarding.status === "draft" ? (
+        <form action={activateOrgAction} className="mt-4">
+          <input type="hidden" name="slug" value={slug} />
+          <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            Publish organization
+          </button>
+          <p className="mt-2 text-xs text-zinc-400">
+            Publishing charges a small refundable commitment fee — you get it back as credit once
+            your profile is complete.
+          </p>
+        </form>
+      ) : onboarding.refund_eligible ? (
+        <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+          Profile complete — your commitment fee was refunded as credit ✅
         </p>
+      ) : (
+        <p className="mt-4 text-sm text-zinc-500">
+          Complete your profile checklist above to get your commitment fee back as credit.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function OverviewTab({
+  slug,
+  stats,
+  onboarding,
+}: {
+  slug: string;
+  stats: Stats;
+  onboarding: Onboarding | null;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      {onboarding && <OnboardingPanel slug={slug} onboarding={onboarding} />}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-zinc-500">Followers</p>
+          <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
+          <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.visitors_count}</p>
+          <p className="mt-1 text-xs text-zinc-400">
+            Distinct people outside your organization who viewed this profile.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -629,8 +710,83 @@ function FundraisingTab({
   );
 }
 
+function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean }) {
+  return (
+    <form
+      action={updateOrgProfileAction}
+      className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2"
+    >
+      <input type="hidden" name="slug" value={org.slug} />
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
+        One-liner
+        <input
+          name="one_liner"
+          defaultValue={org.one_liner}
+          maxLength={140}
+          disabled={!canManage}
+          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+        Stage
+        <select
+          name="stage"
+          defaultValue={org.stage}
+          disabled={!canManage}
+          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm disabled:bg-zinc-50"
+        >
+          <option value="">—</option>
+          {STAGES.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+        Sector
+        <select
+          name="sector"
+          defaultValue={org.sector}
+          disabled={!canManage}
+          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm disabled:bg-zinc-50"
+        >
+          <option value="">—</option>
+          {SECTORS.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
+        Geography
+        <select
+          name="geo"
+          defaultValue={org.geo}
+          disabled={!canManage}
+          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm disabled:bg-zinc-50"
+        >
+          <option value="">—</option>
+          {GEOGRAPHIES.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+      {canManage && (
+        <button className="self-start rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium hover:bg-zinc-50 sm:col-span-2">
+          Save
+        </button>
+      )}
+    </form>
+  );
+}
+
 export function OrgTabs({
   slug,
+  org,
   sections,
   isFundraising,
   profileFieldCount,
@@ -640,8 +796,10 @@ export function OrgTabs({
   members,
   invites,
   canManage,
+  onboarding,
 }: {
   slug: string;
+  org: OrgBasics;
   sections: Section[];
   isFundraising: boolean;
   profileFieldCount: number;
@@ -651,6 +809,7 @@ export function OrgTabs({
   members: Member[];
   invites: Invite[];
   canManage: boolean;
+  onboarding: Onboarding | null;
 }) {
   const [active, setActive] = useState<TabId>("overview");
 
@@ -675,7 +834,7 @@ export function OrgTabs({
         ))}
       </div>
 
-      {active === "overview" && <OverviewTab stats={stats} />}
+      {active === "overview" && <OverviewTab slug={slug} stats={stats} onboarding={onboarding} />}
 
       {active === "activity" && (
         <ActivityTab
@@ -699,6 +858,7 @@ export function OrgTabs({
 
       {active === "profile" && (
         <div className="flex flex-col gap-4">
+          <OrgBasicsForm org={org} canManage={canManage} />
           {identitySections.map((section) => (
             <SectionCard key={section.id} slug={slug} section={section} />
           ))}

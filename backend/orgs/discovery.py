@@ -29,7 +29,7 @@ def _is_verified_investor(viewer) -> bool:
 
 
 def discover(viewer, params: dict):
-    qs = Organization.objects.all()
+    qs = Organization.objects.filter(status=Organization.Status.LIVE)
 
     if params.get("stage"):
         qs = qs.filter(stage=params["stage"])

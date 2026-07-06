@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "storages",
     "accounts",
     "orgs",
+    "billing",
 ]
 
 MIDDLEWARE = [

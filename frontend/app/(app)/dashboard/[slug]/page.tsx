@@ -13,7 +13,18 @@ type SectionField = {
 };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
 type OrgSummary = {
-  org: { slug: string; name: string; logo: string | null; is_fundraising: boolean; is_verified: boolean };
+  org: {
+    slug: string;
+    name: string;
+    one_liner: string;
+    status: "draft" | "live";
+    stage: string;
+    sector: string;
+    geo: string;
+    logo: string | null;
+    is_fundraising: boolean;
+    is_verified: boolean;
+  };
 };
 type Stats = { followers_count: number; visitors_count: number };
 type Member = { id: number; email: string; role: string };
@@ -27,6 +38,13 @@ type Invite = {
   is_active: boolean;
 };
 type Me = { email: string };
+type Onboarding = {
+  status: "draft" | "live";
+  completeness: number;
+  refund_eligible: boolean;
+  checklist: { key: string; done: boolean; hint: string }[];
+  fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
+};
 
 const IDENTITY_FIELD_COUNT_KINDS = ["about", "team", "products", "market_thesis"];
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
@@ -59,6 +77,9 @@ export default async function DashboardOrgPage({
   const myRole = members.find((m) => m.email === me.email)?.role ?? "member";
   const canManage = myRole === "owner" || myRole === "admin";
   const invites: Invite[] = canManage ? await apiFetch(`/orgs/${slug}/invites/`) : [];
+  const onboarding: Onboarding | null = canManage
+    ? await apiFetch(`/orgs/${slug}/onboarding/`)
+    : null;
 
   const profileFieldCount = sections
     .filter((section) => IDENTITY_FIELD_COUNT_KINDS.includes(section.kind))
@@ -84,6 +105,11 @@ export default async function DashboardOrgPage({
                 <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
                   {profile.org.name}
                 </h1>
+                {profile.org.status === "draft" && (
+                  <span className="rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-semibold text-zinc-600">
+                    Draft
+                  </span>
+                )}
                 {profile.org.is_verified && (
                   <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                     Verified
@@ -95,12 +121,16 @@ export default async function DashboardOrgPage({
                   </span>
                 )}
               </div>
+              {profile.org.one_liner && (
+                <p className="mt-1 text-sm text-zinc-500">{profile.org.one_liner}</p>
+              )}
             </div>
           </div>
         </header>
 
         <OrgTabs
           slug={slug}
+          org={profile.org}
           sections={sections}
           isFundraising={profile.org.is_fundraising}
           profileFieldCount={profileFieldCount}
@@ -110,6 +140,7 @@ export default async function DashboardOrgPage({
           members={members}
           invites={invites}
           canManage={canManage}
+          onboarding={onboarding}
         />
       </div>
     </div>

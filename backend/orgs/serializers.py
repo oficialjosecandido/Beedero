@@ -22,6 +22,11 @@ def _org_summary(org):
     return {
         "slug": org.slug,
         "name": org.name,
+        "one_liner": org.one_liner,
+        "status": org.status,
+        "stage": org.stage,
+        "sector": org.sector,
+        "geo": org.geo,
         "logo": org.logo.url if org.logo else None,
         "is_verified": org.is_verified,
         "is_fundraising": org.is_fundraising,

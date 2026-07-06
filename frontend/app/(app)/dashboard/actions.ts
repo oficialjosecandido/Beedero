@@ -12,13 +12,7 @@ export async function createOrgAction(_prevState: string | null, formData: FormD
       method: "POST",
       body: {
         name: formData.get("name"),
-        stage: formData.get("stage") ?? "",
-        sector: formData.get("sector") ?? "",
-        geo: formData.get("geo") ?? "",
-        about: formData.get("about") ?? "",
-        team: formData.get("team") ?? "",
-        products: formData.get("products") ?? "",
-        market_thesis: formData.get("market_thesis") ?? "",
+        one_liner: formData.get("one_liner"),
       },
     });
   } catch {
@@ -26,6 +20,23 @@ export async function createOrgAction(_prevState: string | null, formData: FormD
   }
   revalidatePath("/dashboard");
   redirect(`/dashboard/${org.slug}`);
+}
+
+export async function updateOrgProfileAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const body: Record<string, string> = {};
+  for (const field of ["name", "one_liner", "stage", "sector", "geo"]) {
+    const value = formData.get(field);
+    if (value !== null) body[field] = String(value);
+  }
+  await apiFetch(`/orgs/${slug}/`, { method: "PATCH", body });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function activateOrgAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  await apiFetch(`/orgs/${slug}/activate/`, { method: "POST" });
+  revalidatePath(`/dashboard/${slug}`);
 }
 
 export async function updateProfileAction(_prevState: string | null, formData: FormData) {
