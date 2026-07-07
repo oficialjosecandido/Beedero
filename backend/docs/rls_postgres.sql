@@ -1,13 +1,30 @@
 -- Layer 1 (§3.1): Row-Level Security as a DB-level safety net.
 --
--- NOT applied in the MVP because the database is SQLite (RLS is Postgres-only).
--- Apply after migrating DATABASES.default.ENGINE to postgresql:
---   psql $DATABASE_URL -f backend/docs/rls_postgres.sql
+-- Kept here as documentation only. The actual source of truth is the Django
+-- migration orgs/migrations/0006_enable_row_level_security.py — `manage.py
+-- migrate` applies this automatically, there's nothing to run by hand.
 --
 -- Assumes orgs.middleware.RLSViewerMiddleware is active (it already is,
 -- it's a no-op outside of Postgres) to inject `beedero.viewer_id` per request via
 -- SET LOCAL, and that the app runs with an unprivileged DB role (not the
 -- superuser — RLS is ignored by table owners/superusers by definition).
+--
+-- Creating that role (run once per database, as the owning/superuser role;
+-- DDL like `manage.py migrate` still needs to run as the owner — this role
+-- only gets DML):
+--   CREATE ROLE beedero_app LOGIN PASSWORD '...';
+--   GRANT CONNECT ON DATABASE beedero_dev TO beedero_app;
+--   GRANT USAGE ON SCHEMA public TO beedero_app;
+--   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO beedero_app;
+--   GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO beedero_app;
+--   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO beedero_app;
+--   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO beedero_app;
+-- Then point the *running app's* DATABASE_URL at beedero_app; keep using the
+-- owner role only for `manage.py migrate`. Verified locally end-to-end
+-- (member sees a restricted field, unrelated authenticated user doesn't) —
+-- see orgs/tests.py for the equivalent app-level guard tests. Production's
+-- App Service needs the same split before this is a real safety net there,
+-- not just locally — not done yet, needs a deliberate cutover.
 
 ALTER TABLE orgs_orgfield ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orgs_orgfield FORCE ROW LEVEL SECURITY;
@@ -24,6 +41,14 @@ USING (
     )
     OR (
         visibility = 'restricted' AND EXISTS (
+            -- archived sections (closed round) never grant access here,
+            -- matching layer 2 (VisibilityResolver filters
+            -- section__archived_at__isnull=True).
+            SELECT 1
+            FROM orgs_orgsection s
+            WHERE s.id = orgs_orgfield.section_id
+              AND s.archived_at IS NULL
+        ) AND EXISTS (
             SELECT 1 FROM orgs_visibilitygrant g
             WHERE (g.expires_at IS NULL OR g.expires_at > now())
               AND (
@@ -48,8 +73,3 @@ USING (
         )
     )
 );
-
--- Note: archived sections (closed round) are already excluded by layer 2
--- (VisibilityResolver filters section__archived_at__isnull=True). To
--- also enforce this here, add `AND s.archived_at IS NULL` to the EXISTS
--- clauses above.

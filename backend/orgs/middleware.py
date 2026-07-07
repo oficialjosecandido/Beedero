@@ -1,4 +1,24 @@
-from django.db import connection
+from django.db import connection, transaction
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+_jwt_authentication = JWTAuthentication()
+
+
+def _viewer_id(request) -> int:
+    """DRF's JWTAuthentication only runs inside APIView.dispatch(), which is
+    deeper in the call stack than any middleware's "before" processing — so
+    by the time this middleware runs, the plain Django `request.user` set by
+    AuthenticationMiddleware is AnonymousUser for every JWT-authenticated
+    request (this app has no session-based auth). Re-running the same
+    authenticator here is the only way to know the real viewer this early."""
+    try:
+        result = _jwt_authentication.authenticate(request)
+    except Exception:
+        return 0
+    if result is None:
+        return 0
+    user, _token = result
+    return user.id
 
 
 class RLSViewerMiddleware:
@@ -6,19 +26,26 @@ class RLSViewerMiddleware:
 
     Injects the current viewer as a session GUC so Postgres RLS policies
     (backend/docs/rls_postgres.sql) can read it. It's a no-op outside of
-    Postgres — in the MVP we run on SQLite, which doesn't support RLS, so the
-    only real line of defense for now is the VisibilityResolver (layer 2).
+    Postgres.
+
+    Wraps the whole request in a transaction: `SET LOCAL` only lasts for the
+    current transaction, and Django runs each statement in its own
+    autocommit transaction unless one is explicitly opened — without this,
+    the setting evaporates before the view's own queries ever run it.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if connection.vendor == "postgresql":
-            viewer_id = request.user.id if getattr(request, "user", None) and request.user.is_authenticated else 0
+        if connection.vendor != "postgresql":
+            return self.get_response(request)
+        viewer_id = _viewer_id(request)
+        with transaction.atomic():
             with connection.cursor() as cursor:
                 cursor.execute("SET LOCAL beedero.viewer_id = %s", [viewer_id])
-        return self.get_response(request)
+            response = self.get_response(request)
+        return response
 
 
 class PrivateCacheMiddleware:

@@ -18,7 +18,9 @@ from orgs.visibility import VisibilityResolver
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme")
+    # LIVE by default: these are visibility tests, not onboarding tests, and
+    # most of them exercise public/discovery paths that filter to LIVE orgs.
+    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
 
 
 @pytest.fixture
@@ -199,3 +201,53 @@ def test_public_path_never_returns_restricted_or_private(org, about_public_field
     assert "mrr" not in all_keys
     assert "secret" not in all_keys
     assert "tagline" in all_keys
+
+
+@pytest.mark.django_db
+def test_feed_respects_visibility(org, founder, outsider):
+    from orgs.feed import org_feed_items
+
+    # Activity sections default to public (§1), but a field's visibility can
+    # still be overridden — the feed must go through VisibilityResolver like
+    # every other read path, not assume "activity == always public".
+    section = org.sections.get(kind=SectionKind.NEWS)
+    public_post = OrgField.objects.create(section=section, key="launch", value="We launched!")
+    private_post = OrgField.objects.create(
+        section=section, key="internal_note", value="not for outsiders", visibility=Visibility.PRIVATE
+    )
+
+    outsider_items = org_feed_items(outsider, [org.id])
+    assert {f.id for f in outsider_items} == {public_post.id}
+
+    founder_items = org_feed_items(founder, [org.id])
+    assert {f.id for f in founder_items} == {public_post.id, private_post.id}
+
+
+@pytest.mark.django_db
+def test_discovery_no_inference_leak(org, outsider, verified_investor):
+    from orgs.discovery import discover
+
+    section = _open_fundraise_section(org)
+    OrgField.objects.create(section=section, key="mrr", value=999999)  # no grant yet
+
+    # Unverified viewer: the restricted-metric filter must be ignored
+    # entirely, not silently applied as "no match" — that would itself leak
+    # information (a present-but-empty result implies "below threshold").
+    results = discover(outsider, {"metric": "mrr", "metric_min": "100"})
+    assert org in results
+
+    # Verified investor, but no grant to this specific field: role alone
+    # never implies visibility, so the org must not match even though the
+    # underlying value would satisfy the threshold.
+    results = discover(verified_investor, {"metric": "mrr", "metric_min": "100"})
+    assert org not in results
+
+    # Once genuinely granted, discovery can use it.
+    VisibilityGrant.objects.create(
+        org=org,
+        section=section,
+        principal_type=VisibilityGrant.Principal.ROLE,
+        principal_id="verified_investor",
+    )
+    results = discover(verified_investor, {"metric": "mrr", "metric_min": "100"})
+    assert org in results

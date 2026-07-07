@@ -16,6 +16,7 @@ from billing.services import maybe_refund_as_credit
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
 from .discovery import discover
+from .feed import org_feed_items
 from .models import (
     FundraiseRound,
     OrgField,
@@ -643,11 +644,7 @@ class FeedView(APIView):
     def get(self, request):
         ensure_default_beedero_follow(request.user)
         followed_orgs = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
-        org_posts = (
-            OrgField.objects.filter(section__org_id__in=followed_orgs, section__kind__in=ACTIVITY_KINDS)
-            .select_related("section__org")
-            .order_by("-created_at")[:50]
-        )
+        org_posts = org_feed_items(request.user, followed_orgs)
         items = [
             {
                 "type": "org",
