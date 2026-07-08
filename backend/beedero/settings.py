@@ -8,8 +8,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import dj_database_url
+import sentry_sdk
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
+from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -22,6 +24,19 @@ if not SECRET_KEY:
 
 # Safe default: production. Dev opts in explicitly with DJANGO_DEBUG=true.
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
+
+# Separate Sentry project from the frontend's — own DSN, own env var. No-op
+# (SDK never initializes) until SENTRY_DSN is set, so it's safe to leave
+# unset in local dev.
+SENTRY_DSN = os.environ.get("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=1.0 if DEBUG else 0.1,
+        send_default_pii=False,
+        environment="development" if DEBUG else "production",
+    )
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "").rstrip("/")

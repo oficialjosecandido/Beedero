@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { ApiError, ApiTimeoutError, anonFetch } from "@/lib/api";
+import { ApiError, ApiTimeoutError, BackendConfigError, anonFetch } from "@/lib/api";
 import { setSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { detail: "Login is taking too long. Please try again." },
         { status: 504 }
+      );
+    }
+    if (err instanceof BackendConfigError) {
+      return NextResponse.json(
+        { detail: "Login service is not configured. Please contact support." },
+        { status: 500 }
       );
     }
     if (err instanceof ApiError) {

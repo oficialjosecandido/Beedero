@@ -2,10 +2,38 @@ import "server-only";
 
 import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000/api";
 const DEFAULT_API_TIMEOUT_MS = 15_000;
 const AUTH_TIMEOUT_MS = 20_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
+
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production";
+}
+
+function getBackendUrl() {
+  const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, "");
+  if (backendUrl) {
+    let url: URL;
+    try {
+      url = new URL(backendUrl);
+    } catch {
+      throw new BackendConfigError("BACKEND_URL must be an absolute URL.");
+    }
+    if (
+      isProductionRuntime() &&
+      ["localhost", "127.0.0.1", "::1"].includes(url.hostname)
+    ) {
+      throw new BackendConfigError("BACKEND_URL cannot point to localhost in production.");
+    }
+    return backendUrl;
+  }
+
+  if (!isProductionRuntime()) return "http://localhost:8000/api";
+
+  throw new BackendConfigError(
+    "BACKEND_URL must be set in production, e.g. https://beedero-api.azurewebsites.net/api."
+  );
+}
 
 export class ApiError extends Error {
   status: number;
@@ -23,6 +51,8 @@ export class ApiTimeoutError extends Error {
     super("API request timed out");
   }
 }
+
+export class BackendConfigError extends Error {}
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -53,7 +83,7 @@ async function parse(res: Response) {
 /** §7: public profile — cacheable, no auth. */
 export async function publicFetch(path: string, revalidate = 300) {
   const res = await fetchWithTimeout(
-    `${BACKEND_URL}${path}`,
+    `${getBackendUrl()}${path}`,
     { next: { revalidate } },
     DEFAULT_API_TIMEOUT_MS
   );
@@ -63,7 +93,7 @@ export async function publicFetch(path: string, revalidate = 300) {
 function doFetch(path: string, options: { method?: string; body?: unknown }, token?: string) {
   const isFormData = options.body instanceof FormData;
   return fetchWithTimeout(
-    `${BACKEND_URL}${path}`,
+    `${getBackendUrl()}${path}`,
     {
       method: options.method ?? "GET",
       headers: {
@@ -117,7 +147,7 @@ export async function apiFetch(
 /** Auth endpoints don't carry a Bearer token (login/register). */
 export async function anonFetch(path: string, body: unknown) {
   const res = await fetchWithTimeout(
-    `${BACKEND_URL}${path}`,
+    `${getBackendUrl()}${path}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -43,10 +44,13 @@ def _send_verification_email(user):
             f"Confirm your email to publish your organization: {verify_url}",
             None,
             [user.email],
-            fail_silently=True,
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        # Registration/resend itself still succeeds — the user account is
+        # already created and shouldn't 500 over a mail provider hiccup —
+        # but a silently undelivered verification email used to vanish
+        # with no record anywhere. Now it's at least reported.
+        sentry_sdk.capture_exception(exc)
     return verify_url
 
 
@@ -137,10 +141,12 @@ class ForgotPasswordView(APIView):
                     f"Use this link to reset your password: {reset_url}",
                     None,
                     [user.email],
-                    fail_silently=True,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                # Must still return the same generic response either way —
+                # letting this raise would 500 only when the account exists
+                # and mail fails, leaking account existence via status code.
+                sentry_sdk.capture_exception(exc)
         response = {"detail": "If an account exists, password reset instructions were sent."}
         if settings.DEBUG and debug_reset_url:
             response["reset_url"] = debug_reset_url

@@ -53,7 +53,19 @@
       "Bash(python -m ruff check .)",
       "Bash(python -m pip show ruff)",
       "Bash(python -m pip install -q -r requirements-dev.txt)",
-      "WebFetch(domain:skills.sentry.dev)"
+      "WebFetch(domain:skills.sentry.dev)",
+      "Bash(kill 54204)",
+      "Bash(lsof -ti:3000 -ti:3001)",
+      "Bash(xargs -r kill)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(lsof -ti:3000)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/api/sentry-test)",
+      "Bash(echo \"eslint exit: $?\")",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(sentry-cli info *)",
+      "Bash(python -m pip show sentry-sdk)",
+      "Bash(python -m pip install --upgrade \"sentry-sdk[django]\")",
+      "Bash(grep -rn \"fail_silently\\\\|except:\\\\s*pass\\\\|except Exception:\\\\s*pass\\\\|except.*:\\\\s*$\" --include=\"*.py\" .)"
     ]
   }
 }
