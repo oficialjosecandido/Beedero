@@ -1,12 +1,15 @@
+import logging
 import uuid
 from collections import defaultdict
 
 from django.core.files.storage import default_storage
+from django.db import transaction
 from rest_framework import serializers
 
 from .constants import ACTIVITY_KINDS
 from .models import (
     FundraiseRound,
+    Organization,
     OrgField,
     OrgInvite,
     OrgMembership,
@@ -16,6 +19,8 @@ from .models import (
     VisibilityGrant,
 )
 from .visibility import VisibilityResolver
+
+logger = logging.getLogger(__name__)
 
 
 def _org_summary(org):
@@ -67,8 +72,18 @@ class OrgProfileSerializer:
             for f in fields
             if f.visibility == Visibility.RESTRICTED
         ]
-        if logs:
-            RestrictedAccessLog.objects.bulk_create(logs)
+        if not logs:
+            return
+        # A savepoint, not the request's outer transaction (opened by
+        # RLSViewerMiddleware): a write failure here is a logging problem,
+        # not a reason to fail the profile read that already succeeded — and
+        # without the savepoint, an error here would abort the whole
+        # transaction for everything else still to run in this request.
+        try:
+            with transaction.atomic():
+                RestrictedAccessLog.objects.bulk_create(logs)
+        except Exception:
+            logger.exception("Failed to write restricted-access audit log for org=%s", self.org.id)
 
 
 class VisibilityGrantSerializer(serializers.ModelSerializer):
@@ -139,6 +154,22 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
         model = OrgMembership
         fields = ["id", "email", "role"]
         read_only_fields = ["id", "email"]
+
+
+class OrgFieldWriteSerializer(serializers.Serializer):
+    """P1.1: `SectionFieldView.put` used to accept `value=None` (-> IntegrityError
+    500) and arbitrary `visibility` strings (-> a state no RLS policy
+    recognizes, silently unenforceable)."""
+
+    value = serializers.JSONField()
+    visibility = serializers.ChoiceField(choices=Visibility.choices, required=False)
+
+
+class OrgPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["name", "one_liner", "stage", "sector", "geo"]
+        extra_kwargs = {f: {"required": False} for f in fields}
 
 
 class OrgInviteSerializer(serializers.ModelSerializer):

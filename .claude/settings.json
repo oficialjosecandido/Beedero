@@ -35,7 +35,9 @@
       "Bash(gh secret *)",
       "Bash(echo \"api secret exit: $?\")",
       "Bash(echo \"web secret exit: $?\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(xargs -I{} sh -c 'echo ==={}; cat {}')",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest -q orgs/test_rls_middleware.py)"
     ]
   }
 }

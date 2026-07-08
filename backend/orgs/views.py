@@ -1,4 +1,12 @@
+import base64
+import binascii
+import logging
+import re
+from datetime import timedelta
+
+from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -16,7 +24,7 @@ from billing.services import maybe_refund_as_credit
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
 from .discovery import discover
-from .feed import org_feed_items
+from .feed import occurred_at_of, org_feed_items
 from .models import (
     FundraiseRound,
     OrgField,
@@ -35,14 +43,20 @@ from .public import public_profile
 from .serializers import (
     FeedPostSerializer,
     FundraiseRoundSerializer,
+    OrgFieldWriteSerializer,
     OrgInviteSerializer,
     OrgMembershipSerializer,
+    OrgPatchSerializer,
     OrgProfileSerializer,
     VisibilityGrantSerializer,
     _org_summary,
 )
 from .visibility import VisibilityResolver
 
+logger = logging.getLogger(__name__)
+
+
+FIELD_KEY_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 
 IDENTITY_FIELD_COUNT_KINDS = [
     SectionKind.ABOUT,
@@ -104,6 +118,18 @@ def _investor_display_name(user):
     return (profile.full_name if profile and profile.full_name else None) or user.email
 
 
+def _investor_public_name(user):
+    """Like `_investor_display_name`, but for passive-analytics contexts
+    (profile views, interest signals, data-room opens) where the investor
+    never chose to publish anything — falling back to their email would leak
+    contact info they never agreed to hand the founder. Falls back to a
+    generic label instead."""
+    if user is None:
+        return None
+    profile = getattr(user, "investorprofile", None)
+    return (profile.full_name if profile and profile.full_name else None) or "Investor"
+
+
 class PublicOrgProfileView(APIView):
     """§4: GET /api/public/orgs/<slug>/ — no auth, public fields only."""
 
@@ -145,7 +171,9 @@ class OrgListCreateView(APIView):
             slug=unique_org_slug(name),
             name=name,
             one_liner=one_liner,
-            is_verified=_owner_email_verifies_org(request.user.email, name),
+            # is_verified stays at its False default here — domain-match
+            # verification is only trustworthy once the owner's email is
+            # confirmed, which is enforced at publish time (OrgActivateView).
         )
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
@@ -165,20 +193,27 @@ class OrgProfileView(OrgLookupMixin, APIView):
         resolver = VisibilityResolver(viewer=request.user, org=org)
         if not resolver.is_member:
             OrgVisit.objects.get_or_create(org=org, user=request.user)
-            ProfileView.objects.create(
-                org=org,
-                viewer=request.user,
-                viewer_is_investor=hasattr(request.user, "investorprofile"),
-            )
+            # P1.6: dedupe repeat views within a day so a viewer refreshing
+            # the page doesn't inflate `OrgInsightView`'s counts — a genuine
+            # return visit on a later day still records a new row.
+            recent_cutoff = timezone.now() - timedelta(hours=PROFILE_VIEW_DEDUPE_HOURS)
+            already_viewed = ProfileView.objects.filter(
+                org=org, viewer=request.user, viewed_at__gte=recent_cutoff
+            ).exists()
+            if not already_viewed:
+                ProfileView.objects.create(
+                    org=org,
+                    viewer=request.user,
+                    viewer_is_investor=hasattr(request.user, "investorprofile"),
+                )
         data = OrgProfileSerializer(org, resolver, request=request).data()
         return Response(data)
 
     def patch(self, request, slug):
         org = self.get_org()
-        for field in ("name", "one_liner", "stage", "sector", "geo"):
-            if field in request.data:
-                setattr(org, field, request.data[field])
-        org.save()
+        serializer = OrgPatchSerializer(org, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(_org_summary(org))
 
 
@@ -241,17 +276,23 @@ class OrgInsightView(OrgLookupMixin, APIView):
         org = self.get_org()
 
         viewers_entitled = has_entitlement(org, "profile_viewers")
-        views_qs = ProfileView.objects.filter(org=org).select_related("viewer").order_by("-viewed_at")
+        views_qs = (
+            ProfileView.objects.filter(org=org)
+            .select_related("viewer__investorprofile")
+            .order_by("-viewed_at")
+        )
 
         signals_entitled = has_entitlement(org, "interest_signals")
         signals_qs = (
-            InterestSignal.objects.filter(org=org).select_related("investor").order_by("-created_at")
+            InterestSignal.objects.filter(org=org)
+            .select_related("investor__investorprofile")
+            .order_by("-created_at")
         )
 
         deck_entitled = has_entitlement(org, "deck_analytics")
         opens_qs = (
             RestrictedAccessLog.objects.filter(org=org, section_kind=SectionKind.DATA_ROOM)
-            .select_related("viewer")
+            .select_related("viewer__investorprofile")
             .order_by("-accessed_at")
         )
 
@@ -260,7 +301,7 @@ class OrgInsightView(OrgLookupMixin, APIView):
                 "profile_views_count": views_qs.count(),
                 "viewers": (
                     [
-                        {"email": v.viewer.email if v.viewer else None, "viewed_at": v.viewed_at}
+                        {"investor": _investor_public_name(v.viewer), "viewed_at": v.viewed_at}
                         for v in views_qs[:200]
                     ]
                     if viewers_entitled
@@ -269,7 +310,11 @@ class OrgInsightView(OrgLookupMixin, APIView):
                 "interest_signals_count": signals_qs.count(),
                 "interest_signals": (
                     [
-                        {"investor_email": s.investor.email, "kind": s.kind, "created_at": s.created_at}
+                        {
+                            "investor": _investor_public_name(s.investor),
+                            "kind": s.kind,
+                            "created_at": s.created_at,
+                        }
                         for s in signals_qs[:200]
                     ]
                     if signals_entitled
@@ -279,7 +324,7 @@ class OrgInsightView(OrgLookupMixin, APIView):
                 "dataroom_opens": (
                     [
                         {
-                            "investor_email": o.viewer.email if o.viewer else None,
+                            "investor": _investor_public_name(o.viewer),
                             "field_key": o.field_key,
                             "accessed_at": o.accessed_at,
                         }
@@ -313,8 +358,14 @@ class OrgActivateView(OrgLookupMixin, APIView):
                 {"detail": "Verify your email before publishing.", "action": "verify_email"},
                 status=403,
             )
+        # Domain-match verification only counts once the owner's email is
+        # confirmed (guaranteed above) — never at creation time.
+        update_fields = ["status"]
+        if not org.is_verified and _owner_email_verifies_org(request.user.email, org.name):
+            org.is_verified = True
+            update_fields.append("is_verified")
         org.status = Organization.Status.LIVE
-        org.save(update_fields=["status"])
+        org.save(update_fields=update_fields)
         return Response({"slug": org.slug, "status": org.status})
 
 
@@ -470,14 +521,19 @@ class SectionFieldView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 
     def put(self, request, slug, kind, key):
+        if not FIELD_KEY_RE.match(key):
+            return Response({"detail": "Invalid field key."}, status=400)
+        serializer = OrgFieldWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         org = self.get_org()
         section = get_object_or_404(OrgSection, org=org, kind=kind, archived_at__isnull=True)
         field, created = OrgField.objects.get_or_create(
-            section=section, key=key, defaults={"value": request.data.get("value")}
+            section=section, key=key, defaults={"value": serializer.validated_data["value"]}
         )
         if not created:
-            field.value = request.data.get("value")
-        visibility = request.data.get("visibility")
+            field.value = serializer.validated_data["value"]
+        visibility = serializer.validated_data.get("visibility")
         if visibility:
             field.visibility = visibility
         field.save()
@@ -505,18 +561,24 @@ class DataRoomView(OrgLookupMixin, APIView):
             .select_related("section")
         )
         if not resolver.is_member:
-            RestrictedAccessLog.objects.bulk_create(
-                [
-                    RestrictedAccessLog(
-                        viewer=request.user,
-                        org=org,
-                        field_key=f.key,
-                        section_kind=f.section.kind,
-                        ip=request.META.get("REMOTE_ADDR"),
-                    )
-                    for f in fields
-                ]
-            )
+            logs = [
+                RestrictedAccessLog(
+                    viewer=request.user,
+                    org=org,
+                    field_key=f.key,
+                    section_kind=f.section.kind,
+                    ip=request.META.get("REMOTE_ADDR"),
+                )
+                for f in fields
+            ]
+            # Savepoint, not the request's outer transaction: an audit-write
+            # failure shouldn't take down a data-room read that already
+            # succeeded, or abort the transaction for the rest of the request.
+            try:
+                with transaction.atomic():
+                    RestrictedAccessLog.objects.bulk_create(logs)
+            except Exception:
+                logger.exception("Failed to write data-room audit log for org=%s", org.id)
         return Response({"documents": {f.key: f.value for f in fields}})
 
 
@@ -638,21 +700,65 @@ class FeedPostView(OrgLookupMixin, APIView):
         return Response({"key": field.key, "value": field.value}, status=status.HTTP_201_CREATED)
 
 
+_CURSOR_VERSION = "v1"
+
+
+def _encode_feed_cursor(occurred_at, item_id):
+    payload = f"{_CURSOR_VERSION}|{occurred_at.isoformat()}|{item_id}"
+    return base64.urlsafe_b64encode(payload.encode()).decode()
+
+
+def _decode_feed_cursor(raw):
+    try:
+        decoded = base64.urlsafe_b64decode(raw.encode()).decode()
+        version, occurred_at_raw, item_id = decoded.split("|", 2)
+    except (ValueError, UnicodeDecodeError, binascii.Error):
+        return None
+    if version != _CURSOR_VERSION:
+        return None
+    occurred_at = parse_datetime(occurred_at_raw)
+    if occurred_at is None:
+        return None
+    return occurred_at, item_id
+
+
 class FeedView(APIView):
+    """§4: keyset-paginated feed, ordered by (occurred_at, id) descending so
+    that ties don't reorder between requests and pages don't skip/repeat
+    items as new posts land — an offset-based `page=N` would."""
+
     permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 20
+    MAX_LIMIT = 50
 
     def get(self, request):
         ensure_default_beedero_follow(request.user)
+
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        cursor = None
+        cursor_raw = request.query_params.get("cursor")
+        if cursor_raw:
+            cursor = _decode_feed_cursor(cursor_raw)
+            if cursor is None:
+                return Response({"detail": "Invalid cursor."}, status=400)
+
         followed_orgs = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
-        org_posts = org_feed_items(request.user, followed_orgs)
+        org_posts = org_feed_items(request.user, followed_orgs, limit=self.MAX_LIMIT * 4)
         items = [
             {
+                "id": f"org:{post.id}",
                 "type": "org",
                 "org": _org_summary(post.section.org),
                 "kind": post.section.kind,
                 "key": post.key,
                 "value": post.value,
-                "occurred_at": post.value.get("occurred_at") or post.created_at.isoformat(),
+                "occurred_at": occurred_at_of(post),
             }
             for post in org_posts
         ]
@@ -663,10 +769,11 @@ class FeedView(APIView):
         person_posts = (
             InvestorPost.objects.filter(author_id__in=followed_user_ids)
             .select_related("author__investorprofile")
-            .order_by("-occurred_at")[:50]
+            .order_by("-occurred_at")[: self.MAX_LIMIT * 4]
         )
         items += [
             {
+                "id": f"person:{post.id}",
                 "type": "person",
                 "author": {
                     "id": post.author_id,
@@ -680,13 +787,26 @@ class FeedView(APIView):
                     "image": post.image.url if post.image else None,
                     "occurred_at": post.occurred_at.isoformat(),
                 },
-                "occurred_at": post.occurred_at.isoformat(),
+                "occurred_at": post.occurred_at,
             }
             for post in person_posts
         ]
 
-        items.sort(key=lambda item: item["occurred_at"], reverse=True)
-        return Response(items[:50])
+        items.sort(key=lambda item: (item["occurred_at"], item["id"]), reverse=True)
+
+        if cursor is not None:
+            items = [item for item in items if (item["occurred_at"], item["id"]) < cursor]
+
+        page = items[:limit]
+        next_cursor = None
+        if len(items) > limit:
+            last = page[-1]
+            next_cursor = _encode_feed_cursor(last["occurred_at"], last["id"])
+
+        for item in page:
+            item["occurred_at"] = item["occurred_at"].isoformat()
+
+        return Response({"items": page, "next_cursor": next_cursor})
 
 
 class RecommendationView(APIView):

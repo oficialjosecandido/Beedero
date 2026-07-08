@@ -251,3 +251,32 @@ def test_discovery_no_inference_leak(org, outsider, verified_investor):
     )
     results = discover(verified_investor, {"metric": "mrr", "metric_min": "100"})
     assert org in results
+
+
+def test_rls_policy_actually_enforced(db_app_role_connection):
+    """P0.4: proves RLS is alive at the database level, independent of
+    VisibilityResolver. Connects as the non-privileged `beedero_app` role and
+    issues raw SQL — if the app were ever misconfigured to connect as a
+    superuser (which bypasses RLS even with FORCE), this test fails.
+
+    Uses `db_app_role_connection` (built on `transactional_db`, not `db`) so
+    setup data is actually committed and visible to the separate raw
+    connection — can't reuse the module's `org`/`outsider` fixtures, which
+    depend on `db` and are mutually exclusive with `transactional_db`."""
+    org = Organization.objects.create(slug="rls-proof-co", name="RLS Proof Co", is_fundraising=True)
+    outsider = User.objects.create_user(username="rls-outsider", password="x")
+    section = OrgSection.objects.create(org=org, kind=SectionKind.FINANCIALS)
+    OrgField.objects.create(section=section, key="mrr", value=999999)  # restricted, no grant
+
+    with db_app_role_connection.cursor() as c:
+        c.execute("SELECT set_config('beedero.viewer_id', %s, false)", [str(outsider.id)])
+        c.execute("SELECT count(*) FROM orgs_orgfield WHERE visibility = 'restricted'")
+        assert c.fetchone()[0] == 0
+
+        # Sanity check: a member of the org *does* see the restricted row via
+        # the same raw path, proving the zero above is RLS filtering by
+        # viewer, not e.g. a missing table or a connection to the wrong DB.
+        OrgMembership.objects.create(org=org, user=outsider, role=OrgMembership.Role.MEMBER)
+        c.execute("SELECT set_config('beedero.viewer_id', %s, false)", [str(outsider.id)])
+        c.execute("SELECT count(*) FROM orgs_orgfield WHERE visibility = 'restricted'")
+        assert c.fetchone()[0] == 1

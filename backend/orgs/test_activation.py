@@ -1,0 +1,64 @@
+import pytest
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from accounts.models import User
+from orgs.models import Organization
+
+
+@pytest.fixture
+def api():
+    return APIClient()
+
+
+@pytest.fixture
+def owner_unverified(db):
+    return User.objects.create_user(username="owner@google.com", email="owner@google.com", password="x")
+
+
+@pytest.mark.django_db
+def test_domain_match_does_not_verify_before_email_confirmed(api, owner_unverified):
+    api.force_authenticate(owner_unverified)
+    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "We search things"}, format="json")
+    assert res.status_code == 201
+    org = Organization.objects.get(slug=res.data["slug"])
+    assert org.is_verified is False
+
+    # Publishing is blocked until the owner's email is confirmed — the
+    # domain-match verification must not have been granted at creation.
+    res = api.post(f"/api/orgs/{org.slug}/activate/")
+    assert res.status_code == 403
+    org.refresh_from_db()
+    assert org.is_verified is False
+
+
+@pytest.mark.django_db
+def test_domain_match_verifies_only_after_email_confirmed_and_published(api, owner_unverified):
+    api.force_authenticate(owner_unverified)
+    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "We search things"}, format="json")
+    org = Organization.objects.get(slug=res.data["slug"])
+
+    owner_unverified.email_verified_at = timezone.now()
+    owner_unverified.save(update_fields=["email_verified_at"])
+
+    res = api.post(f"/api/orgs/{org.slug}/activate/")
+    assert res.status_code == 200
+    org.refresh_from_db()
+    assert org.is_verified is True
+    assert org.status == Organization.Status.LIVE
+
+
+@pytest.mark.django_db
+def test_non_matching_domain_never_verifies(api, db):
+    owner = User.objects.create_user(username="owner@yahoo.com", email="owner@yahoo.com", password="x")
+    owner.email_verified_at = timezone.now()
+    owner.save(update_fields=["email_verified_at"])
+    api.force_authenticate(owner)
+
+    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "Not actually Google"}, format="json")
+    org = Organization.objects.get(slug=res.data["slug"])
+
+    res = api.post(f"/api/orgs/{org.slug}/activate/")
+    assert res.status_code == 200
+    org.refresh_from_db()
+    assert org.is_verified is False

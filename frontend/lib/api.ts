@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAccessToken } from "./session";
+import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000/api";
 
@@ -30,14 +30,9 @@ export async function publicFetch(path: string, revalidate = 300) {
   return parse(res);
 }
 
-/** §7: any authenticated response — never in shared cache. */
-export async function apiFetch(
-  path: string,
-  options: { method?: string; body?: unknown } = {}
-) {
-  const token = await getAccessToken();
+function doFetch(path: string, options: { method?: string; body?: unknown }, token?: string) {
   const isFormData = options.body instanceof FormData;
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+  return fetch(`${BACKEND_URL}${path}`, {
     method: options.method ?? "GET",
     headers: {
       // For FormData, let fetch set Content-Type itself (needs the multipart boundary).
@@ -51,6 +46,37 @@ export async function apiFetch(
         : undefined,
     cache: "no-store",
   });
+}
+
+/** P0.5: the access token is short-lived (30min) — on a 401, try the refresh
+ * cookie once before giving up, so a session doesn't die mid-visit. */
+async function tryRefresh(): Promise<string | null> {
+  const refresh = await getRefreshToken();
+  if (!refresh) return null;
+  try {
+    const tokens: { access: string; refresh?: string } = await anonFetch("/auth/token/refresh/", {
+      refresh,
+    });
+    await setSession(tokens.access, tokens.refresh ?? refresh);
+    return tokens.access;
+  } catch {
+    await clearSession();
+    return null;
+  }
+}
+
+/** §7: any authenticated response — never in shared cache. */
+export async function apiFetch(
+  path: string,
+  options: { method?: string; body?: unknown } = {}
+) {
+  const token = await getAccessToken();
+  let res = await doFetch(path, options, token);
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) throw new ApiError(401, null);
+    res = await doFetch(path, options, refreshed); // retry exactly once
+  }
   return parse(res);
 }
 

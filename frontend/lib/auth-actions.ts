@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { ApiError, anonFetch } from "./api";
-import { clearSession, setSession } from "./session";
+import { ApiError, anonFetch, apiFetch } from "./api";
+import { clearSession, getRefreshToken, setSession } from "./session";
 
 export async function loginAction(_prevState: string | null, formData: FormData) {
   const email = String(formData.get("email") ?? "");
@@ -90,6 +90,14 @@ export async function resetPasswordAction(_prevState: string | null, formData: F
 }
 
 export async function logoutAction() {
+  const refresh = await getRefreshToken();
+  if (refresh) {
+    try {
+      await apiFetch("/auth/logout/", { method: "POST", body: { refresh } });
+    } catch {
+      // Best-effort: an already-invalid refresh token shouldn't block logout.
+    }
+  }
   await clearSession();
   redirect("/login");
 }

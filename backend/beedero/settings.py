@@ -5,6 +5,7 @@ Django settings for beedero project.
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -13,15 +14,34 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-xi#ya+%c=am2k7g=3(1@q(c*a)yute)ap0s(o@3ztdeug7*ms3",
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set — there is no insecure fallback."
+    )
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
+# Safe default: production. Dev opts in explicitly with DJANGO_DEBUG=true.
+DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "").rstrip("/")
+if not FRONTEND_URL:
+    if DEBUG:
+        FRONTEND_URL = "http://localhost:3000"
+    else:
+        raise ImproperlyConfigured(
+            "FRONTEND_URL must be set in production so email links point to "
+            "the public frontend, not localhost."
+        )
+
+frontend_url_parts = urlparse(FRONTEND_URL)
+if frontend_url_parts.scheme not in {"http", "https"} or not frontend_url_parts.netloc:
+    raise ImproperlyConfigured("FRONTEND_URL must be an absolute URL.")
+
+if not DEBUG and frontend_url_parts.hostname in {"localhost", "127.0.0.1", "::1"}:
+    raise ImproperlyConfigured(
+        "FRONTEND_URL cannot point to localhost when DJANGO_DEBUG=false."
+    )
 
 
 INSTALLED_APPS = [
@@ -38,6 +58,7 @@ INSTALLED_APPS = [
     "orgs",
     "billing",
     "analytics",
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -167,6 +188,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 CORS_ALLOWED_ORIGINS = os.environ.get(

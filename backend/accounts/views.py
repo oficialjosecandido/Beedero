@@ -10,6 +10,8 @@ from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from beedero.ratelimit import enforce_rate_limit
@@ -34,8 +36,7 @@ def _client_ip(request):
 def _send_verification_email(user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token_generator.make_token(user)
-    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
-    verify_url = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
     try:
         send_mail(
             "Verify your Beedero email",
@@ -106,20 +107,29 @@ class VerifyEmailResendView(APIView):
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
 
+    def post(self, request, *args, **kwargs):
+        ip = _client_ip(request)
+        email = str(request.data.get("email", "")).strip().lower()
+        enforce_rate_limit(f"login:ip:{ip}", limit=20, window_seconds=3600)
+        if email:
+            # Guards a specific account against distributed brute force.
+            enforce_rate_limit(f"login:email:{email}", limit=10, window_seconds=3600)
+        return super().post(request, *args, **kwargs)
+
 
 class ForgotPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request):
+        enforce_rate_limit(f"forgot:ip:{_client_ip(request)}", limit=10, window_seconds=3600)
         email = str(request.data.get("email", "")).strip().lower()
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         debug_reset_url = None
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
-            reset_url = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
             debug_reset_url = reset_url
             try:
                 send_mail(
@@ -167,6 +177,19 @@ class ResetPasswordView(APIView):
         user.set_password(password)
         user.save(update_fields=["password"])
         return Response({"detail": "Password updated."})
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        refresh = request.data.get("refresh")
+        if refresh:
+            try:
+                RefreshToken(refresh).blacklist()
+            except TokenError:
+                pass  # already invalid/expired/blacklisted — logout is idempotent
+        return Response(status=204)
 
 
 class MeView(APIView):

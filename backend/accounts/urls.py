@@ -11,6 +11,7 @@ urlpatterns = [
     path("auth/verify-email/confirm/", views.VerifyEmailConfirmView.as_view()),
     path("auth/verify-email/resend/", views.VerifyEmailResendView.as_view()),
     path("auth/token/refresh/", TokenRefreshView.as_view()),
+    path("auth/logout/", views.LogoutView.as_view()),
     path("auth/me/", views.MeView.as_view()),
     path("investors/me/", views.InvestorProfileView.as_view()),
     path("investors/me/posts/", views.InvestorPostListCreateView.as_view()),
