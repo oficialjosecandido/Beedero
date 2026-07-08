@@ -17,6 +17,7 @@ export function ResetPasswordForm({ uid, token }: { uid: string; token: string }
           name="password"
           type="password"
           required
+          disabled={pending}
           className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
@@ -26,6 +27,7 @@ export function ResetPasswordForm({ uid, token }: { uid: string; token: string }
           name="confirm_password"
           type="password"
           required
+          disabled={pending}
           className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
@@ -33,8 +35,11 @@ export function ResetPasswordForm({ uid, token }: { uid: string; token: string }
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white disabled:cursor-wait disabled:opacity-70 disabled:hover:bg-beedero-yellow disabled:hover:text-beedero-black"
       >
+        {pending && (
+          <span className="size-4 animate-spin rounded-full border-2 border-beedero-black/25 border-t-beedero-black" />
+        )}
         {pending ? "Saving..." : "Reset password"}
       </button>
     </form>

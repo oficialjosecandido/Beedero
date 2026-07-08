@@ -16,6 +16,7 @@ export default function LoginPage() {
         <AuthForm
           action={loginAction}
           submitLabel="Log in"
+          pendingLabel="Logging in..."
           fields={[
             { name: "email", label: "Email", type: "email" },
             { name: "password", label: "Password", type: "password" },

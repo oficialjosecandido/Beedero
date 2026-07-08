@@ -54,7 +54,24 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt ruff
+
+      # RLS (docs/rls_postgres.sql) only bites when the app connects as an
+      # unprivileged role — table owners/superusers bypass it even with
+      # FORCE ROW LEVEL SECURITY. `beedero_app` is a Postgres role (cluster-
+      # wide, not per-database) so this only needs to run once; conftest.py's
+      # `_grant_app_role_on_test_db` fixture grants it privileges on the
+      # per-test-run database afterward. Without this step, every test using
+      # the `db_app_role_connection` fixture (P0.4's RLS proof test) fails
+      # with "role beedero_app does not exist".
+      - name: Create beedero_app DB role
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN;"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Django system check
+        run: python manage.py check
 
       - name: Run backend test suite
         run: pytest

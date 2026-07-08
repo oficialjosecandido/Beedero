@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { ApiError, anonFetch, apiFetch } from "./api";
+import { ApiError, ApiTimeoutError, anonFetch, apiFetch } from "./api";
 import { clearSession, getRefreshToken, setSession } from "./session";
 
 export async function loginAction(_prevState: string | null, formData: FormData) {
@@ -13,6 +13,7 @@ export async function loginAction(_prevState: string | null, formData: FormData)
   try {
     tokens = await anonFetch("/auth/token/", { email, password });
   } catch (err) {
+    if (err instanceof ApiTimeoutError) return "Login is taking too long. Please try again.";
     if (err instanceof ApiError) return "Invalid credentials.";
     throw err;
   }
@@ -35,6 +36,7 @@ export async function registerAction(_prevState: string | null, formData: FormDa
       confirm_password: confirmPassword,
     });
   } catch (err) {
+    if (err instanceof ApiTimeoutError) return "Account creation is taking too long. Please try again.";
     if (err instanceof ApiError) {
       const body = err.body as Record<string, string[]> | null;
       const first = body && Object.values(body)[0]?.[0];
@@ -57,6 +59,7 @@ export async function forgotPasswordAction(_prevState: string | null, formData: 
   try {
     await anonFetch("/auth/forgot-password/", { email });
   } catch (err) {
+    if (err instanceof ApiTimeoutError) return "Password reset is taking too long. Please try again.";
     if (err instanceof ApiError) return "Could not start password reset.";
     throw err;
   }
@@ -78,6 +81,7 @@ export async function resetPasswordAction(_prevState: string | null, formData: F
       confirm_password: confirmPassword,
     });
   } catch (err) {
+    if (err instanceof ApiTimeoutError) return "Password reset is taking too long. Please try again.";
     if (err instanceof ApiError) {
       const body = err.body as Record<string, string[] | string> | null;
       const first = body && Object.values(body)[0];

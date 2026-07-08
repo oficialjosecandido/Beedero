@@ -21,6 +21,7 @@ export default function ForgotPasswordPage() {
         <AuthForm
           action={forgotPasswordAction}
           submitLabel="Send reset link"
+          pendingLabel="Sending..."
           fields={[{ name: "email", label: "Email", type: "email" }]}
         />
         <p className="text-center text-sm text-zinc-600">

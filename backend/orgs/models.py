@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from .constants import ALWAYS_ON_KINDS, DEFAULT_VISIBILITY_BY_NATURE, NATURE_BY_KIND, SectionKind
+from .constants import DEFAULT_VISIBILITY_BY_NATURE, NATURE_BY_KIND, SectionKind
 
 
 def generate_invite_token():
