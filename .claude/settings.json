@@ -37,7 +37,12 @@
       "Bash(echo \"web secret exit: $?\")",
       "Bash(git add *)",
       "Bash(xargs -I{} sh -c 'echo ==={}; cat {}')",
-      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest -q orgs/test_rls_middleware.py)"
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest -q orgs/test_rls_middleware.py)",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest orgs/test_profile_view_dedupe.py analytics/test_prune_profile_views.py orgs/test_insight.py -q)",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python manage.py makemigrations orgs)",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest orgs/test_invites.py -q)",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest orgs/test_discovery.py -q)",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -c ' *)"
     ]
   }
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
-
 import { apiFetch } from "@/lib/api";
 import type { OrgSummary } from "@/lib/types";
+
+import { DiscoveryList } from "./DiscoveryList";
 
 export default async function DiscoveryPage({
   searchParams,
@@ -14,7 +14,8 @@ export default async function DiscoveryPage({
     if (params[key]) query.set(key, params[key]!);
   }
 
-  const orgs: OrgSummary[] = await apiFetch(`/discovery/?${query.toString()}`);
+  const { items, next_offset }: { items: OrgSummary[]; next_offset: number | null } =
+    await apiFetch(`/discovery/?${query.toString()}`);
 
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
@@ -77,53 +78,7 @@ export default async function DiscoveryPage({
           </button>
         </form>
 
-        <div className="grid w-full gap-3">
-        {orgs.length === 0 && (
-          <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
-            No results.
-          </div>
-        )}
-        {orgs.map((org) => (
-          <Link
-            key={org.slug}
-            href={`/org/${org.slug}`}
-            className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-yellow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-center gap-3">
-              {org.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={org.logo} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
-              ) : (
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-500">
-                  {org.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <div>
-                <div className="flex items-baseline gap-1.5">
-                  <p className="font-medium text-zinc-950">{org.name}</p>
-                  <p className="text-xs text-zinc-400">@{org.slug}</p>
-                </div>
-                {org.one_liner && <p className="text-xs text-zinc-600">{org.one_liner}</p>}
-                <p className="text-xs text-zinc-500">
-                  {org.stage} · {org.sector} · {org.geo}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {org.is_verified && (
-                <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
-                  Verified
-                </span>
-              )}
-              {org.is_fundraising && (
-                <span className="rounded-full bg-beedero-black px-2 py-0.5 text-xs font-bold text-beedero-yellow">
-                  Fundraising
-                </span>
-              )}
-            </div>
-          </Link>
-        ))}
-        </div>
+        <DiscoveryList initialItems={items} initialNextOffset={next_offset} query={query.toString()} />
       </div>
     </main>
   );

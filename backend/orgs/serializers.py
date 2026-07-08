@@ -175,5 +175,24 @@ class OrgPatchSerializer(serializers.ModelSerializer):
 class OrgInviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrgInvite
-        fields = ["id", "token", "role", "created_at", "revoked_at", "uses_count", "is_active"]
-        read_only_fields = ["id", "token", "created_at", "revoked_at", "uses_count", "is_active"]
+        fields = [
+            "id",
+            "token",
+            "role",
+            "created_at",
+            "revoked_at",
+            "expires_at",
+            "max_uses",
+            "uses_count",
+            "is_active",
+        ]
+        read_only_fields = [
+            "id",
+            "token",
+            "created_at",
+            "revoked_at",
+            "expires_at",
+            "max_uses",
+            "uses_count",
+            "is_active",
+        ]

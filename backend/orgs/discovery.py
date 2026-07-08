@@ -12,13 +12,20 @@ verified investors, and even then only look at orgs where that specific
 field is visible to the viewer (concrete grant), never blindly.
 
 The per-role denormalized table is left for v2 (§8) — here it's resolved
-org by org, acceptable at MVP volume.
+org by org, capped at MAX_METRIC_CANDIDATES per request so a broad
+stage/sector/geo filter combined with a metric filter can't force
+resolving an unbounded number of orgs synchronously.
 """
 
 from .models import Organization
 from .visibility import VisibilityResolver
 
 RESTRICTED_METRIC_KEYS = {"mrr", "arr", "valuation"}
+
+# P1.8: each candidate needs its own VisibilityResolver (its own grant
+# lookups) — this bounds per-request cost independent of how large the
+# LIVE org table grows.
+MAX_METRIC_CANDIDATES = 500
 
 
 def _is_verified_investor(viewer) -> bool:
@@ -53,7 +60,7 @@ def discover(viewer, params: dict):
             return qs.order_by("name")
 
         matching_ids = []
-        for org in qs:
+        for org in qs.order_by("name")[:MAX_METRIC_CANDIDATES]:
             resolver = VisibilityResolver(viewer=viewer, org=org)
             field = resolver.visible_fields().filter(key=metric_key).first()
             if field is None:

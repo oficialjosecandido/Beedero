@@ -454,7 +454,26 @@ class OrgInviteListCreateView(OrgLookupMixin, APIView):
         role = request.data.get("role", OrgMembership.Role.MEMBER)
         if role not in OrgMembership.Role.values:
             return Response({"detail": "Invalid role."}, status=400)
-        invite = OrgInvite.objects.create(org=org, role=role, created_by=request.user)
+
+        expires_at = None
+        raw_expires_at = request.data.get("expires_at")
+        if raw_expires_at:
+            expires_at = parse_datetime(raw_expires_at)
+            if expires_at is None:
+                return Response({"detail": "expires_at must be an ISO 8601 datetime."}, status=400)
+
+        max_uses = request.data.get("max_uses")
+        if max_uses is not None:
+            try:
+                max_uses = int(max_uses)
+            except (TypeError, ValueError):
+                return Response({"detail": "max_uses must be an integer."}, status=400)
+            if max_uses < 1:
+                return Response({"detail": "max_uses must be at least 1."}, status=400)
+
+        invite = OrgInvite.objects.create(
+            org=org, role=role, created_by=request.user, expires_at=expires_at, max_uses=max_uses
+        )
         return Response(OrgInviteSerializer(invite).data, status=status.HTTP_201_CREATED)
 
 
@@ -475,15 +494,23 @@ class OrgInviteAcceptView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, token):
-        invite = get_object_or_404(OrgInvite, token=token)
-        if not invite.is_active:
-            return Response({"detail": "This invite link has been revoked."}, status=400)
-        _, created = OrgMembership.objects.get_or_create(
-            org=invite.org, user=request.user, defaults={"role": invite.role}
-        )
-        if created:
-            invite.uses_count += 1
-            invite.save(update_fields=["uses_count"])
+        # select_for_update: two simultaneous accepts on the last remaining
+        # use of a capped invite must not both slip through the check below.
+        with transaction.atomic():
+            invite = get_object_or_404(OrgInvite.objects.select_for_update(), token=token)
+            if invite.revoked_at is not None:
+                return Response({"detail": "This invite link has been revoked."}, status=400)
+            if invite.expires_at is not None and invite.expires_at <= timezone.now():
+                return Response({"detail": "This invite link has expired."}, status=400)
+            # An existing member re-accepting their own invite doesn't
+            # consume a use — only check/count the cap for a genuinely new join.
+            already_member = OrgMembership.objects.filter(org=invite.org, user=request.user).exists()
+            if not already_member:
+                if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
+                    return Response({"detail": "This invite link has reached its usage limit."}, status=400)
+                OrgMembership.objects.create(org=invite.org, user=request.user, role=invite.role)
+                invite.uses_count += 1
+                invite.save(update_fields=["uses_count"])
         return Response({"slug": invite.org.slug, "name": invite.org.name})
 
 
@@ -876,12 +903,36 @@ class FollowUserView(APIView):
 
 
 class DiscoveryView(APIView):
-    """§4: GET /api/discovery/?stage=&sector=&geo=&check="""
+    """§4: GET /api/discovery/?stage=&sector=&geo=&check=
+
+    P1.8: offset-paginated — the unbounded list used to return the entire
+    LIVE org table in one response."""
 
     permission_classes = [permissions.IsAuthenticated]
 
+    DEFAULT_LIMIT = 20
+    MAX_LIMIT = 50
+
     def get(self, request):
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        try:
+            offset = max(0, int(request.query_params.get("offset", 0)))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid offset."}, status=400)
+
         qs = discover(request.user, request.query_params)
+        page = list(qs[offset : offset + limit + 1])
+        has_more = len(page) > limit
+        page = page[:limit]
+
         return Response(
-            [_org_summary(o) for o in qs]
+            {
+                "items": [_org_summary(o) for o in page],
+                "next_offset": offset + limit if has_more else None,
+            }
         )

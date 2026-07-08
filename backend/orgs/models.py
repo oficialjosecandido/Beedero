@@ -57,7 +57,9 @@ class OrgMembership(models.Model):
 
 
 class OrgInvite(models.Model):
-    """Shareable link that grants org membership on accept. Reusable until revoked."""
+    """Shareable link that grants org membership on accept. Reusable until
+    revoked, expired, or its usage cap (if any) is reached. P1.7: previously
+    a leaked link stayed valid forever with unlimited uses."""
 
     org = models.ForeignKey(Organization, related_name="invites", on_delete=models.CASCADE)
     token = models.CharField(max_length=64, unique=True, default=generate_invite_token)
@@ -65,11 +67,19 @@ class OrgInvite(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    max_uses = models.PositiveIntegerField(null=True, blank=True)
     uses_count = models.PositiveIntegerField(default=0)
 
     @property
     def is_active(self):
-        return self.revoked_at is None
+        if self.revoked_at is not None:
+            return False
+        if self.expires_at is not None and self.expires_at <= timezone.now():
+            return False
+        if self.max_uses is not None and self.uses_count >= self.max_uses:
+            return False
+        return True
 
 
 class OrgVisit(models.Model):
