@@ -7,6 +7,10 @@ backend/.env
 backend/staticfiles/
 backend/media/
 *.egg-info/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Node / Next.js
 frontend/node_modules/

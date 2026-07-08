@@ -25,18 +25,18 @@ class Organization(models.Model):
     slug = models.SlugField(unique=True)  # beedero.com/o/<slug>
     name = models.CharField(max_length=200)
     one_liner = models.CharField(max_length=140, blank=True, default="")
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True)
     logo = models.ImageField(upload_to="org_logos/", blank=True, null=True)
-    is_verified = models.BooleanField(default=False)
-    is_fundraising = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False, db_index=True)
+    is_fundraising = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Public attributes, directly filterable by the discovery engine (§6).
     # They don't replace the generic OrgField — they're the stable, always-public
     # slice used only for discovery filters.
-    stage = models.CharField(max_length=20, blank=True)
-    sector = models.CharField(max_length=50, blank=True)
-    geo = models.CharField(max_length=50, blank=True)
+    stage = models.CharField(max_length=20, blank=True, db_index=True)
+    sector = models.CharField(max_length=50, blank=True, db_index=True)
+    geo = models.CharField(max_length=50, blank=True, db_index=True)
 
     def __str__(self):
         return self.slug
@@ -143,7 +143,7 @@ class OrgField(models.Model):
     key = models.CharField(max_length=50)  # e.g.: "mrr", "valuation", "deck_url"
     value = models.JSONField()  # flexible (JSONB on Postgres)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         unique_together = ("section", "key")
@@ -204,3 +204,6 @@ class RestrictedAccessLog(models.Model):
     section_kind = models.CharField(max_length=30)
     accessed_at = models.DateTimeField(auto_now_add=True)
     ip = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["org", "section_kind", "-accessed_at"])]

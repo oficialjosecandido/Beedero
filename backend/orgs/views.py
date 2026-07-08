@@ -4,12 +4,13 @@ import logging
 import re
 from datetime import timedelta
 
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.utils import timezone
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -172,14 +173,31 @@ class OrgListCreateView(APIView):
         one_liner = request.data.get("one_liner")
         if not name or not one_liner:
             return Response({"detail": "name and one_liner are required."}, status=400)
-        org = Organization.objects.create(
-            slug=unique_org_slug(name),
-            name=name,
-            one_liner=one_liner,
-            # is_verified stays at its False default here — domain-match
-            # verification is only trustworthy once the owner's email is
-            # confirmed, which is enforced at publish time (OrgActivateView).
-        )
+
+        # unique_org_slug()'s own existence check is check-then-create, so two
+        # concurrent requests for the same name can both pass it before
+        # either commits. Each attempt gets its own savepoint (nested
+        # atomic(), since RLSViewerMiddleware already wraps the whole request
+        # in a transaction) so a collision only unwinds that one INSERT
+        # instead of poisoning the request's outer transaction.
+        org = None
+        for _attempt in range(5):
+            try:
+                with transaction.atomic():
+                    org = Organization.objects.create(
+                        slug=unique_org_slug(name),
+                        name=name,
+                        one_liner=one_liner,
+                        # is_verified stays at its False default here — domain-match
+                        # verification is only trustworthy once the owner's email is
+                        # confirmed, which is enforced at publish time (OrgActivateView).
+                    )
+                break
+            except IntegrityError:
+                continue
+        if org is None:
+            return Response({"detail": "Could not create organization, please try again."}, status=409)
+
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
@@ -222,6 +240,9 @@ class OrgProfileView(OrgLookupMixin, APIView):
         return Response(_org_summary(org))
 
 
+MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024
+
+
 class OrgLogoView(OrgLookupMixin, APIView):
     """PUT /api/orgs/<slug>/logo/ — owner/admin uploads the org's logo."""
 
@@ -232,6 +253,18 @@ class OrgLogoView(OrgLookupMixin, APIView):
         logo = request.FILES.get("logo")
         if not logo:
             return Response({"detail": "logo file is required."}, status=400)
+        if logo.size > MAX_LOGO_SIZE_BYTES:
+            return Response({"detail": "Logo must be 5MB or smaller."}, status=400)
+        # ImageField.run_validation opens the file with Pillow, so this also
+        # rejects any upload that isn't actually a decodable image regardless
+        # of its filename/content-type — request.FILES alone doesn't check.
+        # It defers to Django's own ImageField.clean() internally, which
+        # raises django's ValidationError rather than DRF's.
+        try:
+            logo = serializers.ImageField().run_validation(logo)
+        except (serializers.ValidationError, DjangoValidationError) as exc:
+            detail = exc.detail if isinstance(exc, serializers.ValidationError) else exc.messages
+            return Response({"detail": detail}, status=400)
         org.logo = logo
         org.save(update_fields=["logo"])
         maybe_refund_as_credit(org)

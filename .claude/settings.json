@@ -65,7 +65,12 @@
       "Bash(sentry-cli info *)",
       "Bash(python -m pip show sentry-sdk)",
       "Bash(python -m pip install --upgrade \"sentry-sdk[django]\")",
-      "Bash(grep -rn \"fail_silently\\\\|except:\\\\s*pass\\\\|except Exception:\\\\s*pass\\\\|except.*:\\\\s*$\" --include=\"*.py\" .)"
+      "Bash(grep -rn \"fail_silently\\\\|except:\\\\s*pass\\\\|except Exception:\\\\s*pass\\\\|except.*:\\\\s*$\" --include=\"*.py\" .)",
+      "Bash(grep -iE '\\\\.env$|\\\\.env\\\\.|\\\\.pyc$|__pycache__|node_modules|\\\\.DS_Store|\\\\.sqlite3$|staticfiles/|media/')",
+      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\"; cat {}')",
+      "Bash(python3 -c ' *)",
+      "Bash(python -m pytest orgs/test_logo_upload.py -q)",
+      "Bash(python -m pytest -q)"
     ]
   }
 }
