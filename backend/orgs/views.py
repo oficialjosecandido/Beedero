@@ -58,6 +58,11 @@ logger = logging.getLogger(__name__)
 
 FIELD_KEY_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 
+# P1.6: a repeat GET from the same viewer within this window doesn't create
+# another ProfileView row — keeps OrgInsightView's counts meaningful instead
+# of inflated by page refreshes/re-renders.
+PROFILE_VIEW_DEDUPE_HOURS = 24
+
 IDENTITY_FIELD_COUNT_KINDS = [
     SectionKind.ABOUT,
     SectionKind.TEAM,
