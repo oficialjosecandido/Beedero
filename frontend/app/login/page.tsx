@@ -30,6 +30,15 @@ export default function LoginPage() {
           </Link>
           </p>
         </div>
+        <p className="text-center text-xs text-zinc-500">
+          <Link href="/terms" className="underline underline-offset-2 hover:text-beedero-black">
+            Terms
+          </Link>{" "}
+          ·{" "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-beedero-black">
+            Privacy Policy
+          </Link>
+        </p>
       </div>
     </main>
   );

@@ -58,6 +58,51 @@ export default async function DashboardPage() {
           <>
             <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
               <div>
+                <h2 className="text-xl font-semibold">Manage your organizations</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Create a company profile or open an existing organization dashboard.
+                </p>
+                <a
+                  href="#create-organization"
+                  className="mt-4 inline-flex rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+                >
+                  Create organization
+                </a>
+              </div>
+              <div className="flex flex-col gap-2">
+                {orgs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-beedero-black/20 bg-beedero-white p-5 text-sm text-zinc-600">
+                    You don&apos;t manage any organization yet. Create your first draft below.
+                  </div>
+                ) : (
+                  orgs.map((m) => (
+                    <Link
+                      key={m.slug}
+                      href={`/dashboard/${m.slug}`}
+                      className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-4 py-3 shadow-sm hover:border-beedero-yellow"
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        {m.logo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.logo} alt="" className="size-8 rounded-lg object-cover" />
+                        ) : (
+                          <span className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-500">
+                            {m.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        {m.name}
+                      </span>
+                      <span className="rounded-full bg-beedero-black px-3 py-1 text-xs font-bold text-beedero-yellow">
+                        Manage
+                      </span>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+              <div>
                 <h2 className="text-xl font-semibold">Recommended to follow</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
                   Follow organizations to shape your feed. If you follow nothing, Beedero is
@@ -160,40 +205,10 @@ export default async function DashboardPage() {
               <InvestorPostForm />
             </section>
 
-            <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-              <div>
-                <h2 className="text-xl font-semibold">Your organizations</h2>
-                {orgs.length === 0 && (
-                  <p className="mt-2 text-sm text-zinc-500">
-                    You&apos;re not a member of any organization yet.
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                {orgs.map((m) => (
-                  <Link
-                    key={m.slug}
-                    href={`/dashboard/${m.slug}`}
-                    className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-4 py-3 shadow-sm hover:border-beedero-yellow"
-                  >
-                    <span className="flex items-center gap-2 font-medium">
-                      {m.logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.logo} alt="" className="size-8 rounded-lg object-cover" />
-                      ) : (
-                        <span className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-500">
-                          {m.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      {m.name}
-                    </span>
-                    <span className="text-xs text-zinc-500">{m.role}</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            <section className="grid gap-5 border-t border-zinc-200 pt-8 lg:grid-cols-[0.8fr_1.2fr]">
+            <section
+              id="create-organization"
+              className="grid scroll-mt-24 gap-5 border-t border-zinc-200 pt-8 lg:grid-cols-[0.8fr_1.2fr]"
+            >
               <div>
                 <h2 className="text-xl font-semibold">Create new organization</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">

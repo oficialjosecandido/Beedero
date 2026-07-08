@@ -251,6 +251,18 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      <footer className="flex flex-col items-center gap-3 px-5 py-10 text-xs font-medium uppercase tracking-[0.1em] text-beedero-white/40 sm:flex-row sm:justify-between sm:px-8">
+        <p>© {new Date().getFullYear()} Beedero</p>
+        <div className="flex gap-5">
+          <Link href="/terms" className="hover:text-beedero-white">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-beedero-white">
+            Privacy
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }

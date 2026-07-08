@@ -34,6 +34,17 @@ export default function RegisterPage() {
             Log in
           </Link>
         </p>
+        <p className="text-center text-xs text-zinc-500">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="underline underline-offset-2 hover:text-beedero-black">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-beedero-black">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );
