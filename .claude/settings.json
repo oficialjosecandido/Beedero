@@ -46,7 +46,14 @@
       "Bash(pip show *)",
       "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m ruff check . --exclude venv)",
       "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python -m ruff check . --exclude venv --fix)",
-      "Bash(DJANGO_SETTINGS_MODULE=beedero.settings /Users/josecandido/.pyenv/versions/3.11.3/bin/python -m mypy --ignore-missing-imports orgs/models.py)"
+      "Bash(DJANGO_SETTINGS_MODULE=beedero.settings /Users/josecandido/.pyenv/versions/3.11.3/bin/python -m mypy --ignore-missing-imports orgs/models.py)",
+      "Bash(pg_isready -h localhost -p 5432)",
+      "Bash(ruff check *)",
+      "Bash(echo \"ESLINT EXIT: $?\")",
+      "Bash(python -m ruff check .)",
+      "Bash(python -m pip show ruff)",
+      "Bash(python -m pip install -q -r requirements-dev.txt)",
+      "WebFetch(domain:skills.sentry.dev)"
     ]
   }
 }

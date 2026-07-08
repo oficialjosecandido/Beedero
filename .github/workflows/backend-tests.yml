@@ -54,7 +54,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt ruff
+        run: pip install -r requirements-dev.txt
 
       # RLS (docs/rls_postgres.sql) only bites when the app connects as an
       # unprivileged role — table owners/superusers bypass it even with

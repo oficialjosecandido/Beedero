@@ -4,7 +4,7 @@ import { clearSession, getAccessToken, getRefreshToken, setSession } from "./ses
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000/api";
 const DEFAULT_API_TIMEOUT_MS = 15_000;
-const AUTH_TIMEOUT_MS = 8_000;
+const AUTH_TIMEOUT_MS = 20_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
 
 export class ApiError extends Error {

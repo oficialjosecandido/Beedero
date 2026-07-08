@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { AuthForm } from "@/components/AuthForm";
-import { loginAction } from "@/lib/auth-actions";
+import { LoginForm } from "@/components/LoginForm";
 
 export default function LoginPage() {
   return (
@@ -13,15 +12,7 @@ export default function LoginPage() {
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Log in</h1>
         </div>
-        <AuthForm
-          action={loginAction}
-          submitLabel="Log in"
-          pendingLabel="Logging in..."
-          fields={[
-            { name: "email", label: "Email", type: "email" },
-            { name: "password", label: "Password", type: "password" },
-          ]}
-        />
+        <LoginForm />
         <div className="flex flex-col gap-2 text-center text-sm text-zinc-600">
           <Link
             href="/forgot-password"
