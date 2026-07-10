@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof ApiTimeoutError) {
       return NextResponse.json(
-        { detail: "Login is taking too long. Please try again." },
+        { detail: "Login service did not respond in time. Please try again." },
         { status: 504 }
       );
     }

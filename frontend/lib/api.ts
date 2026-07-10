@@ -3,7 +3,7 @@ import "server-only";
 import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
 const DEFAULT_API_TIMEOUT_MS = 15_000;
-const AUTH_TIMEOUT_MS = 20_000;
+const AUTH_TIMEOUT_MS = 60_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
 
 function isProductionRuntime() {

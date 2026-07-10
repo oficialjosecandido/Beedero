@@ -103,7 +103,13 @@
       "Bash(curl -sS -D - -o /dev/null http://localhost:3000/dashboard)",
       "Bash(curl -sS -D - -o /tmp/stale_refresh_body.html -b /tmp/proxyfix_cookies_no_access.txt http://localhost:3000/dashboard)",
       "Bash(rm -f /tmp/proxyfix_cookies*.txt /tmp/expiry_cookies*.txt /tmp/debug_dash_*.txt /tmp/dashboard_body.html /tmp/stale_refresh_body.html /tmp/beedero-frontend-dev*.log /tmp/feed.html /tmp/dashboard.html)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(gh run *)",
+      "Bash(curl -sS -o /dev/null -w \"privacy: %{http_code}\\\\n\" --max-time 15 https://beedero.com/privacy)",
+      "Bash(curl -sS -o /dev/null -w \"terms: %{http_code}\\\\n\" --max-time 15 https://beedero.com/terms)",
+      "Bash(curl -sS --max-time 15 https://beedero.com/privacy)",
+      "Bash(curl -sS --max-time 15 https://beedero.com/terms)",
+      "Bash(curl -sS --max-time 15 https://beedero.com/)"
     ]
   }
 }
