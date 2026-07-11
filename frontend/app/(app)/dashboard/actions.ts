@@ -130,6 +130,35 @@ export async function closeRoundAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
+export async function submitVerificationAction(_prevState: string | null, formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const body = new FormData();
+  for (const [key, value] of formData.entries()) {
+    if (key === "slug") continue;
+    if (value instanceof File && value.size === 0) continue;
+    body.set(key, value);
+  }
+
+  try {
+    await apiFetch(`/orgs/${slug}/verifications/`, { method: "POST", body });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not submit for verification.");
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  return null;
+}
+
+export async function connectStripeTractionAction(_prevState: string | null, formData: FormData) {
+  const slug = String(formData.get("slug"));
+  try {
+    await apiFetch(`/orgs/${slug}/traction/connect/`, { method: "POST" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not connect Stripe.");
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  return null;
+}
+
 function firstErrorMessage(err: unknown, fallback: string): string {
   if (!(err instanceof ApiError)) throw err;
   const body = err.body as Record<string, string[] | string> | null;

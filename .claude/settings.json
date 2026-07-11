@@ -109,7 +109,21 @@
       "Bash(curl -sS -o /dev/null -w \"terms: %{http_code}\\\\n\" --max-time 15 https://beedero.com/terms)",
       "Bash(curl -sS --max-time 15 https://beedero.com/privacy)",
       "Bash(curl -sS --max-time 15 https://beedero.com/terms)",
-      "Bash(curl -sS --max-time 15 https://beedero.com/)"
+      "Bash(curl -sS --max-time 15 https://beedero.com/)",
+      "Bash(python manage.py makemigrations credibility)",
+      "Bash(python manage.py migrate)",
+      "Bash(python -c ' *)",
+      "Bash(python manage.py check)",
+      "Bash(python -m pytest credibility/tests.py -x -q)",
+      "Bash(nohup python manage.py runserver 8000)",
+      "Bash(echo \"backend pid $!\")",
+      "Bash(nohup npm run dev)",
+      "Bash(echo \"frontend pid $!\")",
+      "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" http://localhost:8000/healthz/)",
+      "Bash(curl -s -X POST http://localhost:8000/api/auth/register/ -H 'Content-Type: application/json' -d '{\"email\": \"__TRACKED_VAR__\", \"password\": \"TestPass123!\", \"confirm_password\": \"TestPass123!\"}')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:8000/api/auth/token/ -H 'Content-Type: application/json' -d '{\"email\": \"__TRACKED_VAR__\", \"password\": \"TestPass123!\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/orgs/ -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"name\": \"Credibility Test Co\", \"one_liner\": \"We test credibility ladders\"}')"
     ]
   }
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { ApiError, apiFetch } from "@/lib/api";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
@@ -24,7 +25,22 @@ type OrgSummary = {
     logo: string | null;
     is_fundraising: boolean;
     is_verified: boolean;
+    credibility_level: number;
   };
+};
+type CredibilityInfo = {
+  level: number;
+  verifications: Record<
+    string,
+    {
+      status: "pending" | "verified" | "rejected" | "expired";
+      valid_until: string | null;
+      submitted_at?: string;
+      reviewed_at?: string | null;
+      rejection_reason?: string;
+      payload?: Record<string, unknown>;
+    }
+  >;
 };
 type Stats = { followers_count: number; visitors_count: number };
 type Member = { id: number; email: string; role: string };
@@ -80,6 +96,7 @@ export default async function DashboardOrgPage({
   const onboarding: Onboarding | null = canManage
     ? await apiFetch(`/orgs/${slug}/onboarding/`)
     : null;
+  const credibility: CredibilityInfo = await apiFetch(`/orgs/${slug}/credibility/`);
 
   const profileFieldCount = sections
     .filter((section) => IDENTITY_FIELD_COUNT_KINDS.includes(section.kind))
@@ -110,6 +127,7 @@ export default async function DashboardOrgPage({
                     Draft
                   </span>
                 )}
+                <CredibilityBadge level={profile.org.credibility_level} />
                 {profile.org.is_verified && (
                 <span className="rounded-full bg-beedero-yellow px-2.5 py-0.5 text-xs font-bold text-beedero-black">
                     Verified
@@ -142,6 +160,7 @@ export default async function DashboardOrgPage({
           canManage={canManage}
           onboarding={onboarding}
           isEmailVerified={me.is_email_verified}
+          credibility={credibility}
         />
       </div>
     </div>

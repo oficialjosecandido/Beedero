@@ -1,3 +1,4 @@
+import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
 function FieldValue({ value }: { value: unknown }) {
@@ -42,6 +43,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
             </span>
           )}
           <h1 className="text-3xl font-semibold">{data.org.name}</h1>
+          <CredibilityBadge level={data.org.credibility_level ?? 0} />
           {data.org.is_verified && (
             <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
               Verified

@@ -10,7 +10,7 @@ export default async function DiscoveryPage({
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
-  for (const key of ["stage", "sector", "geo", "fundraising"]) {
+  for (const key of ["stage", "sector", "geo", "fundraising", "min_credibility"]) {
     if (params[key]) query.set(key, params[key]!);
   }
 
@@ -69,6 +69,20 @@ export default async function DiscoveryPage({
               className="size-4 accent-beedero-black"
             />
             Fundraising
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+            Min. credibility
+            <select
+              name="min_credibility"
+              defaultValue={params.min_credibility ?? ""}
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            >
+              <option value="">Any</option>
+              <option value="1">Nível 1+</option>
+              <option value="2">Nível 2+</option>
+              <option value="3">Nível 3+</option>
+              <option value="4">Nível 4</option>
+            </select>
           </label>
           <button
             type="submit"

@@ -7,16 +7,19 @@ import { useActionState } from "react";
 import {
   activateOrgAction,
   closeRoundAction,
+  connectStripeTractionAction,
   createInviteAction,
   deleteFieldAction,
   openRoundAction,
   postFeedAction,
   removeMemberAction,
   revokeInviteAction,
+  submitVerificationAction,
   updateMemberRoleAction,
   updateOrgProfileAction,
   upsertFieldAction,
 } from "../actions";
+import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { SECTION_LABELS } from "@/lib/types";
 
@@ -48,6 +51,15 @@ type Onboarding = {
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
 type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string };
+type VerificationInfo = {
+  status: "pending" | "verified" | "rejected" | "expired";
+  valid_until: string | null;
+  submitted_at?: string;
+  reviewed_at?: string | null;
+  rejection_reason?: string;
+  payload?: Record<string, unknown>;
+};
+type CredibilityInfo = { level: number; verifications: Record<string, VerificationInfo> };
 
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
 const IDENTITY_KINDS = ["about", "team", "products", "market_thesis"];
@@ -78,6 +90,7 @@ const TABS = [
   { id: "configurations", label: "Configurations" },
   { id: "profile", label: "Profile" },
   { id: "fundraising", label: "Fundraising" },
+  { id: "credibility", label: "Credibility" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -802,6 +815,259 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
   );
 }
 
+const LEVEL_RUNGS = [
+  { level: 1, label: "Identidade" },
+  { level: 2, label: "Conformidade" },
+  { level: 3, label: "Financeiro certificado" },
+  { level: 4, label: "Tração em tempo real" },
+];
+
+type VerificationFieldSpec = {
+  name: string;
+  label: string;
+  type: "text" | "date" | "number" | "file";
+  required?: boolean;
+};
+
+const VERIFICATION_FORMS: Record<string, { label: string; level: number; fields: VerificationFieldSpec[] }> = {
+  company_registry: {
+    label: "Company registry",
+    level: 1,
+    fields: [
+      { name: "nif", label: "NIF", type: "text", required: true },
+      { name: "registry_access_code", label: "Registry access code", type: "text", required: true },
+    ],
+  },
+  founder_role: {
+    label: "Founder / role",
+    level: 1,
+    fields: [{ name: "role", label: "Your role at the company", type: "text", required: true }],
+  },
+  tax_clearance: {
+    label: "Tax clearance (AT)",
+    level: 2,
+    fields: [
+      { name: "valid_until", label: "Certificate valid until", type: "date", required: true },
+      { name: "document", label: "Certificate (PDF)", type: "file", required: true },
+    ],
+  },
+  ss_clearance: {
+    label: "Social security clearance",
+    level: 2,
+    fields: [
+      { name: "valid_until", label: "Certificate valid until", type: "date", required: true },
+      { name: "document", label: "Certificate (PDF)", type: "file", required: true },
+    ],
+  },
+  annual_accounts: {
+    label: "Annual accounts",
+    level: 3,
+    fields: [
+      { name: "fiscal_year", label: "Fiscal year", type: "number", required: true },
+      { name: "revenue_fy", label: "Revenue", type: "number" },
+      { name: "net_income_fy", label: "Net income", type: "number" },
+      { name: "equity_fy", label: "Equity", type: "number" },
+      { name: "occ_number", label: "OCC accountant number", type: "text", required: true },
+      { name: "document", label: "Annual accounts (PDF)", type: "file", required: true },
+    ],
+  },
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  verified: "bg-emerald-100 text-emerald-700",
+  pending: "bg-amber-100 text-amber-700",
+  rejected: "bg-red-100 text-red-700",
+  expired: "bg-zinc-200 text-zinc-600",
+};
+
+function VerificationForm({ slug, type }: { slug: string; type: string }) {
+  const spec = VERIFICATION_FORMS[type];
+  const [error, formAction, pending] = useActionState(submitVerificationAction, null);
+
+  return (
+    <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-dashed border-zinc-200 pt-3">
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="type" value={type} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        {spec.fields.map((field) => (
+          <label key={field.name} className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+            {field.label}
+            {field.type === "file" ? (
+              <input
+                type="file"
+                name={field.name}
+                accept="application/pdf"
+                required={field.required}
+                className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
+              />
+            ) : (
+              <input
+                type={field.type}
+                name={field.name}
+                required={field.required}
+                className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+              />
+            )}
+          </label>
+        ))}
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <button
+        disabled={pending}
+        className="self-start rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+      >
+        {pending ? "Submitting..." : "Submit for review"}
+      </button>
+    </form>
+  );
+}
+
+function VerificationCard({
+  slug,
+  type,
+  info,
+  canManage,
+}: {
+  slug: string;
+  type: string;
+  info?: VerificationInfo;
+  canManage: boolean;
+}) {
+  const spec = VERIFICATION_FORMS[type];
+  const status = info?.status;
+  const [showForm, setShowForm] = useState(false);
+
+  return (
+    <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="font-semibold text-zinc-900">{spec.label}</h4>
+        {status ? (
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
+            {status}
+          </span>
+        ) : (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
+            not submitted
+          </span>
+        )}
+      </div>
+      {info?.valid_until && (
+        <p className="mt-1 text-xs text-zinc-400">
+          Valid until {new Date(info.valid_until).toLocaleDateString()}
+        </p>
+      )}
+      {status === "rejected" && info?.rejection_reason && (
+        <p className="mt-1 text-xs text-red-600">Rejected: {info.rejection_reason}</p>
+      )}
+      {canManage && (status === undefined || status === "rejected" || status === "expired") && !showForm && (
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="mt-3 rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
+        >
+          {status ? "Resubmit" : "Submit for review"}
+        </button>
+      )}
+      {canManage && showForm && <VerificationForm slug={slug} type={type} />}
+    </div>
+  );
+}
+
+function CredibilityTab({
+  slug,
+  credibility,
+  canManage,
+}: {
+  slug: string;
+  credibility: CredibilityInfo;
+  canManage: boolean;
+}) {
+  const [stripeError, stripeAction, stripePending] = useActionState(connectStripeTractionAction, null);
+  const stripeInfo = credibility.verifications["stripe_traction"];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-zinc-900">Credibility ladder</h3>
+          <CredibilityBadge level={credibility.level} />
+        </div>
+        <div className="mt-4 flex items-center gap-1">
+          {LEVEL_RUNGS.map((rung) => (
+            <div
+              key={rung.level}
+              title={rung.label}
+              className={`h-2 flex-1 rounded-full ${
+                credibility.level >= rung.level ? "bg-emerald-500" : "bg-zinc-100"
+              }`}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-zinc-400">
+          Levels are sequential — a rung only counts once every requirement below it is verified and current.
+        </p>
+      </div>
+
+      {Object.entries(VERIFICATION_FORMS).map(([type, spec]) => (
+        <div key={type} className="flex flex-col gap-2">
+          {spec.level === 1 && type === "company_registry" && (
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 1 · Identidade</p>
+          )}
+          {spec.level === 2 && type === "tax_clearance" && (
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 2 · Conformidade</p>
+          )}
+          {spec.level === 3 && (
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
+              Nível 3 · Financeiro certificado
+            </p>
+          )}
+          <VerificationCard
+            slug={slug}
+            type={type}
+            info={credibility.verifications[type]}
+            canManage={canManage}
+          />
+        </div>
+      ))}
+
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 4 · Tração em tempo real</p>
+        <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-semibold text-zinc-900">Stripe</h4>
+            {stripeInfo ? (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[stripeInfo.status]}`}>
+                {stripeInfo.status}
+              </span>
+            ) : (
+              <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
+                not connected
+              </span>
+            )}
+          </div>
+          {stripeInfo?.valid_until && (
+            <p className="mt-1 text-xs text-zinc-400">
+              Valid until {new Date(stripeInfo.valid_until).toLocaleDateString()}
+            </p>
+          )}
+          {canManage && (
+            <form action={stripeAction} className="mt-3">
+              <input type="hidden" name="slug" value={slug} />
+              <button
+                disabled={stripePending}
+                className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+              >
+                {stripePending ? "Connecting..." : stripeInfo ? "Reconnect Stripe" : "Connect Stripe"}
+              </button>
+              {stripeError && <p className="mt-2 text-sm text-red-600">{stripeError}</p>}
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function OrgTabs({
   slug,
   org,
@@ -816,6 +1082,7 @@ export function OrgTabs({
   canManage,
   onboarding,
   isEmailVerified,
+  credibility,
 }: {
   slug: string;
   org: OrgBasics;
@@ -830,6 +1097,7 @@ export function OrgTabs({
   canManage: boolean;
   onboarding: Onboarding | null;
   isEmailVerified: boolean;
+  credibility: CredibilityInfo;
 }) {
   const [active, setActive] = useState<TabId>("overview");
 
@@ -896,6 +1164,10 @@ export function OrgTabs({
 
       {active === "fundraising" && (
         <FundraisingTab slug={slug} isFundraising={isFundraising} fundraiseSections={fundraiseSections} />
+      )}
+
+      {active === "credibility" && (
+        <CredibilityTab slug={slug} credibility={credibility} canManage={canManage} />
       )}
     </div>
   );

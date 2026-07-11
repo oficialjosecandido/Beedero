@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "orgs",
     "billing",
     "analytics",
+    "credibility",
     "rest_framework_simplejwt.token_blacklist",
 ]
 
@@ -152,6 +153,13 @@ if not (AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY):
     )
 
 MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/"
+
+# Credibility-ladder documents (annual accounts, tax/SS clearance, ...) —
+# a second, non-public container on the same storage account. Never served
+# by MEDIA_URL/direct URL; only ever read through a short-lived SAS token
+# minted by credibility.storage.private_doc_url. The container itself must
+# be created in Azure with public access disabled before nivel 3 goes live.
+AZURE_DOCS_PRIVATE_CONTAINER = os.environ.get("AZURE_DOCS_PRIVATE_CONTAINER", "docs-private")
 
 STORAGES = {
     "default": {"BACKEND": "storages.backends.azure_storage.AzureStorage"},

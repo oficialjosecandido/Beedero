@@ -9,6 +9,7 @@ export type OrgSummary = {
   geo?: string;
   is_verified: boolean;
   is_fundraising: boolean;
+  credibility_level?: number;
 };
 
 export type OrgProfile = {

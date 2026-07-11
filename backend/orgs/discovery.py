@@ -72,4 +72,26 @@ def discover(viewer, params: dict):
                 continue
         qs = qs.filter(id__in=matching_ids)
 
+    min_credibility = params.get("min_credibility")
+    if min_credibility is not None:
+        try:
+            threshold = int(min_credibility)
+        except ValueError:
+            return qs.order_by("name")
+        # credibility_level() is derived, not a column — same
+        # MAX_METRIC_CANDIDATES bound as the restricted-metric filter above,
+        # for the same reason (unbounded per-org computation).
+        from credibility.levels import credibility_level
+
+        candidates = list(qs.order_by("name")[:MAX_METRIC_CANDIDATES])
+        matching_ids = [org.id for org in candidates if credibility_level(org) >= threshold]
+        qs = qs.filter(id__in=matching_ids)
+
+    if params.get("sort") == "credibility":
+        from credibility.levels import credibility_level
+
+        candidates = list(qs.order_by("name")[:MAX_METRIC_CANDIDATES])
+        candidates.sort(key=lambda org: (-credibility_level(org), org.name))
+        return candidates
+
     return qs.order_by("name")

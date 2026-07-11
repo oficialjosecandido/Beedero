@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 def _org_summary(org):
+    from credibility.levels import credibility_level
+
     return {
         "slug": org.slug,
         "name": org.name,
@@ -35,6 +37,7 @@ def _org_summary(org):
         "logo": org.logo.url if org.logo else None,
         "is_verified": org.is_verified,
         "is_fundraising": org.is_fundraising,
+        "credibility_level": credibility_level(org),
     }
 
 

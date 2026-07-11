@@ -16,6 +16,11 @@ class SectionKind(models.TextChoices):
     PRODUCTS = "products"
     MARKET_THESIS = "market_thesis"
     LINKS = "links"
+    # Certified financials, written by credibility.services on nivel-3
+    # approval (annual accounts review) — restricted, but NOT one of the
+    # FUNDRAISE_KINDS below: a round opening/closing must not touch it, and
+    # it must survive independently of whether the org ever raises at all.
+    CERTIFIED_FINANCIALS = "certified_financials"
     # Activity — public, time-based feed, always exists
     NEWS = "news"
     MILESTONES = "milestones"
@@ -37,6 +42,7 @@ NATURE_BY_KIND = {
     SectionKind.PRODUCTS: Nature.IDENTITY,
     SectionKind.MARKET_THESIS: Nature.IDENTITY,
     SectionKind.LINKS: Nature.IDENTITY,
+    SectionKind.CERTIFIED_FINANCIALS: Nature.IDENTITY,
     SectionKind.NEWS: Nature.ACTIVITY,
     SectionKind.MILESTONES: Nature.ACTIVITY,
     SectionKind.EVENTS: Nature.ACTIVITY,

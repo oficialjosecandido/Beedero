@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import { CredibilityBadge } from "@/components/CredibilityBadge";
 import type { OrgSummary } from "@/lib/types";
 
 import { loadMoreDiscoveryAction } from "./actions";
@@ -34,6 +35,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
         </div>
       </div>
       <div className="flex gap-2">
+        <CredibilityBadge level={org.credibility_level ?? 0} />
         {org.is_verified && (
           <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
             Verified
