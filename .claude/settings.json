@@ -123,7 +123,24 @@
       "Bash(curl -s -X POST http://localhost:8000/api/auth/register/ -H 'Content-Type: application/json' -d '{\"email\": \"__TRACKED_VAR__\", \"password\": \"TestPass123!\", \"confirm_password\": \"TestPass123!\"}')",
       "Bash(python -m json.tool)",
       "Bash(curl -s -X POST http://localhost:8000/api/auth/token/ -H 'Content-Type: application/json' -d '{\"email\": \"__TRACKED_VAR__\", \"password\": \"TestPass123!\"}')",
-      "Bash(curl -s -X POST http://localhost:8000/api/orgs/ -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"name\": \"Credibility Test Co\", \"one_liner\": \"We test credibility ladders\"}')"
+      "Bash(curl -s -X POST http://localhost:8000/api/orgs/ -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"name\": \"Credibility Test Co\", \"one_liner\": \"We test credibility ladders\"}')",
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(curl -s http://localhost:8000/api/discovery/?min_credibility=1 -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o /tmp/cred_resp.json -w 'HTTP_STATUS:%{http_code}\\\\n' http://localhost:8000/api/orgs/credibility-test-co/credibility/)",
+      "Bash(curl -s http://localhost:3000/dashboard/credibility-test-co -H 'Cookie: beedero_access=__CMDSUB_OUTPUT__' -o /private/tmp/claude-501/-Users-josecandido-Documents-Beedero/99334ab4-bd9b-4944-abaf-bf7250713ddd/scratchpad/dashboard2.html -w 'HTTP %{http_code}\\\\n')",
+      "Bash(curl -s -X POST http://localhost:8000/api/auth/token/ -H 'Content-Type: application/json' -d '{\"email\": \"cred-verify-1783707030@example.com\", \"password\": \"TestPass123!\"}')",
+      "Bash(npx --yes playwright --version)",
+      "Read(//Applications/**)",
+      "Bash(ls ~/Library/Caches/ms-playwright/ 2>/dev/null *)",
+      "Bash(mkdir -p /private/tmp/claude-501/-Users-josecandido-Documents-Beedero/99334ab4-bd9b-4944-abaf-bf7250713ddd/scratchpad/pw)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(node verify.js)",
+      "Bash(curl -s -o /dev/null -w \"health check HTTP %{http_code}\\\\n\" https://beedero.com/dashboard/beedero-2 -b 'beedero_access=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzY5Mzc0LCJpYXQiOjE3ODM3Njc1NzQsImp0aSI6IjYzNTkyNTc2YTE4NjQxOWRiY2Y2YjM1OTdlZmI0NzJmIiwidXNlcl9pZCI6IjIifQ.LvmyTGdb951JlhdR2RdpPG-kE5C9VhmIoP6oE7g9CHU')",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/login)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/dashboard/beedero-2)",
+      "Bash(curl -s -D - -o /dev/null https://beedero.com/dashboard/beedero-2 -b 'beedero_access=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzY5Mzc0LCJpYXQiOjE3ODM3Njc1NzQsImp0aSI6IjYzNTkyNTc2YTE4NjQxOWRiY2Y2YjM1OTdlZmI0NzJmIiwidXNlcl9pZCI6IjIifQ.LvmyTGdb951JlhdR2RdpPG-kE5C9VhmIoP6oE7g9CHU')"
     ]
   }
 }

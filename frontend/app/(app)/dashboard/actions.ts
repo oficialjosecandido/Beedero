@@ -22,15 +22,20 @@ export async function createOrgAction(_prevState: string | null, formData: FormD
   redirect(`/dashboard/${org.slug}`);
 }
 
-export async function updateOrgProfileAction(formData: FormData) {
+export async function updateOrgProfileAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const body: Record<string, string> = {};
   for (const field of ["name", "one_liner", "stage", "sector", "geo"]) {
     const value = formData.get(field);
     if (value !== null) body[field] = String(value);
   }
-  await apiFetch(`/orgs/${slug}/`, { method: "PATCH", body });
+  try {
+    await apiFetch(`/orgs/${slug}/`, { method: "PATCH", body });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not save changes.");
+  }
   revalidatePath(`/dashboard/${slug}`);
+  return "saved";
 }
 
 export async function activateOrgAction(_prevState: string | null, formData: FormData) {
@@ -91,12 +96,30 @@ export async function upsertFieldAction(formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));
   const key = String(formData.get("key"));
-  const value = String(formData.get("value"));
+  const valueJson = formData.get("value_json");
+  const value = valueJson ? JSON.parse(String(valueJson)) : String(formData.get("value"));
   const visibility = String(formData.get("visibility") ?? "");
 
   await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, {
     method: "PUT",
     body: { value, ...(visibility ? { visibility } : {}) },
+  });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function createTeamProfileMemberAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const key = `member_${Date.now()}`;
+  await apiFetch(`/orgs/${slug}/sections/team/fields/${key}/`, {
+    method: "PUT",
+    body: {
+      value: {
+        name: String(formData.get("name") ?? ""),
+        linkedin: String(formData.get("linkedin") ?? ""),
+        role: String(formData.get("role") ?? ""),
+        joined_at: new Date().toISOString(),
+      },
+    },
   });
   revalidatePath(`/dashboard/${slug}`);
 }

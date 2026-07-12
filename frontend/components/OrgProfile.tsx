@@ -1,7 +1,14 @@
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
-function FieldValue({ value }: { value: unknown }) {
+const FIELD_LABELS: Record<string, string> = {
+  summary: "About",
+  mission: "Mission",
+  vision: "Vision",
+  values: "Values",
+};
+
+function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
   if (value && typeof value === "object" && "title" in (value as Record<string, unknown>)) {
     const post = value as { title: string; body?: string; occurred_at?: string; image?: string };
     return (
@@ -17,6 +24,36 @@ function FieldValue({ value }: { value: unknown }) {
             {new Date(post.occurred_at).toLocaleDateString()}
           </p>
         )}
+      </div>
+    );
+  }
+  if (value && typeof value === "object" && "name" in (value as Record<string, unknown>)) {
+    const member = value as { name?: string; role?: string; linkedin?: string; joined_at?: string };
+    return (
+      <div className="rounded-xl border border-beedero-black/10 p-3">
+        <p className="font-medium">{member.name}</p>
+        <p className="text-sm text-zinc-600">
+          {member.role}
+          {member.joined_at ? ` · joined ${new Date(member.joined_at).toLocaleDateString()}` : ""}
+        </p>
+        {member.linkedin && (
+          <a
+            href={member.linkedin}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+          >
+            LinkedIn profile
+          </a>
+        )}
+      </div>
+    );
+  }
+  if (FIELD_LABELS[fieldKey]) {
+    return (
+      <div>
+        <p className="text-sm font-semibold text-zinc-900">{FIELD_LABELS[fieldKey]}</p>
+        <p className="text-sm leading-6 text-zinc-700">{String(value)}</p>
       </div>
     );
   }
@@ -67,7 +104,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           <h2 className="text-lg font-medium">{SECTION_LABELS[kind] ?? kind}</h2>
           <div className="flex flex-col gap-3">
             {Object.entries(fields).map(([key, value]) => (
-              <FieldValue key={key} value={value} />
+              <FieldValue key={key} fieldKey={key} value={value} />
             ))}
           </div>
         </section>

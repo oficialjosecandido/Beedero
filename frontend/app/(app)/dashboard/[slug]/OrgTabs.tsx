@@ -8,6 +8,7 @@ import {
   activateOrgAction,
   closeRoundAction,
   connectStripeTractionAction,
+  createTeamProfileMemberAction,
   createInviteAction,
   deleteFieldAction,
   openRoundAction,
@@ -83,6 +84,29 @@ const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
   { key: "instagram", label: "Instagram", placeholder: "https://instagram.com/..." },
   { key: "facebook", label: "Facebook", placeholder: "https://facebook.com/..." },
 ];
+
+const ABOUT_FIELDS = [
+  {
+    key: "summary",
+    label: "About",
+    placeholder: "Explain what the organization does in simple language.",
+  },
+  {
+    key: "mission",
+    label: "Mission",
+    placeholder: "What problem are you here to solve?",
+  },
+  {
+    key: "vision",
+    label: "Vision",
+    placeholder: "What future do you want to create?",
+  },
+  {
+    key: "values",
+    label: "Values",
+    placeholder: "What principles guide the team?",
+  },
+] as const;
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -179,6 +203,157 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
         </select>
         <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
           Add
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function AboutProfileSection({ slug, section }: { slug: string; section?: Section }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900">About</h3>
+        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+          public
+        </span>
+      </div>
+      <div className="grid gap-4">
+        {ABOUT_FIELDS.map((item) => {
+          const field = section?.fields.find((f) => f.key === item.key);
+          return (
+            <form key={item.key} action={upsertFieldAction} className="flex flex-col gap-2">
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="kind" value="about" />
+              <input type="hidden" name="key" value={item.key} />
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+                {item.label}
+                <textarea
+                  name="value"
+                  rows={item.key === "summary" ? 5 : 3}
+                  placeholder={item.placeholder}
+                  defaultValue={typeof field?.value === "string" ? field.value : ""}
+                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
+                  Save {item.label}
+                </button>
+                {field && (
+                  <button
+                    formAction={deleteFieldAction}
+                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </form>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TeamProfileSection({ slug, section }: { slug: string; section?: Section }) {
+  const members = section?.fields ?? [];
+
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900">Team</h3>
+        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+          public
+        </span>
+      </div>
+      {members.length === 0 && (
+        <p className="text-sm text-zinc-500">No team members added yet.</p>
+      )}
+      <div className="grid gap-2">
+        {members.map((member) => {
+          const value =
+            member.value && typeof member.value === "object"
+              ? (member.value as {
+                  name?: string;
+                  linkedin?: string;
+                  role?: string;
+                  joined_at?: string;
+                })
+              : { name: String(member.value) };
+          return (
+            <div
+              key={member.id}
+              className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-semibold text-beedero-black">{value.name || "Unnamed member"}</p>
+                <p className="text-xs text-zinc-500">
+                  {value.role || "Role missing"}
+                  {value.joined_at ? ` · joined ${new Date(value.joined_at).toLocaleDateString()}` : ""}
+                </p>
+                {value.linkedin && (
+                  <a
+                    href={value.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+                  >
+                    LinkedIn profile
+                  </a>
+                )}
+              </div>
+              <form action={deleteFieldAction}>
+                <input type="hidden" name="slug" value={slug} />
+                <input type="hidden" name="kind" value="team" />
+                <input type="hidden" name="key" value={member.key} />
+                <button className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                  Remove
+                </button>
+              </form>
+            </div>
+          );
+        })}
+      </div>
+      <form
+        action={createTeamProfileMemberAction}
+        className="grid gap-3 border-t border-dashed border-zinc-200 pt-4 sm:grid-cols-2"
+      >
+        <input type="hidden" name="slug" value={slug} />
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+          Name
+          <input
+            name="name"
+            required
+            placeholder="Jane Founder"
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+          Function
+          <input
+            name="role"
+            required
+            placeholder="CEO"
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700 sm:col-span-2">
+          LinkedIn profile
+          <input
+            name="linkedin"
+            type="url"
+            required
+            placeholder="https://linkedin.com/in/..."
+            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          />
+        </label>
+        <p className="text-xs text-zinc-500 sm:col-span-2">
+          Joined date is set automatically to today when you add the person.
+        </p>
+        <button className="self-start rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white sm:col-span-2">
+          Add team member
         </button>
       </form>
     </div>
@@ -393,13 +568,16 @@ function PostComposer({
   canPostUpdates,
   hasPostedToday,
   profileFieldCount,
+  onGoProfile,
 }: {
   slug: string;
   canPostUpdates: boolean;
   hasPostedToday: boolean;
   profileFieldCount: number;
+  onGoProfile: () => void;
 }) {
   const [error, formAction, pending] = useActionState(postFeedAction, null);
+  const missingFields = Math.max(0, 5 - profileFieldCount);
 
   return (
     <form
@@ -408,15 +586,37 @@ function PostComposer({
     >
       <input type="hidden" name="slug" value={slug} />
       <h3 className="font-semibold text-zinc-900">Share an update</h3>
-      <p className="text-sm text-zinc-500">
-        {hasPostedToday
-          ? "This profile has already shared today's post. Come back tomorrow."
-          : canPostUpdates
-            ? "Milestones, events, and updates appear in your followers' feed."
-            : `Add ${5 - profileFieldCount} more profile field${
-                5 - profileFieldCount === 1 ? "" : "s"
-              } before posting updates.`}
-      </p>
+      {hasPostedToday ? (
+        <div className="rounded-2xl border border-beedero-black/10 bg-zinc-50 p-4">
+          <p className="text-sm font-semibold text-beedero-black">
+            You have already posted today.
+          </p>
+          <p className="mt-1 text-sm text-zinc-600">
+            To avoid noisy feeds, each profile can publish one update per day. Come back tomorrow.
+          </p>
+        </div>
+      ) : canPostUpdates ? (
+        <p className="text-sm text-zinc-500">
+          Milestones, events, and updates appear in your followers&apos; feed.
+        </p>
+      ) : (
+        <div className="rounded-2xl border border-beedero-yellow bg-beedero-yellow/25 p-4">
+          <p className="text-sm font-bold text-beedero-black">
+            Publishing is locked until your organization profile has 5 fields.
+          </p>
+          <p className="mt-1 text-sm text-zinc-700">
+            You currently have {profileFieldCount}. Add {missingFields} more profile field
+            {missingFields === 1 ? "" : "s"} in the Profile tab before publishing updates.
+          </p>
+          <button
+            type="button"
+            onClick={onGoProfile}
+            className="mt-3 rounded-xl bg-beedero-black px-4 py-2 text-sm font-bold text-beedero-yellow hover:bg-beedero-yellow hover:text-beedero-black"
+          >
+            Complete profile fields
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
           Type
@@ -453,6 +653,7 @@ function PostComposer({
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         disabled={!canPostUpdates || pending}
+        title={!canPostUpdates ? "Complete 5 profile fields before publishing." : undefined}
         className="self-start rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending ? "Publishing..." : "Publish"}
@@ -504,12 +705,14 @@ function ActivityTab({
   canPostUpdates,
   hasPostedToday,
   profileFieldCount,
+  onGoProfile,
 }: {
   slug: string;
   sections: Section[];
   canPostUpdates: boolean;
   hasPostedToday: boolean;
   profileFieldCount: number;
+  onGoProfile: () => void;
 }) {
   const posts = collectPosts(sections);
   return (
@@ -519,6 +722,7 @@ function ActivityTab({
         canPostUpdates={canPostUpdates}
         hasPostedToday={hasPostedToday}
         profileFieldCount={profileFieldCount}
+        onGoProfile={onGoProfile}
       />
       {posts.length === 0 && (
         <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
@@ -742,9 +946,11 @@ function FundraisingTab({
 }
 
 function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean }) {
+  const [status, formAction, pending] = useActionState(updateOrgProfileAction, null);
+
   return (
     <form
-      action={updateOrgProfileAction}
+      action={formAction}
       className="grid gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm sm:grid-cols-2"
     >
       <input type="hidden" name="slug" value={org.slug} />
@@ -807,9 +1013,16 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
         </select>
       </label>
       {canManage && (
-        <button className="self-start rounded-lg border border-beedero-black/15 px-3 py-1.5 text-xs font-medium hover:bg-beedero-yellow sm:col-span-2">
-          Save
-        </button>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <button
+            disabled={pending}
+            className="self-start rounded-lg border border-beedero-black/15 px-3 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
+          >
+            {pending ? "Saving..." : "Save"}
+          </button>
+          {status === "saved" && <p className="text-xs font-medium text-emerald-600">Saved.</p>}
+          {status && status !== "saved" && <p className="text-xs font-medium text-red-600">{status}</p>}
+        </div>
       )}
     </form>
   );
@@ -1102,6 +1315,8 @@ export function OrgTabs({
   const [active, setActive] = useState<TabId>("overview");
 
   const identitySections = sections.filter((s) => IDENTITY_KINDS.includes(s.kind));
+  const aboutSection = sections.find((s) => s.kind === "about");
+  const teamSection = sections.find((s) => s.kind === "team");
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
 
@@ -1140,6 +1355,7 @@ export function OrgTabs({
           canPostUpdates={canPostUpdates}
           hasPostedToday={hasPostedToday}
           profileFieldCount={profileFieldCount}
+          onGoProfile={() => setActive("profile")}
         />
       )}
 
@@ -1156,9 +1372,13 @@ export function OrgTabs({
       {active === "profile" && (
         <div className="flex flex-col gap-4">
           <OrgBasicsForm org={org} canManage={canManage} />
-          {identitySections.map((section) => (
-            <SectionCard key={section.id} slug={slug} section={section} />
-          ))}
+          <AboutProfileSection slug={slug} section={aboutSection} />
+          <TeamProfileSection slug={slug} section={teamSection} />
+          {identitySections
+            .filter((section) => !["about", "team"].includes(section.kind))
+            .map((section) => (
+              <SectionCard key={section.id} slug={slug} section={section} />
+            ))}
         </div>
       )}
 

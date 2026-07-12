@@ -20,7 +20,7 @@ export type OrgProfile = {
 export const SECTION_LABELS: Record<string, string> = {
   about: "About",
   team: "Team",
-  products: "Product",
+  products: "Products",
   market_thesis: "Market thesis",
   links: "Website & Social",
   news: "News",
