@@ -250,14 +250,18 @@ class FundraiseRound(models.Model):
         SEED = "seed"
         SERIES_A = "series_a"
 
-    org = models.OneToOneField(Organization, on_delete=models.CASCADE)
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="fundraise_rounds")
     valuation = models.BigIntegerField(null=True, blank=True)
     ask_amount = models.BigIntegerField(null=True, blank=True)
+    raised_amount = models.BigIntegerField(null=True, blank=True)
     use_of_funds = models.TextField(blank=True)
     stage = models.CharField(max_length=20, choices=Stage.choices)
     is_open = models.BooleanField(default=True)
     opened_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-opened_at"]
 
 
 class RestrictedAccessLog(models.Model):

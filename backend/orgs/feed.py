@@ -24,7 +24,9 @@ def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, c
 
     qs = (
         Activity.objects.filter(
-            Q(org_id__in=followed_org_ids) | Q(author_id__in=followed_user_ids, org__isnull=True)
+            Q(org_id__in=followed_org_ids)
+            | Q(org_id__in=member_org_ids)
+            | Q(author_id__in=followed_user_ids, org__isnull=True)
         )
         .filter(Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True) | Q(org_id__in=member_org_ids))
         .select_related("org", "author")

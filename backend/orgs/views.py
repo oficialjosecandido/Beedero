@@ -198,6 +198,7 @@ class OrgListCreateView(APIView):
             return Response({"detail": "Could not create organization, please try again."}, status=409)
 
         OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
+        OrgFollow.objects.get_or_create(user=request.user, org=org)
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
 
@@ -541,6 +542,7 @@ class OrgInviteAcceptView(APIView):
                 if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
                     return Response({"detail": "This invite link has reached its usage limit."}, status=400)
                 OrgMembership.objects.create(org=invite.org, user=request.user, role=invite.role)
+                OrgFollow.objects.get_or_create(user=request.user, org=invite.org)
                 invite.uses_count += 1
                 invite.save(update_fields=["uses_count"])
         return Response({"slug": invite.org.slug, "name": invite.org.name})
@@ -674,29 +676,28 @@ class GrantDetailView(OrgLookupMixin, APIView):
 
 
 class RoundOpenView(OrgLookupMixin, APIView):
-    """§4: POST /api/orgs/<slug>/rounds/ — opens a round, creates restricted
-    fundraise sections, and grants automatic access to the verified_investor role."""
+    """§4: GET/POST /api/orgs/<slug>/rounds/ — history of rounds, and opening a
+    new one (creates restricted fundraise sections, grants access to
+    verified_investor role)."""
 
-    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsOrgOwnerOrAdmin()]
+        return [permissions.IsAuthenticated(), IsOrgMember()]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        rounds = FundraiseRound.objects.filter(org=org)
+        return Response(FundraiseRoundSerializer(rounds, many=True).data)
 
     def post(self, request, slug):
         org = self.get_org()
-        round_ = getattr(org, "fundraiseround", None)
-        if round_ and round_.is_open:
+        if FundraiseRound.objects.filter(org=org, is_open=True).exists():
             return Response({"detail": "A round is already open."}, status=400)
 
-        data = request.data
-        if round_ is None:
-            serializer = FundraiseRoundSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            round_ = serializer.save(org=org)
-        else:
-            for field in ("valuation", "ask_amount", "use_of_funds", "stage"):
-                if field in data:
-                    setattr(round_, field, data[field])
-            round_.is_open = True
-            round_.closed_at = None
-            round_.save()
+        serializer = FundraiseRoundSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        round_ = serializer.save(org=org)
 
         org.is_fundraising = True
         org.save(update_fields=["is_fundraising"])
@@ -724,6 +725,9 @@ class RoundCloseView(OrgLookupMixin, APIView):
         round_ = get_object_or_404(FundraiseRound, org=org, is_open=True)
         round_.is_open = False
         round_.closed_at = timezone.now()
+        raised_amount = request.data.get("raised_amount")
+        if raised_amount not in (None, ""):
+            round_.raised_amount = raised_amount
         round_.save()
 
         org.is_fundraising = False

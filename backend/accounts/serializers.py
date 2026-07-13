@@ -73,6 +73,11 @@ class InvestorPostSerializer(serializers.Serializer):
     occurred_at = serializers.DateTimeField()
     image = serializers.ImageField(required=False, allow_null=True)
 
+    def validate(self, attrs):
+        if attrs.get("image") and attrs.get("kind") == InvestorPost.Kind.MILESTONE:
+            raise serializers.ValidationError({"image": "Milestones cannot include photos."})
+        return attrs
+
 
 class MeSerializer(serializers.ModelSerializer):
     investor_profile = InvestorProfileSerializer(source="investorprofile", read_only=True)

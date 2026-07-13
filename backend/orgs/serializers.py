@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.db import transaction
 from rest_framework import serializers
 
-from .constants import ACTIVITY_KINDS
+from .constants import ACTIVITY_KINDS, SectionKind
 from .models import (
     FundraiseRound,
     Organization,
@@ -116,13 +116,14 @@ class FundraiseRoundSerializer(serializers.ModelSerializer):
             "org",
             "valuation",
             "ask_amount",
+            "raised_amount",
             "use_of_funds",
             "stage",
             "is_open",
             "opened_at",
             "closed_at",
         ]
-        read_only_fields = ["org", "is_open", "opened_at", "closed_at"]
+        read_only_fields = ["org", "raised_amount", "is_open", "opened_at", "closed_at"]
 
 
 class FeedPostSerializer(serializers.Serializer):
@@ -131,6 +132,11 @@ class FeedPostSerializer(serializers.Serializer):
     body = serializers.CharField(allow_blank=True, required=False, default="")
     occurred_at = serializers.DateTimeField()
     image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        if attrs.get("image") and attrs.get("kind") == SectionKind.MILESTONES:
+            raise serializers.ValidationError({"image": "Milestones cannot include photos."})
+        return attrs
 
     def create(self, org: "Organization"):
         from .services import create_activity

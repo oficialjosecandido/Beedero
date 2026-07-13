@@ -22,6 +22,7 @@ import {
   upsertFieldAction,
 } from "../actions";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
 import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -641,6 +642,8 @@ function PostComposer({
   onGoProfile: () => void;
 }) {
   const [error, formAction, pending] = useActionState(postFeedAction, null);
+  const [kind, setKind] = useState(POST_KIND_OPTIONS[0].value);
+  const allowsPhoto = kind === "events" || kind === "news";
   useActionToast(error, pending, { successMessage: "Update posted!" });
 
   return (
@@ -685,7 +688,12 @@ function PostComposer({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
           Type
-          <select name="kind" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
+          <select
+            name="kind"
+            value={kind}
+            onChange={(event) => setKind(event.target.value)}
+            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          >
             {POST_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}
@@ -706,15 +714,19 @@ function PostComposer({
         rows={3}
         className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
       />
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-        Photo (optional)
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
-        />
-      </label>
+      {allowsPhoto ? (
+        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+          Photo (optional, max 1)
+          <input
+            type="file"
+            name="image"
+            accept="image/*"
+            className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
+          />
+        </label>
+      ) : (
+        <p className="text-xs text-zinc-500">Milestones are text-only and cannot include photos.</p>
+      )}
       <button
         disabled={!canPostUpdates || pending}
         title={!canPostUpdates ? "Complete 5 About or Team fields before publishing." : undefined}
@@ -1084,10 +1096,10 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
 }
 
 const LEVEL_RUNGS = [
-  { level: 1, label: "Identidade" },
-  { level: 2, label: "Conformidade" },
-  { level: 3, label: "Financeiro certificado" },
-  { level: 4, label: "Tração em tempo real" },
+  { level: 1, label: CREDIBILITY_LEVEL_LABELS[1] },
+  { level: 2, label: CREDIBILITY_LEVEL_LABELS[2] },
+  { level: 3, label: CREDIBILITY_LEVEL_LABELS[3] },
+  { level: 4, label: CREDIBILITY_LEVEL_LABELS[4] },
 ];
 
 type VerificationFieldSpec = {
@@ -1280,14 +1292,18 @@ function CredibilityTab({
       {Object.entries(VERIFICATION_FORMS).map(([type, spec]) => (
         <div key={type} className="flex flex-col gap-2">
           {spec.level === 1 && type === "company_registry" && (
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 1 · Identidade</p>
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
+              {credibilityLevelHeading(1)}
+            </p>
           )}
           {spec.level === 2 && type === "tax_clearance" && (
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 2 · Conformidade</p>
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
+              {credibilityLevelHeading(2)}
+            </p>
           )}
           {spec.level === 3 && (
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
-              Nível 3 · Financeiro certificado
+              {credibilityLevelHeading(3)}
             </p>
           )}
           <VerificationCard
@@ -1300,7 +1316,9 @@ function CredibilityTab({
       ))}
 
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">Nível 4 · Tração em tempo real</p>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
+          {credibilityLevelHeading(4)}
+        </p>
         <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <h4 className="font-semibold text-zinc-900">Stripe</h4>

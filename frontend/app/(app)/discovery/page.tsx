@@ -78,10 +78,10 @@ export default async function DiscoveryPage({
               className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
             >
               <option value="">Any</option>
-              <option value="1">Nível 1+</option>
-              <option value="2">Nível 2+</option>
-              <option value="3">Nível 3+</option>
-              <option value="4">Nível 4</option>
+              <option value="1">Level 1+</option>
+              <option value="2">Level 2+</option>
+              <option value="3">Level 3+</option>
+              <option value="4">Level 4</option>
             </select>
           </label>
           <button

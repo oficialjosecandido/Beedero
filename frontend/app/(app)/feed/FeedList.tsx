@@ -90,8 +90,9 @@ export function FeedList({
   if (items.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
-        No updates yet. Beedero is followed automatically until you follow other people and
-        organizations.
+        No updates yet. Follow organizations from Discovery or your dashboard, or publish from an
+        organization you manage. If you follow nothing yet, the Beedero platform account is followed
+        automatically.
       </div>
     );
   }

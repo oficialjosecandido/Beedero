@@ -50,7 +50,7 @@ class VisibilityGrantAdmin(admin.ModelAdmin):
 
 @admin.register(FundraiseRound)
 class FundraiseRoundAdmin(admin.ModelAdmin):
-    list_display = ["org", "stage", "is_open", "opened_at", "closed_at"]
+    list_display = ["org", "stage", "is_open", "opened_at", "closed_at", "ask_amount", "raised_amount"]
 
 
 @admin.register(RestrictedAccessLog)

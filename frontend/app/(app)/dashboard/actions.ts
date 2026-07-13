@@ -202,14 +202,17 @@ function firstErrorMessage(err: unknown, fallback: string): string {
 
 export async function postFeedAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
+  const kind = String(formData.get("kind"));
   const body = new FormData();
-  body.set("kind", String(formData.get("kind")));
+  body.set("kind", kind);
   body.set("title", String(formData.get("title")));
   body.set("body", String(formData.get("body") ?? ""));
   body.set("occurred_at", new Date().toISOString());
-  const image = formData.get("image");
-  if (image instanceof File && image.size > 0) {
-    body.set("image", image);
+  if (kind === "events" || kind === "news") {
+    const image = formData.get("image");
+    if (image instanceof File && image.size > 0) {
+      body.set("image", image);
+    }
   }
 
   try {
@@ -274,14 +277,17 @@ export async function removeMemberAction(formData: FormData) {
 }
 
 export async function createInvestorPostAction(_prevState: string | null, formData: FormData) {
+  const kind = String(formData.get("kind"));
   const body = new FormData();
-  body.set("kind", String(formData.get("kind")));
+  body.set("kind", kind);
   body.set("title", String(formData.get("title")));
   body.set("body", String(formData.get("body") ?? ""));
   body.set("occurred_at", new Date().toISOString());
-  const image = formData.get("image");
-  if (image instanceof File && image.size > 0) {
-    body.set("image", image);
+  if (kind === "event" || kind === "update") {
+    const image = formData.get("image");
+    if (image instanceof File && image.size > 0) {
+      body.set("image", image);
+    }
   }
 
   try {

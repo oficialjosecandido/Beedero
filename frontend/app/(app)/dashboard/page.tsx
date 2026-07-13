@@ -198,8 +198,8 @@ export default async function DashboardPage() {
               <div>
                 <h2 className="text-xl font-semibold">Share an update</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  Post a milestone, event, or update to your followers&apos; feed, with an optional
-                  photo.
+                  Post a milestone, event, or update to your followers&apos; feed. Events and
+                  updates can include one photo; milestones are text-only.
                 </p>
               </div>
               <InvestorPostForm />

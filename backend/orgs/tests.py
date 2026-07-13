@@ -228,6 +228,24 @@ def test_feed_respects_visibility(org, founder, outsider):
     founder_items = activity_feed_items(founder, [org.id], [])
     assert {a.id for a in founder_items} == {public_post.id, private_post.id}
 
+    member_items = activity_feed_items(founder, [], [])
+    assert {a.id for a in member_items} == {public_post.id, private_post.id}
+
+
+@pytest.mark.django_db
+def test_org_create_auto_follows_owner(db):
+    from rest_framework.test import APIClient
+
+    from orgs.models import OrgFollow
+
+    user = User.objects.create_user(username="creator", password="x")
+    api = APIClient()
+    api.force_authenticate(user)
+    res = api.post("/api/orgs/", {"name": "New Co", "one_liner": "We ship"}, format="json")
+    assert res.status_code == 201
+    org = Organization.objects.get(slug=res.data["slug"])
+    assert OrgFollow.objects.filter(user=user, org=org).exists()
+
 
 @pytest.mark.django_db
 def test_discovery_no_inference_leak(org, outsider, verified_investor):

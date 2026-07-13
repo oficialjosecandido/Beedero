@@ -1,10 +1,11 @@
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
 from accounts.models import User
 from orgs.constants import SectionKind
-from orgs.models import Activity, OrgMembership, Organization
+from orgs.models import Activity, OrgField, OrgMembership, Organization
 
 
 @pytest.fixture
@@ -55,3 +56,33 @@ def test_org_feed_delete_removes_activity(api, org, founder):
 
     assert res.status_code == 204
     assert not Activity.objects.filter(id=activity.id).exists()
+
+
+def _seed_profile_fields(org):
+    about = org.sections.get(kind=SectionKind.ABOUT)
+    team = org.sections.get(kind=SectionKind.TEAM)
+    for key in ("summary", "mission", "vision", "values"):
+        OrgField.objects.create(section=about, key=key, value=key)
+    OrgField.objects.create(section=team, key="founder", value={"name": "Ada"})
+
+
+@pytest.mark.django_db
+def test_org_feed_rejects_milestone_photo(api, org, founder):
+    _seed_profile_fields(org)
+    image = SimpleUploadedFile("shot.png", b"fake", content_type="image/png")
+
+    api.force_authenticate(founder)
+    res = api.post(
+        f"/api/orgs/{org.slug}/feed/",
+        {
+            "kind": SectionKind.MILESTONES,
+            "title": "Shipped",
+            "body": "v1",
+            "occurred_at": "2026-07-13T12:00:00Z",
+            "image": image,
+        },
+        format="multipart",
+    )
+
+    assert res.status_code == 400
+    assert "image" in res.data
