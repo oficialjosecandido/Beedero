@@ -2,15 +2,16 @@
 
 import { useActionState } from "react";
 
+import { useActionToast } from "@/lib/use-action-toast";
 import { acceptInviteAction } from "./actions";
 
 export function AcceptInviteForm({ token }: { token: string }) {
   const [error, formAction, pending] = useActionState(acceptInviteAction, null);
+  useActionToast(error, pending);
 
   return (
     <form action={formAction} className="mt-6 flex flex-col items-center gap-3">
       <input type="hidden" name="token" value={token} />
-      {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={pending}

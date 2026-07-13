@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { updateProfileAction } from "@/app/(app)/dashboard/actions";
 import { COUNTRIES } from "@/lib/countries";
+import { useActionToast } from "@/lib/use-action-toast";
 
 type Profile = {
   full_name?: string;
@@ -15,6 +16,7 @@ type Profile = {
 
 export function ProfileForm({ profile }: { profile?: Profile | null }) {
   const [error, formAction, pending] = useActionState(updateProfileAction, null);
+  useActionToast(error, pending, { successMessage: "Profile updated." });
 
   return (
     <form
@@ -84,7 +86,6 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
         />
       </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={pending}

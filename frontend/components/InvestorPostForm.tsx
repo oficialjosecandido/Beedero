@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { createInvestorPostAction } from "@/app/(app)/dashboard/actions";
+import { useActionToast } from "@/lib/use-action-toast";
 
 const POST_KIND_OPTIONS = [
   { value: "milestone", label: "Milestone" },
@@ -12,6 +13,7 @@ const POST_KIND_OPTIONS = [
 
 export function InvestorPostForm() {
   const [error, formAction, pending] = useActionState(createInvestorPostAction, null);
+  useActionToast(error, pending, { successMessage: "Post published!" });
 
   return (
     <form
@@ -51,7 +53,6 @@ export function InvestorPostForm() {
           className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
         />
       </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={pending}

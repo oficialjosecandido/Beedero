@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useActionState, useRef } from "react";
 
+import { useActionToast } from "@/lib/use-action-toast";
 import { uploadOrgLogoAction } from "../actions";
 
 export function OrgLogoForm({
@@ -16,6 +17,11 @@ export function OrgLogoForm({
   editable: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [state, formAction, pending] = useActionState(uploadOrgLogoAction, null);
+  useActionToast(state, pending, {
+    successMessage: "Logo updated.",
+    isSuccess: (message) => message === "saved",
+  });
   const image = logo ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={logo} alt="" className="size-full object-cover" />
@@ -34,7 +40,7 @@ export function OrgLogoForm({
   return (
     <form
       ref={formRef}
-      action={uploadOrgLogoAction}
+      action={formAction}
       className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
     >
       <input type="hidden" name="slug" value={slug} />

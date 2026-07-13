@@ -213,17 +213,22 @@ export async function postFeedAction(_prevState: string | null, formData: FormDa
   return null;
 }
 
-export async function uploadOrgLogoAction(formData: FormData) {
+export async function uploadOrgLogoAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const logo = formData.get("logo");
-  if (!(logo instanceof File) || logo.size === 0) return;
+  if (!(logo instanceof File) || logo.size === 0) return null;
 
   const body = new FormData();
   body.set("logo", logo);
-  await apiFetch(`/orgs/${slug}/logo/`, { method: "PUT", body });
+  try {
+    await apiFetch(`/orgs/${slug}/logo/`, { method: "PUT", body });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not upload the logo.");
+  }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath("/feed");
   revalidatePath("/discovery");
+  return "saved";
 }
 
 export async function createInviteAction(formData: FormData) {

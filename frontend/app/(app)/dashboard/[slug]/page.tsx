@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { ApiError, apiFetch } from "@/lib/api";
@@ -62,7 +62,7 @@ type Onboarding = {
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
 
-const IDENTITY_FIELD_COUNT_KINDS = ["about", "team", "products", "market_thesis"];
+const POST_REQUIRED_PROFILE_KINDS = ["about", "team"];
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
 
 export default async function DashboardOrgPage({
@@ -87,6 +87,7 @@ export default async function DashboardOrgPage({
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
+    if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
   }
 
@@ -99,7 +100,7 @@ export default async function DashboardOrgPage({
   const credibility: CredibilityInfo = await apiFetch(`/orgs/${slug}/credibility/`);
 
   const profileFieldCount = sections
-    .filter((section) => IDENTITY_FIELD_COUNT_KINDS.includes(section.kind))
+    .filter((section) => POST_REQUIRED_PROFILE_KINDS.includes(section.kind))
     .reduce((count, section) => count + section.fields.length, 0);
   const today = new Date().toISOString().slice(0, 10);
   const hasPostedToday = sections

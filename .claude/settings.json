@@ -140,7 +140,12 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/login)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/dashboard/beedero-2)",
-      "Bash(curl -s -D - -o /dev/null https://beedero.com/dashboard/beedero-2 -b 'beedero_access=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzY5Mzc0LCJpYXQiOjE3ODM3Njc1NzQsImp0aSI6IjYzNTkyNTc2YTE4NjQxOWRiY2Y2YjM1OTdlZmI0NzJmIiwidXNlcl9pZCI6IjIifQ.LvmyTGdb951JlhdR2RdpPG-kE5C9VhmIoP6oE7g9CHU')"
+      "Bash(curl -s -D - -o /dev/null https://beedero.com/dashboard/beedero-2 -b 'beedero_access=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzY5Mzc0LCJpYXQiOjE3ODM3Njc1NzQsImp0aSI6IjYzNTkyNTc2YTE4NjQxOWRiY2Y2YjM1OTdlZmI0NzJmIiwidXNlcl9pZCI6IjIifQ.LvmyTGdb951JlhdR2RdpPG-kE5C9VhmIoP6oE7g9CHU')",
+      "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" http://localhost:8000/api/)",
+      "Bash(curl -s -D - -o /dev/null http://localhost:3000/dashboard/credibility-test-co -b beedero_access=not-a-real-jwt-so-backend-will-401)",
+      "Bash(curl -s -o /dev/null -w \"backend direct: %{http_code}\\\\n\" http://localhost:8000/api/orgs/credibility-test-co/ -H \"Authorization: Bearer not-a-real-jwt\")",
+      "Bash(curl -s http://localhost:3000/dashboard/credibility-test-co -b beedero_access=not-a-real-jwt-so-backend-will-401)",
+      "Bash(grep -iA 5 \"error\\\\|redirect\\\\|NEXT_REDIRECT\")"
     ]
   }
 }

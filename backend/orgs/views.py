@@ -64,11 +64,9 @@ FIELD_KEY_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 # of inflated by page refreshes/re-renders.
 PROFILE_VIEW_DEDUPE_HOURS = 24
 
-IDENTITY_FIELD_COUNT_KINDS = [
+POST_REQUIRED_PROFILE_KINDS = [
     SectionKind.ABOUT,
     SectionKind.TEAM,
-    SectionKind.PRODUCTS,
-    SectionKind.MARKET_THESIS,
 ]
 
 
@@ -115,7 +113,7 @@ def ensure_default_beedero_follow(user):
 def org_profile_field_count(org):
     return OrgField.objects.filter(
         section__org=org,
-        section__kind__in=IDENTITY_FIELD_COUNT_KINDS,
+        section__kind__in=POST_REQUIRED_PROFILE_KINDS,
     ).count()
 
 

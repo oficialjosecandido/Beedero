@@ -23,6 +23,7 @@ import {
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { SECTION_LABELS } from "@/lib/types";
+import { useActionToast } from "@/lib/use-action-toast";
 
 type SectionField = {
   id: number;
@@ -63,7 +64,6 @@ type VerificationInfo = {
 type CredibilityInfo = { level: number; verifications: Record<string, VerificationInfo> };
 
 const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
-const IDENTITY_KINDS = ["about", "team", "products", "market_thesis"];
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
 
@@ -90,6 +90,7 @@ const ABOUT_FIELDS = [
     key: "summary",
     label: "About",
     placeholder: "Explain what the organization does in simple language.",
+    rows: 5,
   },
   {
     key: "mission",
@@ -105,6 +106,36 @@ const ABOUT_FIELDS = [
     key: "values",
     label: "Values",
     placeholder: "What principles guide the team?",
+  },
+] as const;
+
+const PRODUCTS_FIELDS = [
+  {
+    key: "overview",
+    label: "Products & services",
+    placeholder: "What do you sell or offer? List your main products or services.",
+    rows: 4,
+  },
+] as const;
+
+const MARKET_THESIS_FIELDS = [
+  {
+    key: "problem",
+    label: "Problem",
+    placeholder: "What pain point are you solving?",
+    rows: 3,
+  },
+  {
+    key: "market",
+    label: "Market",
+    placeholder: "Who is the target market and how big is the opportunity?",
+    rows: 3,
+  },
+  {
+    key: "why_now",
+    label: "Why now",
+    placeholder: "What makes this the right moment?",
+    rows: 3,
   },
 ] as const;
 
@@ -209,28 +240,54 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
   );
 }
 
-function AboutProfileSection({ slug, section }: { slug: string; section?: Section }) {
+function CuratedProfileSection({
+  slug,
+  section,
+  kind,
+  title,
+  description,
+  fields,
+  optional = false,
+}: {
+  slug: string;
+  section?: Section;
+  kind: string;
+  title: string;
+  description?: string;
+  fields: readonly { key: string; label: string; placeholder: string; rows?: number }[];
+  optional?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-zinc-900">About</h3>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-zinc-900">{title}</h3>
+            {optional && (
+              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+                Optional
+              </span>
+            )}
+          </div>
+          {description && <p className="mt-1 text-sm text-zinc-500">{description}</p>}
+        </div>
+        <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           public
         </span>
       </div>
       <div className="grid gap-4">
-        {ABOUT_FIELDS.map((item) => {
+        {fields.map((item) => {
           const field = section?.fields.find((f) => f.key === item.key);
           return (
             <form key={item.key} action={upsertFieldAction} className="flex flex-col gap-2">
               <input type="hidden" name="slug" value={slug} />
-              <input type="hidden" name="kind" value="about" />
+              <input type="hidden" name="kind" value={kind} />
               <input type="hidden" name="key" value={item.key} />
               <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
                 {item.label}
                 <textarea
                   name="value"
-                  rows={item.key === "summary" ? 5 : 3}
+                  rows={item.rows ?? 3}
                   placeholder={item.placeholder}
                   defaultValue={typeof field?.value === "string" ? field.value : ""}
                   className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
@@ -254,6 +311,18 @@ function AboutProfileSection({ slug, section }: { slug: string; section?: Sectio
         })}
       </div>
     </div>
+  );
+}
+
+function AboutProfileSection({ slug, section }: { slug: string; section?: Section }) {
+  return (
+    <CuratedProfileSection
+      slug={slug}
+      section={section}
+      kind="about"
+      title="About"
+      fields={ABOUT_FIELDS}
+    />
   );
 }
 
@@ -479,6 +548,7 @@ function OnboardingPanel({
   isEmailVerified: boolean;
 }) {
   const [error, formAction, pending] = useActionState(activateOrgAction, null);
+  useActionToast(error, pending, { successMessage: "Organization published!" });
 
   return (
     <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
@@ -518,7 +588,6 @@ function OnboardingPanel({
             <p className="mt-2 text-xs text-zinc-400">
               Publishing is free. You just need a verified email.
             </p>
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           </form>
         </>
       ) : (
@@ -577,7 +646,7 @@ function PostComposer({
   onGoProfile: () => void;
 }) {
   const [error, formAction, pending] = useActionState(postFeedAction, null);
-  const missingFields = Math.max(0, 5 - profileFieldCount);
+  useActionToast(error, pending, { successMessage: "Update posted!" });
 
   return (
     <form
@@ -602,11 +671,12 @@ function PostComposer({
       ) : (
         <div className="rounded-2xl border border-beedero-yellow bg-beedero-yellow/25 p-4">
           <p className="text-sm font-bold text-beedero-black">
-            Publishing is locked until your organization profile has 5 fields.
+            Publishing is locked until About and Team have 5 fields filled in.
           </p>
           <p className="mt-1 text-sm text-zinc-700">
-            You currently have {profileFieldCount}. Add {missingFields} more profile field
-            {missingFields === 1 ? "" : "s"} in the Profile tab before publishing updates.
+            You have {profileFieldCount} of 5 required fields. Fill in summary, mission, vision,
+            values, or team members in the Profile tab. Products and Market thesis are optional and
+            do not count toward this requirement.
           </p>
           <button
             type="button"
@@ -650,10 +720,9 @@ function PostComposer({
           className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
         />
       </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         disabled={!canPostUpdates || pending}
-        title={!canPostUpdates ? "Complete 5 profile fields before publishing." : undefined}
+        title={!canPostUpdates ? "Complete 5 About or Team fields before publishing." : undefined}
         className="self-start rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending ? "Publishing..." : "Publish"}
@@ -947,6 +1016,10 @@ function FundraisingTab({
 
 function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean }) {
   const [status, formAction, pending] = useActionState(updateOrgProfileAction, null);
+  useActionToast(status, pending, {
+    successMessage: "Saved.",
+    isSuccess: (message) => message === "saved",
+  });
 
   return (
     <form
@@ -1020,8 +1093,6 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           >
             {pending ? "Saving..." : "Save"}
           </button>
-          {status === "saved" && <p className="text-xs font-medium text-emerald-600">Saved.</p>}
-          {status && status !== "saved" && <p className="text-xs font-medium text-red-600">{status}</p>}
         </div>
       )}
     </form>
@@ -1096,6 +1167,7 @@ const STATUS_STYLES: Record<string, string> = {
 function VerificationForm({ slug, type }: { slug: string; type: string }) {
   const spec = VERIFICATION_FORMS[type];
   const [error, formAction, pending] = useActionState(submitVerificationAction, null);
+  useActionToast(error, pending, { successMessage: "Submitted for verification." });
 
   return (
     <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-dashed border-zinc-200 pt-3">
@@ -1124,7 +1196,6 @@ function VerificationForm({ slug, type }: { slug: string; type: string }) {
           </label>
         ))}
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         disabled={pending}
         className="self-start rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
@@ -1196,6 +1267,7 @@ function CredibilityTab({
   canManage: boolean;
 }) {
   const [stripeError, stripeAction, stripePending] = useActionState(connectStripeTractionAction, null);
+  useActionToast(stripeError, stripePending, { successMessage: "Stripe connected." });
   const stripeInfo = credibility.verifications["stripe_traction"];
 
   return (
@@ -1272,7 +1344,6 @@ function CredibilityTab({
               >
                 {stripePending ? "Connecting..." : stripeInfo ? "Reconnect Stripe" : "Connect Stripe"}
               </button>
-              {stripeError && <p className="mt-2 text-sm text-red-600">{stripeError}</p>}
             </form>
           )}
         </div>
@@ -1314,9 +1385,10 @@ export function OrgTabs({
 }) {
   const [active, setActive] = useState<TabId>("overview");
 
-  const identitySections = sections.filter((s) => IDENTITY_KINDS.includes(s.kind));
   const aboutSection = sections.find((s) => s.kind === "about");
   const teamSection = sections.find((s) => s.kind === "team");
+  const productsSection = sections.find((s) => s.kind === "products");
+  const marketSection = sections.find((s) => s.kind === "market_thesis");
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
 
@@ -1374,11 +1446,24 @@ export function OrgTabs({
           <OrgBasicsForm org={org} canManage={canManage} />
           <AboutProfileSection slug={slug} section={aboutSection} />
           <TeamProfileSection slug={slug} section={teamSection} />
-          {identitySections
-            .filter((section) => !["about", "team"].includes(section.kind))
-            .map((section) => (
-              <SectionCard key={section.id} slug={slug} section={section} />
-            ))}
+          <CuratedProfileSection
+            slug={slug}
+            section={productsSection}
+            kind="products"
+            title="Products"
+            description="Help investors understand what you sell or offer. This section is optional."
+            fields={PRODUCTS_FIELDS}
+            optional
+          />
+          <CuratedProfileSection
+            slug={slug}
+            section={marketSection}
+            kind="market_thesis"
+            title="Market thesis"
+            description="Explain the problem, market, and timing. This section is optional."
+            fields={MARKET_THESIS_FIELDS}
+            optional
+          />
         </div>
       )}
 
