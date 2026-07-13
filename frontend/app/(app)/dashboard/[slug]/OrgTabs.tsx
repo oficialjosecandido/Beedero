@@ -36,6 +36,17 @@ type SectionField = {
 };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
 type OrgBasics = { slug: string; name: string; one_liner: string; stage: string; sector: string; geo: string };
+type FundraiseRound = {
+  id: number;
+  valuation: number | null;
+  ask_amount: number | null;
+  raised_amount: number | null;
+  use_of_funds: string;
+  stage: string;
+  is_open: boolean;
+  opened_at: string;
+  closed_at: string | null;
+};
 type Stats = { followers_count: number; visitors_count: number };
 type Member = { id: number; email: string; role: string };
 type Invite = {
@@ -934,14 +945,32 @@ function ConfigurationsTab({
   );
 }
 
+const ROUND_STAGE_LABELS: Record<string, string> = {
+  pre_seed: "Pre-seed",
+  seed: "Seed",
+  series_a: "Series A",
+};
+
+function formatAmount(value: number | null) {
+  if (value === null) return "—";
+  return `$${value.toLocaleString()}`;
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString();
+}
+
 function FundraisingTab({
   slug,
   isFundraising,
   fundraiseSections,
+  roundHistory,
 }: {
   slug: string;
   isFundraising: boolean;
   fundraiseSections: Section[];
+  roundHistory: FundraiseRound[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -954,8 +983,17 @@ function FundraisingTab({
             </p>
           </div>
           {isFundraising && (
-            <form action={closeRoundAction}>
+            <form action={closeRoundAction} className="flex items-end gap-2">
               <input type="hidden" name="slug" value={slug} />
+              <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                Raised
+                <input
+                  name="raised_amount"
+                  type="number"
+                  placeholder="Raised amount"
+                  className="w-32 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                />
+              </label>
               <button className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
                 Close round
               </button>
@@ -995,6 +1033,45 @@ function FundraisingTab({
               Open round
             </button>
           </form>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+        <h3 className="font-semibold text-zinc-900">Round history</h3>
+        {roundHistory.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">No rounds opened yet.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-beedero-black/10 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="py-2 pr-4">Stage</th>
+                  <th className="py-2 pr-4">Opened</th>
+                  <th className="py-2 pr-4">Closed</th>
+                  <th className="py-2 pr-4">Ask</th>
+                  <th className="py-2 pr-4">Raised</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roundHistory.map((round) => (
+                  <tr key={round.id} className="border-b border-beedero-black/5 last:border-0">
+                    <td className="py-2 pr-4">
+                      {ROUND_STAGE_LABELS[round.stage] ?? round.stage}
+                      {round.is_open && (
+                        <span className="ml-2 rounded-full bg-beedero-yellow px-2 py-0.5 text-[10px] font-bold text-beedero-black">
+                          Open
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">{formatDate(round.opened_at)}</td>
+                    <td className="py-2 pr-4">{formatDate(round.closed_at)}</td>
+                    <td className="py-2 pr-4">{formatAmount(round.ask_amount)}</td>
+                    <td className="py-2 pr-4">{formatAmount(round.raised_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -1360,6 +1437,7 @@ export function OrgTabs({
   sections,
   activities,
   isFundraising,
+  roundHistory,
   profileFieldCount,
   canPostUpdates,
   hasPostedToday,
@@ -1376,6 +1454,7 @@ export function OrgTabs({
   sections: Section[];
   activities: OrgActivity[];
   isFundraising: boolean;
+  roundHistory: FundraiseRound[];
   profileFieldCount: number;
   canPostUpdates: boolean;
   hasPostedToday: boolean;
@@ -1472,7 +1551,12 @@ export function OrgTabs({
       )}
 
       {active === "fundraising" && (
-        <FundraisingTab slug={slug} isFundraising={isFundraising} fundraiseSections={fundraiseSections} />
+        <FundraisingTab
+          slug={slug}
+          isFundraising={isFundraising}
+          fundraiseSections={fundraiseSections}
+          roundHistory={roundHistory}
+        />
       )}
 
       {active === "credibility" && (

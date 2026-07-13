@@ -72,6 +72,17 @@ type OrgActivity = {
     occurred_at?: string;
   };
 };
+type FundraiseRound = {
+  id: number;
+  valuation: number | null;
+  ask_amount: number | null;
+  raised_amount: number | null;
+  use_of_funds: string;
+  stage: string;
+  is_open: boolean;
+  opened_at: string;
+  closed_at: string | null;
+};
 
 const POST_REQUIRED_PROFILE_KINDS = ["about", "team"];
 
@@ -88,15 +99,18 @@ export default async function DashboardOrgPage({
   let members: Member[];
   let me: Me;
   let activities: OrgActivity[];
+  let roundHistory: FundraiseRound[];
   try {
-    [profile, sections, stats, members, me, { items: activities }] = await Promise.all([
-      apiFetch(`/orgs/${slug}/`),
-      apiFetch(`/orgs/${slug}/sections/`),
-      apiFetch(`/orgs/${slug}/stats/`),
-      apiFetch(`/orgs/${slug}/members/`),
-      apiFetch("/auth/me/"),
-      apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
-    ]);
+    [profile, sections, stats, members, me, { items: activities }, roundHistory] =
+      await Promise.all([
+        apiFetch(`/orgs/${slug}/`),
+        apiFetch(`/orgs/${slug}/sections/`),
+        apiFetch(`/orgs/${slug}/stats/`),
+        apiFetch(`/orgs/${slug}/members/`),
+        apiFetch("/auth/me/"),
+        apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
+        apiFetch(`/orgs/${slug}/rounds/`) as Promise<FundraiseRound[]>,
+      ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
     if (err instanceof ApiError && err.status === 401) redirect("/login");
@@ -161,6 +175,7 @@ export default async function DashboardOrgPage({
           sections={sections}
           activities={activities}
           isFundraising={profile.org.is_fundraising}
+          roundHistory={roundHistory}
           profileFieldCount={profileFieldCount}
           canPostUpdates={canPostUpdates}
           hasPostedToday={hasPostedToday}

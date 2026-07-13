@@ -158,7 +158,12 @@ export async function openRoundAction(formData: FormData) {
 
 export async function closeRoundAction(formData: FormData) {
   const slug = String(formData.get("slug"));
-  await apiFetch(`/orgs/${slug}/rounds/close/`, { method: "POST" });
+  await apiFetch(`/orgs/${slug}/rounds/close/`, {
+    method: "POST",
+    body: {
+      raised_amount: Number(formData.get("raised_amount") || 0) || null,
+    },
+  });
   revalidatePath(`/dashboard/${slug}`);
 }
 

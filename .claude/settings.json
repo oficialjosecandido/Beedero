@@ -176,7 +176,15 @@
       "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c \"select count\\(*\\) from accounts_investorpost;\")",
       "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c \"select id, author_id, kind, title, created_at from accounts_investorpost order by created_at desc limit 10;\")",
       "Bash(git fetch *)",
-      "Bash(git rev-list *)"
+      "Bash(git rev-list *)",
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -n -P)",
+      "Bash(lsof -iTCP:8000 -sTCP:LISTEN -n -P)",
+      "Bash(sed -i '' '/waitForTimeout: undefined/d' /private/tmp/claude-501/-Users-josecandido-Documents-Beedero/99334ab4-bd9b-4944-abaf-bf7250713ddd/scratchpad/verify_round.mjs)",
+      "Bash(node /private/tmp/claude-501/-Users-josecandido-Documents-Beedero/99334ab4-bd9b-4944-abaf-bf7250713ddd/scratchpad/verify_round.mjs)",
+      "Bash(node verify_round.mjs)",
+      "Bash(NODE_PATH=\"/Users/josecandido/.npm/_npx/705bc6b22212b352/node_modules\" node /Users/josecandido/Documents/Beedero/frontend/verify_round.mjs)",
+      "Bash(cp /Users/josecandido/Documents/Beedero/frontend/verify_round.mjs \"/Users/josecandido/.npm/_npx/705bc6b22212b352/verify_round.mjs\")",
+      "Bash(node \"/Users/josecandido/.npm/_npx/705bc6b22212b352/verify_round.mjs\")"
     ]
   }
 }
