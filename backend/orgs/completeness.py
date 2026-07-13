@@ -5,8 +5,8 @@ refund and is intentionally narrower — a verification badge, for instance,
 counts toward the meter but is excluded from refund gating per spec.
 """
 
-from .constants import ACTIVITY_KINDS, SectionKind
-from .models import OrgField
+from .constants import SectionKind
+from .models import Activity, OrgField
 
 WEIGHTS = {
     "one_liner": 5,
@@ -51,12 +51,7 @@ def _has(org, key: str) -> bool:
     if key == "verified":
         return org.is_verified
     if key == "first_activity":
-        return OrgField.objects.filter(
-            section__org=org,
-            section__kind__in=ACTIVITY_KINDS,
-            section__archived_at__isnull=True,
-            key__startswith="post_",
-        ).exists()
+        return Activity.objects.filter(org=org).exists()
     section_kind = _SECTION_KIND_BY_KEY.get(key)
     if section_kind is None:
         raise ValueError(f"Unknown completeness key: {key}")

@@ -61,9 +61,19 @@ type Onboarding = {
   checklist: { key: string; done: boolean; hint: string }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
+type OrgActivity = {
+  id: number;
+  kind: string;
+  created_at: string;
+  value: {
+    title?: string;
+    body?: string;
+    image?: string | null;
+    occurred_at?: string;
+  };
+};
 
 const POST_REQUIRED_PROFILE_KINDS = ["about", "team"];
-const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
 
 export default async function DashboardOrgPage({
   params,
@@ -77,13 +87,15 @@ export default async function DashboardOrgPage({
   let stats: Stats;
   let members: Member[];
   let me: Me;
+  let activities: OrgActivity[];
   try {
-    [profile, sections, stats, members, me] = await Promise.all([
+    [profile, sections, stats, members, me, { items: activities }] = await Promise.all([
       apiFetch(`/orgs/${slug}/`),
       apiFetch(`/orgs/${slug}/sections/`),
       apiFetch(`/orgs/${slug}/stats/`),
       apiFetch(`/orgs/${slug}/members/`),
       apiFetch("/auth/me/"),
+      apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
@@ -103,13 +115,9 @@ export default async function DashboardOrgPage({
     .filter((section) => POST_REQUIRED_PROFILE_KINDS.includes(section.kind))
     .reduce((count, section) => count + section.fields.length, 0);
   const today = new Date().toISOString().slice(0, 10);
-  const hasPostedToday = sections
-    .filter((section) => ACTIVITY_KINDS.includes(section.kind))
-    .some((section) =>
-      section.fields.some(
-        (field) => field.key.startsWith("post_") && field.created_at?.slice(0, 10) === today
-      )
-    );
+  const hasPostedToday = activities.some(
+    (activity) => activity.created_at.slice(0, 10) === today
+  );
   const canPostUpdates = profileFieldCount >= 5 && !hasPostedToday;
 
   return (
@@ -151,6 +159,7 @@ export default async function DashboardOrgPage({
           slug={slug}
           org={profile.org}
           sections={sections}
+          activities={activities}
           isFundraising={profile.org.is_fundraising}
           profileFieldCount={profileFieldCount}
           canPostUpdates={canPostUpdates}

@@ -124,6 +124,15 @@ export async function createTeamProfileMemberAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
+export async function deleteActivityAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const activityId = String(formData.get("activity_id"));
+
+  await apiFetch(`/orgs/${slug}/feed/${activityId}/`, { method: "DELETE" });
+  revalidatePath(`/dashboard/${slug}`);
+  revalidatePath("/feed");
+}
+
 export async function deleteFieldAction(formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));

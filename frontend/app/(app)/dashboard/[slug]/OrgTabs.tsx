@@ -10,6 +10,7 @@ import {
   connectStripeTractionAction,
   createTeamProfileMemberAction,
   createInviteAction,
+  deleteActivityAction,
   deleteFieldAction,
   openRoundAction,
   postFeedAction,
@@ -52,7 +53,13 @@ type Onboarding = {
   checklist: { key: string; done: boolean; hint: string }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
-type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string };
+type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string | null };
+type OrgActivity = {
+  id: number;
+  kind: string;
+  created_at: string;
+  value: PostValue;
+};
 type VerificationInfo = {
   status: "pending" | "verified" | "rejected" | "expired";
   valid_until: string | null;
@@ -63,7 +70,6 @@ type VerificationInfo = {
 };
 type CredibilityInfo = { level: number; verifications: Record<string, VerificationInfo> };
 
-const ACTIVITY_KINDS = ["news", "milestones", "events", "awards", "press"];
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
 
@@ -149,17 +155,6 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
-
-function collectPosts(sections: Section[]) {
-  return sections
-    .filter((s) => ACTIVITY_KINDS.includes(s.kind))
-    .flatMap((section) =>
-      section.fields
-        .filter((f) => f.key.startsWith("post_"))
-        .map((field) => ({ section, field, value: field.value as PostValue }))
-    )
-    .sort((a, b) => (b.value.occurred_at ?? "").localeCompare(a.value.occurred_at ?? ""));
-}
 
 function SectionCard({ slug, section }: { slug: string; section: Section }) {
   return (
@@ -731,27 +726,17 @@ function PostComposer({
   );
 }
 
-function PostCard({
-  slug,
-  kind,
-  field,
-  value,
-}: {
-  slug: string;
-  kind: string;
-  field: SectionField;
-  value: PostValue;
-}) {
+function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
+  const value = activity.value;
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
-          {SECTION_LABELS[kind] ?? kind}
+          {SECTION_LABELS[activity.kind] ?? activity.kind}
         </span>
-        <form action={deleteFieldAction}>
+        <form action={deleteActivityAction}>
           <input type="hidden" name="slug" value={slug} />
-          <input type="hidden" name="kind" value={kind} />
-          <input type="hidden" name="key" value={field.key} />
+          <input type="hidden" name="activity_id" value={activity.id} />
           <button className="text-xs font-medium text-red-700 hover:underline">Delete</button>
         </form>
       </div>
@@ -770,20 +755,19 @@ function PostCard({
 
 function ActivityTab({
   slug,
-  sections,
+  activities,
   canPostUpdates,
   hasPostedToday,
   profileFieldCount,
   onGoProfile,
 }: {
   slug: string;
-  sections: Section[];
+  activities: OrgActivity[];
   canPostUpdates: boolean;
   hasPostedToday: boolean;
   profileFieldCount: number;
   onGoProfile: () => void;
 }) {
-  const posts = collectPosts(sections);
   return (
     <div className="flex flex-col gap-4">
       <PostComposer
@@ -793,11 +777,11 @@ function ActivityTab({
         profileFieldCount={profileFieldCount}
         onGoProfile={onGoProfile}
       />
-      {posts.length === 0 && (
+      {activities.length === 0 && (
         <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
       )}
-      {posts.map(({ section, field, value }) => (
-        <PostCard key={field.id} slug={slug} kind={section.kind} field={field} value={value} />
+      {activities.map((activity) => (
+        <PostCard key={activity.id} slug={slug} activity={activity} />
       ))}
     </div>
   );
@@ -1356,6 +1340,7 @@ export function OrgTabs({
   slug,
   org,
   sections,
+  activities,
   isFundraising,
   profileFieldCount,
   canPostUpdates,
@@ -1371,6 +1356,7 @@ export function OrgTabs({
   slug: string;
   org: OrgBasics;
   sections: Section[];
+  activities: OrgActivity[];
   isFundraising: boolean;
   profileFieldCount: number;
   canPostUpdates: boolean;
@@ -1423,7 +1409,7 @@ export function OrgTabs({
       {active === "activity" && (
         <ActivityTab
           slug={slug}
-          sections={sections}
+          activities={activities}
           canPostUpdates={canPostUpdates}
           hasPostedToday={hasPostedToday}
           profileFieldCount={profileFieldCount}

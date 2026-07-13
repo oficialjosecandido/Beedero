@@ -737,9 +737,14 @@ class RoundCloseView(OrgLookupMixin, APIView):
 
 
 class FeedPostView(OrgLookupMixin, APIView):
-    """§4: POST /api/orgs/<slug>/feed/ — publish news/milestone/event/award."""
+    """§4: GET/POST /api/orgs/<slug>/feed/ — list and publish org updates."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        activities = Activity.objects.filter(org=org).order_by("-occurred_at", "-id")
+        return Response({"items": [_activity_summary(a) for a in activities]})
 
     def post(self, request, slug):
         org = self.get_org()
@@ -757,6 +762,16 @@ class FeedPostView(OrgLookupMixin, APIView):
         serializer.is_valid(raise_exception=True)
         activity = serializer.create(org)
         return Response(_activity_summary(activity), status=status.HTTP_201_CREATED)
+
+
+class OrgActivityDetailView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def delete(self, request, slug, activity_id):
+        org = self.get_org()
+        activity = get_object_or_404(Activity, id=activity_id, org=org)
+        activity.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def _activity_summary(activity, viewer_reaction=None):
@@ -779,6 +794,7 @@ def _activity_summary(activity, viewer_reaction=None):
         "reaction_count": activity.reaction_count,
         "comment_count": activity.comment_count,
         "viewer_reaction": viewer_reaction,
+        "created_at": activity.created_at.isoformat(),
     }
 
 

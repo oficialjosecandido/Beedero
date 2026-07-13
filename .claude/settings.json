@@ -167,7 +167,16 @@
       "Bash(echo \"exit code: $?\")",
       "Bash(grep -n \"item.type}-\\\\${item.id\" \"app/\\(app\\)/feed/FeedList.tsx\")",
       "Bash(venv/bin/python -m ruff check .)",
-      "Bash(venv/bin/python -m pytest -q orgs/test_feed_pagination.py)"
+      "Bash(venv/bin/python -m pytest -q orgs/test_feed_pagination.py)",
+      "Bash(grep -v \"^$\")",
+      "Bash(python3 -c \"print\\('check'\\)\")",
+      "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c ' *)",
+      "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c \"select count\\(*\\) from orgs_activity;\")",
+      "Bash(venv/bin/python manage.py showmigrations orgs)",
+      "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c \"select count\\(*\\) from accounts_investorpost;\")",
+      "Bash(psql postgresql://josecandido@localhost:5432/beedero_dev -c \"select id, author_id, kind, title, created_at from accounts_investorpost order by created_at desc limit 10;\")",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)"
     ]
   }
 }
