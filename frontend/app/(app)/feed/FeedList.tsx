@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
+import { CommentThread } from "./CommentThread";
+import { ReactionBar } from "./ReactionBar";
 import type { FeedItem } from "./types";
 
 function FeedCard({ item }: { item: FeedItem }) {
@@ -49,6 +51,12 @@ function FeedCard({ item }: { item: FeedItem }) {
           {new Date(item.value.occurred_at).toLocaleDateString()}
         </p>
       )}
+      <ReactionBar
+        activityId={item.id}
+        initialCount={item.reaction_count}
+        initialReaction={item.viewer_reaction}
+      />
+      <CommentThread activityId={item.id} initialCount={item.comment_count} />
     </article>
   );
 }

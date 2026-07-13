@@ -13,9 +13,12 @@ type Options = {
 /** Fires a toast once a useActionState submission completes (pending: true -> false). */
 export function useActionToast(state: string | null, pending: boolean, options: Options = {}) {
   const optionsRef = useRef(options);
-  optionsRef.current = options;
   const prevPending = useRef(false);
   const mounted = useRef(false);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   useEffect(() => {
     const justFinished = mounted.current && prevPending.current && !pending;

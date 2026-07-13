@@ -1,9 +1,10 @@
 import pytest
+from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
 from accounts.models import User
 from orgs.constants import SectionKind
-from orgs.models import OrgField, OrgFollow, Organization
+from orgs.models import Activity, OrgFollow, Organization
 
 
 @pytest.fixture
@@ -23,10 +24,9 @@ def viewer(db, org):
     return user
 
 
-def _post(org, key, occurred_at_iso):
-    section = org.sections.get(kind=SectionKind.NEWS)
-    return OrgField.objects.create(
-        section=section, key=key, value={"title": key, "occurred_at": occurred_at_iso}
+def _post(org, title, occurred_at_iso):
+    return Activity.objects.create(
+        org=org, kind=SectionKind.NEWS, title=title, occurred_at=parse_datetime(occurred_at_iso)
     )
 
 
@@ -39,8 +39,8 @@ def test_feed_orders_newest_first(api, org, viewer):
     api.force_authenticate(viewer)
     res = api.get("/api/feed/")
     assert res.status_code == 200
-    keys = [item["key"] for item in res.data["items"]]
-    assert keys == ["new", "mid", "old"]
+    titles = [item["value"]["title"] for item in res.data["items"]]
+    assert titles == ["new", "mid", "old"]
 
 
 @pytest.mark.django_db
@@ -49,7 +49,7 @@ def test_feed_pagination_covers_all_items_without_duplicates_or_gaps(api, org, v
         _post(org, f"post{i}", f"2026-01-0{i + 1}T00:00:00Z")
 
     api.force_authenticate(viewer)
-    seen_keys = []
+    seen_titles = []
     cursor = None
     for _ in range(10):  # generous upper bound so a broken loop can't hang the suite
         url = "/api/feed/?limit=2"
@@ -57,12 +57,12 @@ def test_feed_pagination_covers_all_items_without_duplicates_or_gaps(api, org, v
             url += f"&cursor={cursor}"
         res = api.get(url)
         assert res.status_code == 200
-        seen_keys += [item["key"] for item in res.data["items"]]
+        seen_titles += [item["value"]["title"] for item in res.data["items"]]
         cursor = res.data["next_cursor"]
         if cursor is None:
             break
 
-    assert seen_keys == ["post4", "post3", "post2", "post1", "post0"]
+    assert seen_titles == ["post4", "post3", "post2", "post1", "post0"]
 
 
 @pytest.mark.django_db
@@ -81,3 +81,19 @@ def test_feed_clamps_limit(api, org, viewer):
     res = api.get("/api/feed/?limit=999")
     assert res.status_code == 200
     assert len(res.data["items"]) == 3
+
+
+@pytest.mark.django_db
+def test_feed_reports_viewer_own_reaction(api, org, viewer):
+    from social.models import Reaction
+
+    reacted = _post(org, "reacted", "2026-01-02T00:00:00Z")
+    _post(org, "untouched", "2026-01-01T00:00:00Z")
+    Reaction.objects.create(activity=reacted, user=viewer, kind=Reaction.Kind.INSIGHT)
+
+    api.force_authenticate(viewer)
+    res = api.get("/api/feed/")
+    assert res.status_code == 200
+    by_title = {item["value"]["title"]: item["viewer_reaction"] for item in res.data["items"]}
+    assert by_title["reacted"] == Reaction.Kind.INSIGHT
+    assert by_title["untouched"] is None

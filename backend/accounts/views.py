@@ -16,8 +16,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from beedero.ratelimit import enforce_rate_limit
+from orgs.models import Activity, Visibility
+from orgs.services import create_activity
 
-from .models import InvestorPost, InvestorProfile
+from .models import InvestorProfile
 from .serializers import (
     EmailTokenObtainPairSerializer,
     InvestorPostSerializer,
@@ -205,23 +207,58 @@ class MeView(APIView):
         return Response(MeSerializer(request.user).data)
 
 
-class InvestorPostListCreateView(generics.ListCreateAPIView):
-    """A verified investor's personal milestone/event/update posts, shown to
-    their followers' feed (§Feed people)."""
+INVESTOR_POST_KIND_MAP = {"milestone": "milestones", "event": "events", "update": "update"}
 
-    serializer_class = InvestorPostSerializer
+
+def _investor_activity_summary(activity):
+    return {
+        "id": activity.id,
+        "kind": activity.kind,
+        "title": activity.title,
+        "body": activity.body,
+        "image": activity.image.url if activity.image else None,
+        "occurred_at": activity.occurred_at.isoformat(),
+        "created_at": activity.created_at.isoformat(),
+        "author_name": _investor_display_name(activity.author),
+    }
+
+
+def _investor_display_name(user):
+    profile = getattr(user, "investorprofile", None)
+    return (profile.full_name if profile and profile.full_name else None) or user.email
+
+
+class InvestorPostListCreateView(APIView):
+    """A verified investor's personal milestone/event/update posts, shown to
+    their followers' feed (§Feed people). Persisted as an orgs.Activity —
+    kept as a thin wrapper (plan §0) rather than merged with FeedPostView."""
+
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        return InvestorPost.objects.filter(author=self.request.user)
+    def get(self, request):
+        activities = Activity.objects.filter(author=request.user, org__isnull=True).order_by(
+            "-occurred_at"
+        )
+        return Response([_investor_activity_summary(a) for a in activities])
 
-    def perform_create(self, serializer):
-        if InvestorPost.objects.filter(
-            author=self.request.user,
-            created_at__date=timezone.localdate(),
+    def post(self, request):
+        if Activity.objects.filter(
+            author=request.user, org__isnull=True, created_at__date=timezone.localdate()
         ).exists():
             raise ValidationError({"detail": "This profile has already shared a post today."})
-        serializer.save(author=self.request.user)
+        serializer = InvestorPostSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        activity = create_activity(
+            author=request.user,
+            kind=INVESTOR_POST_KIND_MAP[data["kind"]],
+            title=data["title"],
+            body=data.get("body", ""),
+            occurred_at=data["occurred_at"],
+            image=data.get("image"),
+            visibility=Visibility.PUBLIC,
+        )
+        return Response(_investor_activity_summary(activity), status=201)
 
 
 class InvestorProfileView(APIView):

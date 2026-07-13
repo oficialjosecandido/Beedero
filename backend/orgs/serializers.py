@@ -1,8 +1,6 @@
 import logging
-import uuid
 from collections import defaultdict
 
-from django.core.files.storage import default_storage
 from django.db import transaction
 from rest_framework import serializers
 
@@ -10,7 +8,6 @@ from .constants import ACTIVITY_KINDS
 from .models import (
     FundraiseRound,
     Organization,
-    OrgField,
     OrgInvite,
     OrgMembership,
     OrgSection,
@@ -136,18 +133,18 @@ class FeedPostSerializer(serializers.Serializer):
     image = serializers.ImageField(required=False, allow_null=True)
 
     def create(self, org: "Organization"):
+        from .services import create_activity
+
         section = OrgSection.objects.get(org=org, kind=self.validated_data["kind"])
-        key = f"post_{uuid.uuid4().hex[:12]}"
-        value = {
-            "title": self.validated_data["title"],
-            "body": self.validated_data.get("body", ""),
-            "occurred_at": self.validated_data["occurred_at"].isoformat(),
-        }
-        image = self.validated_data.get("image")
-        if image:
-            path = default_storage.save(f"posts/{uuid.uuid4().hex}_{image.name}", image)
-            value["image"] = default_storage.url(path)
-        return OrgField.objects.create(section=section, key=key, value=value)
+        return create_activity(
+            org=org,
+            kind=self.validated_data["kind"],
+            title=self.validated_data["title"],
+            body=self.validated_data.get("body", ""),
+            occurred_at=self.validated_data["occurred_at"],
+            image=self.validated_data.get("image"),
+            visibility=section.visibility,
+        )
 
 
 class OrgMembershipSerializer(serializers.ModelSerializer):

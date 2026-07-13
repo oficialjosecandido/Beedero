@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from accounts.models import InvestorProfile, User
 from orgs.constants import SectionKind
 from orgs.models import (
+    Activity,
     OrgField,
     OrgMembership,
     Organization,
@@ -205,22 +206,27 @@ def test_public_path_never_returns_restricted_or_private(org, about_public_field
 
 @pytest.mark.django_db
 def test_feed_respects_visibility(org, founder, outsider):
-    from orgs.feed import org_feed_items
+    from orgs.feed import activity_feed_items
 
-    # Activity sections default to public (§1), but a field's visibility can
-    # still be overridden — the feed must go through VisibilityResolver like
-    # every other read path, not assume "activity == always public".
-    section = org.sections.get(kind=SectionKind.NEWS)
-    public_post = OrgField.objects.create(section=section, key="launch", value="We launched!")
-    private_post = OrgField.objects.create(
-        section=section, key="internal_note", value="not for outsiders", visibility=Visibility.PRIVATE
+    # visibility is a snapshot at Activity-creation time (§1), not re-derived
+    # live from the section — the feed must still filter per-row rather than
+    # assuming "activity == always public".
+    public_post = Activity.objects.create(
+        org=org, kind=SectionKind.NEWS, title="We launched!", occurred_at=now()
+    )
+    private_post = Activity.objects.create(
+        org=org,
+        kind=SectionKind.NEWS,
+        title="not for outsiders",
+        occurred_at=now(),
+        visibility=Visibility.PRIVATE,
     )
 
-    outsider_items = org_feed_items(outsider, [org.id])
-    assert {f.id for f in outsider_items} == {public_post.id}
+    outsider_items = activity_feed_items(outsider, [org.id], [])
+    assert {a.id for a in outsider_items} == {public_post.id}
 
-    founder_items = org_feed_items(founder, [org.id])
-    assert {f.id for f in founder_items} == {public_post.id, private_post.id}
+    founder_items = activity_feed_items(founder, [org.id], [])
+    assert {a.id for a in founder_items} == {public_post.id, private_post.id}
 
 
 @pytest.mark.django_db

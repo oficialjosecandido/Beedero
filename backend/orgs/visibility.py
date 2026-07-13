@@ -2,9 +2,22 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, QuerySet
 from django.utils.timezone import now
 
-from .models import OrgField, OrgMembership, Organization, Visibility, VisibilityGrant
+from .models import Activity, OrgField, OrgMembership, Organization, Visibility, VisibilityGrant
 
 User = get_user_model()
+
+
+def activity_visible_to(viewer: User | None, activity: Activity) -> bool:
+    """App-layer mirror of the `activity_visibility` RLS policy (migration
+    0014) — defense in depth, and lets views/tests reason about visibility
+    without round-tripping through Postgres. No VisibilityGrant branch: a
+    restricted Activity is members-only for now (see plan §0 — grants are
+    never org-wide today)."""
+    if activity.visibility == Visibility.PUBLIC or activity.org_id is None:
+        return True
+    if not viewer or not viewer.is_authenticated:
+        return False
+    return OrgMembership.objects.filter(org_id=activity.org_id, user=viewer).exists()
 
 
 class VisibilityResolver:

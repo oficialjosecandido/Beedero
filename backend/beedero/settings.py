@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "billing",
     "analytics",
     "credibility",
+    "social",
     "rest_framework_simplejwt.token_blacklist",
 ]
 

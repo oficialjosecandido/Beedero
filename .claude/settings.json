@@ -145,7 +145,29 @@
       "Bash(curl -s -D - -o /dev/null http://localhost:3000/dashboard/credibility-test-co -b beedero_access=not-a-real-jwt-so-backend-will-401)",
       "Bash(curl -s -o /dev/null -w \"backend direct: %{http_code}\\\\n\" http://localhost:8000/api/orgs/credibility-test-co/ -H \"Authorization: Bearer not-a-real-jwt\")",
       "Bash(curl -s http://localhost:3000/dashboard/credibility-test-co -b beedero_access=not-a-real-jwt-so-backend-will-401)",
-      "Bash(grep -iA 5 \"error\\\\|redirect\\\\|NEXT_REDIRECT\")"
+      "Bash(grep -iA 5 \"error\\\\|redirect\\\\|NEXT_REDIRECT\")",
+      "Bash(/Users/josecandido/.pyenv/versions/3.11.3/bin/python manage.py test)",
+      "Bash(DJANGO_SETTINGS_MODULE=beedero.settings /Users/josecandido/.pyenv/versions/3.11.3/bin/python -m pytest --collect-only -q)",
+      "Bash(venv/bin/pip show *)",
+      "Bash(venv/bin/pip install *)",
+      "Bash(venv/bin/python manage.py makemigrations orgs --name create_activity)",
+      "Bash(venv/bin/python manage.py migrate orgs)",
+      "Bash(venv/bin/python manage.py shell -c ' *)",
+      "Bash(venv/bin/python manage.py migrate orgs 0012)",
+      "Bash(grep -n \"feed/\\\\`\\\\|/feed/\" -r ../frontend/app ../frontend/lib ../frontend/components)",
+      "Bash(venv/bin/python manage.py check)",
+      "Bash(venv/bin/python -m pytest orgs/tests.py orgs/test_feed_pagination.py accounts/tests.py -q)",
+      "Bash(venv/bin/python -m pytest -q)",
+      "Bash(venv/bin/ruff check *)",
+      "Bash(venv/bin/python -m ruff check orgs accounts beedero)",
+      "Bash(venv/bin/python manage.py makemigrations social --name create_reaction_comment)",
+      "Bash(venv/bin/python manage.py migrate social)",
+      "Bash(venv/bin/python -m pytest social/tests.py -q)",
+      "Bash(xargs -I{} sh -c 'echo \"== {} ==\"; cat {}')",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(grep -n \"item.type}-\\\\${item.id\" \"app/\\(app\\)/feed/FeedList.tsx\")",
+      "Bash(venv/bin/python -m ruff check .)",
+      "Bash(venv/bin/python -m pytest -q orgs/test_feed_pagination.py)"
     ]
   }
 }

@@ -181,6 +181,69 @@ class VisibilityGrant(models.Model):
         return (self.principal_type, self.principal_id) in principals
 
 
+class Activity(models.Model):
+    """A feed post — org update or investor post. Replaces OrgField-as-post
+    (key startswith 'post_') and accounts.InvestorPost, unified so reactions
+    and comments have one stable thing to attach to.
+
+    Two nullable FKs + CheckConstraint, matching billing.Subscription's house
+    style, instead of a GenericForeignKey: org posts and investor posts will
+    likely diverge in fields long before this needs to be generic, and the
+    RLS policy below is a literal join, which a GFK would make much harder
+    to reason about.
+    """
+
+    class Kind(models.TextChoices):
+        NEWS = "news"
+        MILESTONES = "milestones"
+        EVENTS = "events"
+        AWARDS = "awards"
+        PRESS = "press"
+        UPDATE = "update"  # investor-only, no org equivalent
+
+    org = models.ForeignKey(
+        Organization, null=True, blank=True, related_name="activities", on_delete=models.CASCADE
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="activities", on_delete=models.CASCADE
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, default="")
+    image = models.ImageField(upload_to="activities/", blank=True, null=True)
+    occurred_at = models.DateTimeField(db_index=True)
+    # Snapshotted at creation time (from the section's visibility for org
+    # posts; always public for investor posts) rather than re-derived live —
+    # a section's visibility changing later doesn't retroactively change
+    # already-posted activities.
+    visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    reaction_count = models.PositiveIntegerField(default=0)
+    comment_count = models.PositiveIntegerField(default=0)
+
+    # Backfill breadcrumbs, not FKs (source rows may be pruned later).
+    # Uniqueness makes the backfill migration idempotent/re-runnable.
+    source_org_field_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
+    source_investor_post_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(org__isnull=False) | models.Q(author__isnull=False),
+                name="activity_has_a_subject",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["org", "-occurred_at"]),
+            models.Index(fields=["author", "-occurred_at"]),
+        ]
+
+    def __str__(self):
+        subject = self.org.slug if self.org_id else self.author_id
+        return f"{subject}: {self.title}"
+
+
 class FundraiseRound(models.Model):
     class Stage(models.TextChoices):
         PRE_SEED = "pre_seed"

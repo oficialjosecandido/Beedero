@@ -62,17 +62,16 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["is_verified", "verified_at"]
 
 
-class InvestorPostSerializer(serializers.ModelSerializer):
-    author_name = serializers.SerializerMethodField()
+class InvestorPostSerializer(serializers.Serializer):
+    """Validation only — persisted as an orgs.Activity via
+    orgs.services.create_activity, not an InvestorPost (kept as a legacy,
+    unread table; see orgs.models.Activity)."""
 
-    class Meta:
-        model = InvestorPost
-        fields = ["id", "kind", "title", "body", "image", "occurred_at", "created_at", "author_name"]
-        read_only_fields = ["id", "created_at", "author_name"]
-
-    def get_author_name(self, obj):
-        profile = getattr(obj.author, "investorprofile", None)
-        return (profile.full_name if profile and profile.full_name else None) or obj.author.email
+    kind = serializers.ChoiceField(choices=InvestorPost.Kind.choices)
+    title = serializers.CharField(max_length=200)
+    body = serializers.CharField(allow_blank=True, required=False, default="")
+    occurred_at = serializers.DateTimeField()
+    image = serializers.ImageField(required=False, allow_null=True)
 
 
 class MeSerializer(serializers.ModelSerializer):

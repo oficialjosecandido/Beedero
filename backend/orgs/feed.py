@@ -1,42 +1,37 @@
-"""Org activity feed (§4) — kept as a plain function, mirroring discover()
+"""Org + investor activity feed (§4). A plain function, mirroring discover()
 and public_profile(), so it's testable without going through the view."""
 
-from django.utils.dateparse import parse_datetime
+from django.db.models import Q
 
-from .constants import ACTIVITY_KINDS
-from .models import OrgField
-from .visibility import VisibilityResolver
+from .models import Activity, OrgMembership, Visibility
 
 
-def occurred_at_of(post: OrgField):
-    """The event time used for feed ordering: the user-supplied `occurred_at`
-    when present and parseable, otherwise when the post was created."""
-    raw = post.value.get("occurred_at")
-    return (parse_datetime(raw) if raw else None) or post.created_at
+def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, cursor=None):
+    """Activities from followed orgs and followed people, newest first.
 
-
-def org_feed_items(viewer, followed_org_ids, limit=50):
-    """Activity-section fields from followed orgs.
-
-    Activity sections default to public visibility, but that's a default,
-    not a guarantee — a section's visibility can still be overridden, so
-    this must go through the same resolver profile reads use (§3.2) rather
-    than trusting "it's an activity field" blindly.
+    Visibility is filtered in the same query (mirrors the `activity_visibility`
+    RLS policy applied at the DB layer as defense in depth): public activities,
+    investor-authored activities (always public today), and anything from an
+    org the viewer is a member of. `cursor`, if given, is a (occurred_at, id)
+    tuple as returned by `beedero.pagination.decode_cursor` — keyset paging
+    entirely in SQL rather than the old two-Python-list merge/sort/paginate.
     """
-    candidate_posts = (
-        OrgField.objects.filter(section__org_id__in=followed_org_ids, section__kind__in=ACTIVITY_KINDS)
-        .select_related("section__org")
-        .order_by("-created_at")[: limit * 4]
+    member_org_ids = set()
+    if viewer is not None and viewer.is_authenticated:
+        member_org_ids = set(
+            OrgMembership.objects.filter(user=viewer).values_list("org_id", flat=True)
+        )
+
+    qs = (
+        Activity.objects.filter(
+            Q(org_id__in=followed_org_ids) | Q(author_id__in=followed_user_ids, org__isnull=True)
+        )
+        .filter(Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True) | Q(org_id__in=member_org_ids))
+        .select_related("org", "author")
     )
-    visible_ids_by_org: dict[int, set[int]] = {}
-    posts = []
-    for post in candidate_posts:
-        org_id = post.section.org_id
-        if org_id not in visible_ids_by_org:
-            resolver = VisibilityResolver(viewer=viewer, org=post.section.org)
-            visible_ids_by_org[org_id] = set(resolver.visible_fields().values_list("id", flat=True))
-        if post.id in visible_ids_by_org[org_id]:
-            posts.append(post)
-        if len(posts) >= limit:
-            break
-    return posts
+    if cursor is not None:
+        occurred_at, item_id = cursor
+        qs = qs.filter(
+            Q(occurred_at__lt=occurred_at) | Q(occurred_at=occurred_at, id__lt=int(item_id))
+        )
+    return qs.order_by("-occurred_at", "-id")[:limit]

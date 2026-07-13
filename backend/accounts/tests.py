@@ -7,8 +7,9 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
 
-from accounts.models import InvestorPost, InvestorProfile, User
+from accounts.models import InvestorProfile, User
 from accounts.tokens import email_verification_token_generator
+from orgs.models import Activity
 
 
 @pytest.fixture(autouse=True)
@@ -215,7 +216,7 @@ def test_investor_post_create_and_daily_limit(api, user):
     payload = {"kind": "update", "title": "Shipped v1", "occurred_at": timezone.now().isoformat()}
     first = api.post("/api/investors/me/posts/", payload, format="json")
     assert first.status_code == 201
-    assert InvestorPost.objects.filter(author=user).count() == 1
+    assert Activity.objects.filter(author=user, org__isnull=True).count() == 1
 
     second = api.post(
         "/api/investors/me/posts/",
@@ -223,7 +224,7 @@ def test_investor_post_create_and_daily_limit(api, user):
         format="json",
     )
     assert second.status_code == 400
-    assert InvestorPost.objects.filter(author=user).count() == 1
+    assert Activity.objects.filter(author=user, org__isnull=True).count() == 1
 
 
 @pytest.mark.django_db
@@ -231,7 +232,9 @@ def test_investor_post_allowed_again_the_next_day(api, user):
     api.force_authenticate(user)
     payload = {"kind": "update", "title": "Day one", "occurred_at": timezone.now().isoformat()}
     api.post("/api/investors/me/posts/", payload, format="json")
-    InvestorPost.objects.filter(author=user).update(created_at=timezone.now() - timedelta(days=1))
+    Activity.objects.filter(author=user, org__isnull=True).update(
+        created_at=timezone.now() - timedelta(days=1)
+    )
 
     res = api.post(
         "/api/investors/me/posts/",
@@ -239,7 +242,7 @@ def test_investor_post_allowed_again_the_next_day(api, user):
         format="json",
     )
     assert res.status_code == 201
-    assert InvestorPost.objects.filter(author=user).count() == 2
+    assert Activity.objects.filter(author=user, org__isnull=True).count() == 2
 
 
 @pytest.mark.django_db

@@ -1,5 +1,3 @@
-import base64
-import binascii
 import logging
 import re
 from datetime import timedelta
@@ -16,17 +14,20 @@ from rest_framework.views import APIView
 
 from django.contrib.auth import get_user_model
 
-from accounts.models import InvestorPost, InvestorProfile
+from accounts.models import InvestorProfile
 from analytics.models import InterestSignal, ProfileView
+from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
+from social.services import viewer_reactions_for
 
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
-from .constants import ACTIVITY_KINDS, FUNDRAISE_KINDS, SectionKind
+from .constants import FUNDRAISE_KINDS, SectionKind
 from .discovery import discover
-from .feed import occurred_at_of, org_feed_items
+from .feed import activity_feed_items
 from .models import (
+    Activity,
     FundraiseRound,
     OrgField,
     OrgFollow,
@@ -747,42 +748,38 @@ class FeedPostView(OrgLookupMixin, APIView):
                 {"detail": "Add at least 5 organization profile fields before posting updates."},
                 status=400,
             )
-        if OrgField.objects.filter(
-            section__org=org,
-            section__kind__in=ACTIVITY_KINDS,
-            key__startswith="post_",
-            created_at__date=timezone.localdate(),
-        ).exists():
+        if Activity.objects.filter(org=org, created_at__date=timezone.localdate()).exists():
             return Response(
                 {"detail": "This profile has already shared a post today."},
                 status=400,
             )
         serializer = FeedPostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        field = serializer.create(org)
-        return Response({"key": field.key, "value": field.value}, status=status.HTTP_201_CREATED)
+        activity = serializer.create(org)
+        return Response(_activity_summary(activity), status=status.HTTP_201_CREATED)
 
 
-_CURSOR_VERSION = "v1"
-
-
-def _encode_feed_cursor(occurred_at, item_id):
-    payload = f"{_CURSOR_VERSION}|{occurred_at.isoformat()}|{item_id}"
-    return base64.urlsafe_b64encode(payload.encode()).decode()
-
-
-def _decode_feed_cursor(raw):
-    try:
-        decoded = base64.urlsafe_b64decode(raw.encode()).decode()
-        version, occurred_at_raw, item_id = decoded.split("|", 2)
-    except (ValueError, UnicodeDecodeError, binascii.Error):
-        return None
-    if version != _CURSOR_VERSION:
-        return None
-    occurred_at = parse_datetime(occurred_at_raw)
-    if occurred_at is None:
-        return None
-    return occurred_at, item_id
+def _activity_summary(activity, viewer_reaction=None):
+    return {
+        "id": activity.id,
+        "type": "org" if activity.org_id else "person",
+        "org": _org_summary(activity.org) if activity.org_id else None,
+        "author": (
+            None
+            if activity.org_id
+            else {"id": activity.author_id, "name": _investor_display_name(activity.author)}
+        ),
+        "kind": activity.kind,
+        "value": {
+            "title": activity.title,
+            "body": activity.body,
+            "image": activity.image.url if activity.image else None,
+            "occurred_at": activity.occurred_at.isoformat(),
+        },
+        "reaction_count": activity.reaction_count,
+        "comment_count": activity.comment_count,
+        "viewer_reaction": viewer_reaction,
+    }
 
 
 class FeedView(APIView):
@@ -807,69 +804,37 @@ class FeedView(APIView):
         cursor = None
         cursor_raw = request.query_params.get("cursor")
         if cursor_raw:
-            cursor = _decode_feed_cursor(cursor_raw)
+            cursor = decode_cursor(cursor_raw)
             if cursor is None:
                 return Response({"detail": "Invalid cursor."}, status=400)
 
-        followed_orgs = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
-        org_posts = org_feed_items(request.user, followed_orgs, limit=self.MAX_LIMIT * 4)
-        items = [
-            {
-                "id": f"org:{post.id}",
-                "type": "org",
-                "org": _org_summary(post.section.org),
-                "kind": post.section.kind,
-                "key": post.key,
-                "value": post.value,
-                "occurred_at": occurred_at_of(post),
-            }
-            for post in org_posts
-        ]
-
+        followed_org_ids = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
         followed_user_ids = UserFollow.objects.filter(follower=request.user).values_list(
             "followed_id", flat=True
         )
-        person_posts = (
-            InvestorPost.objects.filter(author_id__in=followed_user_ids)
-            .select_related("author__investorprofile")
-            .order_by("-occurred_at")[: self.MAX_LIMIT * 4]
+
+        activities = list(
+            activity_feed_items(
+                request.user, followed_org_ids, followed_user_ids, limit=limit + 1, cursor=cursor
+            )
         )
-        items += [
-            {
-                "id": f"person:{post.id}",
-                "type": "person",
-                "author": {
-                    "id": post.author_id,
-                    "name": _investor_display_name(post.author),
-                },
-                "kind": post.kind,
-                "key": f"investorpost_{post.id}",
-                "value": {
-                    "title": post.title,
-                    "body": post.body,
-                    "image": post.image.url if post.image else None,
-                    "occurred_at": post.occurred_at.isoformat(),
-                },
-                "occurred_at": post.occurred_at,
-            }
-            for post in person_posts
-        ]
 
-        items.sort(key=lambda item: (item["occurred_at"], item["id"]), reverse=True)
-
-        if cursor is not None:
-            items = [item for item in items if (item["occurred_at"], item["id"]) < cursor]
-
-        page = items[:limit]
         next_cursor = None
-        if len(items) > limit:
-            last = page[-1]
-            next_cursor = _encode_feed_cursor(last["occurred_at"], last["id"])
+        if len(activities) > limit:
+            last = activities[limit - 1]
+            next_cursor = encode_cursor(last.occurred_at, last.id)
+            activities = activities[:limit]
 
-        for item in page:
-            item["occurred_at"] = item["occurred_at"].isoformat()
+        viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
 
-        return Response({"items": page, "next_cursor": next_cursor})
+        return Response(
+            {
+                "items": [
+                    _activity_summary(a, viewer_reactions.get(a.id)) for a in activities
+                ],
+                "next_cursor": next_cursor,
+            }
+        )
 
 
 class RecommendationView(APIView):
