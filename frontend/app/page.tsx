@@ -4,7 +4,7 @@ import { WebsiteJsonLd } from "@/components/WebsiteJsonLd";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata = pageMetadata({
-  title: "Startup discovery for founders and investors",
+  title: "Startup marketplace for founders and investors",
   description:
     "Build structured startup profiles, control what investors see, and follow meaningful company updates on Beedero.",
   path: "/",
