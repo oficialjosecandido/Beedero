@@ -1,47 +1,57 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+import { pageMetadata } from "@/lib/site-metadata";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Pricing",
+  description:
+    "Start for free on Beedero. Build your startup profile, get discovered by investors, and upgrade to Founder Pro when you are fundraising.",
+  path: "/pricing",
+});
+
 const freePlanItems = [
-  "Perfil completo da organização",
-  "Todas as secções: equipa, produtos, mercado, milestones, awards, eventos",
-  "Feed para partilhares novidades",
-  "Aparece na descoberta dos investidores",
-  "Segue e sê seguido",
-  "Secção de fundraise com data room privado, visível só a investidores verificados",
-  "Recebe contactos de investidores",
-  "Vê quantos investidores viram o teu perfil",
+  "Full organization profile",
+  "All sections: team, products, market, milestones, awards, events",
+  "Feed to share updates",
+  "Visible in investor discovery",
+  "Follow and be followed",
+  "Fundraise section with a private data room, visible only to verified investors",
+  "Receive investor outreach",
+  "See how many investors viewed your profile",
 ];
 
 const founderProItems = [
-  ["Quem viu o teu perfil", "nomes, quando e quantas vezes"],
-  ["Análise do data room", "que investidores abriram o teu deck e quanto tempo lá estiveram"],
-  ["Sinais de interesse", "quem te guardou e quem manifestou interesse"],
-  ["Descoberta avançada", "que investidores dão match com a tua fase e setor"],
+  ["Who viewed your profile", "names, when, and how often"],
+  ["Data room analytics", "which investors opened your deck and how long they stayed"],
+  ["Interest signals", "who saved your profile and who expressed interest"],
+  ["Advanced discovery", "which investors match your stage and sector"],
 ];
 
 const faqs = [
   {
-    q: "Criar o perfil é mesmo grátis?",
-    a: "Sim. Criar, publicar, ser descoberto, seguir, publicar novidades e receber contactos é gratuito, sem limite de tempo.",
+    q: "Is creating a profile really free?",
+    a: "Yes. Creating, publishing, getting discovered, following others, posting updates, and receiving outreach is free — with no time limit.",
   },
   {
-    q: "Então o que é que é pago?",
-    a: "Só insight extra para founders em ronda: saber quem viu o teu perfil, quem abriu o teu deck e quem demonstrou interesse. Nunca cobramos o acesso à plataforma nem a possibilidade de seres contactado.",
+    q: "So what is paid?",
+    a: "Only extra insight for founders who are fundraising: knowing who viewed your profile, who opened your deck, and who showed interest. We never charge for platform access or for being contactable.",
   },
   {
-    q: "Os investidores pagam?",
-    a: "Não. Os investidores usam o Beedero gratuitamente.",
+    q: "Do investors pay?",
+    a: "No. Investors use Beedero for free.",
   },
   {
-    q: "Tenho de pagar para partilhar dados de fundraising?",
-    a: "Não. A tua secção de fundraise e o data room são gratuitos, e só ficam visíveis a investidores verificados — controlas tu quem vê o quê.",
+    q: "Do I have to pay to share fundraising data?",
+    a: "No. Your fundraise section and data room are free, and only visible to verified investors — you control who sees what.",
   },
   {
-    q: "Posso cancelar o Founder Pro?",
-    a: "Sim, a qualquer momento. Faz sentido tê-lo durante a ronda; quando ela fechar, cancelas.",
+    q: "Can I cancel Founder Pro?",
+    a: "Yes, at any time. It makes sense during your round; when it closes, you can cancel.",
   },
   {
-    q: "Preciso de uma organização para me registar?",
-    a: "Não. Podes ter um perfil pessoal, seguir organizações e pessoas e acompanhar o que se passa, mesmo sem criar nenhuma organização.",
+    q: "Do I need an organization to sign up?",
+    a: "No. You can have a personal profile, follow organizations and people, and stay up to date — even without creating an organization.",
   },
 ];
 
@@ -75,28 +85,27 @@ export default function PricingPage() {
         <div className="absolute left-1/2 top-12 -z-10 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-beedero-yellow/20 blur-3xl" />
         <div className="mx-auto max-w-4xl text-center">
           <p className="mx-auto mb-5 inline-flex rounded-full border border-beedero-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
-            Preço
+            Pricing
           </p>
           <h1 className="text-5xl font-black uppercase leading-[0.9] tracking-[-0.06em] sm:text-7xl">
-            Começar é grátis. E continua a ser.
+            Start free. Stay free.
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg font-medium leading-8 text-beedero-white/70">
-            Constrói o perfil da tua startup, sê descoberto por investidores e faz crescer a tua
-            rede — sem pagar nada. Quando estiveres a levantar, dá-te ferramentas para perceberes
-            quem está mesmo interessado.
+            Build your startup profile, get discovered by investors, and grow your network — at no
+            cost. When you are fundraising, get tools to understand who is genuinely interested.
           </p>
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/register"
               className="rounded-full bg-beedero-yellow px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-white"
             >
-              Criar organização
+              Create organization
             </Link>
             <Link
               href="/register"
               className="rounded-full border border-beedero-white/25 px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-white hover:border-beedero-white hover:bg-beedero-white hover:text-beedero-black"
             >
-              Sou investidor
+              I am an investor
             </Link>
           </div>
         </div>
@@ -105,19 +114,19 @@ export default function PricingPage() {
       <section className="bg-beedero-white px-5 py-16 text-beedero-black sm:px-8 sm:py-24">
         <div className="mx-auto max-w-7xl">
           <p className="text-center text-sm font-black uppercase tracking-[0.2em] text-beedero-black/50">
-            Os planos
+            Plans
           </p>
           <div className="mt-8 grid gap-6 lg:grid-cols-3 lg:items-stretch">
             <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/20 p-8">
-              <h3 className="text-3xl font-black uppercase tracking-[-0.05em]">🐝 Grátis</h3>
+              <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Free</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-black/60">
-                Para todas as startups. Para sempre.
+                For every startup. Forever.
               </p>
               <p className="mt-4 text-sm font-medium leading-6 text-beedero-black/70">
-                Tudo o que precisas para existir, ser encontrado e crescer.
+                Everything you need to exist, be found, and grow.
               </p>
               <p className="mt-6 text-4xl font-black tracking-[-0.06em]">
-                €0 <span className="text-base font-bold text-beedero-black/50">/ para sempre</span>
+                €0 <span className="text-base font-bold text-beedero-black/50">/ forever</span>
               </p>
               <ul className="mt-6 flex flex-1 flex-col gap-2.5 text-sm font-medium leading-6 text-beedero-black/75">
                 {freePlanItems.map((item) => (
@@ -131,22 +140,22 @@ export default function PricingPage() {
                 href="/register"
                 className="mt-8 rounded-full bg-beedero-black px-6 py-3 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-yellow hover:bg-beedero-black/85"
               >
-                Criar organização
+                Create organization
               </Link>
             </article>
 
             <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-black p-8 text-beedero-white">
-              <h3 className="text-3xl font-black uppercase tracking-[-0.05em]">✨ Founder Pro</h3>
+              <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Founder Pro</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-yellow">
-                Para quando estás a levantar e queres saber quem está a prestar atenção.
+                For when you are fundraising and want to know who is paying attention.
               </p>
               <p className="mt-4 text-sm font-medium leading-6 text-beedero-white/70">
-                Tudo do plano Grátis, e ainda:
+                Everything in Free, plus:
               </p>
               <p className="mt-6 text-4xl font-black tracking-[-0.06em]">
                 €[XX]{" "}
                 <span className="text-base font-bold text-beedero-white/50">
-                  / mês (durante a tua ronda)
+                  / month (during your round)
                 </span>
               </p>
               <ul className="mt-6 flex flex-1 flex-col gap-3 text-sm font-medium leading-6 text-beedero-white/80">
@@ -161,21 +170,21 @@ export default function PricingPage() {
                 href="/register"
                 className="mt-8 rounded-full bg-beedero-yellow px-6 py-3 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-white"
               >
-                Quero saber mais
+                Learn more
               </Link>
               <p className="mt-3 text-center text-xs font-medium text-beedero-white/50">
-                Cancela quando a ronda fechar. Sem compromissos.
+                Cancel when your round closes. No commitments.
               </p>
             </article>
 
             <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/20 p-8">
-              <h3 className="text-3xl font-black uppercase tracking-[-0.05em]">💼 Investidores</h3>
+              <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Investors</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-black/60">
-                Grátis.
+                Free.
               </p>
               <p className="mt-4 text-sm font-medium leading-6 text-beedero-black/70">
-                Deal flow estruturado, filtros por fase, setor, geografia e cheque, acesso a data
-                rooms verificados e contacto direto com founders. Sem custo.
+                Structured deal flow, filters by stage, sector, geography, and check size, access to
+                verified data rooms, and direct contact with founders. No cost.
               </p>
               <p className="mt-6 text-4xl font-black tracking-[-0.06em]">€0</p>
               <div className="flex-1" />
@@ -183,7 +192,7 @@ export default function PricingPage() {
                 href="/register"
                 className="mt-8 rounded-full bg-beedero-black px-6 py-3 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-yellow hover:bg-beedero-black/85"
               >
-                Entrar como investidor
+                Join as investor
               </Link>
             </article>
           </div>
@@ -193,13 +202,12 @@ export default function PricingPage() {
       <section className="px-5 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-black uppercase tracking-[0.2em] text-beedero-yellow">
-            Porquê grátis?
+            Why free?
           </p>
           <p className="mt-6 text-2xl font-medium leading-9 text-beedero-white/80 sm:text-3xl">
-            O Beedero só vale se estiver cá toda a gente — founders e investidores. Por isso o
-            essencial nunca vai estar atrás de um paywall. Cobramos apenas o que te dá uma
-            vantagem extra quando estás a levantar, e nunca aquilo de que precisas para seres
-            encontrado.
+            Beedero only works when everyone is here — founders and investors. That is why the
+            essentials will never sit behind a paywall. We only charge for extra advantage while
+            you are fundraising, never for what you need to be discovered.
           </p>
         </div>
       </section>
@@ -207,7 +215,7 @@ export default function PricingPage() {
       <section className="bg-beedero-white px-5 py-16 text-beedero-black sm:px-8 sm:py-24">
         <div className="mx-auto max-w-3xl">
           <p className="text-center text-sm font-black uppercase tracking-[0.2em] text-beedero-black/50">
-            Perguntas frequentes
+            Frequently asked questions
           </p>
           <div className="mt-8 flex flex-col gap-6">
             {faqs.map((faq) => (
@@ -228,10 +236,10 @@ export default function PricingPage() {
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.2em] text-beedero-yellow">
-                Começa agora
+                Start now
               </p>
               <h2 className="mt-4 max-w-4xl text-4xl font-black uppercase leading-[0.9] tracking-[-0.07em] sm:text-6xl">
-                Junta-te à camada de descoberta de startups.
+                Join the startup discovery layer.
               </h2>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
@@ -239,13 +247,13 @@ export default function PricingPage() {
                 href="/register"
                 className="rounded-full bg-beedero-white px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-yellow"
               >
-                Criar organização — grátis
+                Create organization — free
               </Link>
               <Link
                 href="mailto:hello@beedero.com"
                 className="rounded-full border border-beedero-white/25 px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-white hover:border-beedero-white hover:bg-beedero-white hover:text-beedero-black"
               >
-                Falar connosco
+                Contact us
               </Link>
             </div>
           </div>

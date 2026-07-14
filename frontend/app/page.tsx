@@ -1,5 +1,15 @@
 import Link from "next/link";
 
+import { WebsiteJsonLd } from "@/components/WebsiteJsonLd";
+import { pageMetadata } from "@/lib/site-metadata";
+
+export const metadata = pageMetadata({
+  title: "Startup discovery for founders and investors",
+  description:
+    "Build structured startup profiles, control what investors see, and follow meaningful company updates on Beedero.",
+  path: "/",
+});
+
 const audiences = [
   {
     title: "Founders",
@@ -28,6 +38,7 @@ const metrics = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-beedero-black text-beedero-white">
+      <WebsiteJsonLd />
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
         <Link href="/" className="text-lg font-black uppercase tracking-[-0.04em]">
           Beedero

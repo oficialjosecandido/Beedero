@@ -193,7 +193,10 @@
       "Bash(cat -n beedero/pagination.py)",
       "Bash(cat -n beedero/ratelimit.py)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(awk -F= ' *)",
+      "Bash(rm -f app/forgot-password/page.tsx app/reset-password/page.tsx app/verify-email/page.tsx app/api/login/route.ts components/AuthForm.tsx components/LoginForm.tsx components/ResetPasswordForm.tsx components/VerifyEmailBanner.tsx)",
+      "Bash(rmdir app/forgot-password app/reset-password app/verify-email app/api/login)"
     ]
   }
 }

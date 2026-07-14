@@ -23,7 +23,6 @@ import {
 } from "../actions";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
-import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -554,11 +553,9 @@ const CHECKLIST_LABELS: Record<string, string> = {
 function OnboardingPanel({
   slug,
   onboarding,
-  isEmailVerified,
 }: {
   slug: string;
   onboarding: Onboarding;
-  isEmailVerified: boolean;
 }) {
   const [error, formAction, pending] = useActionState(activateOrgAction, null);
   useActionToast(error, pending, { successMessage: "Organization published!" });
@@ -587,22 +584,17 @@ function OnboardingPanel({
         ))}
       </ul>
       {onboarding.status === "draft" ? (
-        <>
-          {!isEmailVerified && <VerifyEmailBanner />}
-          <form action={formAction} className="mt-4">
-            <input type="hidden" name="slug" value={slug} />
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-            >
-              {pending ? "Publishing..." : "Publish organization"}
-            </button>
-            <p className="mt-2 text-xs text-zinc-400">
-              Publishing is free. You just need a verified email.
-            </p>
-          </form>
-        </>
+        <form action={formAction} className="mt-4">
+          <input type="hidden" name="slug" value={slug} />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+          >
+            {pending ? "Publishing..." : "Publish organization"}
+          </button>
+          <p className="mt-2 text-xs text-zinc-400">Publishing is free.</p>
+        </form>
       ) : (
         <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
           Your organization is live and visible to investors 🎉
@@ -616,18 +608,14 @@ function OverviewTab({
   slug,
   stats,
   onboarding,
-  isEmailVerified,
 }: {
   slug: string;
   stats: Stats;
   onboarding: Onboarding | null;
-  isEmailVerified: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {onboarding && (
-        <OnboardingPanel slug={slug} onboarding={onboarding} isEmailVerified={isEmailVerified} />
-      )}
+      {onboarding && <OnboardingPanel slug={slug} onboarding={onboarding} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Followers</p>
@@ -1474,7 +1462,6 @@ export function OrgTabs({
   invites,
   canManage,
   onboarding,
-  isEmailVerified,
   credibility,
   suggestedTitle,
   suggestedBody,
@@ -1493,7 +1480,6 @@ export function OrgTabs({
   invites: Invite[];
   canManage: boolean;
   onboarding: Onboarding | null;
-  isEmailVerified: boolean;
   credibility: CredibilityInfo;
   suggestedTitle?: string;
   suggestedBody?: string;
@@ -1527,12 +1513,7 @@ export function OrgTabs({
       </div>
 
       {active === "overview" && (
-        <OverviewTab
-          slug={slug}
-          stats={stats}
-          onboarding={onboarding}
-          isEmailVerified={isEmailVerified}
-        />
+        <OverviewTab slug={slug} stats={stats} onboarding={onboarding} />
       )}
 
       {active === "activity" && (

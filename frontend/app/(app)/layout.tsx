@@ -2,6 +2,9 @@ import Link from "next/link";
 
 import { NotificationBell } from "@/components/NotificationBell";
 import { logoutAction } from "@/lib/auth-actions";
+import { noIndexMetadata } from "@/lib/site-metadata";
+
+export const metadata = noIndexMetadata;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (

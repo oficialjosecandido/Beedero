@@ -4,7 +4,6 @@ import jwt
 import pytest
 from django.test import override_settings
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.entra_auth import _jwks_client
 from accounts.models import User
@@ -91,46 +90,26 @@ def test_invalid_entra_token_claims_return_401(api, raised):
 
 @pytest.mark.django_db
 @override_settings(**ENTRA_SETTINGS)
-def test_token_not_resolvable_via_jwks_falls_through_instead_of_401(api):
-    """A token EntraJWTAuthentication can't even look up in JWKS (e.g. a
-    SimpleJWT token, or genuinely malformed) must return None so DRF falls
-    through to SimpleJWT, not reject the request outright."""
+def test_token_not_resolvable_via_jwks_returns_401(api):
+    """A token EntraJWTAuthentication can't even look up in JWKS (e.g.
+    genuinely malformed, or from an unrelated issuer) must return None
+    rather than raise — but since Entra is now the only authenticator,
+    the request still ends up unauthenticated (401), not 403."""
     client = MagicMock()
     client.get_signing_key_from_jwt.side_effect = jwt.exceptions.PyJWKClientError("no matching key")
     with patch("accounts.entra_auth._jwks_client", return_value=client):
         api.credentials(HTTP_AUTHORIZATION="Bearer not-an-entra-token")
         res = api.get("/api/auth/me/")
 
-    # No Authorization scheme authenticated it, so DRF's final answer is 401 —
-    # but critically this came from "unauthenticated", not from
-    # EntraJWTAuthentication raising on an unrecognized token.
     assert res.status_code == 401
 
 
 @pytest.mark.django_db
-@override_settings(**ENTRA_SETTINGS)
-def test_coexistence_simplejwt_tokens_still_authenticate(api):
-    user = User.objects.create_user(username="legacy@example.com", email="legacy@example.com", password="x")
-    token = str(RefreshToken.for_user(user).access_token)
-
-    client = MagicMock()
-    client.get_signing_key_from_jwt.side_effect = jwt.exceptions.PyJWKClientError("no matching key")
-    with patch("accounts.entra_auth._jwks_client", return_value=client):
-        api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-        res = api.get("/api/auth/me/")
-
-    assert res.status_code == 200
-    assert res.data["email"] == "legacy@example.com"
-
-
-@pytest.mark.django_db
 def test_entra_auth_noop_when_unconfigured(api):
-    """Default settings (no ENTRA_* env vars) — Entra must not even attempt
-    to parse the Authorization header, coexistence is purely additive."""
-    user = User.objects.create_user(username="native@example.com", email="native@example.com", password="x")
-    token = str(RefreshToken.for_user(user).access_token)
-
-    api.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    """Default settings (no ENTRA_* env vars) — Entra must not attempt to
+    parse the Authorization header, and the request is treated as
+    unauthenticated rather than erroring."""
+    api.credentials(HTTP_AUTHORIZATION="Bearer some.jwt.token")
     res = api.get("/api/auth/me/")
 
-    assert res.status_code == 200
+    assert res.status_code == 401

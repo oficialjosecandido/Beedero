@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-import { LoginForm } from "@/components/LoginForm";
+import { noIndexMetadata, pageMetadata } from "@/lib/site-metadata";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Log in",
+    description: "Sign in to your Beedero account to manage your startup profile, feed, and discovery.",
+    path: "/login",
+  }),
+  ...noIndexMetadata,
+};
 
 const ENTRA_ERROR_MESSAGES: Record<string, string> = {
-  entra_not_configured: "Beedero ID sign-in isn't available yet. Please use your email and password.",
+  entra_not_configured: "Beedero ID sign-in isn't available right now. Please try again shortly.",
   entra_invalid_state: "That sign-in link expired or was already used. Please try again.",
   entra_token_exchange_failed: "Beedero ID sign-in failed. Please try again.",
   entra_unreachable: "Couldn't reach Beedero ID right now. Please try again.",
@@ -34,21 +44,9 @@ export default async function LoginPage({
           href={entraLoginHref}
           className="flex items-center justify-center rounded-full border-2 border-beedero-black px-4 py-3 text-sm font-semibold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
         >
-          Entrar com Beedero ID (novo)
+          Log in with Beedero ID
         </a>
-        <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400">
-          <span className="h-px flex-1 bg-beedero-black/10" />
-          or
-          <span className="h-px flex-1 bg-beedero-black/10" />
-        </div>
-        <LoginForm />
         <div className="flex flex-col gap-2 text-center text-sm text-zinc-600">
-          <Link
-            href="/forgot-password"
-            className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-          >
-            Forgot password?
-          </Link>
           <p>
           Don&apos;t have an account yet?{" "}
           <Link

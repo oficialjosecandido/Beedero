@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { OrgProfile } from "@/components/OrgProfile";
+import { OrgProfileJsonLd } from "@/components/OrgProfileJsonLd";
 import { ApiError, publicFetch } from "@/lib/api";
 import { orgProfileMetadata } from "@/lib/site-metadata";
 import type { OrgProfile as OrgProfileData } from "@/lib/types";
@@ -38,8 +39,11 @@ export default async function PublicOrgPage({
   }
 
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <OrgProfile data={data} />
-    </div>
+    <>
+      <OrgProfileJsonLd org={data.org} />
+      <div className="flex flex-1 justify-center px-6 py-16">
+        <OrgProfile data={data} />
+      </div>
+    </>
   );
 }

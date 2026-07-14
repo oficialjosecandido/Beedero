@@ -1,9 +1,9 @@
 import "server-only";
 
+import { getEntraConfig, tokenUrl } from "./entra";
 import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
 const DEFAULT_API_TIMEOUT_MS = 15_000;
-const AUTH_TIMEOUT_MS = 60_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
 
 function isProductionRuntime() {
@@ -113,16 +113,41 @@ function doFetch(path: string, options: { method?: string; body?: unknown }, tok
 }
 
 /** P0.5: the access token is short-lived (30min) — on a 401, try the refresh
- * cookie once before giving up, so a session doesn't die mid-visit. */
+ * cookie once before giving up, so a session doesn't die mid-visit. Mirrors
+ * proxy.ts's refreshEntraSession and app/api/auth/refresh/route.ts — this
+ * one runs in the normal Node runtime, so it can import lib/entra.ts
+ * directly (proxy.ts can't: it's edge middleware and lib/entra.ts uses
+ * node:crypto). */
 async function tryRefresh(): Promise<string | null> {
   const refresh = await getRefreshToken();
-  if (!refresh) return null;
+  const config = getEntraConfig();
+  if (!refresh || !config) return null;
+
+  const body = new URLSearchParams({
+    client_id: config.webClientId,
+    client_secret: config.webClientSecret,
+    grant_type: "refresh_token",
+    refresh_token: refresh,
+    scope: `openid offline_access ${config.scope}`,
+  });
+
   try {
-    const tokens: { access: string; refresh?: string } = await anonFetch("/auth/token/refresh/", {
-      refresh,
-    });
-    await setSession(tokens.access, tokens.refresh ?? refresh);
-    return tokens.access;
+    const res = await fetchWithTimeout(
+      tokenUrl(config),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      },
+      DEFAULT_API_TIMEOUT_MS
+    );
+    if (!res.ok) {
+      await clearSession();
+      return null;
+    }
+    const tokens: { access_token: string; refresh_token?: string } = await res.json();
+    await setSession(tokens.access_token, tokens.refresh_token ?? refresh);
+    return tokens.access_token;
   } catch {
     await clearSession();
     return null;
@@ -141,20 +166,5 @@ export async function apiFetch(
     if (!refreshed) throw new ApiError(401, null);
     res = await doFetch(path, options, refreshed); // retry exactly once
   }
-  return parse(res);
-}
-
-/** Auth endpoints don't carry a Bearer token (login/register). */
-export async function anonFetch(path: string, body: unknown) {
-  const res = await fetchWithTimeout(
-    `${getBackendUrl()}${path}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    },
-    AUTH_TIMEOUT_MS
-  );
   return parse(res);
 }

@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { getEntraConfig, tokenUrl } from "@/lib/entra";
-import { clearSession, getAuthProvider, getRefreshToken, setSession } from "@/lib/session";
+import { clearSession, getRefreshToken, setSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// Refreshes an Entra-provisioned session. Native (SimpleJWT) sessions keep
-// using the existing /auth/token/refresh/ Django endpoint directly (see
-// proxy.ts and lib/api.ts's tryRefresh) — this route only ever fires for
-// beedero_auth_provider=entra sessions.
 export async function POST() {
   const config = getEntraConfig();
-  const provider = await getAuthProvider();
   const refresh = await getRefreshToken();
 
-  if (!config || provider !== "entra" || !refresh) {
+  if (!config || !refresh) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -42,6 +37,6 @@ export async function POST() {
     return NextResponse.json({ ok: false }, { status: 502 });
   }
 
-  await setSession(tokens.access_token, tokens.refresh_token ?? refresh, "entra");
+  await setSession(tokens.access_token, tokens.refresh_token ?? refresh);
   return NextResponse.json({ ok: true });
 }

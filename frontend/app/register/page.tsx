@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+import { pageMetadata } from "@/lib/site-metadata";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Create account",
+  description: "Join Beedero as a founder, startup, or investor. Build structured profiles and discover verified opportunities.",
+  path: "/register",
+});
 
 export default function RegisterPage() {
   return (

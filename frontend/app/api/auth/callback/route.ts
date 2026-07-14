@@ -63,6 +63,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=entra_unreachable", request.url));
   }
 
-  await setSession(tokens.access_token, tokens.refresh_token ?? "", "entra");
+  await setSession(tokens.access_token, tokens.refresh_token ?? "");
   return NextResponse.redirect(new URL(next, request.url));
 }

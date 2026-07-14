@@ -18,14 +18,12 @@ class EntraJWTAuthentication(BaseAuthentication):
     against the tenant's public JWKS) and JIT-provisions a local shadow
     `User` keyed by the token's `oid` claim.
 
-    Coexists with SimpleJWT during the phased migration (settings.py lists
-    this class first): returns None — never raises — when Entra isn't
-    configured for this environment, or the bearer token isn't a JWT this
-    class can even parse, so DRF falls through to SimpleJWT instead of
-    rejecting the request outright. Only a token that *is* a parseable JWT
-    but fails validation (bad audience/issuer/signature/expiry) raises
-    AuthenticationFailed (401) — such a token was never a valid SimpleJWT
-    token either, so there's nothing to fall through to.
+    The sole authentication class (native email/password auth was removed).
+    Returns None — never raises — when Entra isn't configured for this
+    environment, or the bearer token isn't a JWT at all, so the request is
+    treated as anonymous (401 via IsAuthenticated) rather than crashing. Only
+    a token that *is* a parseable JWT but fails validation (bad
+    audience/issuer/signature/expiry) raises AuthenticationFailed (401).
     """
 
     def authenticate(self, request):
@@ -41,9 +39,9 @@ class EntraJWTAuthentication(BaseAuthentication):
         try:
             signing_key = jwks_client.get_signing_key_from_jwt(token)
         except jwt.exceptions.PyJWKClientError:
-            return None  # not one of ours (e.g. a SimpleJWT token) — fall through
+            return None  # not a token this tenant's JWKS can resolve
         except jwt.exceptions.DecodeError:
-            return None  # not even a well-formed JWT — fall through
+            return None  # not even a well-formed JWT
 
         try:
             claims = jwt.decode(
@@ -60,9 +58,7 @@ class EntraJWTAuthentication(BaseAuthentication):
         return (user, token)
 
     def authenticate_header(self, request):
-        # DRF's APIView.get_authenticate_header() only ever consults the
-        # *first* configured authenticator (see rest_framework.views) — since
-        # this class is listed first for coexistence, omitting this would
-        # silently turn every authentication failure app-wide (including
-        # SimpleJWT's) from 401 into 403.
+        # Without this, DRF's APIView.get_authenticate_header() has nothing
+        # to consult and every authentication failure app-wide silently
+        # turns from 401 into 403 (see rest_framework.views).
         return 'Bearer realm="api"'

@@ -49,15 +49,6 @@ export async function activateOrgAction(_prevState: string | null, formData: For
   return null;
 }
 
-export async function resendVerificationEmailAction() {
-  try {
-    await apiFetch("/auth/verify-email/resend/", { method: "POST" });
-  } catch (err) {
-    return firstErrorMessage(err, "Could not resend the verification email.");
-  }
-  return "Verification email sent. Check your inbox.";
-}
-
 export async function updateProfileAction(_prevState: string | null, formData: FormData) {
   const body = new FormData();
   body.set("full_name", formData.get("full_name") ?? "");

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { CreateOrgForm } from "@/components/CreateOrgForm";
 import { InvestorPostForm } from "@/components/InvestorPostForm";
 import { ProfileForm } from "@/components/ProfileForm";
-import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";
 import { apiFetch } from "@/lib/api";
 import type { OrgSummary } from "@/lib/types";
 import { followOrgAction, followUserAction } from "./actions";
@@ -17,7 +16,7 @@ type InvestorProfile = {
   profile_picture?: string | null;
   is_complete?: boolean;
 };
-type Me = { email: string; is_email_verified: boolean; investor_profile: InvestorProfile | null };
+type Me = { email: string; investor_profile: InvestorProfile | null };
 type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
 type Recommendations = { organizations: OrgSummary[]; people: PersonSummary[] };
 
@@ -40,8 +39,6 @@ export default async function DashboardPage() {
             Welcome back
           </h1>
         </header>
-
-        {!me.is_email_verified && <VerifyEmailBanner />}
 
         {!profileComplete ? (
           <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">

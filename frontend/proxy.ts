@@ -7,7 +7,6 @@ import type { NextRequest } from "next/server";
 
 const ACCESS_COOKIE = "beedero_access";
 const REFRESH_COOKIE = "beedero_refresh";
-const PROVIDER_COOKIE = "beedero_auth_provider";
 
 const cookieOptions = {
   httpOnly: true,
@@ -16,14 +15,10 @@ const cookieOptions = {
   path: "/",
 };
 
-function backendUrl() {
-  return (process.env.BACKEND_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
-}
-
 // Mirrors lib/entra.ts's getEntraConfig(), duplicated rather than imported:
-// proxy.ts is edge middleware and intentionally self-contained (it already
-// doesn't import backendUrl()-style helpers from lib/), and lib/entra.ts
-// uses node:crypto, which isn't guaranteed available in the edge runtime.
+// proxy.ts is edge middleware and intentionally self-contained, and
+// lib/entra.ts uses node:crypto, which isn't guaranteed available in the
+// edge runtime.
 function entraTokenUrl(): string | null {
   const tenantId = process.env.ENTRA_TENANT_ID;
   const subdomain = process.env.ENTRA_TENANT_SUBDOMAIN;
@@ -68,24 +63,6 @@ async function refreshEntraSession(refresh: string) {
     ...cookieOptions,
     maxAge: 60 * 60 * 24 * 7,
   });
-  response.cookies.set(PROVIDER_COOKIE, "entra", { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
-  return response;
-}
-
-async function refreshNativeSession(refresh: string) {
-  const res = await fetch(`${backendUrl()}/auth/token/refresh/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
-  });
-  if (!res.ok) return null;
-
-  const tokens: { access: string; refresh?: string } = await res.json();
-  const response = NextResponse.next();
-  response.cookies.set(ACCESS_COOKIE, tokens.access, { ...cookieOptions, maxAge: 60 * 30 });
-  if (tokens.refresh) {
-    response.cookies.set(REFRESH_COOKIE, tokens.refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
-  }
   return response;
 }
 
@@ -96,19 +73,17 @@ export async function proxy(request: NextRequest) {
 
   // The access cookie is short-lived (30min) and routinely expires mid-visit.
   // Rather than bounce a still-valid session to /login, try the longer-lived
-  // refresh cookie here — this mirrors apiFetch's tryRefresh(), but has to
+  // refresh cookie here — this mirrors lib/api.ts's tryRefresh(), but has to
   // live in the proxy: cookies can only be written from middleware or a
   // Server Action/Route Handler, never from a plain Server Component render,
   // so the page itself can't silently refresh on the way in.
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
   if (refresh) {
     try {
-      const provider = request.cookies.get(PROVIDER_COOKIE)?.value;
-      const response =
-        provider === "entra" ? await refreshEntraSession(refresh) : await refreshNativeSession(refresh);
+      const response = await refreshEntraSession(refresh);
       if (response) return response;
     } catch {
-      // Backend/Entra unreachable — fall through to the login redirect below.
+      // Entra unreachable — fall through to the login redirect below.
     }
   }
 

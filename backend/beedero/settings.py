@@ -3,7 +3,6 @@ Django settings for beedero project.
 """
 
 import os
-from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -81,7 +80,6 @@ INSTALLED_APPS = [
     "credibility",
     "social",
     "notifications",
-    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -214,25 +212,14 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {
-    # Entra listed first for coexistence during the migration (see
-    # docs/entra-migration.md §2/§4): EntraJWTAuthentication returns None
-    # (never raises) when Entra isn't configured for this environment or the
-    # bearer token isn't one of its own, so DRF falls through to SimpleJWT
-    # unchanged. Rollback during Fase A/B is a config flip, not a code revert.
+    # Microsoft Entra External ID (CIAM) is the only authentication path —
+    # native email/password auth was removed in favor of it.
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "accounts.entra_auth.EntraJWTAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-}
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # --- Microsoft Entra External ID (CIAM) ------------------------------------
