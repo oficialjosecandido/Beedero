@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} | Beedero admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}">Beedero · administração</a>
+</h1>
+{% endblock %}
+
+{% block usertools %}
+{{ block.super }}
+<style>
+  /* Barra de atalhos internos, por baixo do header do admin */
+  #beedero-nav {
+    background: #1f2430;
+    padding: 8px 40px;
+    font-size: 13px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+  #beedero-nav a { color: #f0a93b; text-decoration: none; font-weight: 600; }
+  #beedero-nav a:hover { text-decoration: underline; }
+  #beedero-nav .sep { color: #555; }
+</style>
+{% endblock %}
+
+{% block nav-global %}
+<div id="beedero-nav">
+  <a href="{% url 'admin-kpis' %}">📊 KPIs</a>
+  <span class="sep">·</span>
+  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">
+    🛡 Verificações pendentes
+  </a>
+  <span class="sep">·</span>
+  <a href="{% url 'admin:orgs_organization_changelist' %}">🏢 Organizações</a>
+  <span class="sep">·</span>
+  <a href="{% url 'admin:accounts_user_changelist' %}">👤 Utilizadores</a>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "admin/base_site.html" %}
+{% block title %}KPIs · Beedero{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .kpi-section { margin: 26px 0 10px; font-size: 12px; text-transform: uppercase;
+                 letter-spacing: .08em; color: #666; font-weight: 700; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+              gap: 12px; }
+  .kpi-card { border: 1px solid #e2e2e2; border-radius: 8px; padding: 14px 16px;
+              background: #fff; }
+  .kpi-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .kpi-card .value { font-size: 28px; font-weight: 700; line-height: 1.1; }
+  .kpi-card .delta { font-size: 12px; margin-top: 5px; color: #1a7f37; }
+  .kpi-card .delta.zero { color: #999; }
+  table.kpi { border-collapse: collapse; width: 100%; max-width: 640px; margin-top: 6px; }
+  table.kpi th, table.kpi td { text-align: left; padding: 7px 10px;
+                               border-bottom: 1px solid #eee; font-size: 13px; }
+  .bar { background: #f0a93b; height: 10px; border-radius: 3px; display: inline-block;
+         vertical-align: middle; min-width: 2px; }
+  .muted { color: #888; font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="muted">
+  Janela: últimos {{ window_days }} dias · gerado em {{ generated_at|date:"d/m/Y H:i" }}
+</p>
+
+<div class="kpi-section">Métricas</div>
+<div class="kpi-grid">
+  {% for card in cards %}
+    <div class="kpi-card">
+      <div class="label">{{ card.label }} <span class="muted">· {{ card.section }}</span></div>
+      <div class="value">{{ card.value }}</div>
+      {% if card.has_delta %}
+        <div class="delta {% if not card.delta %}zero{% endif %}">
+          {% if card.delta %}+{{ card.delta }} em {{ window_days }}d{% else %}sem novos{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<div class="kpi-section">Escada de credibilidade (orgs live)</div>
+<table class="kpi">
+  <tr><th>Nível</th><th>Orgs</th><th></th></tr>
+  {% for row in levels %}
+    <tr>
+      <td>Nível {{ row.level }}</td>
+      <td>{{ row.count }}</td>
+      <td><span class="bar" style="width: {{ row.width }}px"></span></td>
+    </tr>
+  {% endfor %}
+</table>
+
+<div class="kpi-section">Funil de onboarding</div>
+<table class="kpi">
+  <tr><th>Passo</th><th>Total</th><th>% do anterior</th></tr>
+  {% for step in funnel %}
+    <tr>
+      <td>{{ step.label }}</td>
+      <td>{{ step.count }}</td>
+      <td>{% if step.pct %}{{ step.pct }}%{% else %}—{% endif %}</td>
+    </tr>
+  {% endfor %}
+</table>
+<p class="muted">A maior queda percentual entre passos é onde as pessoas encalham.</p>
+
+{% if top_orgs %}
+  <div class="kpi-section">Top orgs por views ({{ window_days }}d)</div>
+  <table class="kpi">
+    <tr><th>Org</th><th>Views</th></tr>
+    {% for o in top_orgs %}
+      <tr>
+        <td><a href="/o/{{ o.slug }}" target="_blank">{{ o.name }}</a></td>
+        <td>{{ o.views }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
+{% endblock %}

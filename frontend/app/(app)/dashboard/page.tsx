@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { CreateOrgForm } from "@/components/CreateOrgForm";
 import { InvestorPostForm } from "@/components/InvestorPostForm";
 import { ProfileForm } from "@/components/ProfileForm";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import type { OrgSummary } from "@/lib/types";
 import { followOrgAction, followUserAction } from "./actions";
 
@@ -21,11 +22,17 @@ type PersonSummary = { id: number; name: string; headline?: string; profile_pict
 type Recommendations = { organizations: OrgSummary[]; people: PersonSummary[] };
 
 export default async function DashboardPage() {
-  const [me, orgs, recommendations]: [Me, Membership[], Recommendations] = await Promise.all([
-    apiFetch("/auth/me/"),
-    apiFetch("/orgs/"),
-    apiFetch("/recommendations/"),
-  ]);
+  let me: Me, orgs: Membership[], recommendations: Recommendations;
+  try {
+    [me, orgs, recommendations] = await Promise.all([
+      apiFetch("/auth/me/"),
+      apiFetch("/orgs/"),
+      apiFetch("/recommendations/"),
+    ]);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) redirect("/login");
+    throw err;
+  }
   const profileComplete = Boolean(me.investor_profile?.is_complete);
 
   return (

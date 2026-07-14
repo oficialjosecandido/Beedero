@@ -1,11 +1,19 @@
-import { apiFetch } from "@/lib/api";
+import { redirect } from "next/navigation";
+
+import { ApiError, apiFetch } from "@/lib/api";
 
 import { FeedList } from "./FeedList";
 import type { FeedItem } from "./types";
 
 export default async function FeedPage() {
-  const { items, next_cursor }: { items: FeedItem[]; next_cursor: string | null } =
-    await apiFetch("/feed/");
+  let items: FeedItem[];
+  let next_cursor: string | null;
+  try {
+    ({ items, next_cursor } = await apiFetch("/feed/"));
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) redirect("/login");
+    throw err;
+  }
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-12">

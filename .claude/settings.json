@@ -196,7 +196,12 @@
       "Bash(git check-ignore *)",
       "Bash(awk -F= ' *)",
       "Bash(rm -f app/forgot-password/page.tsx app/reset-password/page.tsx app/verify-email/page.tsx app/api/login/route.ts components/AuthForm.tsx components/LoginForm.tsx components/ResetPasswordForm.tsx components/VerifyEmailBanner.tsx)",
-      "Bash(rmdir app/forgot-password app/reset-password app/verify-email app/api/login)"
+      "Bash(rmdir app/forgot-password app/reset-password app/verify-email app/api/login)",
+      "Bash(curl -sI \"https://beedero.com/api/auth/login\" -o /tmp/login_headers.txt -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero-api.azurewebsites.net/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/api/feed/)",
+      "Bash(env)",
+      "Bash(time curl -sS -o /tmp/feed_resp.json -w \"\\\\nHTTP %{http_code}  total_time=%{time_total}s\\\\n\" \"https://api.beedero.com/api/feed/\")"
     ]
   }
 }
