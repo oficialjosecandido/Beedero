@@ -27,27 +27,20 @@ class EntraJWTAuthentication(BaseAuthentication):
     """
 
     def authenticate(self, request):
-        # TEMP DIAGNOSTIC — remove once the /feed post-login 401 bug is root-caused.
         if not settings.ENTRA_JWKS_URL or not settings.ENTRA_API_CLIENT_ID:
-            print("[diag entra_auth] missing config: JWKS_URL=%r CLIENT_ID=%r" % (
-                settings.ENTRA_JWKS_URL, settings.ENTRA_API_CLIENT_ID), flush=True)
             return None
 
         header = request.META.get("HTTP_AUTHORIZATION", "")
         if not header.startswith("Bearer "):
-            print("[diag entra_auth] header not Bearer-prefixed: %r" % (header[:20],), flush=True)
             return None
         token = header[len("Bearer "):]
-        print("[diag entra_auth] token prefix=%r len=%d" % (token[:16], len(token)), flush=True)
 
         jwks_client = _jwks_client(settings.ENTRA_JWKS_URL)
         try:
             signing_key = jwks_client.get_signing_key_from_jwt(token)
-        except jwt.exceptions.PyJWKClientError as exc:
-            print("[diag entra_auth] PyJWKClientError: %r (jwks_url=%s)" % (exc, settings.ENTRA_JWKS_URL), flush=True)
+        except jwt.exceptions.PyJWKClientError:
             return None  # not a token this tenant's JWKS can resolve
-        except jwt.exceptions.DecodeError as exc:
-            print("[diag entra_auth] DecodeError: %r" % (exc,), flush=True)
+        except jwt.exceptions.DecodeError:
             return None  # not even a well-formed JWT
 
         try:
@@ -59,11 +52,8 @@ class EntraJWTAuthentication(BaseAuthentication):
                 issuer=settings.ENTRA_ISSUER,
             )
         except jwt.exceptions.InvalidTokenError as exc:
-            print("[diag entra_auth] InvalidTokenError: %r (aud=%s iss=%s)" % (
-                exc, settings.ENTRA_API_CLIENT_ID, settings.ENTRA_ISSUER), flush=True)
             raise AuthenticationFailed(f"Invalid Entra token: {exc}") from exc
 
-        print("[diag entra_auth] validated ok, oid=%s" % claims.get("oid"), flush=True)
         user = get_or_provision_user(claims)
         return (user, token)
 

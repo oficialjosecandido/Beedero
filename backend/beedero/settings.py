@@ -236,8 +236,12 @@ ENTRA_API_CLIENT_ID = os.environ.get("ENTRA_API_CLIENT_ID", "")  # audience of t
 _entra_authority = (
     f"https://{ENTRA_CUSTOM_DOMAIN}"
     if ENTRA_CUSTOM_DOMAIN
-    else f"https://{ENTRA_TENANT_SUBDOMAIN}.ciamlogin.com"
-    if ENTRA_TENANT_SUBDOMAIN
+    # The `iss` claim on issued tokens always uses the tenant-ID subdomain,
+    # never the friendly ENTRA_TENANT_SUBDOMAIN (confirmed via the tenant's
+    # own /.well-known/openid-configuration, whose "issuer" field is
+    # identical regardless of which subdomain you query it through).
+    else f"https://{ENTRA_TENANT_ID}.ciamlogin.com"
+    if ENTRA_TENANT_ID
     else ""
 )
 ENTRA_ISSUER = f"{_entra_authority}/{ENTRA_TENANT_ID}/v2.0" if _entra_authority and ENTRA_TENANT_ID else ""
