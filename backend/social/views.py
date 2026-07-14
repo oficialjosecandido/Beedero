@@ -51,6 +51,9 @@ class ActivityReactionView(APIView):
         toggle_reaction(activity, request.user, serializer.validated_data["kind"])
 
         activity.refresh_from_db(fields=["reaction_count"])
+        from notifications.services import notify_activity_reaction
+
+        notify_activity_reaction(activity, request.user, activity.reaction_count)
         return Response({"reaction_count": activity.reaction_count})
 
     def delete(self, request, activity_id):
@@ -123,6 +126,10 @@ class ActivityCommentListCreateView(APIView):
                 return Response({"detail": "Replies can only be one level deep."}, status=400)
 
         comment = create_comment(activity, request.user, data["body"], parent=parent)
+        activity.refresh_from_db(fields=["comment_count"])
+        from notifications.services import notify_activity_comment
+
+        notify_activity_comment(activity, request.user, activity.comment_count)
         return Response(comment_summary(comment, can_delete=True), status=201)
 
 

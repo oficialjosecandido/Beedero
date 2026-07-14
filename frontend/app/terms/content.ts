@@ -48,38 +48,31 @@ The core of the platform is free. Additional analytics features ("Founder Pro") 
 
 ## 8. Suspension and termination
 
-We may suspend or terminate accounts that breach these Terms, with notice where reasonable. You may delete your account at any time (§6 of the Privacy Policy regarding data).
+We may suspend or terminate accounts that breach these Terms, with notice where reasonable. You may delete your account at any time (see the Privacy Policy regarding data).
 
-## 9. Liability
+If an organization has a single owner and that owner deletes their account, the organization is archived. Content remains stored for 30 days and may be transferred to another member on request to {email}.
+
+## 9. Language
+
+If these Terms are published in more than one language, the Portuguese version prevails in case of conflict.
+
+## 10. Liability
 
 The service is provided "as is". To the maximum extent permitted by law, Beedero is not liable for: investment decisions made by users; the accuracy of content published by users; the use that third parties with legitimate access make of information; temporary unavailability. Nothing in these Terms excludes liability that cannot legally be excluded (intent, gross negligence, personal injury).
 
 [LEGAL REVIEW: adapt the limitation of liability clause to Portuguese law — unfair standard terms, Decree-Law 446/85.]
 
-## 10. Governing law and jurisdiction
+## 11. Governing law and jurisdiction
 
 These Terms are governed by Portuguese law. Jurisdiction: the courts of {Lisbon}, without prejudice to mandatory consumer protection rules. Alternative dispute resolution for consumer disputes: {applicable ADR body}.
 
 [LEGAL REVIEW: confirm jurisdiction and mandatory ADR/ODR references.]
 
-## 11. Changes
+## 12. Changes
 
 We may change these Terms, notifying material changes {30 days} in advance. Continued use after they take effect constitutes acceptance.
 
 ---
 
-## Checklist for legal review (hand to the lawyer)
-
-To make the review fast, these are the concrete open questions, in order of importance:
-
-1. **Terms §2 (no financial intermediation):** validate wording and product safeguards against securities regulation (CMVM). This is the business's central regulatory risk.
-2. **Privacy §2.4 ("who viewed what" tracking):** LIA for legitimate interest; consent vs. opt-out for exposing the visitor's identity; information text at the point of collection.
-3. **Retention periods** proposed ({12m} views, {24m} audit, {24m} verification docs) — confirm or adjust.
-4. **Account deletion:** retention exceptions (audit) + product decision on orphaned organisations.
-5. **Certified Accountant's data** (third party): legal basis + duty to inform (Art. 14) + email confirmation process.
-6. **Sub-processors and international transfers:** final list, DPAs, SCCs/adequacy (especially Stripe and Sentry).
-7. **DPO:** required or not.
-8. **Terms §5:** limitation of liability regarding credibility badges.
-9. **Terms §7:** right of withdrawal B2C vs B2B for Founder Pro.
-10. **Cookies:** confirmation that, with essential-only cookies, no banner is required.
+These Terms were last reviewed for publication on {date}.
 `;

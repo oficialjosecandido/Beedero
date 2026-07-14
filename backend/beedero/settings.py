@@ -58,6 +58,11 @@ if not DEBUG and frontend_url_parts.hostname in {"localhost", "127.0.0.1", "::1"
         "FRONTEND_URL cannot point to localhost when DJANGO_DEBUG=false."
     )
 
+# Public origin of this API itself — used to build absolute links (digest
+# unsubscribe, open-tracking pixel) that email clients fetch directly,
+# bypassing the Next.js server entirely.
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -75,6 +80,7 @@ INSTALLED_APPS = [
     "analytics",
     "credibility",
     "social",
+    "notifications",
     "rest_framework_simplejwt.token_blacklist",
 ]
 
@@ -123,6 +129,14 @@ if not os.environ.get("DATABASE_URL"):
     )
 
 DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"])}
+
+# Shared across gunicorn workers — DatabaseCache uses the Postgres we already run.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    }
+}
 
 AUTH_USER_MODEL = "accounts.User"
 

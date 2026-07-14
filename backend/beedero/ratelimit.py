@@ -1,7 +1,5 @@
-"""Minimal cache-based rate limiting (doc §4) — no new dependency, backed by
-Django's configured cache (LocMemCache by default). Good enough at current
-scale; would need a shared cache (e.g. Redis) if the app ever runs multiple
-web workers/instances that don't share process memory.
+"""Minimal cache-based rate limiting (doc §4) — backed by DatabaseCache so
+limits are shared across gunicorn workers (see settings.CACHES).
 """
 
 from django.core.cache import cache

@@ -47,7 +47,13 @@ type FundraiseRound = {
   opened_at: string;
   closed_at: string | null;
 };
-type Stats = { followers_count: number; visitors_count: number };
+type Stats = {
+  followers_count: number;
+  visitors_count: number;
+  range_days?: number;
+  new_followers?: number;
+  profile_views?: number;
+};
 type Member = { id: number; email: string; role: string };
 type Invite = {
   id: number;
@@ -626,6 +632,11 @@ function OverviewTab({
         <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Followers</p>
           <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
+          {typeof stats.new_followers === "number" && (
+            <p className="mt-1 text-xs font-semibold text-emerald-600">
+              +{stats.new_followers} in the last {stats.range_days ?? 7} days
+            </p>
+          )}
         </div>
         <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
@@ -633,6 +644,11 @@ function OverviewTab({
           <p className="mt-1 text-xs text-zinc-400">
             Distinct people outside your organization who viewed this profile.
           </p>
+          {typeof stats.profile_views === "number" && (
+            <p className="mt-1 text-xs font-semibold text-emerald-600">
+              {stats.profile_views} views in the last {stats.range_days ?? 7} days
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -645,15 +661,19 @@ function PostComposer({
   hasPostedToday,
   profileFieldCount,
   onGoProfile,
+  suggestedTitle,
+  suggestedBody,
 }: {
   slug: string;
   canPostUpdates: boolean;
   hasPostedToday: boolean;
   profileFieldCount: number;
   onGoProfile: () => void;
+  suggestedTitle?: string;
+  suggestedBody?: string;
 }) {
   const [error, formAction, pending] = useActionState(postFeedAction, null);
-  const [kind, setKind] = useState(POST_KIND_OPTIONS[0].value);
+  const [kind, setKind] = useState(suggestedTitle ? "milestones" : POST_KIND_OPTIONS[0].value);
   const allowsPhoto = kind === "events" || kind === "news";
   useActionToast(error, pending, { successMessage: "Update posted!" });
 
@@ -715,6 +735,7 @@ function PostComposer({
         <input
           name="title"
           placeholder="Title"
+          defaultValue={suggestedTitle}
           required
           className="min-w-[10rem] flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
@@ -723,6 +744,7 @@ function PostComposer({
         name="body"
         placeholder="Say more..."
         rows={3}
+        defaultValue={suggestedBody}
         className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
       />
       {allowsPhoto ? (
@@ -783,6 +805,8 @@ function ActivityTab({
   hasPostedToday,
   profileFieldCount,
   onGoProfile,
+  suggestedTitle,
+  suggestedBody,
 }: {
   slug: string;
   activities: OrgActivity[];
@@ -790,6 +814,8 @@ function ActivityTab({
   hasPostedToday: boolean;
   profileFieldCount: number;
   onGoProfile: () => void;
+  suggestedTitle?: string;
+  suggestedBody?: string;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -799,6 +825,8 @@ function ActivityTab({
         hasPostedToday={hasPostedToday}
         profileFieldCount={profileFieldCount}
         onGoProfile={onGoProfile}
+        suggestedTitle={suggestedTitle}
+        suggestedBody={suggestedBody}
       />
       {activities.length === 0 && (
         <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
@@ -1448,6 +1476,8 @@ export function OrgTabs({
   onboarding,
   isEmailVerified,
   credibility,
+  suggestedTitle,
+  suggestedBody,
 }: {
   slug: string;
   org: OrgBasics;
@@ -1465,8 +1495,10 @@ export function OrgTabs({
   onboarding: Onboarding | null;
   isEmailVerified: boolean;
   credibility: CredibilityInfo;
+  suggestedTitle?: string;
+  suggestedBody?: string;
 }) {
-  const [active, setActive] = useState<TabId>("overview");
+  const [active, setActive] = useState<TabId>(suggestedTitle ? "activity" : "overview");
 
   const aboutSection = sections.find((s) => s.kind === "about");
   const teamSection = sections.find((s) => s.kind === "team");
@@ -1511,6 +1543,8 @@ export function OrgTabs({
           hasPostedToday={hasPostedToday}
           profileFieldCount={profileFieldCount}
           onGoProfile={() => setActive("profile")}
+          suggestedTitle={suggestedTitle}
+          suggestedBody={suggestedBody}
         />
       )}
 

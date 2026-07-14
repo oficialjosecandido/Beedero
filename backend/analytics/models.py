@@ -37,3 +37,20 @@ class InterestSignal(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["org", "-created_at"])]
+
+
+class DailyOrgStats(models.Model):
+    """One row per org per day, written once nightly (doc §3) — the
+    dashboard's delta cards sum this instead of scanning raw event tables,
+    and it's the only place "new followers" / "profile views" per-day
+    numbers live once the underlying events age out."""
+
+    org = models.ForeignKey(Organization, related_name="daily_stats", on_delete=models.CASCADE)
+    date = models.DateField()
+    followers_count = models.PositiveIntegerField(default=0)  # snapshot as of end of day
+    new_followers_count = models.PositiveIntegerField(default=0)  # delta that day
+    profile_views_count = models.PositiveIntegerField(default=0)  # count that day
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["org", "date"], name="uniq_daily_org_stats_per_day")]
+        indexes = [models.Index(fields=["org", "-date"])]

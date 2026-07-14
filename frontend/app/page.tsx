@@ -3,19 +3,15 @@ import Link from "next/link";
 const audiences = [
   {
     title: "Founders",
-    text: "Build a trusted profile once, then decide exactly what investors, partners, and talent can see.",
+    text: "Build a trusted profile once, then decide exactly what investors and partners can see.",
   },
   {
     title: "Startups",
-    text: "Show traction, team, products, fundraising, and research signals without losing control of sensitive data.",
-  },
-  {
-    title: "Job seekers",
-    text: "Discover ambitious companies early and follow the ones building in markets you care about.",
+    text: "Show traction, team, products, fundraising, and updates without losing control of sensitive data.",
   },
   {
     title: "Investors",
-    text: "Track verified opportunities, follow updates, and request access to the details behind the headline.",
+    text: "Discover verified opportunities, follow updates, and request access to the details behind the headline — free.",
   },
   {
     title: "Researchers",
@@ -99,9 +95,9 @@ export default function Home() {
               Build the company graph before everyone else sees it.
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-8 text-beedero-white/70 sm:text-xl">
-              Beedero connects founders, startups, job seekers, investors, and
-              researchers around structured company profiles, controlled access,
-              and a live feed of meaningful updates.
+              Beedero connects founders, startups, investors, and researchers around
+              structured company profiles, controlled access, and a live feed of meaningful
+              updates.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -127,7 +123,7 @@ export default function Home() {
               <div className="mt-16 rounded-3xl bg-beedero-black p-5 text-beedero-white">
                 <p className="text-sm text-beedero-white/60">Today&apos;s focus</p>
                 <h2 className="mt-3 text-4xl font-black uppercase leading-none tracking-[-0.06em]">
-                  Follow teams. Unlock proof. Hire earlier.
+                  Follow teams. Unlock proof. Move faster.
                 </h2>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3">
@@ -153,7 +149,7 @@ export default function Home() {
                 Who it is for
               </p>
               <h2 className="mt-4 text-5xl font-black uppercase leading-[0.9] tracking-[-0.07em] sm:text-7xl">
-                One network, five entry points.
+                One network, four entry points.
               </h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

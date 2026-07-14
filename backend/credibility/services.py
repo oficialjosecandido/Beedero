@@ -117,6 +117,11 @@ def approve_verification(verification: Verification, reviewer) -> Verification:
     admin action on an already-decided row is harmless."""
     if verification.status != Verification.Status.PENDING:
         return verification
+
+    from .levels import credibility_level
+
+    level_before = credibility_level(verification.org)
+
     verification.status = Verification.Status.VERIFIED
     verification.reviewed_by = reviewer
     verification.reviewed_at = timezone.now()
@@ -129,6 +134,13 @@ def approve_verification(verification: Verification, reviewer) -> Verification:
     notify_org_owners(
         verification.org, f"Your '{verification.get_type_display()}' verification was approved."
     )
+    from notifications.milestones import check_credibility_level_milestone
+    from notifications.services import notify_verification_update
+
+    notify_verification_update(
+        verification.org, f"Your '{verification.get_type_display()}' verification was approved."
+    )
+    check_credibility_level_milestone(verification.org, level_before, credibility_level(verification.org))
     return verification
 
 
@@ -141,6 +153,12 @@ def reject_verification(verification: Verification, reviewer, reason: str) -> Ve
     verification.rejection_reason = reason
     verification.save()
     notify_org_owners(
+        verification.org,
+        f"Your '{verification.get_type_display()}' verification was rejected: {reason}",
+    )
+    from notifications.services import notify_verification_update
+
+    notify_verification_update(
         verification.org,
         f"Your '{verification.get_type_display()}' verification was rejected: {reason}",
     )

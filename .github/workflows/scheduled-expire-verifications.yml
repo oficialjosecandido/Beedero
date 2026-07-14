@@ -1,0 +1,19 @@
+name: Daily expire verifications
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run expire_verifications
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: expire_verifications"

@@ -88,10 +88,13 @@ const POST_REQUIRED_PROFILE_KINDS = ["about", "team"];
 
 export default async function DashboardOrgPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ suggested_title?: string; suggested_body?: string }>;
 }) {
   const { slug } = await params;
+  const { suggested_title: suggestedTitle, suggested_body: suggestedBody } = await searchParams;
 
   let profile: OrgSummary;
   let sections: Section[];
@@ -186,6 +189,8 @@ export default async function DashboardOrgPage({
           onboarding={onboarding}
           isEmailVerified={me.is_email_verified}
           credibility={credibility}
+          suggestedTitle={suggestedTitle}
+          suggestedBody={suggestedBody}
         />
       </div>
     </div>

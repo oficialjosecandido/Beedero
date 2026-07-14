@@ -190,9 +190,11 @@ export function renderLegalMarkdown(source: string): React.ReactNode[] {
 export function LegalDocument({
   title,
   content,
+  draft = false,
 }: {
   title: string;
   content: string;
+  draft?: boolean;
 }) {
   return (
     <main className="min-h-screen bg-beedero-white text-beedero-black">
@@ -210,11 +212,11 @@ export function LegalDocument({
         </div>
       </nav>
       <div className="mx-auto max-w-3xl px-5 pb-24 sm:px-8">
-        <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
-          Draft pending legal review. Placeholders in {"{braces}"} and items marked{" "}
-          <span className="rounded bg-amber-200/70 px-1 font-semibold">[LEGAL REVIEW]</span> are
-          not final.
-        </div>
+        {draft && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+            Draft pending legal review.
+          </div>
+        )}
         <article>{renderLegalMarkdown(content)}</article>
       </div>
       <footer className="border-t border-beedero-black/10 py-8 text-center text-xs font-medium text-beedero-black/50">

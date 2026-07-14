@@ -67,6 +67,9 @@ jobs:
       - name: Create beedero_app DB role
         run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN;"
 
+      - name: Create cache table
+        run: python manage.py createcachetable
+
       - name: Lint
         run: ruff check .
 

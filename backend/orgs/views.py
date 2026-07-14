@@ -319,6 +319,12 @@ class OrgInsightView(OrgLookupMixin, APIView):
             .select_related("viewer__investorprofile")
             .order_by("-viewed_at")
         )
+        week_ago = timezone.now() - timedelta(days=7)
+        week_views = views_qs.filter(viewed_at__gte=week_ago).count()
+        if week_views:
+            from notifications.services import notify_profile_views
+
+            notify_profile_views(org, week_views)
 
         signals_entitled = has_entitlement(org, "interest_signals")
         signals_qs = (
@@ -408,16 +414,31 @@ class OrgActivateView(OrgLookupMixin, APIView):
 
 
 class OrgStatsView(OrgLookupMixin, APIView):
-    """GET /api/orgs/<slug>/stats/ — Overview tab: followers + distinct visitors."""
+    """GET /api/orgs/<slug>/stats/?range=7d|30d — Overview tab: followers +
+    distinct visitors, plus delta cards (doc §3) backed by the nightly
+    `DailyOrgStats` snapshot. No sparklines, no auto-insight — just two
+    summed totals for the selected window."""
 
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 
     def get(self, request, slug):
+        from django.db.models import Sum
+
+        from analytics.models import DailyOrgStats
+
         org = self.get_org()
+        days = 30 if request.query_params.get("range") == "30d" else 7
+        since = timezone.localdate() - timedelta(days=days)
+        window = DailyOrgStats.objects.filter(org=org, date__gte=since).aggregate(
+            new_followers=Sum("new_followers_count"), profile_views=Sum("profile_views_count")
+        )
         return Response(
             {
                 "followers_count": OrgFollow.objects.filter(org=org).count(),
                 "visitors_count": OrgVisit.objects.filter(org=org).count(),
+                "range_days": days,
+                "new_followers": window["new_followers"] or 0,
+                "profile_views": window["profile_views"] or 0,
             }
         )
 
@@ -737,6 +758,10 @@ class RoundCloseView(OrgLookupMixin, APIView):
         OrgSection.objects.filter(org=org, kind__in=FUNDRAISE_KINDS).update(
             archived_at=timezone.now()
         )
+
+        from notifications.milestones import check_round_closed_milestone
+
+        check_round_closed_milestone(org, round_)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -765,6 +790,10 @@ class FeedPostView(OrgLookupMixin, APIView):
         serializer = FeedPostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         activity = serializer.create(org)
+
+        from notifications.milestones import check_first_post_milestone
+
+        check_first_post_milestone(org)
         return Response(_activity_summary(activity), status=status.HTTP_201_CREATED)
 
 
@@ -904,6 +933,12 @@ class FollowOrgView(APIView):
         _, created = OrgFollow.objects.get_or_create(user=request.user, org=org)
         if created and hasattr(request.user, "investorprofile"):
             InterestSignal.objects.create(org=org, investor=request.user, kind=InterestSignal.Kind.FOLLOWED)
+        if created:
+            from notifications.milestones import check_follower_milestone
+            from notifications.services import notify_org_followed
+
+            notify_org_followed(org, request.user)
+            check_follower_milestone(org)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

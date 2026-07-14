@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { NotificationBell } from "@/components/NotificationBell";
 import { logoutAction } from "@/lib/auth-actions";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="hidden items-center gap-2 md:flex">
+            <NotificationBell />
             <Link
               href="/feed"
               className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"

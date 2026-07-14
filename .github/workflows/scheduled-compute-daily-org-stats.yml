@@ -1,0 +1,19 @@
+name: Nightly compute daily org stats
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run compute_daily_org_stats
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: compute_daily_org_stats"

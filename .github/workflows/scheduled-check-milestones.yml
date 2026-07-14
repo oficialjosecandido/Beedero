@@ -1,0 +1,19 @@
+name: Daily check milestones
+
+on:
+  schedule:
+    - cron: "15 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run check_milestones
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: check_milestones"

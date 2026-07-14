@@ -31,14 +31,16 @@ class AzureCommunicationEmailBackend(BaseEmailBackend):
         sent = 0
         for message in email_messages:
             try:
+                content = {"subject": message.subject, "plainText": message.body}
+                for alt_body, alt_type in getattr(message, "alternatives", []):
+                    if alt_type == "text/html":
+                        content["html"] = alt_body
+                        break
                 poller = self._client.begin_send(
                     {
                         "senderAddress": message.from_email,
                         "recipients": {"to": [{"address": addr} for addr in message.to]},
-                        "content": {
-                            "subject": message.subject,
-                            "plainText": message.body,
-                        },
+                        "content": content,
                     }
                 )
                 poller.result()
