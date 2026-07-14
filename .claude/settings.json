@@ -192,7 +192,8 @@
       "Bash(find /Users/josecandido/Documents/Beedero -type d -name \"workflows\")",
       "Bash(cat -n beedero/pagination.py)",
       "Bash(cat -n beedero/ratelimit.py)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }
