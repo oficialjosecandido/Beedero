@@ -214,7 +214,13 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {
+    # Entra listed first for coexistence during the migration (see
+    # docs/entra-migration.md §2/§4): EntraJWTAuthentication returns None
+    # (never raises) when Entra isn't configured for this environment or the
+    # bearer token isn't one of its own, so DRF falls through to SimpleJWT
+    # unchanged. Rollback during Fase A/B is a config flip, not a code revert.
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "accounts.entra_auth.EntraJWTAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
@@ -228,6 +234,33 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
+
+# --- Microsoft Entra External ID (CIAM) ------------------------------------
+# Deliberately NOT validated with ImproperlyConfigured like the settings
+# above: the Entra tenant may not exist yet in a given environment (it
+# doesn't, as of this writing, in any of ours). EntraJWTAuthentication and
+# get_or_provision_user must degrade to "Entra login unavailable" rather than
+# crash the whole app when these are unset.
+ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "")
+ENTRA_TENANT_SUBDOMAIN = os.environ.get("ENTRA_TENANT_SUBDOMAIN", "")
+ENTRA_CUSTOM_DOMAIN = os.environ.get("ENTRA_CUSTOM_DOMAIN", "")  # e.g. auth.beedero.com
+ENTRA_API_CLIENT_ID = os.environ.get("ENTRA_API_CLIENT_ID", "")  # audience of the beedero-api app registration
+
+_entra_authority = (
+    f"https://{ENTRA_CUSTOM_DOMAIN}"
+    if ENTRA_CUSTOM_DOMAIN
+    else f"https://{ENTRA_TENANT_SUBDOMAIN}.ciamlogin.com"
+    if ENTRA_TENANT_SUBDOMAIN
+    else ""
+)
+ENTRA_ISSUER = f"{_entra_authority}/{ENTRA_TENANT_ID}/v2.0" if _entra_authority and ENTRA_TENANT_ID else ""
+# JWKS always resolves against the tenant subdomain (not the custom domain),
+# per Entra External ID's discovery document layout.
+ENTRA_JWKS_URL = (
+    f"https://{ENTRA_TENANT_SUBDOMAIN}.ciamlogin.com/{ENTRA_TENANT_ID}/discovery/v2.0/keys"
+    if ENTRA_TENANT_SUBDOMAIN and ENTRA_TENANT_ID
+    else ""
+)
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000"

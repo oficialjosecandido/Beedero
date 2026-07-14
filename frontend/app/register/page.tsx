@@ -1,8 +1,5 @@
 import Link from "next/link";
 
-import { AuthForm } from "@/components/AuthForm";
-import { registerAction } from "@/lib/auth-actions";
-
 export default function RegisterPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-beedero-white px-6 py-12 text-beedero-black">
@@ -15,16 +12,15 @@ export default function RegisterPage() {
             Create account
           </h1>
         </div>
-        <AuthForm
-          action={registerAction}
-          submitLabel="Create account"
-          pendingLabel="Creating account..."
-          fields={[
-            { name: "email", label: "Email", type: "email" },
-            { name: "password", label: "Password", type: "password" },
-            { name: "confirm_password", label: "Confirm password", type: "password" },
-          ]}
-        />
+        {/* New signups always go through Entra (Fase A of the auth migration —
+            see docs/entra-migration.md §4). prompt=create skips straight to
+            Entra's sign-up screen instead of its login screen. */}
+        <a
+          href="/api/auth/login?screen=signup"
+          className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"
+        >
+          Create account with Beedero ID
+        </a>
         <p className="text-center text-sm text-zinc-600">
           Already have an account?{" "}
           <Link

@@ -7,6 +7,7 @@ import type { NextRequest } from "next/server";
 
 const ACCESS_COOKIE = "beedero_access";
 const REFRESH_COOKIE = "beedero_refresh";
+const PROVIDER_COOKIE = "beedero_auth_provider";
 
 const cookieOptions = {
   httpOnly: true,
@@ -19,10 +20,73 @@ function backendUrl() {
   return (process.env.BACKEND_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
 }
 
+// Mirrors lib/entra.ts's getEntraConfig(), duplicated rather than imported:
+// proxy.ts is edge middleware and intentionally self-contained (it already
+// doesn't import backendUrl()-style helpers from lib/), and lib/entra.ts
+// uses node:crypto, which isn't guaranteed available in the edge runtime.
+function entraTokenUrl(): string | null {
+  const tenantId = process.env.ENTRA_TENANT_ID;
+  const subdomain = process.env.ENTRA_TENANT_SUBDOMAIN;
+  const customDomain = process.env.ENTRA_CUSTOM_DOMAIN;
+  if (!tenantId || !(subdomain || customDomain)) return null;
+  const authority = customDomain ? `https://${customDomain}` : `https://${subdomain}.ciamlogin.com`;
+  return `${authority}/${tenantId}/oauth2/v2.0/token`;
+}
+
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
+}
+
+async function refreshEntraSession(refresh: string) {
+  const tokenUrl = entraTokenUrl();
+  const clientId = process.env.ENTRA_WEB_CLIENT_ID;
+  const clientSecret = process.env.ENTRA_WEB_CLIENT_SECRET;
+  const scope = process.env.ENTRA_API_SCOPE;
+  if (!tokenUrl || !clientId || !clientSecret || !scope) return null;
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "refresh_token",
+    refresh_token: refresh,
+    scope: `openid offline_access ${scope}`,
+  });
+
+  const res = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!res.ok) return null;
+
+  const tokens: { access_token: string; refresh_token?: string } = await res.json();
+  const response = NextResponse.next();
+  response.cookies.set(ACCESS_COOKIE, tokens.access_token, { ...cookieOptions, maxAge: 60 * 30 });
+  response.cookies.set(REFRESH_COOKIE, tokens.refresh_token ?? refresh, {
+    ...cookieOptions,
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  response.cookies.set(PROVIDER_COOKIE, "entra", { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+  return response;
+}
+
+async function refreshNativeSession(refresh: string) {
+  const res = await fetch(`${backendUrl()}/auth/token/refresh/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh }),
+  });
+  if (!res.ok) return null;
+
+  const tokens: { access: string; refresh?: string } = await res.json();
+  const response = NextResponse.next();
+  response.cookies.set(ACCESS_COOKIE, tokens.access, { ...cookieOptions, maxAge: 60 * 30 });
+  if (tokens.refresh) {
+    response.cookies.set(REFRESH_COOKIE, tokens.refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+  }
+  return response;
 }
 
 export async function proxy(request: NextRequest) {
@@ -39,25 +103,12 @@ export async function proxy(request: NextRequest) {
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
   if (refresh) {
     try {
-      const res = await fetch(`${backendUrl()}/auth/token/refresh/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-      });
-      if (res.ok) {
-        const tokens: { access: string; refresh?: string } = await res.json();
-        const response = NextResponse.next();
-        response.cookies.set(ACCESS_COOKIE, tokens.access, { ...cookieOptions, maxAge: 60 * 30 });
-        if (tokens.refresh) {
-          response.cookies.set(REFRESH_COOKIE, tokens.refresh, {
-            ...cookieOptions,
-            maxAge: 60 * 60 * 24 * 7,
-          });
-        }
-        return response;
-      }
+      const provider = request.cookies.get(PROVIDER_COOKIE)?.value;
+      const response =
+        provider === "entra" ? await refreshEntraSession(refresh) : await refreshNativeSession(refresh);
+      if (response) return response;
     } catch {
-      // Backend unreachable — fall through to the login redirect below.
+      // Backend/Entra unreachable — fall through to the login redirect below.
     }
   }
 

@@ -5,6 +5,10 @@ from django.db import models
 class User(AbstractUser):
     # investor, founder, talent (future)
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    # Stable Microsoft Entra External ID identifier (the `oid` claim). Never
+    # the email — Entra lets users change that. Null for users who haven't
+    # authenticated via Entra yet (see accounts/provisioning.py).
+    entra_oid = models.UUIDField(null=True, blank=True, unique=True, db_index=True)
 
     @property
     def is_email_verified(self) -> bool:

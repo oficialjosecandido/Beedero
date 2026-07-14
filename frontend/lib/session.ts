@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 
 const ACCESS_COOKIE = "beedero_access";
 const REFRESH_COOKIE = "beedero_refresh";
+const PROVIDER_COOKIE = "beedero_auth_provider";
+
+export type AuthProvider = "native" | "entra";
 
 const cookieOptions = {
   httpOnly: true,
@@ -12,16 +15,23 @@ const cookieOptions = {
   path: "/",
 };
 
-export async function setSession(access: string, refresh: string) {
+export async function setSession(access: string, refresh: string, provider: AuthProvider = "native") {
   const store = await cookies();
   store.set(ACCESS_COOKIE, access, { ...cookieOptions, maxAge: 60 * 30 });
   store.set(REFRESH_COOKIE, refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+  store.set(PROVIDER_COOKIE, provider, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
 }
 
 export async function clearSession() {
   const store = await cookies();
   store.delete(ACCESS_COOKIE);
   store.delete(REFRESH_COOKIE);
+  store.delete(PROVIDER_COOKIE);
+}
+
+export async function getAuthProvider(): Promise<AuthProvider> {
+  const store = await cookies();
+  return (store.get(PROVIDER_COOKIE)?.value as AuthProvider | undefined) ?? "native";
 }
 
 export async function getAccessToken(): Promise<string | undefined> {

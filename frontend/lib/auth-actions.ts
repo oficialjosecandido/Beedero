@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { ApiError, ApiTimeoutError, anonFetch, apiFetch } from "./api";
-import { clearSession, getRefreshToken, setSession } from "./session";
+import { endSessionUrl, getEntraConfig } from "./entra";
+import { clearSession, getAuthProvider, getRefreshToken, setSession } from "./session";
 
 export async function loginAction(_prevState: string | null, formData: FormData) {
   const email = String(formData.get("email") ?? "");
@@ -94,6 +95,20 @@ export async function resetPasswordAction(_prevState: string | null, formData: F
 }
 
 export async function logoutAction() {
+  const provider = await getAuthProvider();
+
+  if (provider === "entra") {
+    await clearSession();
+    const config = getEntraConfig();
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+    if (config && siteUrl) {
+      const url = new URL(endSessionUrl(config));
+      url.searchParams.set("post_logout_redirect_uri", `${siteUrl}/login`);
+      redirect(url.toString());
+    }
+    redirect("/login");
+  }
+
   const refresh = await getRefreshToken();
   if (refresh) {
     try {
