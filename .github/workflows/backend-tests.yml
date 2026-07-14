@@ -39,6 +39,8 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/beedero_test
       DJANGO_SECRET_KEY: ci-test-secret-key
+      DJANGO_DEBUG: "true"
+      FRONTEND_URL: http://localhost:3000
       # Not real credentials — settings.py requires these to be present (no
       # SMTP/local-disk fallback), but no test exercises Azure over the wire.
       AZURE_ACCOUNT_NAME: citest

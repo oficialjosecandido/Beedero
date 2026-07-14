@@ -31,6 +31,8 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/beedero_test
       DJANGO_SECRET_KEY: ci-test-secret-key
+      DJANGO_DEBUG: "true"
+      FRONTEND_URL: http://localhost:3000
       AZURE_ACCOUNT_NAME: citest
       AZURE_ACCOUNT_KEY: ci-test-key
       AZURE_COMMUNICATION_CONNECTION_STRING: endpoint=https://ci-test.communication.azure.com/;accesskey=ci-test-key

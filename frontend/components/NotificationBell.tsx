@@ -48,9 +48,26 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
-    loadNotifications();
-    const timer = window.setInterval(loadNotifications, 60_000);
-    return () => window.clearInterval(timer);
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch("/api/notifications", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { unread_count: number; items: NotificationItem[] };
+        setUnread(data.unread_count);
+        setItems(data.items);
+      } catch {
+        // ignore polling errors
+      }
+    }
+
+    void load();
+    const timer = window.setInterval(() => void load(), 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   async function markAllRead() {

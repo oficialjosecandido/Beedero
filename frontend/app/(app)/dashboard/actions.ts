@@ -49,7 +49,7 @@ export async function activateOrgAction(_prevState: string | null, formData: For
   return null;
 }
 
-export async function resendVerificationEmailAction(_prevState: string | null, _formData: FormData) {
+export async function resendVerificationEmailAction() {
   try {
     await apiFetch("/auth/verify-email/resend/", { method: "POST" });
   } catch (err) {
