@@ -1,5 +1,18 @@
+import os
+
 import psycopg
 import pytest
+
+BEEDERO_APP_DB_PASSWORD = os.environ.get("BEEDERO_APP_DB_PASSWORD", "")
+
+
+@pytest.fixture(autouse=True)
+def _in_memory_file_storage(settings):
+    """Avoid real Azure Blob uploads during tests — CI uses placeholder credentials."""
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    }
 
 
 @pytest.fixture(scope="session")
@@ -55,7 +68,7 @@ def db_app_role_connection(transactional_db, _grant_app_role_on_test_db):
         host=settings_dict["HOST"] or "localhost",
         port=settings_dict["PORT"] or 5432,
         user="beedero_app",
-        password="",
+        password=BEEDERO_APP_DB_PASSWORD or None,
         autocommit=True,
     )
     try:

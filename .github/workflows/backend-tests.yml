@@ -46,7 +46,7 @@ jobs:
       AZURE_ACCOUNT_NAME: citest
       AZURE_ACCOUNT_KEY: ci-test-key
       AZURE_COMMUNICATION_CONNECTION_STRING: endpoint=https://ci-test.communication.azure.com/;accesskey=ci-test-key
-      DEFAULT_FROM_EMAIL: DoNotReply@ci-test.azurecomm.net
+      BEEDERO_APP_DB_PASSWORD: test
 
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
       # the `db_app_role_connection` fixture (P0.4's RLS proof test) fails
       # with "role beedero_app does not exist".
       - name: Create beedero_app DB role
-        run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN;"
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN PASSWORD 'test';"
 
       - name: Create cache table
         run: python manage.py createcachetable
