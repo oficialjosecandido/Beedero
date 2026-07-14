@@ -36,6 +36,7 @@ jobs:
       AZURE_ACCOUNT_NAME: citest
       AZURE_ACCOUNT_KEY: ci-test-key
       AZURE_COMMUNICATION_CONNECTION_STRING: endpoint=https://ci-test.communication.azure.com/;accesskey=ci-test-key
+      DEFAULT_FROM_EMAIL: DoNotReply@ci-test.azurecomm.net
       BEEDERO_APP_DB_PASSWORD: test
     steps:
       - uses: actions/checkout@v4
