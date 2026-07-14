@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 
 import { getEntraConfig, tokenUrl } from "@/lib/entra";
 import { setSession } from "@/lib/session";
+import { SITE_URL } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const OAUTH_COOKIE_NAMES = [
 export async function GET(request: NextRequest) {
   const config = getEntraConfig();
   if (!config) {
-    return NextResponse.redirect(new URL("/login?error=entra_not_configured", request.url));
+    return NextResponse.redirect(new URL("/login?error=entra_not_configured", SITE_URL));
   }
 
   const params = request.nextUrl.searchParams;
@@ -32,10 +33,10 @@ export async function GET(request: NextRequest) {
   for (const name of OAUTH_COOKIE_NAMES) store.delete(name);
 
   if (providerError) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(providerError)}`, request.url));
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(providerError)}`, SITE_URL));
   }
   if (!code || !state || !verifier || state !== expectedState) {
-    return NextResponse.redirect(new URL("/login?error=entra_invalid_state", request.url));
+    return NextResponse.redirect(new URL("/login?error=entra_invalid_state", SITE_URL));
   }
 
   const body = new URLSearchParams({
@@ -56,13 +57,13 @@ export async function GET(request: NextRequest) {
       body,
     });
     if (!res.ok) {
-      return NextResponse.redirect(new URL("/login?error=entra_token_exchange_failed", request.url));
+      return NextResponse.redirect(new URL("/login?error=entra_token_exchange_failed", SITE_URL));
     }
     tokens = await res.json();
   } catch {
-    return NextResponse.redirect(new URL("/login?error=entra_unreachable", request.url));
+    return NextResponse.redirect(new URL("/login?error=entra_unreachable", SITE_URL));
   }
 
   await setSession(tokens.access_token, tokens.refresh_token ?? "");
-  return NextResponse.redirect(new URL(next, request.url));
+  return NextResponse.redirect(new URL(next, SITE_URL));
 }

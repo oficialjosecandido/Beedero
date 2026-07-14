@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { authorizeUrl, generatePkce, getEntraConfig, randomToken } from "@/lib/entra";
+import { SITE_URL } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const OAUTH_COOKIE_OPTS = {
 export async function GET(request: NextRequest) {
   const config = getEntraConfig();
   if (!config) {
-    return NextResponse.redirect(new URL("/login?error=entra_not_configured", request.url));
+    return NextResponse.redirect(new URL("/login?error=entra_not_configured", SITE_URL));
   }
 
   const next = request.nextUrl.searchParams.get("next") || "/feed";

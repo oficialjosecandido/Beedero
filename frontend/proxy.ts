@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { SITE_URL } from "@/lib/site-metadata";
+
 // Renamed from middleware.ts (Next.js 16, see AGENTS.md). Only guards
 // presence of the session cookie — actual authorization is always
 // re-checked server-side by the Django API on every request.
@@ -29,7 +31,7 @@ function entraTokenUrl(): string | null {
 }
 
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/login", SITE_URL);
   loginUrl.searchParams.set("next", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
 }
