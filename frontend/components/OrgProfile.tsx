@@ -30,7 +30,7 @@ function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
   if (value && typeof value === "object" && "name" in (value as Record<string, unknown>)) {
     const member = value as { name?: string; role?: string; linkedin?: string; joined_at?: string };
     return (
-      <div className="rounded-xl border border-beedero-black/10 p-3">
+      <div className="rounded-xl border border-beedero-border p-3">
         <p className="font-medium">{member.name}</p>
         <p className="text-sm text-zinc-600">
           {member.role}
@@ -73,7 +73,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
         <div className="flex items-center gap-3">
           {data.org.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.org.logo} alt="" className="size-12 rounded-xl border border-zinc-200 object-cover" />
+            <img src={data.org.logo} alt="" className="size-12 rounded-xl border border-beedero-border object-cover" />
           ) : (
             <span className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-lg font-semibold text-zinc-500">
               {data.org.name.charAt(0).toUpperCase()}
@@ -100,7 +100,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
       )}
 
       {sectionEntries.map(([kind, fields]) => (
-        <section key={kind} className="flex flex-col gap-3 border-t border-beedero-black/10 pt-4">
+        <section key={kind} className="flex flex-col gap-3 border-t border-beedero-border pt-4">
           <h2 className="text-lg font-medium">{SECTION_LABELS[kind] ?? kind}</h2>
           <div className="flex flex-col gap-3">
             {Object.entries(fields).map(([key, value]) => (

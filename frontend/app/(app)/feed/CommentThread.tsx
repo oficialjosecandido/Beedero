@@ -91,7 +91,7 @@ export function CommentThread({
   }
 
   return (
-    <div className="mt-3 border-t border-beedero-black/10 pt-3">
+    <div className="mt-3 border-t border-beedero-border pt-3">
       {comments.length > 0 && (
         <ul className="grid gap-2">
           {comments.map((c) => (
@@ -152,7 +152,7 @@ export function CommentThread({
             rows={2}
             maxLength={2000}
             placeholder="Write a comment…"
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="w-full rounded-xl border border-beedero-border px-3 py-2 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </div>
         <button

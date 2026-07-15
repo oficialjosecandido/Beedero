@@ -167,7 +167,7 @@ export default function Home() {
               {audiences.map((audience) => (
                 <article
                   key={audience.title}
-                  className="rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/20 p-6"
+                  className="rounded-[1.5rem] border border-beedero-border bg-beedero-yellow/20 p-6"
                 >
                   <h3 className="text-2xl font-black uppercase tracking-[-0.06em]">
                     {audience.title}

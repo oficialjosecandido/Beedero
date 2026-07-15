@@ -117,7 +117,7 @@ export default function PricingPage() {
             Plans
           </p>
           <div className="mt-8 grid gap-6 lg:grid-cols-3 lg:items-stretch">
-            <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/20 p-8">
+            <article className="flex flex-col rounded-[1.5rem] border border-beedero-border bg-beedero-yellow/20 p-8">
               <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Free</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-black/60">
                 For every startup. Forever.
@@ -144,7 +144,7 @@ export default function PricingPage() {
               </Link>
             </article>
 
-            <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-black p-8 text-beedero-white">
+            <article className="flex flex-col rounded-[1.5rem] border border-beedero-border bg-beedero-black p-8 text-beedero-white">
               <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Founder Pro</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-yellow">
                 For when you are fundraising and want to know who is paying attention.
@@ -177,7 +177,7 @@ export default function PricingPage() {
               </p>
             </article>
 
-            <article className="flex flex-col rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/20 p-8">
+            <article className="flex flex-col rounded-[1.5rem] border border-beedero-border bg-beedero-yellow/20 p-8">
               <h2 className="text-3xl font-black uppercase tracking-[-0.05em]">Investors</h2>
               <p className="mt-1 text-sm font-bold uppercase tracking-[-0.02em] text-beedero-black/60">
                 Free.
@@ -221,7 +221,7 @@ export default function PricingPage() {
             {faqs.map((faq) => (
               <div
                 key={faq.q}
-                className="rounded-[1.5rem] border border-beedero-black/10 bg-beedero-yellow/10 p-6"
+                className="rounded-[1.5rem] border border-beedero-border bg-beedero-yellow/10 p-6"
               >
                 <h3 className="text-lg font-black tracking-[-0.02em]">{faq.q}</h3>
                 <p className="mt-2 text-sm font-medium leading-6 text-beedero-black/70">{faq.a}</p>

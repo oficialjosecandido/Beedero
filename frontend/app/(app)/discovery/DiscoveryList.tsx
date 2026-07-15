@@ -12,7 +12,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
   return (
     <Link
       href={`/org/${org.slug}`}
-      className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-yellow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-border hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-center gap-3">
         {org.logo ? (
@@ -81,7 +81,7 @@ export function DiscoveryList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
+      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
         No results.
       </div>
     );
@@ -97,7 +97,7 @@ export function DiscoveryList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-black/20 bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
           {isPending ? "Loading…" : "Load more"}
         </button>

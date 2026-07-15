@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProfileForm } from "@/components/ProfileForm";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import { ChatPanel } from "../feed/ChatPanel";
 
@@ -36,15 +36,15 @@ export default async function DashboardPage() {
   try {
     const [meRes, orgsRes, contactsRes] = await Promise.all([
       apiFetch("/auth/me/"),
-      apiFetch("/orgs/"),
-      apiFetch("/contacts/") as Promise<MessageContacts>,
+      safeFetch(apiFetch("/orgs/"), [] as Membership[]),
+      safeFetch(apiFetch("/contacts/") as Promise<MessageContacts>, { items: [] }),
     ]);
     me = meRes;
     orgs = orgsRes;
     messageContacts = contactsRes.items;
 
     if (me.investor_profile?.is_complete) {
-      profileStats = (await apiFetch("/investors/me/stats/")) as ProfileStats;
+      profileStats = await safeFetch(apiFetch("/investors/me/stats/") as Promise<ProfileStats>, null);
     }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
@@ -85,22 +85,22 @@ export default async function DashboardPage() {
                 Followers, posts, and engagement on your personal profile.
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+                <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                   <p className="text-2xl font-semibold">{profileStats.followers_count}</p>
                   <p className="text-xs text-zinc-500">Followers</p>
                   <p className="mt-1 text-xs text-zinc-500">
                     +{profileStats.new_followers} in the last {profileStats.range_days} days
                   </p>
                 </div>
-                <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+                <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                   <p className="text-2xl font-semibold">{profileStats.following_count}</p>
                   <p className="text-xs text-zinc-500">Following</p>
                 </div>
-                <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+                <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                   <p className="text-2xl font-semibold">{profileStats.posts_count}</p>
                   <p className="text-xs text-zinc-500">Posts published</p>
                 </div>
-                <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+                <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                   <p className="text-2xl font-semibold">{profileStats.reactions_received}</p>
                   <p className="text-xs text-zinc-500">Reactions received</p>
                 </div>

@@ -140,7 +140,7 @@ export default async function DashboardOrgPage({
   return (
     <div className="flex flex-1 justify-center px-6 py-16">
       <div className="flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex flex-col gap-4 rounded-3xl border border-beedero-black/10 bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 rounded-3xl border border-beedero-border bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <OrgLogoForm slug={slug} logo={profile.org.logo} name={profile.org.name} editable={canManage} />
             <div>

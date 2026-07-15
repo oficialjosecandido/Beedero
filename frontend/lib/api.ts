@@ -168,3 +168,19 @@ export async function apiFetch(
   }
   return parse(res);
 }
+
+/** Every Server Action re-renders the page it was invoked from to build its
+ * response — so a page's own data-fetching crash isn't just a bad initial
+ * load, it takes down every action fired from that page (e.g. a "like"
+ * fails because the chat/contacts fetch hiccuped, not because of the like
+ * itself). Wrap non-essential fetches with this so a transient failure
+ * degrades to `fallback` instead of crashing the whole render. A 401 still
+ * propagates — that's a real "you're logged out," not a transient blip. */
+export async function safeFetch<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) throw err;
+    return fallback;
+  }
+}

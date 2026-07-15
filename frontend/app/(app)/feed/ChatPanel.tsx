@@ -143,10 +143,10 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     activeParticipant?.name ?? activeConversation?.other_participant.name ?? "Conversation";
 
   return (
-    <div className="flex h-[min(560px,70vh)] flex-col rounded-3xl border border-beedero-black/10 bg-beedero-white shadow-sm lg:h-[calc(100vh-8rem)]">
+    <div className="flex h-[min(560px,70vh)] flex-col rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm lg:h-[calc(100vh-8rem)]">
       {activeId == null ? (
         <>
-          <div className="flex items-center justify-between border-b border-beedero-black/10 p-4">
+          <div className="flex items-center justify-between border-b border-beedero-border p-4">
             <p className="text-sm font-bold uppercase tracking-[0.15em] text-beedero-black/60">
               Messages
             </p>
@@ -162,10 +162,10 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
             </button>
           </div>
           {error && (
-            <p className="border-b border-beedero-black/10 px-4 py-2 text-xs text-red-600">{error}</p>
+            <p className="border-b border-beedero-border px-4 py-2 text-xs text-red-600">{error}</p>
           )}
           {showPeople && (
-            <div className="max-h-56 overflow-y-auto border-b border-beedero-black/10 p-2">
+            <div className="max-h-56 overflow-y-auto border-b border-beedero-border p-2">
               {people.length === 0 ? (
                 <p className="px-2 py-3 text-sm text-zinc-500">
                   Follow people from Discover to message them.
@@ -236,7 +236,7 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
         </>
       ) : (
         <>
-          <div className="flex items-center gap-2 border-b border-beedero-black/10 p-4">
+          <div className="flex items-center gap-2 border-b border-beedero-border p-4">
             <button
               type="button"
               onClick={backToList}
@@ -269,13 +269,13 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
               event.preventDefault();
               void sendMessage();
             }}
-            className="flex items-center gap-2 border-t border-beedero-black/10 p-3"
+            className="flex items-center gap-2 border-t border-beedero-border p-3"
           >
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Write a message…"
-              className="flex-1 rounded-xl border border-beedero-black/15 px-3 py-2 text-sm outline-none focus:border-beedero-black"
+              className="flex-1 rounded-xl border border-beedero-border px-3 py-2 text-sm outline-none focus:border-beedero-black"
               maxLength={4000}
             />
             <button

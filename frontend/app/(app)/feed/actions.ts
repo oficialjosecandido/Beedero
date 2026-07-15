@@ -3,13 +3,19 @@
 import { ApiError, apiFetch } from "@/lib/api";
 import type { Comment, ConversationSummary, FeedItem, MessageItem } from "./types";
 
+// Must never throw: these actions are invoked directly (not via a form bound
+// to an error boundary), so a rethrow here escapes as an uncaught Server
+// Action failure — a transient timeout would crash the caller instead of
+// surfacing as a normal error result.
 function actionErrorMessage(err: unknown, fallback: string): string {
-  if (!(err instanceof ApiError)) throw err;
-  const body = err.body as Record<string, string[] | string> | null;
-  const detail = body?.detail;
-  const first = Array.isArray(detail) ? detail[0] : detail ?? (body && Object.values(body)[0]);
-  const value = Array.isArray(first) ? first[0] : first;
-  return typeof value === "string" ? value : fallback;
+  if (err instanceof ApiError) {
+    const body = err.body as Record<string, string[] | string> | null;
+    const detail = body?.detail;
+    const first = Array.isArray(detail) ? detail[0] : (detail ?? (body && Object.values(body)[0]));
+    const value = Array.isArray(first) ? first[0] : first;
+    if (typeof value === "string") return value;
+  }
+  return fallback;
 }
 
 export async function startConversationAction(

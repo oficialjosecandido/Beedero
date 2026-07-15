@@ -31,7 +31,7 @@ export function OrgLogoForm({
 
   if (!editable) {
     return (
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
+      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-beedero-border bg-zinc-50">
         {image}
       </div>
     );
@@ -41,7 +41,7 @@ export function OrgLogoForm({
     <form
       ref={formRef}
       action={formAction}
-      className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
+      className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-beedero-border bg-zinc-50"
     >
       <input type="hidden" name="slug" value={slug} />
       {image}

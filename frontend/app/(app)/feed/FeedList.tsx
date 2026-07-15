@@ -12,7 +12,7 @@ import type { FeedItem } from "./types";
 
 function FeedCard({ item }: { item: FeedItem }) {
   return (
-    <article className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <article className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         {item.type === "org" && item.org ? (
           <Link
@@ -90,7 +90,7 @@ export function FeedList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
+      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
         No updates yet. Share an update above, follow people or organizations from Discover, or
         publish from an organization you manage.
       </div>
@@ -107,7 +107,7 @@ export function FeedList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-black/20 bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
           {isPending ? "Loading…" : "Load more"}
         </button>

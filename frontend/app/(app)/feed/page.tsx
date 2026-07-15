@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import { ChatPanel } from "./ChatPanel";
 import { FeedComposer } from "./FeedComposer";
@@ -35,9 +35,9 @@ export default async function FeedPage() {
     const [feed, meRes, orgsRes, contactsRes, myPosts] = await Promise.all([
       apiFetch("/feed/"),
       apiFetch("/auth/me/"),
-      apiFetch("/orgs/"),
-      apiFetch("/contacts/") as Promise<MessageContacts>,
-      apiFetch("/investors/me/posts/") as Promise<InvestorPost[]>,
+      safeFetch(apiFetch("/orgs/"), [] as Membership[]),
+      safeFetch(apiFetch("/contacts/") as Promise<MessageContacts>, { items: [] }),
+      safeFetch(apiFetch("/investors/me/posts/") as Promise<InvestorPost[]>, []),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;

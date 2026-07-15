@@ -24,7 +24,7 @@ export function AppSidebar({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           {profile?.profile_picture ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -47,7 +47,7 @@ export function AppSidebar({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <p className="text-sm font-bold uppercase tracking-[0.15em] text-beedero-black/60">
           Organizations
         </p>
@@ -77,7 +77,7 @@ export function AppSidebar({
         <CreateOrgButton />
       </div>
 
-      <div className="flex flex-col gap-2 rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         {currentPage === "dashboard" && (
           <Link href="/feed" className="text-sm font-semibold text-beedero-black hover:underline">
             Go to Feed →

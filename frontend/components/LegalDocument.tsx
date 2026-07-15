@@ -43,7 +43,7 @@ function inlineNodes(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(
         <span
           key={key}
-          className="rounded border border-dashed border-beedero-black/30 px-1 text-[0.9em] text-beedero-black/60"
+          className="rounded border border-dashed border-beedero-border px-1 text-[0.9em] text-beedero-black/60"
         >
           {"{" + match[4] + "}"}
         </span>,
@@ -69,7 +69,7 @@ function renderTable(block: string, key: string) {
     <div key={key} className="my-4 overflow-x-auto">
       <table className="w-full min-w-[480px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-beedero-black/20">
+          <tr className="border-b border-beedero-border">
             {headers.map((h, idx) => (
               <th key={idx} className="px-3 py-2 font-black uppercase tracking-[-0.01em]">
                 {inlineNodes(h, `${key}-h-${idx}`)}
@@ -84,7 +84,7 @@ function renderTable(block: string, key: string) {
               .slice(1, -1)
               .map((cell) => cell.trim());
             return (
-              <tr key={rIdx} className="border-b border-beedero-black/10">
+              <tr key={rIdx} className="border-b border-beedero-border">
                 {cells.map((cell, cIdx) => (
                   <td key={cIdx} className="px-3 py-2 align-top text-beedero-black/75">
                     {inlineNodes(cell, `${key}-r${rIdx}-c${cIdx}`)}
@@ -103,7 +103,7 @@ function renderBlock(block: string, key: string): React.ReactNode {
   const trimmed = block.trim();
 
   if (trimmed === "---") {
-    return <hr key={key} className="my-8 border-beedero-black/10" />;
+    return <hr key={key} className="my-8 border-beedero-border" />;
   }
 
   if (trimmed.startsWith("> ")) {
@@ -219,7 +219,7 @@ export function LegalDocument({
         )}
         <article>{renderLegalMarkdown(content)}</article>
       </div>
-      <footer className="border-t border-beedero-black/10 py-8 text-center text-xs font-medium text-beedero-black/50">
+      <footer className="border-t border-beedero-border py-8 text-center text-xs font-medium text-beedero-black/50">
         {title} — Beedero
       </footer>
     </main>

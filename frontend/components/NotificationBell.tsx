@@ -133,7 +133,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-80 rounded-2xl border border-beedero-black/10 bg-beedero-white p-3 shadow-lg">
+        <div className="absolute right-0 z-20 mt-2 w-80 rounded-2xl border-2 border-beedero-border bg-beedero-white p-3 shadow-lg">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-sm font-bold text-beedero-black">Notifications</p>
             <div className="flex items-center gap-2">

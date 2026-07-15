@@ -9,7 +9,7 @@ export const metadata = noIndexMetadata;
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
-      <header className="sticky top-0 z-10 border-b border-beedero-black/10 bg-beedero-white/95 px-4 backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-10 border-b-2 border-beedero-border bg-beedero-white/95 px-4 backdrop-blur sm:px-6">
         <nav className="mx-auto flex max-w-6xl items-center justify-between py-4">
           <Link href="/feed" className="text-lg font-black uppercase tracking-[-0.04em]">
             Beedero
@@ -60,10 +60,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <details className="group relative md:hidden">
-            <summary className="list-none rounded-full border border-beedero-black/20 px-4 py-2 text-sm font-semibold text-beedero-black marker:hidden hover:bg-beedero-yellow">
+            <summary className="list-none rounded-full border border-beedero-border px-4 py-2 text-sm font-semibold text-beedero-black marker:hidden hover:bg-beedero-yellow">
               Menu
             </summary>
-            <div className="absolute right-0 mt-3 flex w-48 flex-col rounded-2xl border border-beedero-black/10 bg-beedero-white p-2 shadow-lg">
+            <div className="absolute right-0 mt-3 flex w-48 flex-col rounded-2xl border-2 border-beedero-border bg-beedero-white p-2 shadow-lg">
               <div className="px-1 py-1">
                 <NotificationBell />
               </div>

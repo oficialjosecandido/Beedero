@@ -9,7 +9,7 @@ export default async function InvitePage({
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md rounded-3xl border border-beedero-black/10 bg-beedero-white p-8 text-center shadow-sm">
+      <div className="w-full max-w-md rounded-3xl border-2 border-beedero-border bg-beedero-white p-8 text-center shadow-sm">
         <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
           Invite
         </p>

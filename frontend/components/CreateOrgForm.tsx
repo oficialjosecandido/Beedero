@@ -17,7 +17,7 @@ type TeamMember = { name: string; role: string; linkedin: string };
 const TOTAL_STEPS = 5;
 
 const inputClass =
-  "rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
+  "rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
 
 function ProgressMeter({ completeness, checklist }: { completeness: number; checklist: ChecklistItem[] }) {
   const missing = checklist.filter((item) => !item.done);
@@ -143,7 +143,7 @@ export function CreateOrgForm() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4">
       {slug && (
         <>
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
@@ -285,7 +285,7 @@ export function CreateOrgForm() {
               type="button"
               onClick={handleAddMember}
               disabled={pending || !memberDraft.name.trim()}
-              className="rounded-xl border border-beedero-black/15 px-3 py-1.5 text-xs font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
+              className="rounded-xl border border-beedero-border px-3 py-1.5 text-xs font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
             >
               Add member
             </button>

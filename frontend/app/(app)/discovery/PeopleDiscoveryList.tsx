@@ -17,7 +17,7 @@ function PersonCard({ person }: { person: PersonSummary }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-beedero-black/10 bg-beedero-white px-5 py-4 shadow-sm">
+    <div className="flex items-center justify-between rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm">
       <div className="flex items-center gap-3">
         {person.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -46,7 +46,7 @@ function PersonCard({ person }: { person: PersonSummary }) {
             await followUserAction(formData);
           })
         }
-        className="rounded-xl border border-beedero-black/15 px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
+        className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
       >
         {pending ? "Following…" : "Follow"}
       </button>
@@ -84,7 +84,7 @@ export function PeopleDiscoveryList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-beedero-black/20 bg-beedero-white p-8 text-sm text-zinc-500">
+      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
         No people found. Try a different search.
       </div>
     );
@@ -100,7 +100,7 @@ export function PeopleDiscoveryList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-black/20 bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
           {isPending ? "Loading…" : "Load more"}
         </button>

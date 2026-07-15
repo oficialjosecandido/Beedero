@@ -21,7 +21,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
   return (
     <form
       action={formAction}
-      className="grid gap-4 rounded-3xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm"
+      className="grid gap-4 rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm"
     >
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Full name
@@ -29,7 +29,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="full_name"
           required
           defaultValue={profile?.full_name ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -39,7 +39,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           required
           placeholder="Investor, founder, operator..."
           defaultValue={profile?.headline ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -48,7 +48,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="country"
           required
           defaultValue={profile?.country ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         >
           <option value="" disabled>
             Select a country
@@ -66,7 +66,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           name="bio"
           rows={4}
           defaultValue={profile?.bio ?? ""}
-          className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -76,7 +76,7 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
           <img
             src={profile.profile_picture}
             alt=""
-            className="size-16 rounded-full border border-zinc-200 object-cover"
+            className="size-16 rounded-full border border-beedero-border object-cover"
           />
         )}
         <input

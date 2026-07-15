@@ -173,7 +173,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 function SectionCard({ slug, section }: { slug: string; section: Section }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-zinc-900">{SECTION_LABELS[section.kind] ?? section.kind}</h3>
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
@@ -192,18 +192,18 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
               <input
                 name="value"
                 defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
-                className="flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
               <select
                 name="visibility"
                 defaultValue={field.visibility}
-                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               >
                 <option value="public">public</option>
                 <option value="restricted">restricted</option>
                 <option value="private">private</option>
               </select>
-              <button className="rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
+              <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
                 Save
               </button>
             </form>
@@ -220,7 +220,7 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
       </div>
       <form
         action={upsertFieldAction}
-        className="flex items-center gap-2 border-t border-dashed border-zinc-200 pt-3"
+        className="flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
       >
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="kind" value={section.kind} />
@@ -228,15 +228,15 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
           name="key"
           placeholder="new key"
           required
-          className="w-28 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="w-28 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
         <input
           name="value"
           placeholder="value"
           required
-          className="flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
-        <select name="visibility" className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
+        <select name="visibility" className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
           <option value="">(inherits)</option>
           <option value="public">public</option>
           <option value="restricted">restricted</option>
@@ -268,7 +268,7 @@ function CuratedProfileSection({
   optional?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -300,7 +300,7 @@ function CuratedProfileSection({
                   rows={item.rows ?? 3}
                   placeholder={item.placeholder}
                   defaultValue={typeof field?.value === "string" ? field.value : ""}
-                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </label>
               <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
   const members = section?.fields ?? [];
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-zinc-900">Team</h3>
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
@@ -364,7 +364,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
           return (
             <div
               key={member.id}
-              className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-xl border border-beedero-border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
                 <p className="font-semibold text-beedero-black">{value.name || "Unnamed member"}</p>
@@ -397,7 +397,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
       </div>
       <form
         action={createTeamProfileMemberAction}
-        className="grid gap-3 border-t border-dashed border-zinc-200 pt-4 sm:grid-cols-2"
+        className="grid gap-3 border-t border-dashed border-beedero-border pt-4 sm:grid-cols-2"
       >
         <input type="hidden" name="slug" value={slug} />
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -406,7 +406,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
             name="name"
             required
             placeholder="Jane Founder"
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
@@ -415,7 +415,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
             name="role"
             required
             placeholder="CEO"
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700 sm:col-span-2">
@@ -425,7 +425,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
             type="url"
             required
             placeholder="https://linkedin.com/in/..."
-            className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
         </label>
         <p className="text-xs text-zinc-500 sm:col-span-2">
@@ -446,7 +446,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-semibold text-zinc-900">Website &amp; social media</h3>
         <p className="mt-1 text-sm text-zinc-500">
           Shown on your public profile so investors and partners can find you.
@@ -465,9 +465,9 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
                     name="value"
                     placeholder={placeholder}
                     defaultValue={typeof field?.value === "string" ? field.value : ""}
-                    className="flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                    className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                   />
-                  <button className="rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
+                  <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
                     Save
                   </button>
                 </form>
@@ -487,7 +487,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-semibold text-zinc-900">Other links</h3>
         <div className="mt-3 flex flex-col gap-2">
           {customFields.length === 0 && <p className="text-sm text-zinc-400">No custom links yet.</p>}
@@ -501,9 +501,9 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
                 <input
                   name="value"
                   defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
-                  className="flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
-                <button className="rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
+                <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
                   Save
                 </button>
               </form>
@@ -520,7 +520,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
         </div>
         <form
           action={upsertFieldAction}
-          className="mt-3 flex items-center gap-2 border-t border-dashed border-zinc-200 pt-3"
+          className="mt-3 flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
         >
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="kind" value="links" />
@@ -528,9 +528,9 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
             name="key"
             placeholder="label, e.g. crunchbase"
             required
-            className="w-32 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
-          <input name="value" placeholder="url" required className="flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60" />
+          <input name="value" placeholder="url" required className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60" />
           <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
             Add
           </button>
@@ -559,7 +559,7 @@ function OnboardingPanel({
   useActionToast(error, pending, { successMessage: "Organization published!" });
 
   return (
-    <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-zinc-900">Profile strength</h3>
         <span className="text-sm font-medium text-zinc-500">{onboarding.completeness}%</span>
@@ -615,7 +615,7 @@ function OverviewTab({
     <div className="flex flex-col gap-4">
       {onboarding && <OnboardingPanel slug={slug} onboarding={onboarding} />}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
+        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Followers</p>
           <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
           {typeof stats.new_followers === "number" && (
@@ -624,7 +624,7 @@ function OverviewTab({
             </p>
           )}
         </div>
-        <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
+        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
           <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.visitors_count}</p>
           <p className="mt-1 text-xs text-zinc-400">
@@ -666,12 +666,12 @@ function PostComposer({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm"
+      className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm"
     >
       <input type="hidden" name="slug" value={slug} />
       <h3 className="font-semibold text-zinc-900">Share an update</h3>
       {hasPostedToday ? (
-        <div className="rounded-2xl border border-beedero-black/10 bg-zinc-50 p-4">
+        <div className="rounded-2xl border border-beedero-border bg-zinc-50 p-4">
           <p className="text-sm font-semibold text-beedero-black">
             You have already posted today.
           </p>
@@ -684,7 +684,7 @@ function PostComposer({
           Milestones, events, and updates appear in your followers&apos; feed.
         </p>
       ) : (
-        <div className="rounded-2xl border border-beedero-yellow bg-beedero-yellow/25 p-4">
+        <div className="rounded-2xl border border-beedero-border bg-beedero-yellow/25 p-4">
           <p className="text-sm font-bold text-beedero-black">
             Publishing is locked until About and Team have 5 fields filled in.
           </p>
@@ -709,7 +709,7 @@ function PostComposer({
             name="kind"
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           >
             {POST_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -723,7 +723,7 @@ function PostComposer({
           placeholder="Title"
           defaultValue={suggestedTitle}
           required
-          className="min-w-[10rem] flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="min-w-[10rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </div>
       <textarea
@@ -731,7 +731,7 @@ function PostComposer({
         placeholder="Say more..."
         rows={3}
         defaultValue={suggestedBody}
-        className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
       />
       {allowsPhoto ? (
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -760,7 +760,7 @@ function PostComposer({
 function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
   const value = activity.value;
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <article className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           {SECTION_LABELS[activity.kind] ?? activity.kind}
@@ -815,7 +815,7 @@ function ActivityTab({
         suggestedBody={suggestedBody}
       />
       {activities.length === 0 && (
-        <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
+        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
       )}
       {activities.map((activity) => (
         <PostCard key={activity.id} slug={slug} activity={activity} />
@@ -826,7 +826,7 @@ function ActivityTab({
 
 function TeamSection({ slug, members, canManage }: { slug: string; members: Member[]; canManage: boolean }) {
   return (
-    <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <h3 className="font-semibold text-zinc-900">Team</h3>
       <div className="mt-3 flex flex-col gap-2">
         {members.map((member) => (
@@ -841,7 +841,7 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
                     name="role"
                     defaultValue={member.role}
                     onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                    className="rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                    className="rounded-lg border border-beedero-border px-2 py-1 text-xs outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r} value={r}>
@@ -870,7 +870,7 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
 
 function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) {
   return (
-    <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <h3 className="font-semibold text-zinc-900">Invite links</h3>
       <p className="mt-1 text-sm text-zinc-500">Share a link to let someone join your team directly.</p>
       <div className="mt-3 flex flex-col gap-2">
@@ -878,7 +878,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
         {invites.map((invite) => (
           <div
             key={invite.id}
-            className="flex flex-col gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-2 rounded-xl border border-beedero-border bg-zinc-50 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
               <p className="truncate font-mono text-xs text-zinc-600">/invite/{invite.token}</p>
@@ -890,7 +890,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${invite.token}`)}
-                className="rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
+                className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
               >
                 Copy link
               </button>
@@ -907,10 +907,10 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
       </div>
       <form
         action={createInviteAction}
-        className="mt-3 flex items-center gap-2 border-t border-dashed border-zinc-200 pt-3"
+        className="mt-3 flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
       >
         <input type="hidden" name="slug" value={slug} />
-        <select name="role" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
+        <select name="role" className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
           {ROLE_OPTIONS.map((r) => (
             <option key={r} value={r}>
               {r}
@@ -942,7 +942,7 @@ function ConfigurationsTab({
     <div className="flex flex-col gap-4">
       <TeamSection slug={slug} members={members} canManage={canManage} />
       {canManage && <InvitesSection slug={slug} invites={invites} />}
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-semibold text-zinc-900">Access</h3>
         <p className="mt-1 text-sm text-zinc-500">
           Grant restricted or private sections to specific people, organizations, or roles.
@@ -988,7 +988,7 @@ function FundraisingTab({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-zinc-900">Fundraising round</h3>
@@ -1005,7 +1005,7 @@ function FundraisingTab({
                   name="raised_amount"
                   type="number"
                   placeholder="Raised amount"
-                  className="w-32 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </label>
               <button className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
@@ -1019,7 +1019,7 @@ function FundraisingTab({
             <input type="hidden" name="slug" value={slug} />
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
               Stage
-              <select name="stage" className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
+              <select name="stage" className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
                 <option value="pre_seed">Pre-seed</option>
                 <option value="seed">Seed</option>
                 <option value="series_a">Series A</option>
@@ -1031,7 +1031,7 @@ function FundraisingTab({
                 name="valuation"
                 type="number"
                 placeholder="Valuation"
-                className="w-32 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -1040,7 +1040,7 @@ function FundraisingTab({
                 name="ask_amount"
                 type="number"
                 placeholder="Ask"
-                className="w-32 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
             </label>
             <button className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
@@ -1050,7 +1050,7 @@ function FundraisingTab({
         )}
       </div>
 
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-semibold text-zinc-900">Round history</h3>
         {roundHistory.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500">No rounds opened yet.</p>
@@ -1058,7 +1058,7 @@ function FundraisingTab({
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
-                <tr className="border-b border-beedero-black/10 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <tr className="border-b border-beedero-border text-xs font-medium uppercase tracking-wide text-zinc-500">
                   <th className="py-2 pr-4">Stage</th>
                   <th className="py-2 pr-4">Opened</th>
                   <th className="py-2 pr-4">Closed</th>
@@ -1068,7 +1068,7 @@ function FundraisingTab({
               </thead>
               <tbody>
                 {roundHistory.map((round) => (
-                  <tr key={round.id} className="border-b border-beedero-black/5 last:border-0">
+                  <tr key={round.id} className="border-b border-beedero-border last:border-0">
                     <td className="py-2 pr-4">
                       {ROUND_STAGE_LABELS[round.stage] ?? round.stage}
                       {round.is_open && (
@@ -1090,7 +1090,7 @@ function FundraisingTab({
       </div>
 
       {fundraiseSections.length === 0 && (
-        <p className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-4 text-sm text-zinc-500">
+        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
           No fundraise sections yet.
         </p>
       )}
@@ -1111,7 +1111,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
   return (
     <form
       action={formAction}
-      className="grid gap-3 rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm sm:grid-cols-2"
+      className="grid gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm sm:grid-cols-2"
     >
       <input type="hidden" name="slug" value={org.slug} />
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
@@ -1121,7 +1121,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           defaultValue={org.one_liner}
           maxLength={140}
           disabled={!canManage}
-          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -1130,7 +1130,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           name="stage"
           defaultValue={org.stage}
           disabled={!canManage}
-          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
           <option value="">—</option>
           {STAGES.map((value) => (
@@ -1146,7 +1146,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           name="sector"
           defaultValue={org.sector}
           disabled={!canManage}
-          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
           <option value="">—</option>
           {SECTORS.map((value) => (
@@ -1162,7 +1162,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           name="geo"
           defaultValue={org.geo}
           disabled={!canManage}
-          className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
           <option value="">—</option>
           {GEOGRAPHIES.map((value) => (
@@ -1176,7 +1176,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
         <div className="flex items-center gap-3 sm:col-span-2">
           <button
             disabled={pending}
-            className="self-start rounded-lg border border-beedero-black/15 px-3 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
+            className="self-start rounded-lg border border-beedero-border px-3 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
           >
             {pending ? "Saving..." : "Save"}
           </button>
@@ -1257,7 +1257,7 @@ function VerificationForm({ slug, type }: { slug: string; type: string }) {
   useActionToast(error, pending, { successMessage: "Submitted for verification." });
 
   return (
-    <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-dashed border-zinc-200 pt-3">
+    <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-dashed border-beedero-border pt-3">
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="type" value={type} />
       <div className="grid gap-2 sm:grid-cols-2">
@@ -1277,7 +1277,7 @@ function VerificationForm({ slug, type }: { slug: string; type: string }) {
                 type={field.type}
                 name={field.name}
                 required={field.required}
-                className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
             )}
           </label>
@@ -1309,7 +1309,7 @@ function VerificationCard({
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <h4 className="font-semibold text-zinc-900">{spec.label}</h4>
         {status ? (
@@ -1334,7 +1334,7 @@ function VerificationCard({
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-3 rounded-lg border border-beedero-black/15 px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
+          className="mt-3 rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
         >
           {status ? "Resubmit" : "Submit for review"}
         </button>
@@ -1359,7 +1359,7 @@ function CredibilityTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm">
+      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-zinc-900">Credibility ladder</h3>
           <CredibilityBadge level={credibility.level} />
@@ -1410,7 +1410,7 @@ function CredibilityTab({
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
           {credibilityLevelHeading(4)}
         </p>
-        <div className="rounded-2xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <h4 className="font-semibold text-zinc-900">Stripe</h4>
             {stripeInfo ? (
@@ -1493,7 +1493,7 @@ export function OrgTabs({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-beedero-black/10 bg-beedero-white p-1.5 shadow-sm">
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
         {TABS.map((tab) => (
           <button
             key={tab.id}

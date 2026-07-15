@@ -20,7 +20,7 @@ export function InvestorPostForm() {
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-3 rounded-3xl border border-beedero-black/10 bg-beedero-white p-6 shadow-sm"
+      className="flex flex-col gap-3 rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm"
     >
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -29,7 +29,7 @@ export function InvestorPostForm() {
             name="kind"
             value={kind}
             onChange={(event) => setKind(event.target.value)}
-            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           >
             {POST_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -42,14 +42,14 @@ export function InvestorPostForm() {
           name="title"
           placeholder="Title"
           required
-          className="min-w-[12rem] flex-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+          className="min-w-[12rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </div>
       <textarea
         name="body"
         placeholder="Say more..."
         rows={3}
-        className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
       />
       {allowsPhoto ? (
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">

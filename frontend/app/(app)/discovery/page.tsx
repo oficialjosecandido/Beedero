@@ -59,7 +59,7 @@ export default async function DiscoveryPage({
         </div>
 
         <form
-          className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-4 shadow-sm sm:p-6"
+          className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:p-6"
           method="get"
         >
           <input type="hidden" name="tab" value={tab} />
@@ -70,7 +70,7 @@ export default async function DiscoveryPage({
                 name="q"
                 defaultValue={params.q ?? ""}
                 placeholder={tab === "people" ? "Search people by name or headline…" : "Search organizations by name…"}
-                className="flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                className="flex-1 rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
               <button
                 type="submit"
@@ -114,7 +114,7 @@ export default async function DiscoveryPage({
         ) : (
           <>
             <form
-              className="grid gap-4 rounded-3xl border border-beedero-black/10 bg-beedero-white p-4 shadow-sm sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_1fr_auto_auto]"
+              className="grid gap-4 rounded-3xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_1fr_auto_auto]"
               method="get"
             >
               <input type="hidden" name="tab" value="organizations" />
@@ -124,7 +124,7 @@ export default async function DiscoveryPage({
                 <select
                   name="stage"
                   defaultValue={params.stage ?? ""}
-                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 >
                   <option value="">Any</option>
                   {STAGE_OPTIONS.map((option) => (
@@ -139,7 +139,7 @@ export default async function DiscoveryPage({
                 <select
                   name="sector"
                   defaultValue={params.sector ?? ""}
-                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 >
                   <option value="">Any</option>
                   {SECTOR_OPTIONS.map((option) => (
@@ -154,7 +154,7 @@ export default async function DiscoveryPage({
                 <select
                   name="geo"
                   defaultValue={params.geo ?? ""}
-                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 >
                   <option value="">Any</option>
                   {GEO_OPTIONS.map((option) => (
@@ -164,7 +164,7 @@ export default async function DiscoveryPage({
                   ))}
                 </select>
               </label>
-              <label className="flex items-center gap-2 self-end rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700">
+              <label className="flex items-center gap-2 self-end rounded-xl border border-beedero-border px-3 py-2 text-sm font-medium text-zinc-700">
                 <input
                   type="checkbox"
                   name="fundraising"
@@ -179,7 +179,7 @@ export default async function DiscoveryPage({
                 <select
                   name="min_credibility"
                   defaultValue={params.min_credibility ?? ""}
-                  className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 >
                   <option value="">Any</option>
                   <option value="1">Level 1+</option>
