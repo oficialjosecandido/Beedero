@@ -90,7 +90,7 @@ export function AppSidebar({
           href="/discovery"
           className="text-sm font-semibold text-beedero-black hover:underline"
         >
-          Discover organizations →
+          Discover →
         </Link>
       </div>
     </div>

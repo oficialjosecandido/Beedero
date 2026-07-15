@@ -24,7 +24,7 @@ from social.services import viewer_reactions_for
 
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import FUNDRAISE_KINDS, SectionKind
-from .discovery import discover
+from .discovery import discover, discover_people
 from .feed import activity_feed_items
 from .models import (
     Activity,
@@ -984,6 +984,47 @@ class DiscoveryView(APIView):
         return Response(
             {
                 "items": [_org_summary(o) for o in page],
+                "next_offset": offset + limit if has_more else None,
+            }
+        )
+
+
+class DiscoverPeopleView(APIView):
+    """GET /api/discovery/people/?q= — search investors by name or headline."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 20
+    MAX_LIMIT = 50
+
+    def get(self, request):
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        try:
+            offset = max(0, int(request.query_params.get("offset", 0)))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid offset."}, status=400)
+
+        qs = discover_people(request.user, request.query_params)
+        page = list(qs[offset : offset + limit + 1])
+        has_more = len(page) > limit
+        page = page[:limit]
+
+        return Response(
+            {
+                "items": [
+                    {
+                        "id": profile.user_id,
+                        "name": profile.full_name,
+                        "headline": profile.headline,
+                        "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
+                    }
+                    for profile in page
+                ],
                 "next_offset": offset + limit if has_more else None,
             }
         )

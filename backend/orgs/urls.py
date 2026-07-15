@@ -30,4 +30,5 @@ urlpatterns = [
     path("feed/", views.FeedView.as_view()),
     path("recommendations/", views.RecommendationView.as_view()),
     path("discovery/", views.DiscoveryView.as_view()),
+    path("discovery/people/", views.DiscoverPeopleView.as_view()),
 ]

@@ -1,7 +1,45 @@
 "use server";
 
-import { apiFetch } from "@/lib/api";
-import type { Comment, FeedItem } from "./types";
+import { ApiError, apiFetch } from "@/lib/api";
+import type { Comment, ConversationSummary, FeedItem, MessageItem } from "./types";
+
+function actionErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) throw err;
+  const body = err.body as Record<string, string[] | string> | null;
+  const detail = body?.detail;
+  const first = Array.isArray(detail) ? detail[0] : detail ?? (body && Object.values(body)[0]);
+  const value = Array.isArray(first) ? first[0] : first;
+  return typeof value === "string" ? value : fallback;
+}
+
+export async function startConversationAction(
+  userId: number
+): Promise<{ conversation: ConversationSummary } | { error: string }> {
+  try {
+    const conversation = (await apiFetch("/conversations/", {
+      method: "POST",
+      body: { user_id: userId },
+    })) as ConversationSummary;
+    return { conversation };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not start the conversation.") };
+  }
+}
+
+export async function sendMessageAction(
+  conversationId: number,
+  body: string
+): Promise<{ message: MessageItem } | { error: string }> {
+  try {
+    const message = (await apiFetch(`/conversations/${conversationId}/messages/`, {
+      method: "POST",
+      body: { body },
+    })) as MessageItem;
+    return { message };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not send your message.") };
+  }
+}
 
 export async function loadMoreFeedAction(cursor: string): Promise<{
   items: FeedItem[];

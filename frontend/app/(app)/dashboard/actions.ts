@@ -81,6 +81,7 @@ export async function followUserAction(formData: FormData) {
   await apiFetch(`/users/${userId}/follow/`, { method: "POST" });
   revalidatePath("/dashboard");
   revalidatePath("/feed");
+  revalidatePath("/discovery");
 }
 
 export async function upsertFieldAction(formData: FormData) {

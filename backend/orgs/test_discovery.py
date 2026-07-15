@@ -65,6 +65,17 @@ def test_discovery_no_more_pages_when_exact_fit(api, viewer):
 
 
 @pytest.mark.django_db
+def test_discover_people_search_by_name(api, viewer):
+    target = User.objects.create_user(username="ada", email="ada@example.com", password="x")
+    InvestorProfile.objects.create(user=target, full_name="Ada Lovelace", headline="Angel investor")
+    api.force_authenticate(viewer)
+    res = api.get("/api/discovery/people/?q=ada")
+    assert res.status_code == 200
+    assert len(res.data["items"]) == 1
+    assert res.data["items"][0]["name"] == "Ada Lovelace"
+
+
+@pytest.mark.django_db
 def test_metric_filter_only_resolves_up_to_candidate_cap(db, viewer):
     orgs = _make_orgs(10, prefix="metric")
     for org in orgs:

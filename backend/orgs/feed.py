@@ -7,7 +7,8 @@ from .models import Activity, OrgMembership, Visibility
 
 
 def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, cursor=None):
-    """Activities from followed orgs and followed people, newest first.
+    """Activities from followed orgs, followed people, and the viewer's own
+    personal posts, newest first.
 
     Visibility is filtered in the same query (mirrors the `activity_visibility`
     RLS policy applied at the DB layer as defense in depth): public activities,
@@ -22,12 +23,18 @@ def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, c
             OrgMembership.objects.filter(user=viewer).values_list("org_id", flat=True)
         )
 
+    viewer_id = viewer.id if viewer is not None and viewer.is_authenticated else None
+
+    visibility_filter = (
+        Q(org_id__in=followed_org_ids)
+        | Q(org_id__in=member_org_ids)
+        | Q(author_id__in=followed_user_ids, org__isnull=True)
+    )
+    if viewer_id is not None:
+        visibility_filter |= Q(author_id=viewer_id, org__isnull=True)
+
     qs = (
-        Activity.objects.filter(
-            Q(org_id__in=followed_org_ids)
-            | Q(org_id__in=member_org_ids)
-            | Q(author_id__in=followed_user_ids, org__isnull=True)
-        )
+        Activity.objects.filter(visibility_filter)
         .filter(Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True) | Q(org_id__in=member_org_ids))
         .select_related("org", "author")
     )

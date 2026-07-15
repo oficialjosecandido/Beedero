@@ -19,7 +19,12 @@ def _display_name(user):
 
 def _profile_picture(user):
     profile = _investor_profile(user)
-    return profile.profile_picture.url if profile and profile.profile_picture else None
+    if not profile or not profile.profile_picture:
+        return None
+    try:
+        return profile.profile_picture.url
+    except Exception:
+        return None
 
 
 class StartConversationSerializer(serializers.Serializer):

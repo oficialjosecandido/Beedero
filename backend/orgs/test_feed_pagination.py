@@ -84,6 +84,25 @@ def test_feed_clamps_limit(api, org, viewer):
 
 
 @pytest.mark.django_db
+def test_feed_includes_viewer_own_personal_posts(api, viewer):
+    Activity.objects.create(
+        author=viewer,
+        org=None,
+        kind="update",
+        title="My update",
+        body="Hello feed",
+        occurred_at=parse_datetime("2026-06-01T00:00:00Z"),
+    )
+
+    api.force_authenticate(viewer)
+    res = api.get("/api/feed/")
+    assert res.status_code == 200
+    assert len(res.data["items"]) == 1
+    assert res.data["items"][0]["type"] == "person"
+    assert res.data["items"][0]["value"]["title"] == "My update"
+
+
+@pytest.mark.django_db
 def test_feed_reports_viewer_own_reaction(api, org, viewer):
     from social.models import Reaction
 

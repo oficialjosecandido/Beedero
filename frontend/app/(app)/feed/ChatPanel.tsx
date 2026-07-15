@@ -1,13 +1,12 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
+import { sendMessageAction, startConversationAction } from "./actions";
 import type { ConversationSummary, MessageItem } from "./types";
 
 type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
-
-const JSON_HEADERS = { "Content-Type": "application/json" };
 
 async function loadConversations(): Promise<ConversationSummary[] | null> {
   try {
@@ -33,16 +32,9 @@ async function loadMessages(conversationId: number): Promise<MessageItem[] | nul
   }
 }
 
-function parseErrorDetail(body: unknown): string | null {
-  if (body && typeof body === "object" && "detail" in body) {
-    const detail = (body as { detail: unknown }).detail;
-    if (typeof detail === "string") return detail;
-  }
-  return null;
-}
-
 export function ChatPanel({ people }: { people: PersonSummary[] }) {
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeId, setActiveId] = useState<number | null>(() => {
     const chatParam = searchParams.get("chat");
@@ -93,26 +85,19 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     const person = people.find((item) => item.id === userId) ?? null;
     setShowPeople(false);
     setError(null);
-    try {
-      const res = await fetch("/api/messaging/conversations", {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ user_id: userId }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as unknown;
-        setError(parseErrorDetail(body) ?? "Could not start the conversation.");
+    startTransition(async () => {
+      const result = await startConversationAction(userId);
+      if ("error" in result) {
+        setError(result.error);
         return;
       }
-      const conversation = (await res.json()) as ConversationSummary;
+      const { conversation } = result;
       setActiveId(conversation.id);
       setActiveParticipant(person ?? conversation.other_participant);
       setMessages([]);
       const items = await loadConversations();
       if (items) setConversations(items);
-    } catch {
-      setError("Could not start the conversation.");
-    }
+    });
   }
 
   async function sendMessage() {
@@ -120,26 +105,18 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     if (!body || activeId == null) return;
     setDraft("");
     setError(null);
-    try {
-      const res = await fetch(`/api/messaging/conversations/${activeId}/messages`, {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ body }),
-      });
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as unknown;
-        setError(parseErrorDetail(payload) ?? "Could not send your message.");
+    startTransition(async () => {
+      const result = await sendMessageAction(activeId as number, body);
+      if ("error" in result) {
+        setError(result.error);
         setDraft(body);
         return;
       }
-      const items = await loadMessages(activeId);
+      const items = await loadMessages(activeId as number);
       if (items) setMessages(items);
       const refreshed = await loadConversations();
       if (refreshed) setConversations(refreshed);
-    } catch {
-      setError("Could not send your message.");
-      setDraft(body);
-    }
+    });
   }
 
   function openConversation(conversation: ConversationSummary) {
@@ -303,10 +280,10 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
             />
             <button
               type="submit"
-              disabled={!draft.trim()}
+              disabled={!draft.trim() || isPending}
               className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
             >
-              Send
+              {isPending ? "Sending…" : "Send"}
             </button>
           </form>
         </>

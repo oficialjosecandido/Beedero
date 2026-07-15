@@ -17,6 +17,8 @@ stage/sector/geo filter combined with a metric filter can't force
 resolving an unbounded number of orgs synchronously.
 """
 
+from django.db.models import Q
+
 from .models import Organization
 from .visibility import VisibilityResolver
 
@@ -37,6 +39,10 @@ def _is_verified_investor(viewer) -> bool:
 
 def discover(viewer, params: dict):
     qs = Organization.objects.filter(status=Organization.Status.LIVE)
+
+    query = (params.get("q") or "").strip()
+    if query:
+        qs = qs.filter(Q(name__icontains=query) | Q(one_liner__icontains=query))
 
     if params.get("stage"):
         qs = qs.filter(stage=params["stage"])
@@ -95,3 +101,17 @@ def discover(viewer, params: dict):
         return candidates
 
     return qs.order_by("name")
+
+
+def discover_people(viewer, params: dict):
+    from accounts.models import InvestorProfile
+
+    qs = InvestorProfile.objects.exclude(full_name="").select_related("user")
+    if viewer is not None and viewer.is_authenticated:
+        qs = qs.exclude(user_id=viewer.id)
+
+    query = (params.get("q") or "").strip()
+    if query:
+        qs = qs.filter(Q(full_name__icontains=query) | Q(headline__icontains=query))
+
+    return qs.order_by("-is_verified", "full_name")
