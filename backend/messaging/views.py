@@ -5,8 +5,10 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.models import InvestorProfile
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
+from orgs.models import UserFollow
 
 from .models import Conversation, Message
 from .serializers import (
@@ -21,6 +23,38 @@ User = get_user_model()
 
 CONVERSATIONS_PER_DAY = 30
 MESSAGES_PER_HOUR = 60
+
+
+class MessageContactsView(APIView):
+    """GET /api/contacts/ — people the viewer follows or who follow them."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        viewer = request.user
+        following_ids = UserFollow.objects.filter(follower=viewer).values_list("followed_id", flat=True)
+        follower_ids = UserFollow.objects.filter(followed=viewer).values_list("follower_id", flat=True)
+        contact_ids = set(following_ids) | set(follower_ids)
+        contact_ids.discard(viewer.id)
+
+        profiles = {
+            profile.user_id: profile
+            for profile in InvestorProfile.objects.filter(user_id__in=contact_ids).select_related("user")
+        }
+        users = User.objects.filter(id__in=contact_ids).order_by("email")
+        items = []
+        for user in users:
+            profile = profiles.get(user.id)
+            items.append(
+                {
+                    "id": user.id,
+                    "name": (profile.full_name if profile and profile.full_name else None) or user.email,
+                    "headline": profile.headline if profile else "",
+                    "profile_picture": profile.profile_picture.url if profile and profile.profile_picture else None,
+                }
+            )
+        items.sort(key=lambda item: item["name"].casefold())
+        return Response({"items": items})
 
 
 class ConversationListCreateView(APIView):
@@ -64,6 +98,11 @@ class ConversationListCreateView(APIView):
             f"start-conversation:{request.user.id}", limit=CONVERSATIONS_PER_DAY, window_seconds=86400
         )
         conversation = get_or_create_conversation(request.user, target)
+        conversation = (
+            Conversation.objects.filter(pk=conversation.pk)
+            .select_related("participant_one__investorprofile", "participant_two__investorprofile")
+            .get()
+        )
         return Response(conversation_summary(conversation, request.user, 0), status=201)
 
 

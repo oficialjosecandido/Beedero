@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from notifications.models import Notification
+from orgs.models import UserFollow
 
 from .models import Conversation, Message
 from .services import get_or_create_conversation
@@ -35,6 +36,18 @@ def bob(db):
 @pytest.fixture
 def carol(db):
     return User.objects.create_user(username="carol", email="carol@example.com", password="x")
+
+
+@pytest.mark.django_db
+def test_message_contacts_lists_following_and_followers(api, alice, bob, carol):
+    api.force_authenticate(alice)
+    UserFollow.objects.create(follower=alice, followed=bob)
+    UserFollow.objects.create(follower=carol, followed=alice)
+
+    res = api.get("/api/contacts/")
+    assert res.status_code == 200
+    ids = {item["id"] for item in res.data["items"]}
+    assert ids == {bob.id, carol.id}
 
 
 @pytest.mark.django_db

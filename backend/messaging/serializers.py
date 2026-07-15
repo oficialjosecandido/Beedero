@@ -1,15 +1,24 @@
 from rest_framework import serializers
 
+from accounts.models import InvestorProfile
+
 from .models import Conversation, Message
 
 
+def _investor_profile(user):
+    try:
+        return user.investorprofile
+    except InvestorProfile.DoesNotExist:
+        return None
+
+
 def _display_name(user):
-    profile = getattr(user, "investorprofile", None)
+    profile = _investor_profile(user)
     return (profile.full_name if profile and profile.full_name else None) or user.email
 
 
 def _profile_picture(user):
-    profile = getattr(user, "investorprofile", None)
+    profile = _investor_profile(user)
     return profile.profile_picture.url if profile and profile.profile_picture else None
 
 

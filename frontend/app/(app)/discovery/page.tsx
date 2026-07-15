@@ -22,7 +22,7 @@ export default async function DiscoveryPage({
       <div className="flex w-full max-w-5xl flex-col gap-8">
         <div className="max-w-2xl">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
-            Discovery
+            Discover
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
             Find startups worth a closer look

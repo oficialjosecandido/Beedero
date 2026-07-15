@@ -1,11 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { ConversationSummary, MessageItem } from "./types";
 
 type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 async function loadConversations(): Promise<ConversationSummary[] | null> {
   try {
@@ -31,14 +33,28 @@ async function loadMessages(conversationId: number): Promise<MessageItem[] | nul
   }
 }
 
+function parseErrorDetail(body: unknown): string | null {
+  if (body && typeof body === "object" && "detail" in body) {
+    const detail = (body as { detail: unknown }).detail;
+    if (typeof detail === "string") return detail;
+  }
+  return null;
+}
+
 export function ChatPanel({ people }: { people: PersonSummary[] }) {
   const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(() => {
+    const chatParam = searchParams.get("chat");
+    if (!chatParam) return null;
+    const id = Number(chatParam);
+    return Number.isFinite(id) ? id : null;
+  });
+  const [activeParticipant, setActiveParticipant] = useState<PersonSummary | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [draft, setDraft] = useState("");
   const [showPeople, setShowPeople] = useState(false);
-  const initializedFromQuery = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,20 +73,7 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
   }, []);
 
   useEffect(() => {
-    if (initializedFromQuery.current) return;
-    const chatParam = searchParams.get("chat");
-    if (chatParam) {
-      const id = Number(chatParam);
-      if (Number.isFinite(id)) setActiveId(id);
-    }
-    initializedFromQuery.current = true;
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (activeId == null) {
-      setMessages([]);
-      return;
-    }
+    if (activeId == null) return;
     let cancelled = false;
 
     async function refreshMessages() {
@@ -87,19 +90,28 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
   }, [activeId]);
 
   async function openConversationWith(userId: number) {
+    const person = people.find((item) => item.id === userId) ?? null;
     setShowPeople(false);
+    setError(null);
     try {
       const res = await fetch("/api/messaging/conversations", {
         method: "POST",
+        headers: JSON_HEADERS,
         body: JSON.stringify({ user_id: userId }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as unknown;
+        setError(parseErrorDetail(body) ?? "Could not start the conversation.");
+        return;
+      }
       const conversation = (await res.json()) as ConversationSummary;
       setActiveId(conversation.id);
+      setActiveParticipant(person ?? conversation.other_participant);
+      setMessages([]);
       const items = await loadConversations();
       if (items) setConversations(items);
     } catch {
-      // ignore
+      setError("Could not start the conversation.");
     }
   }
 
@@ -107,21 +119,51 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     const body = draft.trim();
     if (!body || activeId == null) return;
     setDraft("");
+    setError(null);
     try {
       const res = await fetch(`/api/messaging/conversations/${activeId}/messages`, {
         method: "POST",
+        headers: JSON_HEADERS,
         body: JSON.stringify({ body }),
       });
-      if (res.ok) {
-        const items = await loadMessages(activeId);
-        if (items) setMessages(items);
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as unknown;
+        setError(parseErrorDetail(payload) ?? "Could not send your message.");
+        setDraft(body);
+        return;
       }
+      const items = await loadMessages(activeId);
+      if (items) setMessages(items);
+      const refreshed = await loadConversations();
+      if (refreshed) setConversations(refreshed);
     } catch {
-      // ignore
+      setError("Could not send your message.");
+      setDraft(body);
     }
   }
 
-  const active = conversations.find((c) => c.id === activeId) ?? null;
+  function openConversation(conversation: ConversationSummary) {
+    setError(null);
+    setMessages([]);
+    setActiveId(conversation.id);
+    setActiveParticipant({
+      id: conversation.other_participant.id,
+      name: conversation.other_participant.name,
+      profile_picture: conversation.other_participant.profile_picture,
+    });
+  }
+
+  function backToList() {
+    setError(null);
+    setActiveId(null);
+    setActiveParticipant(null);
+    setMessages([]);
+  }
+
+  const activeConversation =
+    activeId == null ? null : (conversations.find((conversation) => conversation.id === activeId) ?? null);
+  const activeName =
+    activeParticipant?.name ?? activeConversation?.other_participant.name ?? "Conversation";
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col rounded-3xl border border-beedero-black/10 bg-beedero-white shadow-sm">
@@ -133,16 +175,24 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
             </p>
             <button
               type="button"
-              onClick={() => setShowPeople((v) => !v)}
+              onClick={() => {
+                setShowPeople((value) => !value);
+                setError(null);
+              }}
               className="text-xs font-semibold text-beedero-black/60 hover:text-beedero-black"
             >
               New
             </button>
           </div>
+          {error && (
+            <p className="border-b border-beedero-black/10 px-4 py-2 text-xs text-red-600">{error}</p>
+          )}
           {showPeople && (
             <div className="max-h-56 overflow-y-auto border-b border-beedero-black/10 p-2">
               {people.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-zinc-500">No suggestions yet.</p>
+                <p className="px-2 py-3 text-sm text-zinc-500">
+                  Follow people from Discover to message them.
+                </p>
               ) : (
                 people.map((person) => (
                   <button
@@ -173,31 +223,33 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
             {conversations.length === 0 ? (
               <p className="px-2 py-4 text-sm text-zinc-500">No conversations yet.</p>
             ) : (
-              conversations.map((c) => (
+              conversations.map((conversation) => (
                 <button
-                  key={c.id}
+                  key={conversation.id}
                   type="button"
-                  onClick={() => setActiveId(c.id)}
+                  onClick={() => openConversation(conversation)}
                   className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm hover:bg-beedero-yellow/20"
                 >
-                  {c.other_participant.profile_picture ? (
+                  {conversation.other_participant.profile_picture ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={c.other_participant.profile_picture}
+                      src={conversation.other_participant.profile_picture}
                       alt=""
                       className="size-8 rounded-full object-cover"
                     />
                   ) : (
                     <span className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-500">
-                      {c.other_participant.name.charAt(0).toUpperCase()}
+                      {conversation.other_participant.name.charAt(0).toUpperCase()}
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{c.other_participant.name}</span>
+                    <span className="block truncate font-medium">
+                      {conversation.other_participant.name}
+                    </span>
                   </span>
-                  {c.unread_count > 0 && (
+                  {conversation.unread_count > 0 && (
                     <span className="flex size-5 items-center justify-center rounded-full bg-beedero-black text-[10px] font-bold text-beedero-yellow">
-                      {c.unread_count > 9 ? "9+" : c.unread_count}
+                      {conversation.unread_count > 9 ? "9+" : conversation.unread_count}
                     </span>
                   )}
                 </button>
@@ -210,49 +262,49 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
           <div className="flex items-center gap-2 border-b border-beedero-black/10 p-4">
             <button
               type="button"
-              onClick={() => setActiveId(null)}
+              onClick={backToList}
               className="text-sm font-semibold text-beedero-black/60 hover:text-beedero-black"
               aria-label="Back to conversations"
             >
               ←
             </button>
-            <p className="truncate font-semibold">
-              {active?.other_participant.name ?? "Conversation"}
-            </p>
+            <p className="truncate font-semibold">{activeName}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             <div className="flex flex-col gap-2">
-              {messages.map((m) => (
+              {messages.map((message) => (
                 <div
-                  key={m.id}
+                  key={message.id}
                   className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                    m.is_mine
+                    message.is_mine
                       ? "self-end bg-beedero-yellow text-beedero-black"
                       : "self-start bg-zinc-100 text-beedero-black"
                   }`}
                 >
-                  {m.body}
+                  {message.body}
                 </div>
               ))}
             </div>
           </div>
+          {error && <p className="px-3 pb-1 text-xs text-red-600">{error}</p>}
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
+            onSubmit={(event) => {
+              event.preventDefault();
               void sendMessage();
             }}
             className="flex items-center gap-2 border-t border-beedero-black/10 p-3"
           >
             <input
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(event) => setDraft(event.target.value)}
               placeholder="Write a message…"
               className="flex-1 rounded-xl border border-beedero-black/15 px-3 py-2 text-sm outline-none focus:border-beedero-black"
               maxLength={4000}
             />
             <button
               type="submit"
-              className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+              disabled={!draft.trim()}
+              className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
             >
               Send
             </button>

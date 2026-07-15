@@ -11,7 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
       <header className="sticky top-0 z-10 border-b border-beedero-black/10 bg-beedero-white/95 px-4 backdrop-blur sm:px-6">
         <nav className="mx-auto flex max-w-6xl items-center justify-between py-4">
-          <Link href="/dashboard" className="text-lg font-black uppercase tracking-[-0.04em]">
+          <Link href="/feed" className="text-lg font-black uppercase tracking-[-0.04em]">
             Beedero
           </Link>
 
@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               href="/discovery"
               className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
             >
-              Discovery
+              Discover
             </Link>
             <Link
               href="/dashboard"
@@ -38,9 +38,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-black hover:text-beedero-white"
+                className="rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-black hover:text-beedero-white"
+                aria-label="Log out"
               >
-                Log out
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="size-5"
+                  aria-hidden="true"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="M16 17l5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
               </button>
             </form>
           </div>
@@ -50,6 +64,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Menu
             </summary>
             <div className="absolute right-0 mt-3 flex w-48 flex-col rounded-2xl border border-beedero-black/10 bg-beedero-white p-2 shadow-lg">
+              <div className="px-1 py-1">
+                <NotificationBell />
+              </div>
               <Link
                 href="/feed"
                 className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
@@ -60,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 href="/discovery"
                 className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
               >
-                Discovery
+                Discover
               </Link>
               <Link
                 href="/dashboard"
@@ -71,9 +88,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-beedero-black/70 hover:bg-beedero-black hover:text-beedero-white"
+                  className="flex w-full items-center rounded-xl px-3 py-2 text-beedero-black/70 hover:bg-beedero-black hover:text-beedero-white"
+                  aria-label="Log out"
                 >
-                  Log out
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="size-5"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <path d="M16 17l5-5-5-5" />
+                    <path d="M21 12H9" />
+                  </svg>
                 </button>
               </form>
             </div>

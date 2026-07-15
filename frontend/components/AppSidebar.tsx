@@ -8,7 +8,15 @@ type InvestorProfile = {
 type Me = { email: string; investor_profile: InvestorProfile | null };
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 
-export function FeedSidebar({ me, orgs }: { me: Me; orgs: Membership[] }) {
+export function AppSidebar({
+  me,
+  orgs,
+  currentPage,
+}: {
+  me: Me;
+  orgs: Membership[];
+  currentPage: "feed" | "dashboard";
+}) {
   const profile = me.investor_profile;
   const name = profile?.full_name || me.email;
 
@@ -72,7 +80,12 @@ export function FeedSidebar({ me, orgs }: { me: Me; orgs: Membership[] }) {
         </Link>
       </div>
 
-      <div className="rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">
+        {currentPage === "dashboard" && (
+          <Link href="/feed" className="text-sm font-semibold text-beedero-black hover:underline">
+            Go to Feed →
+          </Link>
+        )}
         <Link
           href="/discovery"
           className="text-sm font-semibold text-beedero-black hover:underline"
