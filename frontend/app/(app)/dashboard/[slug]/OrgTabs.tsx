@@ -96,9 +96,7 @@ const POST_KIND_OPTIONS = [
   { value: "news", label: "Update" },
 ];
 
-const STAGES = ["idea", "pre_seed", "seed", "series_a", "growth"];
-const SECTORS = ["software", "fintech", "health", "climate", "consumer", "marketplace", "other"];
-const GEOGRAPHIES = ["portugal", "europe", "north_america", "latin_america", "remote", "other"];
+import { GEOGRAPHIES, SECTORS, STAGES } from "@/lib/org-filters";
 
 const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
   { key: "website", label: "Website", placeholder: "https://yourcompany.com" },

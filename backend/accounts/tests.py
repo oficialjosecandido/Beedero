@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
-from orgs.models import Activity
+from orgs.models import Activity, UserFollow
 
 
 @pytest.fixture
@@ -87,3 +87,29 @@ def test_me_view_reports_profile_and_memberships(api, user):
     assert res.data["email"] == user.email
     assert res.data["is_email_verified"] is False
     assert res.data["memberships"] == []
+
+
+@pytest.mark.django_db
+def test_investor_stats_returns_profile_kpis(api, user):
+    follower = User.objects.create_user(
+        username="follower@example.com", email="follower@example.com", password="pw"
+    )
+    UserFollow.objects.create(follower=follower, followed=user)
+    Activity.objects.create(
+        author=user,
+        org=None,
+        kind="update",
+        title="Hello",
+        body="",
+        occurred_at=timezone.now(),
+        reaction_count=3,
+    )
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/stats/")
+    assert res.status_code == 200
+    assert res.data["followers_count"] == 1
+    assert res.data["following_count"] == 0
+    assert res.data["new_followers"] == 1
+    assert res.data["posts_count"] == 1
+    assert res.data["reactions_received"] == 3

@@ -3,7 +3,7 @@
 concurrent requests can't race a read-modify-write."""
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Count, F
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
@@ -11,6 +11,29 @@ from orgs.models import Activity
 from orgs.visibility import activity_visible_to
 
 from .models import Comment, Reaction
+
+REACTION_KINDS = ("like", "insight", "congrats")
+
+
+def _empty_reaction_counts() -> dict[str, int]:
+    return {kind: 0 for kind in REACTION_KINDS}
+
+
+def reaction_counts_for(activity_ids) -> dict[int, dict[str, int]]:
+    """Per-kind reaction totals for a batch of activities."""
+    counts = {activity_id: _empty_reaction_counts() for activity_id in activity_ids}
+    if not activity_ids:
+        return counts
+    rows = (
+        Reaction.objects.filter(activity_id__in=list(activity_ids))
+        .values("activity_id", "kind")
+        .annotate(total=Count("id"))
+    )
+    for row in rows:
+        kind = row["kind"]
+        if kind in counts[row["activity_id"]]:
+            counts[row["activity_id"]][kind] = row["total"]
+    return counts
 
 
 def viewer_reactions_for(user, activity_ids) -> dict[int, str]:

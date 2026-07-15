@@ -51,12 +51,31 @@ export async function loadMoreFeedAction(cursor: string): Promise<{
 export async function reactAction(
   activityId: number,
   kind: string
-): Promise<{ reaction_count: number }> {
-  return apiFetch(`/activities/${activityId}/reactions/`, { method: "POST", body: { kind } });
+): Promise<
+  { reaction_count: number; reaction_counts: Record<string, number> } | { error: string }
+> {
+  try {
+    return (await apiFetch(`/activities/${activityId}/reactions/`, {
+      method: "POST",
+      body: { kind },
+    })) as { reaction_count: number; reaction_counts: Record<string, number> };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not save your reaction.") };
+  }
 }
 
-export async function unreactAction(activityId: number): Promise<{ reaction_count: number }> {
-  return apiFetch(`/activities/${activityId}/reactions/`, { method: "DELETE" });
+export async function unreactAction(
+  activityId: number
+): Promise<
+  { reaction_count: number; reaction_counts: Record<string, number> } | { error: string }
+> {
+  try {
+    return (await apiFetch(`/activities/${activityId}/reactions/`, {
+      method: "DELETE",
+    })) as { reaction_count: number; reaction_counts: Record<string, number> };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not remove your reaction.") };
+  }
 }
 
 export async function loadCommentsAction(

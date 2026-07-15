@@ -20,7 +20,7 @@ from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
-from social.services import viewer_reactions_for
+from social.services import viewer_reactions_for, reaction_counts_for
 
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import FUNDRAISE_KINDS, SectionKind
@@ -161,17 +161,18 @@ class OrgListCreateView(APIView):
         )
 
     def post(self, request):
-        """§2: creation is deliberately minimal — name + one_liner only, draft
-        by default. Everything else (logo, sector, identity sections) is
-        filled in progressively from the dashboard, never required upfront."""
+        """§2: creation is deliberately minimal — name is the only hard
+        requirement, draft by default. Everything else (one_liner, logo,
+        sector, identity sections) is filled in progressively from the
+        onboarding stepper/dashboard, never required upfront."""
         enforce_rate_limit(f"create_org:user:{request.user.id}", limit=5, window_seconds=3600)
         enforce_rate_limit(
             f"create_org:ip:{request.META.get('REMOTE_ADDR')}", limit=10, window_seconds=3600
         )
         name = request.data.get("name")
-        one_liner = request.data.get("one_liner")
-        if not name or not one_liner:
-            return Response({"detail": "name and one_liner are required."}, status=400)
+        one_liner = request.data.get("one_liner") or ""
+        if not name:
+            return Response({"detail": "name is required."}, status=400)
 
         # unique_org_slug()'s own existence check is check-then-create, so two
         # concurrent requests for the same name can both pass it before
@@ -807,7 +808,7 @@ class OrgActivityDetailView(OrgLookupMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def _activity_summary(activity, viewer_reaction=None):
+def _activity_summary(activity, viewer_reaction=None, reaction_counts=None):
     return {
         "id": activity.id,
         "type": "org" if activity.org_id else "person",
@@ -825,6 +826,7 @@ def _activity_summary(activity, viewer_reaction=None):
             "occurred_at": activity.occurred_at.isoformat(),
         },
         "reaction_count": activity.reaction_count,
+        "reaction_counts": reaction_counts or {"like": 0, "insight": 0, "congrats": 0},
         "comment_count": activity.comment_count,
         "viewer_reaction": viewer_reaction,
         "created_at": activity.created_at.isoformat(),
@@ -875,11 +877,17 @@ class FeedView(APIView):
             activities = activities[:limit]
 
         viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
+        reaction_counts = reaction_counts_for([a.id for a in activities])
 
         return Response(
             {
                 "items": [
-                    _activity_summary(a, viewer_reactions.get(a.id)) for a in activities
+                    _activity_summary(
+                        a,
+                        viewer_reactions.get(a.id),
+                        reaction_counts.get(a.id),
+                    )
+                    for a in activities
                 ],
                 "next_cursor": next_cursor,
             }

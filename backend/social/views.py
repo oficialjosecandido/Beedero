@@ -16,6 +16,7 @@ from .serializers import CommentCreateSerializer, ReactionSerializer, comment_su
 from .services import (
     create_comment,
     get_visible_activity_or_404,
+    reaction_counts_for,
     remove_reaction,
     soft_delete_comment,
     toggle_reaction,
@@ -54,13 +55,23 @@ class ActivityReactionView(APIView):
         from notifications.services import notify_activity_reaction
 
         notify_activity_reaction(activity, request.user, activity.reaction_count)
-        return Response({"reaction_count": activity.reaction_count})
+        return Response(
+            {
+                "reaction_count": activity.reaction_count,
+                "reaction_counts": reaction_counts_for([activity.id])[activity.id],
+            }
+        )
 
     def delete(self, request, activity_id):
         activity = get_visible_activity_or_404(request.user, activity_id)
         remove_reaction(activity, request.user)
         activity.refresh_from_db(fields=["reaction_count"])
-        return Response({"reaction_count": activity.reaction_count})
+        return Response(
+            {
+                "reaction_count": activity.reaction_count,
+                "reaction_counts": reaction_counts_for([activity.id])[activity.id],
+            }
+        )
 
 
 class ActivityCommentListCreateView(APIView):

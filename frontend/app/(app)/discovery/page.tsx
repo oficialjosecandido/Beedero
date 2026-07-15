@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { apiFetch } from "@/lib/api";
+import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 import type { OrgSummary } from "@/lib/types";
 
 import { DiscoveryList } from "./DiscoveryList";
@@ -120,27 +121,48 @@ export default async function DiscoveryPage({
               {params.q && <input type="hidden" name="q" value={params.q} />}
               <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
                 Stage
-                <input
+                <select
                   name="stage"
                   defaultValue={params.stage ?? ""}
                   className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                />
+                >
+                  <option value="">Any</option>
+                  {STAGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
                 Sector
-                <input
+                <select
                   name="sector"
                   defaultValue={params.sector ?? ""}
                   className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                />
+                >
+                  <option value="">Any</option>
+                  {SECTOR_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
                 Geography
-                <input
+                <select
                   name="geo"
                   defaultValue={params.geo ?? ""}
                   className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                />
+                >
+                  <option value="">Any</option>
+                  {GEO_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex items-center gap-2 self-end rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700">
                 <input

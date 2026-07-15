@@ -11,6 +11,7 @@ export type FeedItem = {
     occurred_at?: string;
   };
   reaction_count: number;
+  reaction_counts?: { like: number; insight: number; congrats: number };
   comment_count: number;
   viewer_reaction: string | null;
 };

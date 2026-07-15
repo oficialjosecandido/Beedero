@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CreateOrgForm } from "@/components/CreateOrgForm";
+
 type InvestorProfile = {
   full_name?: string;
   headline?: string;
@@ -72,12 +74,9 @@ export function AppSidebar({
             ))
           )}
         </div>
-        <Link
-          href="/dashboard#create-organization"
-          className="mt-4 block rounded-xl bg-beedero-yellow px-3 py-2 text-center text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
-        >
-          Create organization
-        </Link>
+        <div id="create-organization" className="mt-4 scroll-mt-24">
+          <CreateOrgForm />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">

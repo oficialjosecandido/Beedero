@@ -1,10 +1,13 @@
+from datetime import timedelta
+
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from orgs.models import Activity, Visibility
+from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
 
 from .models import InvestorProfile
@@ -70,6 +73,36 @@ class InvestorPostListCreateView(APIView):
             visibility=Visibility.PUBLIC,
         )
         return Response(_investor_activity_summary(activity), status=201)
+
+
+class InvestorStatsView(APIView):
+    """Personal profile KPIs for the authenticated investor."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        days = 30 if request.query_params.get("range") == "30d" else 7
+        since = timezone.now() - timedelta(days=days)
+
+        followers_count = UserFollow.objects.filter(followed=user).count()
+        following_count = UserFollow.objects.filter(follower=user).count()
+        new_followers = UserFollow.objects.filter(followed=user, created_at__gte=since).count()
+
+        personal_posts = Activity.objects.filter(author=user, org__isnull=True)
+        posts_count = personal_posts.count()
+        reactions_received = personal_posts.aggregate(total=Sum("reaction_count"))["total"] or 0
+
+        return Response(
+            {
+                "followers_count": followers_count,
+                "following_count": following_count,
+                "range_days": days,
+                "new_followers": new_followers,
+                "posts_count": posts_count,
+                "reactions_received": reactions_received,
+            }
+        )
 
 
 class InvestorProfileView(APIView):

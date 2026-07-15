@@ -1,25 +1,85 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { apiFetch, ApiError } from "@/lib/api";
 
-export async function createOrgAction(_prevState: string | null, formData: FormData) {
-  let org: { slug: string; name: string };
+type ChecklistItem = { key: string; done: boolean; hint: string };
+type WizardProgress = { completeness: number; checklist: ChecklistItem[] };
+export type WizardResult = Partial<WizardProgress> & { error: string | null };
+
+async function fetchOnboardingProgress(slug: string): Promise<WizardProgress> {
+  const data = await apiFetch(`/orgs/${slug}/onboarding/`);
+  return { completeness: data.completeness, checklist: data.checklist };
+}
+
+export async function createOrgWizardAction(
+  name: string,
+  oneLiner: string
+): Promise<{ slug: string } & WizardResult> {
   try {
-    org = await apiFetch("/orgs/", {
+    const org: { slug: string } = await apiFetch("/orgs/", {
       method: "POST",
-      body: {
-        name: formData.get("name"),
-        one_liner: formData.get("one_liner"),
-      },
+      body: { name, one_liner: oneLiner },
     });
-  } catch {
-    return "Could not create the organization.";
+    revalidatePath("/dashboard");
+    revalidatePath("/feed");
+    const progress = await fetchOnboardingProgress(org.slug);
+    return { slug: org.slug, error: null, ...progress };
+  } catch (err) {
+    return { slug: "", error: firstErrorMessage(err, "Could not create the organization.") };
   }
-  revalidatePath("/dashboard");
-  redirect(`/dashboard/${org.slug}`);
+}
+
+export async function saveOrgLogoWizardAction(slug: string, logo: File): Promise<WizardResult> {
+  try {
+    const body = new FormData();
+    body.set("logo", logo);
+    await apiFetch(`/orgs/${slug}/logo/`, { method: "PUT", body });
+  } catch (err) {
+    return { error: firstErrorMessage(err, "Could not upload the logo.") };
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  revalidatePath("/feed");
+  const progress = await fetchOnboardingProgress(slug);
+  return { error: null, ...progress };
+}
+
+export async function saveOrgTextFieldWizardAction(
+  slug: string,
+  kind: string,
+  key: string,
+  value: string
+): Promise<WizardResult> {
+  try {
+    await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, {
+      method: "PUT",
+      body: { value },
+    });
+  } catch (err) {
+    return { error: firstErrorMessage(err, "Could not save.") };
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  const progress = await fetchOnboardingProgress(slug);
+  return { error: null, ...progress };
+}
+
+export async function addOrgTeamMemberWizardAction(
+  slug: string,
+  member: { name: string; role: string; linkedin: string }
+): Promise<WizardResult> {
+  try {
+    const key = `member_${Date.now()}`;
+    await apiFetch(`/orgs/${slug}/sections/team/fields/${key}/`, {
+      method: "PUT",
+      body: { value: { ...member, joined_at: new Date().toISOString() } },
+    });
+  } catch (err) {
+    return { error: firstErrorMessage(err, "Could not add the team member.") };
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  const progress = await fetchOnboardingProgress(slug);
+  return { error: null, ...progress };
 }
 
 export async function updateOrgProfileAction(_prevState: string | null, formData: FormData) {

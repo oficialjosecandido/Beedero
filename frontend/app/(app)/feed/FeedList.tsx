@@ -54,6 +54,7 @@ function FeedCard({ item }: { item: FeedItem }) {
       <ReactionBar
         activityId={item.id}
         initialCount={item.reaction_count}
+        initialCounts={item.reaction_counts}
         initialReaction={item.viewer_reaction}
       />
       <CommentThread activityId={item.id} initialCount={item.comment_count} />
