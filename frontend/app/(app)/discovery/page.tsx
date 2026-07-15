@@ -50,7 +50,7 @@ export default async function DiscoveryPage({
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
             Discover
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-950 sm:text-4xl">
             Find people and organizations
           </h1>
           <p className="mt-3 text-sm leading-6 text-zinc-600">

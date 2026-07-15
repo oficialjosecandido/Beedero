@@ -23,6 +23,7 @@ import {
 } from "../actions";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -175,7 +176,7 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-zinc-900">{SECTION_LABELS[section.kind] ?? section.kind}</h3>
+        <h3 className="font-extrabold text-zinc-900">{SECTION_LABELS[section.kind] ?? section.kind}</h3>
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           {section.visibility}
         </span>
@@ -272,7 +273,7 @@ function CuratedProfileSection({
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-zinc-900">{title}</h3>
+            <h3 className="font-extrabold text-zinc-900">{title}</h3>
             {optional && (
               <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
                 Optional
@@ -342,7 +343,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
   return (
     <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-zinc-900">Team</h3>
+        <h3 className="font-extrabold text-zinc-900">Team</h3>
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           public
         </span>
@@ -370,7 +371,7 @@ function TeamProfileSection({ slug, section }: { slug: string; section?: Section
                 <p className="font-semibold text-beedero-black">{value.name || "Unnamed member"}</p>
                 <p className="text-xs text-zinc-500">
                   {value.role || "Role missing"}
-                  {value.joined_at ? ` · joined ${new Date(value.joined_at).toLocaleDateString()}` : ""}
+                  {value.joined_at ? ` · joined ${formatDate(value.joined_at)}` : ""}
                 </p>
                 {value.linkedin && (
                   <a
@@ -447,7 +448,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-        <h3 className="font-semibold text-zinc-900">Website &amp; social media</h3>
+        <h3 className="font-extrabold text-zinc-900">Website &amp; social media</h3>
         <p className="mt-1 text-sm text-zinc-500">
           Shown on your public profile so investors and partners can find you.
         </p>
@@ -488,7 +489,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
       </div>
 
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-        <h3 className="font-semibold text-zinc-900">Other links</h3>
+        <h3 className="font-extrabold text-zinc-900">Other links</h3>
         <div className="mt-3 flex flex-col gap-2">
           {customFields.length === 0 && <p className="text-sm text-zinc-400">No custom links yet.</p>}
           {customFields.map((field) => (
@@ -561,7 +562,7 @@ function OnboardingPanel({
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-zinc-900">Profile strength</h3>
+        <h3 className="font-extrabold text-zinc-900">Profile strength</h3>
         <span className="text-sm font-medium text-zinc-500">{onboarding.completeness}%</span>
       </div>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
@@ -669,7 +670,7 @@ function PostComposer({
       className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm"
     >
       <input type="hidden" name="slug" value={slug} />
-      <h3 className="font-semibold text-zinc-900">Share an update</h3>
+      <h3 className="font-extrabold text-zinc-900">Share an update</h3>
       {hasPostedToday ? (
         <div className="rounded-2xl border border-beedero-border bg-zinc-50 p-4">
           <p className="text-sm font-semibold text-beedero-black">
@@ -775,10 +776,10 @@ function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={value.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
       )}
-      <h3 className="text-lg font-semibold text-zinc-900">{value.title ?? "Update"}</h3>
+      <h3 className="text-lg font-extrabold text-zinc-900">{value.title ?? "Update"}</h3>
       {value.body && <p className="text-sm leading-6 text-zinc-600">{value.body}</p>}
       {value.occurred_at && (
-        <p className="text-xs text-zinc-400">{new Date(value.occurred_at).toLocaleDateString()}</p>
+        <p className="text-xs text-zinc-400">{formatDate(value.occurred_at)}</p>
       )}
     </article>
   );
@@ -827,7 +828,7 @@ function ActivityTab({
 function TeamSection({ slug, members, canManage }: { slug: string; members: Member[]; canManage: boolean }) {
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-      <h3 className="font-semibold text-zinc-900">Team</h3>
+      <h3 className="font-extrabold text-zinc-900">Team</h3>
       <div className="mt-3 flex flex-col gap-2">
         {members.map((member) => (
           <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
@@ -871,7 +872,7 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
 function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) {
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-      <h3 className="font-semibold text-zinc-900">Invite links</h3>
+      <h3 className="font-extrabold text-zinc-900">Invite links</h3>
       <p className="mt-1 text-sm text-zinc-500">Share a link to let someone join your team directly.</p>
       <div className="mt-3 flex flex-col gap-2">
         {invites.length === 0 && <p className="text-sm text-zinc-400">No active invite links.</p>}
@@ -943,7 +944,7 @@ function ConfigurationsTab({
       <TeamSection slug={slug} members={members} canManage={canManage} />
       {canManage && <InvitesSection slug={slug} invites={invites} />}
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-        <h3 className="font-semibold text-zinc-900">Access</h3>
+        <h3 className="font-extrabold text-zinc-900">Access</h3>
         <p className="mt-1 text-sm text-zinc-500">
           Grant restricted or private sections to specific people, organizations, or roles.
         </p>
@@ -965,16 +966,6 @@ const ROUND_STAGE_LABELS: Record<string, string> = {
   series_a: "Series A",
 };
 
-function formatAmount(value: number | null) {
-  if (value === null) return "—";
-  return `$${value.toLocaleString()}`;
-}
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString();
-}
-
 function FundraisingTab({
   slug,
   isFundraising,
@@ -991,7 +982,7 @@ function FundraisingTab({
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-zinc-900">Fundraising round</h3>
+            <h3 className="font-extrabold text-zinc-900">Fundraising round</h3>
             <p className="mt-1 text-sm text-zinc-500">
               {isFundraising ? "A round is currently open." : "No round is open right now."}
             </p>
@@ -1051,7 +1042,7 @@ function FundraisingTab({
       </div>
 
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-        <h3 className="font-semibold text-zinc-900">Round history</h3>
+        <h3 className="font-extrabold text-zinc-900">Round history</h3>
         {roundHistory.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500">No rounds opened yet.</p>
         ) : (
@@ -1079,8 +1070,8 @@ function FundraisingTab({
                     </td>
                     <td className="py-2 pr-4">{formatDate(round.opened_at)}</td>
                     <td className="py-2 pr-4">{formatDate(round.closed_at)}</td>
-                    <td className="py-2 pr-4">{formatAmount(round.ask_amount)}</td>
-                    <td className="py-2 pr-4">{formatAmount(round.raised_amount)}</td>
+                    <td className="py-2 pr-4">{formatCurrency(round.ask_amount)}</td>
+                    <td className="py-2 pr-4">{formatCurrency(round.raised_amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1311,7 +1302,7 @@ function VerificationCard({
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="font-semibold text-zinc-900">{spec.label}</h4>
+        <h4 className="font-extrabold text-zinc-900">{spec.label}</h4>
         {status ? (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
             {status}
@@ -1323,9 +1314,7 @@ function VerificationCard({
         )}
       </div>
       {info?.valid_until && (
-        <p className="mt-1 text-xs text-zinc-400">
-          Valid until {new Date(info.valid_until).toLocaleDateString()}
-        </p>
+        <p className="mt-1 text-xs text-zinc-400">Valid until {formatDate(info.valid_until)}</p>
       )}
       {status === "rejected" && info?.rejection_reason && (
         <p className="mt-1 text-xs text-red-600">Rejected: {info.rejection_reason}</p>
@@ -1361,7 +1350,7 @@ function CredibilityTab({
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-zinc-900">Credibility ladder</h3>
+          <h3 className="font-extrabold text-zinc-900">Credibility ladder</h3>
           <CredibilityBadge level={credibility.level} />
         </div>
         <div className="mt-4 flex items-center gap-1">
@@ -1412,7 +1401,7 @@ function CredibilityTab({
         </p>
         <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-2">
-            <h4 className="font-semibold text-zinc-900">Stripe</h4>
+            <h4 className="font-extrabold text-zinc-900">Stripe</h4>
             {stripeInfo ? (
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[stripeInfo.status]}`}>
                 {stripeInfo.status}
@@ -1424,9 +1413,7 @@ function CredibilityTab({
             )}
           </div>
           {stripeInfo?.valid_until && (
-            <p className="mt-1 text-xs text-zinc-400">
-              Valid until {new Date(stripeInfo.valid_until).toLocaleDateString()}
-            </p>
+            <p className="mt-1 text-xs text-zinc-400">Valid until {formatDate(stripeInfo.valid_until)}</p>
           )}
           {canManage && (
             <form action={stripeAction} className="mt-3">

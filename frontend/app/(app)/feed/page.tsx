@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { AppSidebar } from "@/components/AppSidebar";
+import { AppColumnHeader } from "@/components/AppColumnHeader";
+import { ProfileColumn } from "@/components/ProfileColumn";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import { ChatPanel } from "./ChatPanel";
@@ -57,19 +58,12 @@ export default async function FeedPage() {
   return (
     <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
       <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="order-2 lg:order-none lg:col-start-1">
-          <AppSidebar me={me} orgs={orgs} currentPage="feed" />
-        </aside>
+        <div className="order-2 lg:order-none lg:col-start-1">
+          <ProfileColumn me={me} orgs={orgs} />
+        </div>
 
-        <div className="order-1 flex flex-col gap-8 lg:order-none lg:col-start-2">
-          <header>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
-              Feed
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-              Updates from people and organizations you follow
-            </h1>
-          </header>
+        <div className="order-1 flex flex-col gap-6 lg:order-none lg:col-start-2">
+          <AppColumnHeader label="Feed" />
 
           <FeedComposer
             name={displayName}
@@ -81,11 +75,12 @@ export default async function FeedPage() {
           <FeedList initialItems={items} initialCursor={next_cursor} />
         </div>
 
-        <aside className="order-3 lg:order-none lg:col-start-3">
+        <div className="order-3 flex flex-col gap-6 lg:order-none lg:col-start-3">
+          <AppColumnHeader label="Messages" />
           <Suspense fallback={null}>
             <ChatPanel people={messageContacts} />
           </Suspense>
-        </aside>
+        </div>
       </div>
     </main>
   );

@@ -17,7 +17,7 @@ export default function RegisterPage() {
           <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
             Beedero
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">
             Create account
           </h1>
         </div>

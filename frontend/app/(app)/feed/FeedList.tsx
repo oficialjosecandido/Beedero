@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import { formatDate } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
@@ -36,7 +37,7 @@ function FeedCard({ item }: { item: FeedItem }) {
           {SECTION_LABELS[item.kind] ?? item.kind}
         </span>
       </div>
-      <h2 className="mt-4 text-lg font-semibold">{item.value.title ?? "Update"}</h2>
+      <h2 className="mt-4 text-lg font-extrabold">{item.value.title ?? "Update"}</h2>
       {item.value.body && <p className="mt-2 text-sm leading-6 text-zinc-600">{item.value.body}</p>}
       {item.value.image && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -47,9 +48,7 @@ function FeedCard({ item }: { item: FeedItem }) {
         />
       )}
       {item.value.occurred_at && (
-        <p className="mt-4 text-xs text-zinc-400">
-          {new Date(item.value.occurred_at).toLocaleDateString()}
-        </p>
+        <p className="mt-4 text-xs text-zinc-400">{formatDate(item.value.occurred_at)}</p>
       )}
       <ReactionBar
         activityId={item.id}

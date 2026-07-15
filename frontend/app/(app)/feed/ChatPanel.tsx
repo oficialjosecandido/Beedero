@@ -146,10 +146,7 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     <div className="flex h-[min(560px,70vh)] flex-col rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm lg:h-[calc(100vh-8rem)]">
       {activeId == null ? (
         <>
-          <div className="flex items-center justify-between border-b border-beedero-border p-4">
-            <p className="text-sm font-bold uppercase tracking-[0.15em] text-beedero-black/60">
-              Messages
-            </p>
+          <div className="flex items-center justify-end border-b border-beedero-border p-4">
             <button
               type="button"
               onClick={() => {

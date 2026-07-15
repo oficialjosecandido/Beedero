@@ -145,7 +145,7 @@ export default async function DashboardOrgPage({
             <OrgLogoForm slug={slug} logo={profile.org.logo} name={profile.org.name} editable={canManage} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+                <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">
                   {profile.org.name}
                 </h1>
                 {profile.org.status === "draft" && (

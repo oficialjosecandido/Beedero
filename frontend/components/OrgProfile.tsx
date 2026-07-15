@@ -1,4 +1,5 @@
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { formatDate } from "@/lib/format";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -20,9 +21,7 @@ function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
           <img src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />
         )}
         {post.occurred_at && (
-          <p className="text-xs text-zinc-400">
-            {new Date(post.occurred_at).toLocaleDateString()}
-          </p>
+          <p className="text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
         )}
       </div>
     );
@@ -34,7 +33,7 @@ function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
         <p className="font-medium">{member.name}</p>
         <p className="text-sm text-zinc-600">
           {member.role}
-          {member.joined_at ? ` · joined ${new Date(member.joined_at).toLocaleDateString()}` : ""}
+          {member.joined_at ? ` · joined ${formatDate(member.joined_at)}` : ""}
         </p>
         {member.linkedin && (
           <a
@@ -79,7 +78,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
               {data.org.name.charAt(0).toUpperCase()}
             </span>
           )}
-          <h1 className="text-3xl font-semibold">{data.org.name}</h1>
+          <h1 className="text-3xl font-extrabold">{data.org.name}</h1>
           <CredibilityBadge level={data.org.credibility_level ?? 0} />
           {data.org.is_verified && (
             <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
@@ -101,7 +100,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
 
       {sectionEntries.map(([kind, fields]) => (
         <section key={kind} className="flex flex-col gap-3 border-t border-beedero-border pt-4">
-          <h2 className="text-lg font-medium">{SECTION_LABELS[kind] ?? kind}</h2>
+          <h2 className="text-lg font-extrabold">{SECTION_LABELS[kind] ?? kind}</h2>
           <div className="flex flex-col gap-3">
             {Object.entries(fields).map(([key, value]) => (
               <FieldValue key={key} fieldKey={key} value={value} />

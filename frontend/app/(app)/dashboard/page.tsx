@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { AppSidebar } from "@/components/AppSidebar";
+import { AppColumnHeader } from "@/components/AppColumnHeader";
+import { ProfileColumn } from "@/components/ProfileColumn";
 import { ProfileForm } from "@/components/ProfileForm";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
@@ -55,22 +56,17 @@ export default async function DashboardPage() {
   return (
     <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
       <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="order-2 lg:order-none lg:col-start-1">
-          <AppSidebar me={me} orgs={orgs} currentPage="dashboard" />
-        </aside>
+        <div className="order-2 lg:order-none lg:col-start-1">
+          <ProfileColumn me={me} orgs={orgs} />
+        </div>
 
-        <div className="order-1 flex flex-col gap-10 lg:order-none lg:col-start-2">
-          <header>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-beedero-black">
-              Dashboard
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
-          </header>
+        <div className="order-1 flex flex-col gap-6 lg:order-none lg:col-start-2">
+          <AppColumnHeader label="Dashboard" />
 
           {!profileComplete ? (
-            <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-              <div>
-                <h2 className="text-xl font-semibold">Complete your personal profile</h2>
+            <section className="flex flex-col gap-5">
+              <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+                <h2 className="text-xl font-extrabold">Complete your personal profile</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
                   Before creating organizations, add enough context so Beedero can recommend
                   people and organizations to follow.
@@ -79,12 +75,14 @@ export default async function DashboardPage() {
               <ProfileForm profile={me.investor_profile} />
             </section>
           ) : profileStats ? (
-            <section>
-              <h2 className="text-xl font-semibold">Your KPIs</h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                Followers, posts, and engagement on your personal profile.
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <section className="flex flex-col gap-4">
+              <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+                <h2 className="text-xl font-extrabold">Your KPIs</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Followers, posts, and engagement on your personal profile.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                   <p className="text-2xl font-semibold">{profileStats.followers_count}</p>
                   <p className="text-xs text-zinc-500">Followers</p>
@@ -109,11 +107,12 @@ export default async function DashboardPage() {
           ) : null}
         </div>
 
-        <aside className="order-3 lg:order-none lg:col-start-3">
+        <div className="order-3 flex flex-col gap-6 lg:order-none lg:col-start-3">
+          <AppColumnHeader label="Messages" />
           <Suspense fallback={null}>
             <ChatPanel people={messageContacts} />
           </Suspense>
-        </aside>
+        </div>
       </div>
     </main>
   );

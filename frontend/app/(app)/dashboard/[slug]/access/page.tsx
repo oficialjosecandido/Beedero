@@ -48,7 +48,7 @@ export default async function AccessPage({
           >
             Back to organization
           </Link>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">
             Granted access for {profile.org.name}
           </h1>
           <p className="mt-2 text-sm text-zinc-600">

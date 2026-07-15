@@ -35,7 +35,7 @@ export default async function LoginPage({
           <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
             Beedero
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Log in</h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Log in</h1>
         </div>
         {errorMessage && (
           <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</p>
