@@ -1,0 +1,141 @@
+from django.core.cache import cache
+import pytest
+from rest_framework.test import APIClient
+
+from accounts.models import User
+from notifications.models import Notification
+
+from .models import Conversation, Message
+from .services import get_or_create_conversation
+from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR
+
+
+@pytest.fixture(autouse=True)
+def _clear_ratelimit_cache():
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def api():
+    return APIClient()
+
+
+@pytest.fixture
+def alice(db):
+    return User.objects.create_user(username="alice", email="alice@example.com", password="x")
+
+
+@pytest.fixture
+def bob(db):
+    return User.objects.create_user(username="bob", email="bob@example.com", password="x")
+
+
+@pytest.fixture
+def carol(db):
+    return User.objects.create_user(username="carol", email="carol@example.com", password="x")
+
+
+@pytest.mark.django_db
+def test_starting_a_conversation_twice_reuses_the_same_row(api, alice, bob):
+    api.force_authenticate(alice)
+
+    first = api.post("/api/conversations/", {"user_id": bob.id}, format="json")
+    assert first.status_code == 201
+    second = api.post("/api/conversations/", {"user_id": bob.id}, format="json")
+    assert second.status_code == 201
+    assert first.data["id"] == second.data["id"]
+    assert Conversation.objects.count() == 1
+
+    # Starting it from Bob's side finds the same ordered-pair row.
+    api.force_authenticate(bob)
+    third = api.post("/api/conversations/", {"user_id": alice.id}, format="json")
+    assert third.data["id"] == first.data["id"]
+
+
+@pytest.mark.django_db
+def test_cannot_message_self(api, alice):
+    api.force_authenticate(alice)
+    res = api.post("/api/conversations/", {"user_id": alice.id}, format="json")
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_guard_non_participant_gets_404_never_403(api, alice, bob, carol):
+    conversation = get_or_create_conversation(alice, bob)
+
+    api.force_authenticate(carol)
+    res = api.get(f"/api/conversations/{conversation.id}/messages/")
+    assert res.status_code == 404
+
+    res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    assert res.status_code == 404
+
+
+@pytest.mark.django_db
+def test_send_and_read_marks_unread_messages_read(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+
+    api.force_authenticate(alice)
+    sent = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hey bob"}, format="json")
+    assert sent.status_code == 201
+    assert sent.data["is_mine"] is True
+
+    # Before Bob opens the thread, Bob's conversation list shows 1 unread.
+    api.force_authenticate(bob)
+    listing = api.get("/api/conversations/")
+    assert listing.data["items"][0]["unread_count"] == 1
+
+    api.get(f"/api/conversations/{conversation.id}/messages/")  # opens the thread -> marks read
+    message = Message.objects.get(conversation=conversation)
+    assert message.read_at is not None
+
+    listing_after = api.get("/api/conversations/")
+    assert listing_after.data["items"][0]["unread_count"] == 0
+
+
+@pytest.mark.django_db
+def test_empty_message_body_rejected(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "   "}, format="json")
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_message_rate_limit(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    for _ in range(MESSAGES_PER_HOUR):
+        res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+        assert res.status_code == 201
+    over_limit = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    assert over_limit.status_code == 429
+
+
+@pytest.mark.django_db
+def test_new_conversation_rate_limit(api, alice):
+    api.force_authenticate(alice)
+    for i in range(CONVERSATIONS_PER_DAY):
+        target = User.objects.create_user(username=f"user{i}", email=f"user{i}@example.com", password="x")
+        res = api.post("/api/conversations/", {"user_id": target.id}, format="json")
+        assert res.status_code == 201
+    extra = User.objects.create_user(username="oneTooMany", email="onetoomany@example.com", password="x")
+    over_limit = api.post("/api/conversations/", {"user_id": extra.id}, format="json")
+    assert over_limit.status_code == 429
+
+
+@pytest.mark.django_db
+def test_sending_a_message_notifies_the_recipient(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    notification = Notification.objects.get(user=bob, kind=Notification.Kind.MESSAGE)
+    assert notification.link == f"/feed?chat={conversation.id}"
+
+    # A second message within the aggregation window updates the same
+    # notification row rather than creating a new one.
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "still there?"}, format="json")
+    assert Notification.objects.filter(user=bob, kind=Notification.Kind.MESSAGE).count() == 1

@@ -23,3 +23,17 @@ export type Comment = {
   created_at: string;
   can_delete: boolean;
 };
+
+export type ConversationSummary = {
+  id: number;
+  other_participant: { id: number; name: string; profile_picture?: string | null };
+  last_message_at: string | null;
+  unread_count: number;
+};
+
+export type MessageItem = {
+  id: number;
+  body: string;
+  created_at: string;
+  is_mine: boolean;
+};

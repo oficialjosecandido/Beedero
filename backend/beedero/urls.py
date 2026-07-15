@@ -14,5 +14,6 @@ urlpatterns = [
     path("api/", include("credibility.urls")),
     path("api/", include("social.urls")),
     path("api/", include("notifications.urls")),
+    path("api/", include("messaging.urls")),
     path("api/internal/run-job/", views.run_management_job),
 ]

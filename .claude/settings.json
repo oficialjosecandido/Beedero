@@ -201,7 +201,20 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero-api.azurewebsites.net/)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://beedero.com/api/feed/)",
       "Bash(env)",
-      "Bash(time curl -sS -o /tmp/feed_resp.json -w \"\\\\nHTTP %{http_code}  total_time=%{time_total}s\\\\n\" \"https://api.beedero.com/api/feed/\")"
+      "Bash(time curl -sS -o /tmp/feed_resp.json -w \"\\\\nHTTP %{http_code}  total_time=%{time_total}s\\\\n\" \"https://api.beedero.com/api/feed/\")",
+      "Bash(git -C /Users/josecandido/Documents/Beedero status --short)",
+      "Bash(curl -sI \"https://beedero.com/api/auth/login\")",
+      "Bash(curl -sI \"https://beedero.com/admin/kpis/\")",
+      "Bash(curl -sIL \"https://beedero.com/admin/kpis/\")",
+      "Bash(curl -sI \"https://api.beedero.com/admin/kpis/\")",
+      "Bash(curl -sI \"https://beedero.com/api/auth/callback?error=access_denied\")",
+      "Bash(curl -sI \"https://beedero.com/api/auth/callback?code=fake&state=fake\")",
+      "Bash(curl -s \"https://beedero.com/login\")",
+      "Bash(curl -s \"https://beedero.com/login\" -o /tmp/login.html)",
+      "Bash(curl -sS -i https://api.beedero.com/api/feed/ -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IkRJN0xVTHFndkNqdEF5WUszWEFwRDBzVUVLbyJ9.eyJhdWQiOiI0ODI4MDc0Yi1kNWNhLTQ1MjktYmRlMy1hNThjOTM2YzUxOTYiLCJpc3MiOiJodHRwczovLzMwZDY1YTgwLTViYjgtNDUyNS05ODUxLWY2Yzg0MDU1MTkzYy5jaWFtbG9naW4uY29tLzMwZDY1YTgwLTViYjgtNDUyNS05ODUxLWY2Yzg0MDU1MTkzYy92Mi4wIiwiaWF0IjoxNzg0MDQ0NDYzLCJuYmYiOjE3ODQwNDQ0NjMsImV4cCI6MTc4NDA1MDAyMCwiYWlvIjoiQVZRQXEvOGNBQUFBK3JHWncwcjFRSzZNU2trYmxBZzVjR2hQcFNQK3VkaEs4eEZDSklmNkkzV0YzMyttSnlWUXJwVkxYZGhXM01samhtYUpiNjFndkVUR2IxQVlIU285RCs0MnJIMmE1bGV2VGE3a3RMOFNTOFE9IiwiYXpwIjoiN2ZkMTM4ZTItNGJjYS00NGIzLTg1NTYtZGU2NjBjMDdkYTM5IiwiYXpwYWNyIjoiMSIsIm5hbWUiOiJKb3NlIENhbmRpZG8iLCJvaWQiOiJmY2MyOGE3NC05ODhlLTRmMWUtODUxNS0yZGUxOTNiZmZiMGYiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJjb250YWN0Lmpvc2VjYW5kaWRvQGdtYWlsLmNvbSIsInJoIjoiMS5BWmdBZ0ZyV01MaGJKVVdZVWZiSVFGVVpQRXNIS0VqSzFTbEZ2ZU9sYWpKT3NVWllBQU5XWUFBLiIsInNjcCI6ImFjY2Vzc19hc191c2VyIiwic2lkIjoiMDA2Y2ZlOGEtYTQwMy0zZTJmLWQ1MmItNmUzZDk4NThjMjk4Iiwic3ViIjoiTTIxRDdxNTZUSTRZYXVxaE83NHUycnRsWFRkTkVBMnIxVGxlV2d2WkdRZXZyOCIsInRpZCI6IjMwZDY1YTgwLTViYjgtNDUyNS05ODUxLWY2Yzg0MDU1MTkzYyIsInV0aSI6IjZCOFp5cVRExFJTR094QUtaWjhFQUEiLCJ2ZXIiOiIyLjAiLCJ4bXNfZnRkIjoiY0xpczZiWEJmWW1RMGxKSF92U19PNTFURlpMY01lbnZaX2xJVGNZdXV3N2hOTmMzZGxaR1Z1WXkxa2MyMXoifQ.EuoTCI8zjaZaqY0VrcHP2Ci4dCTTztPeYoIHaL9BFvrdIjpUoug4_uttYcoOKRtlzYakIBVXZUa31tGoA7sV9ypXUk_9BzE13zys3NazvFTeXJygF3oReTj7Fq1YCvaGhnet6sQJ4yIbQyIzEglj1suDY3uE2MXLAoHKa_fOBPtRE-bQnW6uvq8BGzRZgJAchUb9C2DUnNQrOv2pv4YRZ-rERsA0he9xIi6g4YoSLjpzhWWAFsDHUKkixpP9xNTp6gpKWfl6xLJTzv5MMf8pKYiO7VfkGP4NQIctYzbCwVGPw4UYip5l_GirjLSif2cPzcEzK7WAmPx7yZy3rc-_JQ')",
+      "Bash(curl -sS \"https://beedero.ciamlogin.com/30d65a80-5bb8-4525-9851-f6c84055193c/discovery/v2.0/keys\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\([k['kid'] for k in d.get\\('keys',[]\\)]\\)\")",
+      "Bash(curl -sS \"https://30d65a80-5bb8-4525-9851-f6c84055193c.ciamlogin.com/30d65a80-5bb8-4525-9851-f6c84055193c/discovery/v2.0/keys\")"
     ]
   }
 }

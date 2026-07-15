@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "credibility",
     "social",
     "notifications",
+    "messaging",
 ]
 
 MIDDLEWARE = [

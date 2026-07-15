@@ -13,6 +13,7 @@ class Notification(models.Model):
         VERIFICATION = "verification"
         PROFILE_VIEWS = "profile_views"
         MILESTONE = "milestone"
+        MESSAGE = "message"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE

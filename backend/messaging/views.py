@@ -1,0 +1,129 @@
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from beedero.pagination import decode_cursor, encode_cursor
+from beedero.ratelimit import enforce_rate_limit
+
+from .models import Conversation, Message
+from .serializers import (
+    MessageSendSerializer,
+    StartConversationSerializer,
+    conversation_summary,
+    message_summary,
+)
+from .services import get_or_create_conversation, get_visible_conversation_or_404, mark_conversation_read, send_message
+
+User = get_user_model()
+
+CONVERSATIONS_PER_DAY = 30
+MESSAGES_PER_HOUR = 60
+
+
+class ConversationListCreateView(APIView):
+    """GET (up to 50 conversations, newest activity first) / POST
+    /api/conversations/. No cursor pagination here — unlike the feed/comments,
+    the number of conversations a user has is small enough that a flat cap
+    is simpler and sufficient (documented trade-off, plan §1.6)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        viewer = request.user
+        conversations = (
+            Conversation.objects.filter(Q(participant_one=viewer) | Q(participant_two=viewer))
+            .select_related(
+                "participant_one__investorprofile",
+                "participant_two__investorprofile",
+            )
+            .annotate(
+                unread_count=Count(
+                    "messages",
+                    filter=Q(messages__read_at__isnull=True) & ~Q(messages__sender=viewer),
+                )
+            )
+            .order_by("-last_message_at", "-created_at")[:50]
+        )
+        return Response(
+            {"items": [conversation_summary(c, viewer, c.unread_count) for c in conversations]}
+        )
+
+    def post(self, request):
+        serializer = StartConversationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_id = serializer.validated_data["user_id"]
+
+        if target_id == request.user.id:
+            return Response({"detail": "You can't message yourself."}, status=400)
+        target = get_object_or_404(User, pk=target_id)
+
+        enforce_rate_limit(
+            f"start-conversation:{request.user.id}", limit=CONVERSATIONS_PER_DAY, window_seconds=86400
+        )
+        conversation = get_or_create_conversation(request.user, target)
+        return Response(conversation_summary(conversation, request.user, 0), status=201)
+
+
+class ConversationMessageListCreateView(APIView):
+    """GET (keyset paginated, newest first) / POST
+    /api/conversations/<id>/messages/. Opening the thread (GET) marks every
+    unread message not sent by the viewer as read — a real "opened the
+    conversation" semantic, not just the fetched page."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 30
+    MAX_LIMIT = 100
+
+    def get(self, request, conversation_id):
+        conversation = get_visible_conversation_or_404(request.user, conversation_id)
+
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        cursor = None
+        cursor_raw = request.query_params.get("cursor")
+        if cursor_raw:
+            cursor = decode_cursor(cursor_raw)
+            if cursor is None:
+                return Response({"detail": "Invalid cursor."}, status=400)
+
+        qs = Message.objects.filter(conversation=conversation).select_related("sender").order_by(
+            "-created_at", "-id"
+        )
+        if cursor is not None:
+            created_at, item_id = cursor
+            qs = qs.filter(Q(created_at__lt=created_at) | Q(created_at=created_at, id__lt=int(item_id)))
+
+        messages = list(qs[: limit + 1])
+        next_cursor = None
+        if len(messages) > limit:
+            last = messages[limit - 1]
+            next_cursor = encode_cursor(last.created_at, last.id)
+            messages = messages[:limit]
+
+        mark_conversation_read(conversation, request.user)
+
+        return Response(
+            {
+                "items": [message_summary(m, request.user) for m in messages],
+                "next_cursor": next_cursor,
+            }
+        )
+
+    def post(self, request, conversation_id):
+        conversation = get_visible_conversation_or_404(request.user, conversation_id)
+        enforce_rate_limit(
+            f"send-message:{request.user.id}", limit=MESSAGES_PER_HOUR, window_seconds=3600
+        )
+
+        serializer = MessageSendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = send_message(conversation, request.user, serializer.validated_data["body"])
+        return Response(message_summary(message, request.user), status=201)

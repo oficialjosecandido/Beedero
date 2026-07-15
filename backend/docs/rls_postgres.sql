@@ -73,3 +73,31 @@ USING (
         )
     )
 );
+
+-- Direct messages (source of truth: messaging/migrations/0002_messaging_rls.py).
+-- No public/org-membership branch like orgs_orgfield above — a conversation
+-- has no audience beyond its two participants.
+
+ALTER TABLE messaging_conversation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messaging_conversation FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY conversation_participants ON messaging_conversation
+USING (
+    participant_one_id = current_setting('beedero.viewer_id', true)::int
+    OR participant_two_id = current_setting('beedero.viewer_id', true)::int
+);
+
+ALTER TABLE messaging_message ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messaging_message FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY message_participants ON messaging_message
+USING (
+    EXISTS (
+        SELECT 1 FROM messaging_conversation c
+        WHERE c.id = messaging_message.conversation_id
+          AND (
+              c.participant_one_id = current_setting('beedero.viewer_id', true)::int
+              OR c.participant_two_id = current_setting('beedero.viewer_id', true)::int
+          )
+    )
+);
