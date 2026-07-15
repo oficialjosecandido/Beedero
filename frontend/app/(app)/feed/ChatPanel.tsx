@@ -143,7 +143,7 @@ export function ChatPanel({ people }: { people: PersonSummary[] }) {
     activeParticipant?.name ?? activeConversation?.other_participant.name ?? "Conversation";
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col rounded-3xl border border-beedero-black/10 bg-beedero-white shadow-sm">
+    <div className="flex h-[min(560px,70vh)] flex-col rounded-3xl border border-beedero-black/10 bg-beedero-white shadow-sm lg:h-[calc(100vh-8rem)]">
       {activeId == null ? (
         <>
           <div className="flex items-center justify-between border-b border-beedero-black/10 p-4">

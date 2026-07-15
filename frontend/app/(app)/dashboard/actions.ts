@@ -13,22 +13,49 @@ async function fetchOnboardingProgress(slug: string): Promise<WizardProgress> {
   return { completeness: data.completeness, checklist: data.checklist };
 }
 
+// The onboarding refresh is a nice-to-have read that runs after a mutation
+// that already succeeded — a timeout or transient failure here must never
+// become an uncaught exception (Next.js renders that as an unhandled 500 for
+// the whole Server Action, even though the org/field/logo was saved fine).
+async function safeOnboardingProgress(slug: string): Promise<Partial<WizardProgress>> {
+  try {
+    return await fetchOnboardingProgress(slug);
+  } catch {
+    return {};
+  }
+}
+
+// Unlike firstErrorMessage (used by actions wired to a page-level error
+// boundary), wizard actions must always resolve to a WizardResult and never
+// throw — the stepper has no error boundary of its own to catch a rethrow.
+function wizardErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    const body = err.body as Record<string, string[] | string> | null;
+    const detail = body?.detail;
+    const first = Array.isArray(detail) ? detail[0] : (detail ?? (body && Object.values(body)[0]));
+    const value = Array.isArray(first) ? first[0] : first;
+    if (typeof value === "string") return value;
+  }
+  return fallback;
+}
+
 export async function createOrgWizardAction(
   name: string,
   oneLiner: string
 ): Promise<{ slug: string } & WizardResult> {
+  let org: { slug: string };
   try {
-    const org: { slug: string } = await apiFetch("/orgs/", {
+    org = await apiFetch("/orgs/", {
       method: "POST",
       body: { name, one_liner: oneLiner },
     });
-    revalidatePath("/dashboard");
-    revalidatePath("/feed");
-    const progress = await fetchOnboardingProgress(org.slug);
-    return { slug: org.slug, error: null, ...progress };
   } catch (err) {
-    return { slug: "", error: firstErrorMessage(err, "Could not create the organization.") };
+    return { slug: "", error: wizardErrorMessage(err, "Could not create the organization.") };
   }
+  revalidatePath("/dashboard");
+  revalidatePath("/feed");
+  const progress = await safeOnboardingProgress(org.slug);
+  return { slug: org.slug, error: null, ...progress };
 }
 
 export async function saveOrgLogoWizardAction(slug: string, logo: File): Promise<WizardResult> {
@@ -37,11 +64,11 @@ export async function saveOrgLogoWizardAction(slug: string, logo: File): Promise
     body.set("logo", logo);
     await apiFetch(`/orgs/${slug}/logo/`, { method: "PUT", body });
   } catch (err) {
-    return { error: firstErrorMessage(err, "Could not upload the logo.") };
+    return { error: wizardErrorMessage(err, "Could not upload the logo.") };
   }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath("/feed");
-  const progress = await fetchOnboardingProgress(slug);
+  const progress = await safeOnboardingProgress(slug);
   return { error: null, ...progress };
 }
 
@@ -57,10 +84,10 @@ export async function saveOrgTextFieldWizardAction(
       body: { value },
     });
   } catch (err) {
-    return { error: firstErrorMessage(err, "Could not save.") };
+    return { error: wizardErrorMessage(err, "Could not save.") };
   }
   revalidatePath(`/dashboard/${slug}`);
-  const progress = await fetchOnboardingProgress(slug);
+  const progress = await safeOnboardingProgress(slug);
   return { error: null, ...progress };
 }
 
@@ -75,10 +102,10 @@ export async function addOrgTeamMemberWizardAction(
       body: { value: { ...member, joined_at: new Date().toISOString() } },
     });
   } catch (err) {
-    return { error: firstErrorMessage(err, "Could not add the team member.") };
+    return { error: wizardErrorMessage(err, "Could not add the team member.") };
   }
   revalidatePath(`/dashboard/${slug}`);
-  const progress = await fetchOnboardingProgress(slug);
+  const progress = await safeOnboardingProgress(slug);
   return { error: null, ...progress };
 }
 

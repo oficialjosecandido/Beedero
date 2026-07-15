@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CreateOrgForm } from "@/components/CreateOrgForm";
+import { CreateOrgButton } from "@/components/CreateOrgButton";
 
 type InvestorProfile = {
   full_name?: string;
@@ -74,9 +74,7 @@ export function AppSidebar({
             ))
           )}
         </div>
-        <div id="create-organization" className="mt-4 scroll-mt-24">
-          <CreateOrgForm />
-        </div>
+        <CreateOrgButton />
       </div>
 
       <div className="flex flex-col gap-2 rounded-3xl border border-beedero-black/10 bg-beedero-white p-5 shadow-sm">

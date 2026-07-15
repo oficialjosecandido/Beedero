@@ -55,11 +55,11 @@ export default async function DashboardPage() {
   return (
     <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
       <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="hidden lg:block">
+        <aside className="order-2 lg:order-none lg:col-start-1">
           <AppSidebar me={me} orgs={orgs} currentPage="dashboard" />
         </aside>
 
-        <div className="flex flex-col gap-10">
+        <div className="order-1 flex flex-col gap-10 lg:order-none lg:col-start-2">
           <header>
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-beedero-black">
               Dashboard
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
           ) : null}
         </div>
 
-        <aside className="hidden lg:block">
+        <aside className="order-3 lg:order-none lg:col-start-3">
           <Suspense fallback={null}>
             <ChatPanel people={messageContacts} />
           </Suspense>

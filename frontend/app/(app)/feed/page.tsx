@@ -57,11 +57,11 @@ export default async function FeedPage() {
   return (
     <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
       <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="hidden lg:block">
+        <aside className="order-2 lg:order-none lg:col-start-1">
           <AppSidebar me={me} orgs={orgs} currentPage="feed" />
         </aside>
 
-        <div className="flex flex-col gap-8">
+        <div className="order-1 flex flex-col gap-8 lg:order-none lg:col-start-2">
           <header>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
               Feed
@@ -81,7 +81,7 @@ export default async function FeedPage() {
           <FeedList initialItems={items} initialCursor={next_cursor} />
         </div>
 
-        <aside className="hidden lg:block">
+        <aside className="order-3 lg:order-none lg:col-start-3">
           <Suspense fallback={null}>
             <ChatPanel people={messageContacts} />
           </Suspense>
