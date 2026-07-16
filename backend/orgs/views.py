@@ -20,7 +20,7 @@ from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
-from social.services import viewer_reactions_for, reaction_counts_for
+from social.services import viewer_has_commented_for, viewer_reactions_for, reaction_counts_for
 
 from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
 from .constants import FUNDRAISE_KINDS, SectionKind
@@ -808,7 +808,7 @@ class OrgActivityDetailView(OrgLookupMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def _activity_summary(activity, viewer_reaction=None, reaction_counts=None):
+def _activity_summary(activity, viewer_reaction=None, reaction_counts=None, viewer_has_commented=False):
     return {
         "id": activity.id,
         "type": "org" if activity.org_id else "person",
@@ -829,6 +829,7 @@ def _activity_summary(activity, viewer_reaction=None, reaction_counts=None):
         "reaction_counts": reaction_counts or {"like": 0, "insight": 0, "congrats": 0},
         "comment_count": activity.comment_count,
         "viewer_reaction": viewer_reaction,
+        "viewer_has_commented": viewer_has_commented,
         "created_at": activity.created_at.isoformat(),
     }
 
@@ -878,6 +879,7 @@ class FeedView(APIView):
 
         viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
         reaction_counts = reaction_counts_for([a.id for a in activities])
+        commented_activity_ids = viewer_has_commented_for(request.user, [a.id for a in activities])
 
         return Response(
             {
@@ -886,6 +888,7 @@ class FeedView(APIView):
                         a,
                         viewer_reactions.get(a.id),
                         reaction_counts.get(a.id),
+                        a.id in commented_activity_ids,
                     )
                     for a in activities
                 ],

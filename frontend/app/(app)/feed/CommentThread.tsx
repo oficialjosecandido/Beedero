@@ -2,24 +2,35 @@
 
 import { useActionState, useState, useTransition } from "react";
 
+import { formatDate } from "@/lib/format";
 import { useActionToast } from "@/lib/use-action-toast";
 
-import { deleteCommentAction, loadCommentsAction, postCommentAction } from "./actions";
+import { loadCommentsAction, postCommentAction } from "./actions";
 import type { Comment } from "./types";
+
+function CommentAvatar({ name }: { name: string }) {
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/40 text-xs font-bold text-beedero-black">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 export function CommentThread({
   activityId,
   initialCount,
+  initialViewerHasCommented = false,
 }: {
   activityId: number;
   initialCount: number;
+  initialViewerHasCommented?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [count, setCount] = useState(initialCount);
-  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [viewerHasCommented, setViewerHasCommented] = useState(initialViewerHasCommented);
   const [isPending, startTransition] = useTransition();
 
   function expand() {
@@ -30,6 +41,7 @@ export function CommentThread({
         const res = await loadCommentsAction(activityId);
         setComments(res.items);
         setCursor(res.next_cursor);
+        setViewerHasCommented(res.viewer_has_commented);
         setLoaded(true);
       } catch {
         // leave the composer usable even if the initial list fails to load
@@ -50,26 +62,14 @@ export function CommentThread({
     });
   }
 
-  function handleDelete(commentId: number) {
-    startTransition(async () => {
-      try {
-        await deleteCommentAction(commentId);
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
-        setCount((c) => Math.max(0, c - 1));
-      } catch {
-        // no-op
-      }
-    });
-  }
-
   async function commentFormAction(_prevState: string | null, formData: FormData) {
     const body = String(formData.get("body") ?? "").trim();
     if (!body) return "Write something first.";
     try {
-      const comment = await postCommentAction(activityId, body, replyTo?.id);
+      const comment = await postCommentAction(activityId, body);
       setComments((prev) => [comment, ...prev]);
       setCount((c) => c + 1);
-      setReplyTo(null);
+      setViewerHasCommented(true);
       return null;
     } catch {
       return "Could not post your comment.";
@@ -83,7 +83,7 @@ export function CommentThread({
       <button
         type="button"
         onClick={expand}
-        className="mt-3 text-xs font-medium text-zinc-500 hover:underline"
+        className="mt-3 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline"
       >
         {count > 0 ? `View ${count} comment${count === 1 ? "" : "s"}` : "Add a comment"}
       </button>
@@ -91,38 +91,22 @@ export function CommentThread({
   }
 
   return (
-    <div className="mt-3 border-t border-beedero-border pt-3">
+    <div className="mt-4 border-t border-beedero-border pt-4">
       {comments.length > 0 && (
-        <ul className="grid gap-2">
-          {comments.map((c) => (
+        <ul className="grid gap-3">
+          {comments.map((comment) => (
             <li
-              key={c.id}
-              className={`rounded-xl bg-zinc-50 p-2.5 text-sm ${c.parent_id ? "ml-6" : ""}`}
+              key={comment.id}
+              className="flex gap-3 rounded-2xl border border-beedero-border/60 bg-zinc-50/80 p-3"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-zinc-900">{c.author_name}</span>
-                <div className="flex items-center gap-2">
-                  {!c.parent_id && (
-                    <button
-                      type="button"
-                      onClick={() => setReplyTo(c)}
-                      className="text-xs text-zinc-400 hover:underline"
-                    >
-                      Reply
-                    </button>
-                  )}
-                  {c.can_delete && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(c.id)}
-                      className="text-xs text-red-500 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  )}
+              <CommentAvatar name={comment.author_name} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="font-semibold text-beedero-black">{comment.author_name}</span>
+                  <span className="text-xs text-zinc-400">{formatDate(comment.created_at)}</span>
                 </div>
+                <p className="mt-1 text-sm leading-6 text-zinc-700">{comment.body}</p>
               </div>
-              <p className="mt-1 text-zinc-700">{c.body}</p>
             </li>
           ))}
         </ul>
@@ -132,37 +116,33 @@ export function CommentThread({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mt-2 text-xs font-medium text-zinc-500 hover:underline disabled:opacity-50"
+          className="mt-3 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline disabled:opacity-50"
         >
           {isPending ? "Loading…" : "Load more comments"}
         </button>
       )}
-      <form action={formAction} className="mt-3 flex items-start gap-2">
-        <div className="flex-1">
-          {replyTo && (
-            <p className="mb-1 text-xs text-zinc-400">
-              Replying to {replyTo.author_name}{" "}
-              <button type="button" onClick={() => setReplyTo(null)} className="underline">
-                cancel
-              </button>
-            </p>
-          )}
+      {viewerHasCommented ? (
+        <p className="mt-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+          You have already commented on this post. Each person can leave one comment.
+        </p>
+      ) : (
+        <form action={formAction} className="mt-4 flex items-end gap-2">
           <textarea
             name="body"
             rows={2}
             maxLength={2000}
             placeholder="Write a comment…"
-            className="w-full rounded-xl border border-beedero-border px-3 py-2 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            className="min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-beedero-border bg-beedero-white px-3 py-2.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
           />
-        </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-beedero-yellow px-4 py-2 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-        >
-          Post
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={pending}
+            className="shrink-0 rounded-full bg-beedero-yellow px-4 py-2.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+          >
+            {pending ? "Posting…" : "Post"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

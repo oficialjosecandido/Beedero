@@ -2,39 +2,27 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
-from orgs.models import OrgMembership
 from orgs.visibility import activity_visible_to
 
 from .models import Comment
-from .permissions import IsCommentAuthorOrOrgOwner
 from .serializers import CommentCreateSerializer, ReactionSerializer, comment_summary
 from .services import (
     create_comment,
     get_visible_activity_or_404,
     reaction_counts_for,
     remove_reaction,
-    soft_delete_comment,
     toggle_reaction,
+    user_has_commented,
 )
 
 REACTIONS_PER_DAY = 200
 COMMENTS_PER_DAY = 30
-
-
-def _can_delete(user, comment):
-    if comment.author_id == user.id:
-        return True
-    org_id = comment.activity.org_id
-    if not org_id:
-        return False
-    return OrgMembership.objects.filter(
-        org_id=org_id, user=user, role__in=[OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN]
-    ).exists()
 
 
 class ActivityReactionView(APIView):
@@ -99,7 +87,7 @@ class ActivityCommentListCreateView(APIView):
                 return Response({"detail": "Invalid cursor."}, status=400)
 
         qs = (
-            Comment.objects.filter(activity=activity, deleted_at__isnull=True)
+            Comment.objects.filter(activity=activity, deleted_at__isnull=True, parent__isnull=True)
             .select_related("author", "author__investorprofile", "activity")
             .order_by("-created_at", "-id")
         )
@@ -116,8 +104,9 @@ class ActivityCommentListCreateView(APIView):
 
         return Response(
             {
-                "items": [comment_summary(c, can_delete=_can_delete(request.user, c)) for c in comments],
+                "items": [comment_summary(c) for c in comments],
                 "next_cursor": next_cursor,
+                "viewer_has_commented": user_has_commented(activity, request.user),
             }
         )
 
@@ -125,31 +114,24 @@ class ActivityCommentListCreateView(APIView):
         activity = get_visible_activity_or_404(request.user, activity_id)
         enforce_rate_limit(f"comment:{request.user.id}", limit=COMMENTS_PER_DAY, window_seconds=86400)
 
+        if user_has_commented(activity, request.user):
+            raise ValidationError({"detail": "You have already commented on this post."})
+
         serializer = CommentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
 
-        parent = None
-        parent_id = data.get("parent_id")
-        if parent_id is not None:
-            parent = get_object_or_404(Comment, pk=parent_id, activity=activity)
-            if parent.parent_id is not None:
-                return Response({"detail": "Replies can only be one level deep."}, status=400)
-
-        comment = create_comment(activity, request.user, data["body"], parent=parent)
+        comment = create_comment(activity, request.user, serializer.validated_data["body"])
         activity.refresh_from_db(fields=["comment_count"])
         from notifications.services import notify_activity_comment
 
         notify_activity_comment(activity, request.user, activity.comment_count)
-        return Response(comment_summary(comment, can_delete=True), status=201)
+        return Response(comment_summary(comment), status=201)
 
 
 class CommentDeleteView(APIView):
-    """DELETE /api/comments/<id>/ — soft delete. Visibility is checked
-    before the author/owner check so a viewer who can't see the activity at
-    all gets 404, never a 403 that would confirm the comment exists."""
+    """Comments are permanent — deletion is not allowed."""
 
-    permission_classes = [permissions.IsAuthenticated, IsCommentAuthorOrOrgOwner]
+    permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, comment_id):
         comment = get_object_or_404(
@@ -157,6 +139,4 @@ class CommentDeleteView(APIView):
         )
         if not activity_visible_to(request.user, comment.activity):
             raise Http404
-        self.check_object_permissions(request, comment)
-        soft_delete_comment(comment)
-        return Response(status=204)
+        return Response({"detail": "Comments cannot be deleted."}, status=403)

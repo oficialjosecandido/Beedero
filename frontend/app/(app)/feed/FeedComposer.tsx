@@ -59,7 +59,7 @@ export function FeedComposer({
 
   if (!profileComplete) {
     return (
-      <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-3xl bg-beedero-white p-5">
         <div className="flex items-center gap-3">
           <Avatar name={name} profilePicture={profilePicture} />
           <div className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ export function FeedComposer({
 
   if (hasPostedToday) {
     return (
-      <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+      <div className="rounded-3xl bg-beedero-white p-5">
         <div className="flex items-start gap-3">
           <Avatar name={name} profilePicture={profilePicture} />
           <div>
@@ -96,7 +96,7 @@ export function FeedComposer({
   }
 
   return (
-    <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+    <div className="rounded-3xl bg-beedero-white p-5">
       <div className="flex gap-3">
         <Avatar name={name} profilePicture={profilePicture} />
         <div className="min-w-0 flex-1">
@@ -104,7 +104,7 @@ export function FeedComposer({
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="w-full rounded-full border border-beedero-border px-4 py-3 text-left text-sm text-zinc-500 transition hover:border-beedero-border hover:bg-zinc-50"
+              className="w-full rounded-full bg-zinc-50 px-4 py-3 text-left text-sm text-zinc-500 transition hover:bg-zinc-100"
             >
               Share an update…
             </button>

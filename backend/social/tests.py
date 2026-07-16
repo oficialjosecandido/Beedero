@@ -94,63 +94,47 @@ def test_reaction_rate_limited(api, outsider, activity):
 
 
 @pytest.mark.django_db
-def test_comment_thread_is_capped_at_one_level(api, outsider, activity):
+def test_one_comment_per_user(api, outsider, activity):
     api.force_authenticate(outsider)
 
-    top = api.post(f"/api/activities/{activity.id}/comments/", {"body": "nice!"}, format="json")
-    assert top.status_code == 201
+    first = api.post(f"/api/activities/{activity.id}/comments/", {"body": "nice!"}, format="json")
+    assert first.status_code == 201
 
-    reply = api.post(
-        f"/api/activities/{activity.id}/comments/",
-        {"body": "agreed", "parent_id": top.data["id"]},
-        format="json",
-    )
-    assert reply.status_code == 201
+    duplicate = api.post(f"/api/activities/{activity.id}/comments/", {"body": "again"}, format="json")
+    assert duplicate.status_code == 400
+    assert "already commented" in str(duplicate.data).lower()
 
-    nested_reply = api.post(
-        f"/api/activities/{activity.id}/comments/",
-        {"body": "too deep", "parent_id": reply.data["id"]},
-        format="json",
-    )
-    assert nested_reply.status_code == 400
+    listing = api.get(f"/api/activities/{activity.id}/comments/")
+    assert listing.status_code == 200
+    assert listing.data["viewer_has_commented"] is True
+    assert len(listing.data["items"]) == 1
 
 
 @pytest.mark.django_db
-def test_comment_rate_limited(api, outsider, activity):
-    api.force_authenticate(outsider)
-    for _ in range(COMMENTS_PER_DAY):
-        res = api.post(f"/api/activities/{activity.id}/comments/", {"body": "hi"}, format="json")
-        assert res.status_code == 201
-    over_limit = api.post(f"/api/activities/{activity.id}/comments/", {"body": "hi"}, format="json")
-    assert over_limit.status_code == 429
-
-
-@pytest.mark.django_db
-def test_comment_soft_delete(api, founder, outsider, activity):
+def test_comment_cannot_be_deleted(api, outsider, activity):
     api.force_authenticate(outsider)
     created = api.post(f"/api/activities/{activity.id}/comments/", {"body": "hello"}, format="json")
     comment_id = created.data["id"]
+
+    deleted = api.delete(f"/api/comments/{comment_id}/")
+    assert deleted.status_code == 403
+
     activity.refresh_from_db()
     assert activity.comment_count == 1
 
-    # Neither the author nor an org owner/admin: forbidden.
-    other = User.objects.create_user(username="other", password="x")
-    api.force_authenticate(other)
-    forbidden = api.delete(f"/api/comments/{comment_id}/")
-    assert forbidden.status_code == 403
 
-    # Org owner can delete someone else's comment.
-    api.force_authenticate(founder)
-    res = api.delete(f"/api/comments/{comment_id}/")
-    assert res.status_code == 204
-
-    activity.refresh_from_db()
-    assert activity.comment_count == 0
-    comment = Comment.objects.get(pk=comment_id)
-    assert comment.deleted_at is not None  # soft delete, row still exists
-
-    listing = api.get(f"/api/activities/{activity.id}/comments/")
-    assert comment_id not in [item["id"] for item in listing.data["items"]]
+@pytest.mark.django_db
+def test_comment_rate_limited(api, outsider, org):
+    api.force_authenticate(outsider)
+    for i in range(COMMENTS_PER_DAY):
+        act = Activity.objects.create(
+            org=org, kind=SectionKind.NEWS, title=f"post {i}", occurred_at=now()
+        )
+        res = api.post(f"/api/activities/{act.id}/comments/", {"body": "hi"}, format="json")
+        assert res.status_code == 201
+    extra = Activity.objects.create(org=org, kind=SectionKind.NEWS, title="one more", occurred_at=now())
+    over_limit = api.post(f"/api/activities/{extra.id}/comments/", {"body": "hi"}, format="json")
+    assert over_limit.status_code == 429
 
 
 @pytest.mark.django_db

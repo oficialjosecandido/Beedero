@@ -48,6 +48,27 @@ def viewer_reactions_for(user, activity_ids) -> dict[int, str]:
     )
 
 
+def viewer_has_commented_for(user, activity_ids) -> set[int]:
+    """Activities the viewer has already commented on (one comment per user)."""
+    if not user or not user.is_authenticated or not activity_ids:
+        return set()
+    return set(
+        Comment.objects.filter(
+            author=user,
+            activity_id__in=list(activity_ids),
+            deleted_at__isnull=True,
+        ).values_list("activity_id", flat=True)
+    )
+
+
+def user_has_commented(activity: Activity, user) -> bool:
+    if not user or not user.is_authenticated:
+        return False
+    return Comment.objects.filter(
+        activity=activity, author=user, deleted_at__isnull=True
+    ).exists()
+
+
 def get_visible_activity_or_404(viewer, activity_id: int) -> Activity:
     """Always 404, never 403 — a 403 would itself leak "this exists but you
     can't see it" (plan §7, guard-test)."""

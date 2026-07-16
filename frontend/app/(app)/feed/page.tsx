@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
 import { ProfileColumn } from "@/components/ProfileColumn";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
-import { ChatPanel } from "./ChatPanel";
 import { FeedComposer } from "./FeedComposer";
 import { FeedList } from "./FeedList";
 import type { FeedItem } from "./types";
@@ -22,28 +20,23 @@ type InvestorProfile = {
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
-type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
-type MessageContacts = { items: PersonSummary[] };
 
 export default async function FeedPage() {
   let items: FeedItem[];
   let next_cursor: string | null;
   let me: Me;
   let orgs: Membership[];
-  let messageContacts: PersonSummary[];
   let hasPostedToday = false;
   try {
-    const [feed, meRes, orgsRes, contactsRes, myPosts] = await Promise.all([
+    const [feed, meRes, orgsRes, myPosts] = await Promise.all([
       apiFetch("/feed/"),
       apiFetch("/auth/me/"),
       safeFetch(apiFetch("/orgs/"), [] as Membership[]),
-      safeFetch(apiFetch("/contacts/") as Promise<MessageContacts>, { items: [] }),
       safeFetch(apiFetch("/investors/me/posts/") as Promise<InvestorPost[]>, []),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;
     orgs = orgsRes;
-    messageContacts = contactsRes.items;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
   } catch (err) {
@@ -56,14 +49,16 @@ export default async function FeedPage() {
   const displayName = profile?.full_name || me.email;
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
-      <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <div className="order-2 lg:order-none lg:col-start-1">
+    <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
+      <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+        <div className="order-1 lg:order-none">
           <ProfileColumn me={me} orgs={orgs} />
         </div>
 
-        <div className="order-1 flex flex-col gap-6 lg:order-none lg:col-start-2">
-          <AppColumnHeader label="Feed" />
+        <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">
+          <div className="hidden lg:block">
+            <AppColumnHeader label="Feed" />
+          </div>
 
           <FeedComposer
             name={displayName}
@@ -73,13 +68,6 @@ export default async function FeedPage() {
           />
 
           <FeedList initialItems={items} initialCursor={next_cursor} />
-        </div>
-
-        <div className="order-3 flex flex-col gap-6 lg:order-none lg:col-start-3">
-          <AppColumnHeader label="Messages" />
-          <Suspense fallback={null}>
-            <ChatPanel people={messageContacts} />
-          </Suspense>
         </div>
       </div>
     </main>

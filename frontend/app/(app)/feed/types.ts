@@ -14,15 +14,14 @@ export type FeedItem = {
   reaction_counts?: { like: number; insight: number; congrats: number };
   comment_count: number;
   viewer_reaction: string | null;
+  viewer_has_commented?: boolean;
 };
 
 export type Comment = {
   id: number;
-  parent_id: number | null;
   author_name: string;
   body: string;
   created_at: string;
-  can_delete: boolean;
 };
 
 export type ConversationSummary = {

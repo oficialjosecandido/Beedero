@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
 import { ProfileColumn } from "@/components/ProfileColumn";
 import { ProfileForm } from "@/components/ProfileForm";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
-
-import { ChatPanel } from "../feed/ChatPanel";
 
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type InvestorProfile = {
@@ -18,8 +15,6 @@ type InvestorProfile = {
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
-type PersonSummary = { id: number; name: string; headline?: string; profile_picture?: string | null };
-type MessageContacts = { items: PersonSummary[] };
 type ProfileStats = {
   followers_count: number;
   following_count: number;
@@ -32,17 +27,14 @@ type ProfileStats = {
 export default async function DashboardPage() {
   let me: Me;
   let orgs: Membership[];
-  let messageContacts: PersonSummary[] = [];
   let profileStats: ProfileStats | null = null;
   try {
-    const [meRes, orgsRes, contactsRes] = await Promise.all([
+    const [meRes, orgsRes] = await Promise.all([
       apiFetch("/auth/me/"),
       safeFetch(apiFetch("/orgs/"), [] as Membership[]),
-      safeFetch(apiFetch("/contacts/") as Promise<MessageContacts>, { items: [] }),
     ]);
     me = meRes;
     orgs = orgsRes;
-    messageContacts = contactsRes.items;
 
     if (me.investor_profile?.is_complete) {
       profileStats = await safeFetch(apiFetch("/investors/me/stats/") as Promise<ProfileStats>, null);
@@ -54,13 +46,13 @@ export default async function DashboardPage() {
   const profileComplete = Boolean(me.investor_profile?.is_complete);
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-8 lg:px-6">
-      <div className="grid w-full max-w-7xl gap-6 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <div className="order-2 lg:order-none lg:col-start-1">
+    <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
+      <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+        <div className="order-1 lg:order-none">
           <ProfileColumn me={me} orgs={orgs} />
         </div>
 
-        <div className="order-1 flex flex-col gap-6 lg:order-none lg:col-start-2">
+        <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">
           <AppColumnHeader label="Dashboard" />
 
           {!profileComplete ? (
@@ -105,13 +97,6 @@ export default async function DashboardPage() {
               </div>
             </section>
           ) : null}
-        </div>
-
-        <div className="order-3 flex flex-col gap-6 lg:order-none lg:col-start-3">
-          <AppColumnHeader label="Messages" />
-          <Suspense fallback={null}>
-            <ChatPanel people={messageContacts} />
-          </Suspense>
         </div>
       </div>
     </main>

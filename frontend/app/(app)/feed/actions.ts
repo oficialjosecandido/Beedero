@@ -87,22 +87,17 @@ export async function unreactAction(
 export async function loadCommentsAction(
   activityId: number,
   cursor?: string
-): Promise<{ items: Comment[]; next_cursor: string | null }> {
+): Promise<{ items: Comment[]; next_cursor: string | null; viewer_has_commented: boolean }> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
   return apiFetch(`/activities/${activityId}/comments/${query}`);
 }
 
 export async function postCommentAction(
   activityId: number,
-  body: string,
-  parentId?: number | null
+  body: string
 ): Promise<Comment> {
   return apiFetch(`/activities/${activityId}/comments/`, {
     method: "POST",
-    body: { body, parent_id: parentId ?? null },
+    body: { body },
   });
-}
-
-export async function deleteCommentAction(commentId: number): Promise<void> {
-  await apiFetch(`/comments/${commentId}/`, { method: "DELETE" });
 }
