@@ -236,11 +236,23 @@ export function MessagingDock() {
   }, [setUnreadTotal]);
 
   useEffect(() => {
-    void refreshConversations();
+    let cancelled = false;
+
+    async function poll() {
+      const items = await loadConversations();
+      if (cancelled || !items) return;
+      setConversations(items);
+      setUnreadTotal(items.reduce((sum, item) => sum + item.unread_count, 0));
+    }
+
+    void poll();
     void loadContacts().then(setContacts);
-    const timer = window.setInterval(() => void refreshConversations(), 20_000);
-    return () => window.clearInterval(timer);
-  }, [refreshConversations]);
+    const timer = window.setInterval(() => void poll(), 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [setUnreadTotal]);
 
   useEffect(() => {
     const chatParam = searchParams.get("chat");

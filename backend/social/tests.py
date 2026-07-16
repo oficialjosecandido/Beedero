@@ -7,7 +7,7 @@ from accounts.models import User
 from orgs.constants import SectionKind
 from orgs.models import Activity, OrgMembership, Organization, Visibility
 
-from .models import Comment, Reaction
+from .models import Reaction
 from .views import COMMENTS_PER_DAY, REACTIONS_PER_DAY
 
 
