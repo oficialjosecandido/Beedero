@@ -31,6 +31,15 @@ def joiner(db):
 
 
 @pytest.mark.django_db
+def test_create_invite_defaults_to_single_use(api, org, owner):
+    api.force_authenticate(owner)
+    res = api.post(f"/api/orgs/{org.slug}/invites/", {"role": "member"})
+    assert res.status_code == 201
+    assert res.data["max_uses"] == 1
+    assert res.data["uses_count"] == 0
+
+
+@pytest.mark.django_db
 def test_create_invite_with_expiry_and_cap(api, org, owner):
     api.force_authenticate(owner)
     expires_at = (timezone.now() + timedelta(days=7)).isoformat()
@@ -76,11 +85,13 @@ def test_accept_invite_at_usage_cap_is_rejected(api, org, owner, joiner):
     api.force_authenticate(first_user)
     res = api.post(f"/api/invites/{invite.token}/accept/")
     assert res.status_code == 200
+    invite.refresh_from_db()
+    assert invite.revoked_at is not None
 
     api.force_authenticate(joiner)
     res = api.post(f"/api/invites/{invite.token}/accept/")
     assert res.status_code == 400
-    assert "usage limit" in res.data["detail"]
+    assert "revoked" in res.data["detail"]
     assert not OrgMembership.objects.filter(org=org, user=joiner).exists()
 
 
@@ -94,6 +105,18 @@ def test_accept_within_cap_and_before_expiry_succeeds(api, org, owner, joiner):
     assert res.status_code == 200
     invite.refresh_from_db()
     assert invite.uses_count == 1
+
+
+@pytest.mark.django_db
+def test_used_invite_is_hidden_from_list(api, org, owner, joiner):
+    invite = OrgInvite.objects.create(org=org, created_by=owner, max_uses=1)
+    api.force_authenticate(joiner)
+    api.post(f"/api/invites/{invite.token}/accept/")
+
+    api.force_authenticate(owner)
+    res = api.get(f"/api/orgs/{org.slug}/invites/")
+    assert res.status_code == 200
+    assert res.data == []
 
 
 @pytest.mark.django_db

@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
@@ -451,7 +452,11 @@ class OrgMembersView(OrgLookupMixin, APIView):
 
     def get(self, request, slug):
         org = self.get_org()
-        members = OrgMembership.objects.filter(org=org).select_related("user").order_by("role", "id")
+        members = (
+            OrgMembership.objects.filter(org=org)
+            .select_related("user", "user__investorprofile")
+            .order_by("role", "id")
+        )
         return Response(OrgMembershipSerializer(members, many=True).data)
 
 
@@ -501,7 +506,11 @@ class OrgInviteListCreateView(OrgLookupMixin, APIView):
 
     def get(self, request, slug):
         org = self.get_org()
-        invites = OrgInvite.objects.filter(org=org, revoked_at__isnull=True).order_by("-created_at")
+        invites = (
+            OrgInvite.objects.filter(org=org, revoked_at__isnull=True)
+            .filter(Q(max_uses__isnull=True) | Q(uses_count__lt=F("max_uses")))
+            .order_by("-created_at")
+        )
         return Response(OrgInviteSerializer(invites, many=True).data)
 
     def post(self, request, slug):
@@ -517,7 +526,7 @@ class OrgInviteListCreateView(OrgLookupMixin, APIView):
             if expires_at is None:
                 return Response({"detail": "expires_at must be an ISO 8601 datetime."}, status=400)
 
-        max_uses = request.data.get("max_uses")
+        max_uses = request.data.get("max_uses", 1)
         if max_uses is not None:
             try:
                 max_uses = int(max_uses)
@@ -553,21 +562,26 @@ class OrgInviteAcceptView(APIView):
         # use of a capped invite must not both slip through the check below.
         with transaction.atomic():
             invite = get_object_or_404(OrgInvite.objects.select_for_update(), token=token)
+            org_slug = invite.org.slug
+            org_name = invite.org.name
+            already_member = OrgMembership.objects.filter(org=invite.org, user=request.user).exists()
+            if already_member:
+                return Response({"slug": org_slug, "name": org_name})
             if invite.revoked_at is not None:
                 return Response({"detail": "This invite link has been revoked."}, status=400)
             if invite.expires_at is not None and invite.expires_at <= timezone.now():
                 return Response({"detail": "This invite link has expired."}, status=400)
-            # An existing member re-accepting their own invite doesn't
-            # consume a use — only check/count the cap for a genuinely new join.
-            already_member = OrgMembership.objects.filter(org=invite.org, user=request.user).exists()
-            if not already_member:
-                if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
-                    return Response({"detail": "This invite link has reached its usage limit."}, status=400)
-                OrgMembership.objects.create(org=invite.org, user=request.user, role=invite.role)
-                OrgFollow.objects.get_or_create(user=request.user, org=invite.org)
-                invite.uses_count += 1
+            if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
+                return Response({"detail": "This invite link has reached its usage limit."}, status=400)
+            OrgMembership.objects.create(org=invite.org, user=request.user, role=invite.role)
+            OrgFollow.objects.get_or_create(user=request.user, org=invite.org)
+            invite.uses_count += 1
+            if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
+                invite.revoked_at = timezone.now()
+                invite.save(update_fields=["uses_count", "revoked_at"])
+            else:
                 invite.save(update_fields=["uses_count"])
-        return Response({"slug": invite.org.slug, "name": invite.org.name})
+        return Response({"slug": org_slug, "name": org_name})
 
 
 class SectionListView(OrgLookupMixin, APIView):

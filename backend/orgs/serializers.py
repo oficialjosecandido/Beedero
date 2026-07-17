@@ -155,11 +155,26 @@ class FeedPostSerializer(serializers.Serializer):
 
 class OrgMembershipSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
+    full_name = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = OrgMembership
-        fields = ["id", "email", "role"]
-        read_only_fields = ["id", "email"]
+        fields = ["id", "email", "full_name", "profile_picture", "role"]
+        read_only_fields = ["id", "email", "full_name", "profile_picture"]
+
+    def get_full_name(self, obj):
+        profile = getattr(obj.user, "investorprofile", None)
+        return (profile.full_name if profile and profile.full_name else None) or obj.user.email
+
+    def get_profile_picture(self, obj):
+        profile = getattr(obj.user, "investorprofile", None)
+        if not profile or not profile.profile_picture:
+            return None
+        try:
+            return profile.profile_picture.url
+        except ValueError:
+            return None
 
 
 class OrgFieldWriteSerializer(serializers.Serializer):

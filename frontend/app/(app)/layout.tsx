@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MessagingShell } from "@/components/MessagingShell";
 import { MessageBell } from "@/components/MessageBell";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { logoutAction } from "@/lib/auth-actions";
 import { noIndexMetadata } from "@/lib/site-metadata";
 
@@ -18,28 +19,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Beedero
             </Link>
 
-            <div className="hidden items-center gap-2 md:flex">
-              <NotificationBell />
-              <MessageBell />
-              <Link
-                href="/feed"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
-              >
-                Feed
-              </Link>
-              <Link
-                href="/discovery"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
-              >
-                Discover
-              </Link>
-              <Link
-                href="/dashboard"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
-              >
-                Dashboard
-              </Link>
-              <form action={logoutAction}>
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 md:flex">
+                <NotificationBell />
+                <MessageBell />
+                <Link
+                  href="/feed"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+                >
+                  Feed
+                </Link>
+                <Link
+                  href="/discovery"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+                >
+                  Discover
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+                >
+                  Dashboard
+                </Link>
+              </div>
+              <ProfileSwitcher />
+              <form action={logoutAction} className="hidden md:block">
                 <button
                   type="submit"
                   className="rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-black hover:text-beedero-white"
@@ -61,9 +65,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </svg>
                 </button>
               </form>
-            </div>
 
-            <details className="group relative md:hidden">
+              <details className="group relative md:hidden">
               <summary className="list-none rounded-full border border-beedero-border px-4 py-2 text-sm font-semibold text-beedero-black marker:hidden hover:bg-beedero-yellow">
                 Menu
               </summary>
@@ -113,7 +116,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </button>
                 </form>
               </div>
-            </details>
+              </details>
+            </div>
           </nav>
         </header>
         <div className="flex flex-1 flex-col">

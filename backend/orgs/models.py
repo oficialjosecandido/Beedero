@@ -57,9 +57,8 @@ class OrgMembership(models.Model):
 
 
 class OrgInvite(models.Model):
-    """Shareable link that grants org membership on accept. Reusable until
-    revoked, expired, or its usage cap (if any) is reached. P1.7: previously
-    a leaked link stayed valid forever with unlimited uses."""
+    """Shareable link that grants org membership on accept. Single-use by
+    default; deleted once its usage cap is reached."""
 
     org = models.ForeignKey(Organization, related_name="invites", on_delete=models.CASCADE)
     token = models.CharField(max_length=64, unique=True, default=generate_invite_token)

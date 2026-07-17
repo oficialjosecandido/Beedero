@@ -50,7 +50,7 @@ export function MessageBell() {
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
       {unreadTotal > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-beedero-black text-[10px] font-bold text-beedero-yellow">
+        <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-beedero-yellow text-[10px] font-bold text-beedero-black">
           {unreadTotal > 9 ? "9+" : unreadTotal}
         </span>
       )}

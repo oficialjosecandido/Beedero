@@ -43,7 +43,13 @@ type CredibilityInfo = {
   >;
 };
 type Stats = { followers_count: number; visitors_count: number };
-type Member = { id: number; email: string; role: string };
+type Member = {
+  id: number;
+  email: string;
+  full_name: string;
+  profile_picture?: string | null;
+  role: string;
+};
 type Invite = {
   id: number;
   token: string;
@@ -84,7 +90,8 @@ type FundraiseRound = {
   closed_at: string | null;
 };
 
-const POST_REQUIRED_PROFILE_KINDS = ["about", "team"];
+const POST_REQUIRED_PROFILE_KINDS = ["about"];
+const POST_REQUIRED_FIELD_COUNT = 4;
 
 export default async function DashboardOrgPage({
   params,
@@ -135,7 +142,7 @@ export default async function DashboardOrgPage({
   const hasPostedToday = activities.some(
     (activity) => activity.created_at.slice(0, 10) === today
   );
-  const canPostUpdates = profileFieldCount >= 5 && !hasPostedToday;
+  const canPostUpdates = profileFieldCount >= POST_REQUIRED_FIELD_COUNT && !hasPostedToday;
 
   return (
     <div className="flex flex-1 justify-center px-6 py-16">

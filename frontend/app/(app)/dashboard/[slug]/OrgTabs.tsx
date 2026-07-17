@@ -8,7 +8,6 @@ import {
   activateOrgAction,
   closeRoundAction,
   connectStripeTractionAction,
-  createTeamProfileMemberAction,
   createInviteAction,
   deleteActivityAction,
   deleteFieldAction,
@@ -54,7 +53,13 @@ type Stats = {
   new_followers?: number;
   profile_views?: number;
 };
-type Member = { id: number; email: string; role: string };
+type Member = {
+  id: number;
+  email: string;
+  full_name: string;
+  profile_picture?: string | null;
+  role: string;
+};
 type Invite = {
   id: number;
   token: string;
@@ -172,6 +177,94 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+function SectionFieldRow({ slug, kind, field }: { slug: string; kind: string; field: SectionField }) {
+  const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
+  const [deleteError, deleteAction, deletePending] = useActionState(deleteFieldAction, null);
+  useActionToast(saveError, savePending, { successMessage: "Saved." });
+  useActionToast(deleteError, deletePending, { successMessage: "Removed." });
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="w-28 shrink-0 truncate text-zinc-500">{field.key}</span>
+      <form action={saveAction} className="flex flex-1 items-center gap-2">
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="kind" value={kind} />
+        <input type="hidden" name="key" value={field.key} />
+        <input
+          name="value"
+          defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
+          className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        />
+        <select
+          name="visibility"
+          defaultValue={field.visibility}
+          className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        >
+          <option value="public">public</option>
+          <option value="restricted">restricted</option>
+          <option value="private">private</option>
+        </select>
+        <button
+          disabled={savePending}
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
+        >
+          {savePending ? "Saving..." : "Save"}
+        </button>
+      </form>
+      <form action={deleteAction}>
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="kind" value={kind} />
+        <input type="hidden" name="key" value={field.key} />
+        <button
+          disabled={deletePending}
+          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deletePending ? "Removing..." : "Delete"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function SectionAddFieldForm({ slug, kind }: { slug: string; kind: string }) {
+  const [error, formAction, pending] = useActionState(upsertFieldAction, null);
+  useActionToast(error, pending, { successMessage: "Added." });
+
+  return (
+    <form
+      action={formAction}
+      className="flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
+    >
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="kind" value={kind} />
+      <input
+        name="key"
+        placeholder="new key"
+        required
+        className="w-28 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+      />
+      <input
+        name="value"
+        placeholder="value"
+        required
+        className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+      />
+      <select name="visibility" className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
+        <option value="">(inherits)</option>
+        <option value="public">public</option>
+        <option value="restricted">restricted</option>
+        <option value="private">private</option>
+      </select>
+      <button
+        disabled={pending}
+        className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+      >
+        {pending ? "Adding..." : "Add"}
+      </button>
+    </form>
+  );
+}
+
 function SectionCard({ slug, section }: { slug: string; section: Section }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -184,70 +277,63 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
       <div className="flex flex-col gap-2">
         {section.fields.length === 0 && <p className="text-sm text-zinc-400">No fields yet.</p>}
         {section.fields.map((field) => (
-          <div key={field.id} className="flex items-center gap-2 text-sm">
-            <span className="w-28 shrink-0 truncate text-zinc-500">{field.key}</span>
-            <form action={upsertFieldAction} className="flex flex-1 items-center gap-2">
-              <input type="hidden" name="slug" value={slug} />
-              <input type="hidden" name="kind" value={section.kind} />
-              <input type="hidden" name="key" value={field.key} />
-              <input
-                name="value"
-                defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
-                className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-              />
-              <select
-                name="visibility"
-                defaultValue={field.visibility}
-                className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-              >
-                <option value="public">public</option>
-                <option value="restricted">restricted</option>
-                <option value="private">private</option>
-              </select>
-              <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
-                Save
-              </button>
-            </form>
-            <form action={deleteFieldAction}>
-              <input type="hidden" name="slug" value={slug} />
-              <input type="hidden" name="kind" value={section.kind} />
-              <input type="hidden" name="key" value={field.key} />
-              <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                Delete
-              </button>
-            </form>
-          </div>
+          <SectionFieldRow key={field.id} slug={slug} kind={section.kind} field={field} />
         ))}
       </div>
-      <form
-        action={upsertFieldAction}
-        className="flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
-      >
-        <input type="hidden" name="slug" value={slug} />
-        <input type="hidden" name="kind" value={section.kind} />
-        <input
-          name="key"
-          placeholder="new key"
-          required
-          className="w-28 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-        />
-        <input
-          name="value"
-          placeholder="value"
-          required
-          className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-        />
-        <select name="visibility" className="rounded-lg border border-beedero-border px-2 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
-          <option value="">(inherits)</option>
-          <option value="public">public</option>
-          <option value="restricted">restricted</option>
-          <option value="private">private</option>
-        </select>
-        <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
-          Add
-        </button>
-      </form>
+      <SectionAddFieldForm slug={slug} kind={section.kind} />
     </div>
+  );
+}
+
+function CuratedFieldForm({
+  slug,
+  kind,
+  item,
+  field,
+}: {
+  slug: string;
+  kind: string;
+  item: { key: string; label: string; placeholder: string; rows?: number };
+  field?: SectionField;
+}) {
+  const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
+  const [deleteError, deleteAction, deletePending] = useActionState(deleteFieldAction, null);
+  useActionToast(saveError, savePending, { successMessage: "Saved." });
+  useActionToast(deleteError, deletePending, { successMessage: "Cleared." });
+
+  return (
+    <form action={saveAction} className="flex flex-col gap-2">
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="key" value={item.key} />
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+        {item.label}
+        <textarea
+          name="value"
+          rows={item.rows ?? 3}
+          placeholder={item.placeholder}
+          defaultValue={typeof field?.value === "string" ? field.value : ""}
+          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        />
+      </label>
+      <div className="flex items-center gap-2">
+        <button
+          disabled={savePending}
+          className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+        >
+          {savePending ? "Saving..." : `Save ${item.label}`}
+        </button>
+        {field && (
+          <button
+            formAction={deleteAction}
+            disabled={deletePending}
+            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deletePending ? "Clearing..." : "Clear"}
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 
@@ -289,36 +375,7 @@ function CuratedProfileSection({
       <div className="grid gap-4">
         {fields.map((item) => {
           const field = section?.fields.find((f) => f.key === item.key);
-          return (
-            <form key={item.key} action={upsertFieldAction} className="flex flex-col gap-2">
-              <input type="hidden" name="slug" value={slug} />
-              <input type="hidden" name="kind" value={kind} />
-              <input type="hidden" name="key" value={item.key} />
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                {item.label}
-                <textarea
-                  name="value"
-                  rows={item.rows ?? 3}
-                  placeholder={item.placeholder}
-                  defaultValue={typeof field?.value === "string" ? field.value : ""}
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                />
-              </label>
-              <div className="flex items-center gap-2">
-                <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
-                  Save {item.label}
-                </button>
-                {field && (
-                  <button
-                    formAction={deleteFieldAction}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </form>
-          );
+          return <CuratedFieldForm key={item.key} slug={slug} kind={kind} item={item} field={field} />;
         })}
       </div>
     </div>
@@ -337,106 +394,126 @@ function AboutProfileSection({ slug, section }: { slug: string; section?: Sectio
   );
 }
 
-function TeamProfileSection({ slug, section }: { slug: string; section?: Section }) {
-  const members = section?.fields ?? [];
+function CuratedLinkRow({
+  slug,
+  linkKey,
+  label,
+  placeholder,
+  field,
+}: {
+  slug: string;
+  linkKey: string;
+  label: string;
+  placeholder: string;
+  field?: SectionField;
+}) {
+  const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
+  const [deleteError, deleteAction, deletePending] = useActionState(deleteFieldAction, null);
+  useActionToast(saveError, savePending, { successMessage: "Saved." });
+  useActionToast(deleteError, deletePending, { successMessage: "Cleared." });
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-extrabold text-zinc-900">Team</h3>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
-          public
-        </span>
-      </div>
-      {members.length === 0 && (
-        <p className="text-sm text-zinc-500">No team members added yet.</p>
-      )}
-      <div className="grid gap-2">
-        {members.map((member) => {
-          const value =
-            member.value && typeof member.value === "object"
-              ? (member.value as {
-                  name?: string;
-                  linkedin?: string;
-                  role?: string;
-                  joined_at?: string;
-                })
-              : { name: String(member.value) };
-          return (
-            <div
-              key={member.id}
-              className="flex flex-col gap-2 rounded-xl border border-beedero-border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-semibold text-beedero-black">{value.name || "Unnamed member"}</p>
-                <p className="text-xs text-zinc-500">
-                  {value.role || "Role missing"}
-                  {value.joined_at ? ` · joined ${formatDate(value.joined_at)}` : ""}
-                </p>
-                {value.linkedin && (
-                  <a
-                    href={value.linkedin}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-                  >
-                    LinkedIn profile
-                  </a>
-                )}
-              </div>
-              <form action={deleteFieldAction}>
-                <input type="hidden" name="slug" value={slug} />
-                <input type="hidden" name="kind" value="team" />
-                <input type="hidden" name="key" value={member.key} />
-                <button className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                  Remove
-                </button>
-              </form>
-            </div>
-          );
-        })}
-      </div>
-      <form
-        action={createTeamProfileMemberAction}
-        className="grid gap-3 border-t border-dashed border-beedero-border pt-4 sm:grid-cols-2"
-      >
+    <div className="flex items-center gap-2 text-sm">
+      <span className="w-24 shrink-0 font-medium text-zinc-600">{label}</span>
+      <form action={saveAction} className="flex flex-1 items-center gap-2">
         <input type="hidden" name="slug" value={slug} />
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-          Name
-          <input
-            name="name"
-            required
-            placeholder="Jane Founder"
-            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-          Function
-          <input
-            name="role"
-            required
-            placeholder="CEO"
-            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700 sm:col-span-2">
-          LinkedIn profile
-          <input
-            name="linkedin"
-            type="url"
-            required
-            placeholder="https://linkedin.com/in/..."
-            className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          />
-        </label>
-        <p className="text-xs text-zinc-500 sm:col-span-2">
-          Joined date is set automatically to today when you add the person.
-        </p>
-        <button className="self-start rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white sm:col-span-2">
-          Add team member
+        <input type="hidden" name="kind" value="links" />
+        <input type="hidden" name="key" value={linkKey} />
+        <input
+          name="value"
+          placeholder={placeholder}
+          defaultValue={typeof field?.value === "string" ? field.value : ""}
+          className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        />
+        <button
+          disabled={savePending}
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
+        >
+          {savePending ? "Saving..." : "Save"}
+        </button>
+      </form>
+      {field && (
+        <form action={deleteAction}>
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="kind" value="links" />
+          <input type="hidden" name="key" value={linkKey} />
+          <button
+            disabled={deletePending}
+            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deletePending ? "Clearing..." : "Clear"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function CustomLinkRow({ slug, field }: { slug: string; field: SectionField }) {
+  const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
+  const [deleteError, deleteAction, deletePending] = useActionState(deleteFieldAction, null);
+  useActionToast(saveError, savePending, { successMessage: "Saved." });
+  useActionToast(deleteError, deletePending, { successMessage: "Removed." });
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="w-28 shrink-0 truncate text-zinc-500">{field.key}</span>
+      <form action={saveAction} className="flex flex-1 items-center gap-2">
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="kind" value="links" />
+        <input type="hidden" name="key" value={field.key} />
+        <input
+          name="value"
+          defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
+          className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+        />
+        <button
+          disabled={savePending}
+          className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow disabled:opacity-50"
+        >
+          {savePending ? "Saving..." : "Save"}
+        </button>
+      </form>
+      <form action={deleteAction}>
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="kind" value="links" />
+        <input type="hidden" name="key" value={field.key} />
+        <button
+          disabled={deletePending}
+          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deletePending ? "Removing..." : "Delete"}
         </button>
       </form>
     </div>
+  );
+}
+
+function AddCustomLinkForm({ slug }: { slug: string }) {
+  const [error, formAction, pending] = useActionState(upsertFieldAction, null);
+  useActionToast(error, pending, { successMessage: "Added." });
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
+    >
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="kind" value="links" />
+      <input
+        name="key"
+        placeholder="label, e.g. crunchbase"
+        required
+        className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+      />
+      <input name="value" placeholder="url" required className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60" />
+      <button
+        disabled={pending}
+        className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+      >
+        {pending ? "Adding..." : "Add"}
+      </button>
+    </form>
   );
 }
 
@@ -456,33 +533,14 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
           {CURATED_LINKS.map(({ key, label, placeholder }) => {
             const field = fields.find((f) => f.key === key);
             return (
-              <div key={key} className="flex items-center gap-2 text-sm">
-                <span className="w-24 shrink-0 font-medium text-zinc-600">{label}</span>
-                <form action={upsertFieldAction} className="flex flex-1 items-center gap-2">
-                  <input type="hidden" name="slug" value={slug} />
-                  <input type="hidden" name="kind" value="links" />
-                  <input type="hidden" name="key" value={key} />
-                  <input
-                    name="value"
-                    placeholder={placeholder}
-                    defaultValue={typeof field?.value === "string" ? field.value : ""}
-                    className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                  />
-                  <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
-                    Save
-                  </button>
-                </form>
-                {field && (
-                  <form action={deleteFieldAction}>
-                    <input type="hidden" name="slug" value={slug} />
-                    <input type="hidden" name="kind" value="links" />
-                    <input type="hidden" name="key" value={key} />
-                    <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                      Clear
-                    </button>
-                  </form>
-                )}
-              </div>
+              <CuratedLinkRow
+                key={key}
+                slug={slug}
+                linkKey={key}
+                label={label}
+                placeholder={placeholder}
+                field={field}
+              />
             );
           })}
         </div>
@@ -493,49 +551,10 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
         <div className="mt-3 flex flex-col gap-2">
           {customFields.length === 0 && <p className="text-sm text-zinc-400">No custom links yet.</p>}
           {customFields.map((field) => (
-            <div key={field.id} className="flex items-center gap-2 text-sm">
-              <span className="w-28 shrink-0 truncate text-zinc-500">{field.key}</span>
-              <form action={upsertFieldAction} className="flex flex-1 items-center gap-2">
-                <input type="hidden" name="slug" value={slug} />
-                <input type="hidden" name="kind" value="links" />
-                <input type="hidden" name="key" value={field.key} />
-                <input
-                  name="value"
-                  defaultValue={typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
-                  className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                />
-                <button className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow">
-                  Save
-                </button>
-              </form>
-              <form action={deleteFieldAction}>
-                <input type="hidden" name="slug" value={slug} />
-                <input type="hidden" name="kind" value="links" />
-                <input type="hidden" name="key" value={field.key} />
-                <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                  Delete
-                </button>
-              </form>
-            </div>
+            <CustomLinkRow key={field.id} slug={slug} field={field} />
           ))}
         </div>
-        <form
-          action={upsertFieldAction}
-          className="mt-3 flex items-center gap-2 border-t border-dashed border-beedero-border pt-3"
-        >
-          <input type="hidden" name="slug" value={slug} />
-          <input type="hidden" name="kind" value="links" />
-          <input
-            name="key"
-            placeholder="label, e.g. crunchbase"
-            required
-            className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          />
-          <input name="value" placeholder="url" required className="flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60" />
-          <button className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white">
-            Add
-          </button>
-        </form>
+        <AddCustomLinkForm slug={slug} />
       </div>
     </div>
   );
@@ -687,12 +706,12 @@ function PostComposer({
       ) : (
         <div className="rounded-2xl border border-beedero-border bg-beedero-yellow/25 p-4">
           <p className="text-sm font-bold text-beedero-black">
-            Publishing is locked until About and Team have 5 fields filled in.
+            Publishing is locked until About has 4 fields filled in.
           </p>
           <p className="mt-1 text-sm text-zinc-700">
-            You have {profileFieldCount} of 5 required fields. Fill in summary, mission, vision,
-            values, or team members in the Profile tab. Products and Market thesis are optional and
-            do not count toward this requirement.
+            You have {profileFieldCount} of 4 required fields. Fill in summary, mission, vision, and
+            values in the Profile tab. Products and Market thesis are optional and do not count toward
+            this requirement.
           </p>
           <button
             type="button"
@@ -749,7 +768,7 @@ function PostComposer({
       )}
       <button
         disabled={!canPostUpdates || pending}
-        title={!canPostUpdates ? "Complete 5 About or Team fields before publishing." : undefined}
+        title={!canPostUpdates ? "Complete 4 About fields before publishing." : undefined}
         className="self-start rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending ? "Publishing..." : "Publish"}
@@ -825,6 +844,20 @@ function ActivityTab({
   );
 }
 
+function TeamMemberAvatar({ name, profilePicture }: { name: string; profilePicture?: string | null }) {
+  if (profilePicture) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={profilePicture} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+    );
+  }
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-500">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 function TeamSection({ slug, members, canManage }: { slug: string; members: Member[]; canManage: boolean }) {
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -832,7 +865,10 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
       <div className="mt-3 flex flex-col gap-2">
         {members.map((member) => (
           <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
-            <span className="truncate text-zinc-700">{member.email}</span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
+              <span className="truncate font-medium text-zinc-900">{member.full_name}</span>
+            </div>
             {canManage ? (
               <div className="flex items-center gap-2">
                 <form action={updateMemberRoleAction}>
@@ -883,9 +919,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
           >
             <div className="min-w-0">
               <p className="truncate font-mono text-xs text-zinc-600">/invite/{invite.token}</p>
-              <p className="text-xs text-zinc-400">
-                {invite.role} · used {invite.uses_count}x
-              </p>
+              <p className="text-xs text-zinc-400">{invite.role} · single use</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -1472,7 +1506,6 @@ export function OrgTabs({
   const [active, setActive] = useState<TabId>(suggestedTitle ? "activity" : "overview");
 
   const aboutSection = sections.find((s) => s.kind === "about");
-  const teamSection = sections.find((s) => s.kind === "team");
   const productsSection = sections.find((s) => s.kind === "products");
   const marketSection = sections.find((s) => s.kind === "market_thesis");
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
@@ -1528,7 +1561,6 @@ export function OrgTabs({
         <div className="flex flex-col gap-4">
           <OrgBasicsForm org={org} canManage={canManage} />
           <AboutProfileSection slug={slug} section={aboutSection} />
-          <TeamProfileSection slug={slug} section={teamSection} />
           <CuratedProfileSection
             slug={slug}
             section={productsSection}

@@ -171,7 +171,7 @@ export async function followUserAction(formData: FormData) {
   revalidatePath("/discovery");
 }
 
-export async function upsertFieldAction(formData: FormData) {
+export async function upsertFieldAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));
   const key = String(formData.get("key"));
@@ -179,28 +179,16 @@ export async function upsertFieldAction(formData: FormData) {
   const value = valueJson ? JSON.parse(String(valueJson)) : String(formData.get("value"));
   const visibility = String(formData.get("visibility") ?? "");
 
-  await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, {
-    method: "PUT",
-    body: { value, ...(visibility ? { visibility } : {}) },
-  });
+  try {
+    await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, {
+      method: "PUT",
+      body: { value, ...(visibility ? { visibility } : {}) },
+    });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not save.");
+  }
   revalidatePath(`/dashboard/${slug}`);
-}
-
-export async function createTeamProfileMemberAction(formData: FormData) {
-  const slug = String(formData.get("slug"));
-  const key = `member_${Date.now()}`;
-  await apiFetch(`/orgs/${slug}/sections/team/fields/${key}/`, {
-    method: "PUT",
-    body: {
-      value: {
-        name: String(formData.get("name") ?? ""),
-        linkedin: String(formData.get("linkedin") ?? ""),
-        role: String(formData.get("role") ?? ""),
-        joined_at: new Date().toISOString(),
-      },
-    },
-  });
-  revalidatePath(`/dashboard/${slug}`);
+  return null;
 }
 
 export async function deleteActivityAction(formData: FormData) {
@@ -212,13 +200,18 @@ export async function deleteActivityAction(formData: FormData) {
   revalidatePath("/feed");
 }
 
-export async function deleteFieldAction(formData: FormData) {
+export async function deleteFieldAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));
   const key = String(formData.get("key"));
 
-  await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, { method: "DELETE" });
+  try {
+    await apiFetch(`/orgs/${slug}/sections/${kind}/fields/${key}/`, { method: "DELETE" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not remove.");
+  }
   revalidatePath(`/dashboard/${slug}`);
+  return null;
 }
 
 export async function openRoundAction(formData: FormData) {
