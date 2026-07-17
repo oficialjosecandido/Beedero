@@ -34,10 +34,6 @@ def get_visible_conversation_or_404(viewer, conversation_id: int) -> Conversatio
 def send_message(conversation: Conversation, sender, body: str) -> Message:
     message = Message.objects.create(conversation=conversation, sender=sender, body=body)
     Conversation.objects.filter(pk=conversation.pk).update(last_message_at=message.created_at)
-
-    from notifications.services import notify_new_message
-
-    notify_new_message(conversation, sender)
     return message
 
 

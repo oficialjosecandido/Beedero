@@ -201,26 +201,6 @@ def notify_profile_views(org, view_count: int):
         )
 
 
-def notify_new_message(conversation, sender):
-    """Never gated by inapp_engagement — a DM must always reach its
-    recipient, unlike reactions/comments/follows which that preference is
-    meant to quiet down."""
-    recipient_id = (
-        conversation.participant_two_id
-        if conversation.participant_one_id == sender.id
-        else conversation.participant_one_id
-    )
-    sender_name = _display_name(sender)
-    notify(
-        User.objects.get(pk=recipient_id),
-        kind=Notification.Kind.MESSAGE,
-        aggregate_key=f"message:{conversation.id}",
-        title="New message",
-        body=f"{sender_name} sent you a message.",
-        link=f"/feed?chat={conversation.id}",
-    )
-
-
 def notify_milestone(
     user,
     *,

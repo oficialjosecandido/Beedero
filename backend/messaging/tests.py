@@ -140,15 +140,9 @@ def test_new_conversation_rate_limit(api, alice):
 
 
 @pytest.mark.django_db
-def test_sending_a_message_notifies_the_recipient(api, alice, bob):
+def test_sending_a_message_does_not_notify_the_recipient(api, alice, bob):
     conversation = get_or_create_conversation(alice, bob)
     api.force_authenticate(alice)
 
     api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
-    notification = Notification.objects.get(user=bob, kind=Notification.Kind.MESSAGE)
-    assert notification.link == f"/feed?chat={conversation.id}"
-
-    # A second message within the aggregation window updates the same
-    # notification row rather than creating a new one.
-    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "still there?"}, format="json")
-    assert Notification.objects.filter(user=bob, kind=Notification.Kind.MESSAGE).count() == 1
+    assert not Notification.objects.filter(user=bob).exists()
