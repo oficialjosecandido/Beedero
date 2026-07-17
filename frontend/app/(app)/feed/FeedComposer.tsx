@@ -46,6 +46,7 @@ export function FeedComposer({
   const [kind, setKind] = useState(POST_KIND_OPTIONS[0].value);
   const prevPending = useRef(false);
   const allowsPhoto = kind === "event" || kind === "update";
+  const isEvent = kind === "event";
   useActionToast(error, pending, { successMessage: "Post published!" });
 
   useEffect(() => {
@@ -134,6 +135,28 @@ export function FeedComposer({
                   className="min-w-[12rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </div>
+              {isEvent && (
+                <div className="flex flex-wrap gap-2">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                    Start
+                    <input
+                      type="datetime-local"
+                      name="starts_at"
+                      required
+                      className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                    End
+                    <input
+                      type="datetime-local"
+                      name="ends_at"
+                      required
+                      className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                    />
+                  </label>
+                </div>
+              )}
               <textarea
                 name="body"
                 placeholder="Say more…"

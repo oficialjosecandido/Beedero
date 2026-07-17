@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
-import { ApiError, apiFetch } from "@/lib/api";
+import { OrgDashboardSidebar } from "@/components/OrgDashboardSidebar";
+import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
 
@@ -59,7 +60,10 @@ type Invite = {
   uses_count: number;
   is_active: boolean;
 };
-type Me = { email: string };
+type Me = {
+  email: string;
+  memberships?: { org: string; role: string }[];
+};
 type Onboarding = {
   status: "draft" | "live";
   completeness: number;
@@ -77,7 +81,32 @@ type OrgActivity = {
     body?: string;
     image?: string | null;
     occurred_at?: string;
+    ends_at?: string | null;
   };
+};
+type Vitality = {
+  items: { key: string; label: string; done: boolean; hint: string }[];
+  done_count: number;
+  total_count: number;
+  presence: {
+    investor_views: number;
+    new_followers: number;
+    interest: number;
+    since_days: number;
+    has_signal: boolean;
+  };
+  badge: {
+    level: number;
+    visual_status: "verified" | "expiring" | "expired" | "unverified";
+    valid_until: string | null;
+    days_until_expiry: number | null;
+  };
+};
+type BadgeEmbed = {
+  html: string;
+  verify_url: string;
+  badge_url: string;
+  json_url: string;
 };
 type FundraiseRound = {
   id: number;
@@ -91,18 +120,36 @@ type FundraiseRound = {
   closed_at: string | null;
 };
 
-const POST_REQUIRED_PROFILE_KINDS = ["about"];
-const POST_REQUIRED_FIELD_COUNT = 4;
+const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
+  status,
+  completeness: 0,
+  refund_eligible: false,
+  publish_ready: false,
+  checklist: [],
+  fee: null,
+});
+
+const CREDIBILITY_FALLBACK: CredibilityInfo = { level: 0, verifications: {} };
+const ABOUT_REQUIRED_KEYS = ["summary", "mission", "vision", "values"] as const;
+const POST_REQUIRED_FIELD_COUNT = ABOUT_REQUIRED_KEYS.length;
+const ORG_TABS = ["overview", "calendar", "activity", "profile", "fundraising", "credibility"] as const;
+type OrgTabId = (typeof ORG_TABS)[number];
+
+function parseOrgTab(tab?: string): OrgTabId | undefined {
+  if (tab && ORG_TABS.includes(tab as OrgTabId)) return tab as OrgTabId;
+  return undefined;
+}
 
 export default async function DashboardOrgPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ suggested_title?: string; suggested_body?: string }>;
+  searchParams: Promise<{ suggested_title?: string; suggested_body?: string; tab?: string }>;
 }) {
   const { slug } = await params;
-  const { suggested_title: suggestedTitle, suggested_body: suggestedBody } = await searchParams;
+  const { suggested_title: suggestedTitle, suggested_body: suggestedBody, tab } = await searchParams;
+  const initialTab = parseOrgTab(tab);
 
   let profile: OrgSummary;
   let sections: Section[];
@@ -111,8 +158,9 @@ export default async function DashboardOrgPage({
   let me: Me;
   let activities: OrgActivity[];
   let roundHistory: FundraiseRound[];
+  let onboarding: Onboarding | null;
   try {
-    [profile, sections, stats, members, me, { items: activities }, roundHistory] =
+    [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding] =
       await Promise.all([
         apiFetch(`/orgs/${slug}/`),
         apiFetch(`/orgs/${slug}/sections/`),
@@ -121,6 +169,7 @@ export default async function DashboardOrgPage({
         apiFetch("/auth/me/"),
         apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
         apiFetch(`/orgs/${slug}/rounds/`) as Promise<FundraiseRound[]>,
+        safeFetch(apiFetch(`/orgs/${slug}/onboarding/`) as Promise<Onboarding>, null),
       ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
@@ -128,26 +177,48 @@ export default async function DashboardOrgPage({
     throw err;
   }
 
-  const myRole = members.find((m) => m.email === me.email)?.role ?? "member";
-  const canManage = myRole === "owner" || myRole === "admin";
-  const invites: Invite[] = canManage ? await apiFetch(`/orgs/${slug}/invites/`) : [];
-  const onboarding: Onboarding | null = canManage
-    ? await apiFetch(`/orgs/${slug}/onboarding/`)
-    : null;
-  const credibility: CredibilityInfo = await apiFetch(`/orgs/${slug}/credibility/`);
+  const onboardingData = onboarding ?? ONBOARDING_FALLBACK(profile.org.status);
 
-  const profileFieldCount = sections
-    .filter((section) => POST_REQUIRED_PROFILE_KINDS.includes(section.kind))
-    .reduce((count, section) => count + section.fields.length, 0);
+  const membershipRole = me.memberships?.find((membership) => membership.org === slug)?.role;
+  const listedRole = members.find(
+    (member) => member.email.toLowerCase() === me.email.toLowerCase()
+  )?.role;
+  const myRole = membershipRole ?? listedRole ?? "member";
+  const canManage = myRole === "owner" || myRole === "admin";
+  const [invites, credibility, badgeEmbed, vitality] = await Promise.all([
+    canManage
+      ? safeFetch(apiFetch(`/orgs/${slug}/invites/`) as Promise<Invite[]>, [])
+      : Promise.resolve([] as Invite[]),
+    safeFetch(apiFetch(`/orgs/${slug}/credibility/`) as Promise<CredibilityInfo>, CREDIBILITY_FALLBACK),
+    canManage
+      ? safeFetch(apiFetch(`/orgs/${slug}/badge-embed/`) as Promise<BadgeEmbed>, null)
+      : Promise.resolve(null),
+    canManage
+      ? safeFetch(apiFetch(`/orgs/${slug}/vitality/`) as Promise<Vitality>, null)
+      : Promise.resolve(null),
+  ]);
+
+  const aboutSection = sections.find((section) => section.kind === "about");
+  const filledAboutKeys = new Set(aboutSection?.fields.map((field) => field.key) ?? []);
+  const profileFieldCount = ABOUT_REQUIRED_KEYS.filter((key) => filledAboutKeys.has(key)).length;
   const today = new Date().toISOString().slice(0, 10);
   const hasPostedToday = activities.some(
     (activity) => activity.created_at.slice(0, 10) === today
   );
   const canPostUpdates = profileFieldCount >= POST_REQUIRED_FIELD_COUNT && !hasPostedToday;
+  const events = activities
+    .filter((activity) => activity.kind === "events")
+    .map((activity) => ({
+      id: activity.id,
+      title: activity.value.title ?? "Event",
+      occurred_at: activity.value.occurred_at ?? activity.created_at,
+      ends_at: activity.value.ends_at,
+      body: activity.value.body,
+    }));
 
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <div className="flex w-full max-w-3xl flex-col gap-8">
+    <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
+      <div className="flex w-full max-w-7xl flex-col gap-6 lg:gap-8">
         <header className="flex flex-col gap-4 rounded-3xl border border-beedero-border bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <OrgLogoForm slug={slug} logo={profile.org.logo} name={profile.org.name} editable={canManage} />
@@ -180,26 +251,38 @@ export default async function DashboardOrgPage({
           </div>
         </header>
 
-        <OrgTabs
-          slug={slug}
-          org={profile.org}
-          sections={sections}
-          activities={activities}
-          isFundraising={profile.org.is_fundraising}
-          roundHistory={roundHistory}
-          profileFieldCount={profileFieldCount}
-          canPostUpdates={canPostUpdates}
-          hasPostedToday={hasPostedToday}
-          stats={stats}
-          members={members}
-          invites={invites}
-          canManage={canManage}
-          onboarding={onboarding}
-          credibility={credibility}
-          suggestedTitle={suggestedTitle}
-          suggestedBody={suggestedBody}
-        />
+        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+          <div className="order-2 lg:order-none">
+            <OrgDashboardSidebar events={events} />
+          </div>
+
+          <div className="order-1 lg:order-none">
+            <OrgTabs
+              slug={slug}
+              org={profile.org}
+              sections={sections}
+              activities={activities}
+              events={events}
+              isFundraising={profile.org.is_fundraising}
+              roundHistory={roundHistory}
+              profileFieldCount={profileFieldCount}
+              canPostUpdates={canPostUpdates}
+              hasPostedToday={hasPostedToday}
+              stats={stats}
+              members={members}
+              invites={invites}
+              canManage={canManage}
+              onboarding={onboardingData}
+              credibility={credibility}
+              badgeEmbed={badgeEmbed}
+              vitality={vitality}
+              suggestedTitle={suggestedTitle}
+              suggestedBody={suggestedBody}
+              initialTab={initialTab}
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

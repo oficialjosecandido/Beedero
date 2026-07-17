@@ -20,6 +20,25 @@ class ProfileView(models.Model):
         indexes = [models.Index(fields=["org", "-viewed_at"])]
 
 
+class PersonProfileView(models.Model):
+    """Append-only views of a person's public profile (/p/<handle>)."""
+
+    subject = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="person_profile_views", on_delete=models.CASCADE
+    )
+    viewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="person_profiles_viewed",
+        on_delete=models.SET_NULL,
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["subject", "-viewed_at"])]
+
+
 class InterestSignal(models.Model):
     """Save/bookmark, expressed interest, investor follow, etc. — whatever
     an investor does that signals interest in an org, captured now so the

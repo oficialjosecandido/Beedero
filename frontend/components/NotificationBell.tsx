@@ -1,18 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-type NotificationItem = {
-  id: number;
-  kind: string;
-  title: string;
-  body: string;
-  link: string;
-  read: boolean;
-  updated_at: string;
-  payload?: { suggestion_title?: string; suggestion_body?: string };
-};
+import { type NotificationItem, useNotifications } from "@/lib/notifications-context";
 
 function notificationHref(item: NotificationItem): string {
   const base = item.link || "/feed";
@@ -26,78 +17,11 @@ function notificationHref(item: NotificationItem): string {
   return `${base}${separator}${params.toString()}`;
 }
 
-type Preferences = { digest_email: boolean; inapp_engagement: boolean };
-
 export function NotificationBell() {
+  const { unread, items, prefs, refresh, markAllRead, loadPreferences, updatePreference } =
+    useNotifications();
   const [open, setOpen] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [showPrefs, setShowPrefs] = useState(false);
-
-  async function loadNotifications() {
-    try {
-      const res = await fetch("/api/notifications", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = (await res.json()) as { unread_count: number; items: NotificationItem[] };
-      setUnread(data.unread_count);
-      setItems(data.items);
-    } catch {
-      // ignore polling errors
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/notifications", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { unread_count: number; items: NotificationItem[] };
-        setUnread(data.unread_count);
-        setItems(data.items);
-      } catch {
-        // ignore polling errors
-      }
-    }
-
-    void load();
-    const timer = window.setInterval(() => void load(), 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, []);
-
-  async function markAllRead() {
-    await fetch("/api/notifications", { method: "POST", body: JSON.stringify({}) });
-    setUnread(0);
-    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
-  }
-
-  async function loadPreferences() {
-    try {
-      const res = await fetch("/api/notifications/preferences", { cache: "no-store" });
-      if (!res.ok) return;
-      setPrefs((await res.json()) as Preferences);
-    } catch {
-      // ignore
-    }
-  }
-
-  async function updatePreference(field: keyof Preferences, value: boolean) {
-    setPrefs((prev) => (prev ? { ...prev, [field]: value } : prev));
-    try {
-      const res = await fetch("/api/notifications/preferences", {
-        method: "PATCH",
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (res.ok) setPrefs((await res.json()) as Preferences);
-    } catch {
-      // ignore
-    }
-  }
 
   return (
     <div className="relative">
@@ -106,8 +30,8 @@ export function NotificationBell() {
         onClick={() => {
           setOpen((value) => !value);
           if (!open) {
-            loadNotifications();
-            if (!prefs) loadPreferences();
+            void refresh();
+            if (!prefs) void loadPreferences();
           }
         }}
         className="relative rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"

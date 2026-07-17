@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { sendMessageAction, startConversationAction } from "@/app/(app)/feed/actions";
 import type { ConversationSummary, MessageItem } from "@/app/(app)/feed/types";
@@ -84,14 +84,19 @@ function ChatWindow({
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (minimized) return;
     let cancelled = false;
 
     async function refresh() {
+      const requestId = ++requestIdRef.current;
       const items = await loadMessages(conversationId);
-      if (!cancelled && items) setMessages(items);
+      // A newer request (poll or send) may have started and already
+      // applied fresher state while this one was in flight — a response
+      // arriving out of order must not clobber it.
+      if (!cancelled && items && requestId === requestIdRef.current) setMessages(items);
     }
 
     void refresh();
@@ -114,8 +119,8 @@ function ChatWindow({
         setDraft(body);
         return;
       }
-      const items = await loadMessages(conversationId);
-      if (items) setMessages(items);
+      requestIdRef.current += 1;
+      setMessages((prev) => [...prev, result.message]);
     });
   }
 

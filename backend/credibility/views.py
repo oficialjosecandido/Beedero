@@ -14,10 +14,12 @@ from beedero.ratelimit import enforce_rate_limit
 from orgs.models import OrgMembership, RestrictedAccessLog
 from orgs.permissions import IsOrgOwnerOrAdmin, OrgLookupMixin
 
+from .badge import badge_embed_html
 from .levels import credibility_level
 from .models import Verification, VerificationType
 from .services import submit_verification
 from .storage import private_doc_url
+from .vitality import vitality_state
 
 SUBMIT_RATE_LIMIT_PER_DAY = 5
 STRIPE_STUB_VALIDITY = timedelta(days=14)
@@ -177,3 +179,23 @@ class TractionConnectView(OrgLookupMixin, APIView):
 
         verification = _stub_connect_stripe(org, request.user)
         return Response({"status": verification.status, "stub": True})
+
+
+class BadgeEmbedView(OrgLookupMixin, APIView):
+    """GET /api/orgs/<slug>/badge-embed/ — copy-paste snippet for external sites."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        return Response(badge_embed_html(org))
+
+
+class VitalityView(OrgLookupMixin, APIView):
+    """GET /api/orgs/<slug>/vitality/ — private checklist + presence (owner/admin)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        return Response(vitality_state(org))

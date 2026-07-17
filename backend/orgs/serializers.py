@@ -131,11 +131,15 @@ class FeedPostSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=200)
     body = serializers.CharField(allow_blank=True, required=False, default="")
     occurred_at = serializers.DateTimeField()
+    ends_at = serializers.DateTimeField(required=False, allow_null=True)
     image = serializers.ImageField(required=False, allow_null=True)
 
     def validate(self, attrs):
         if attrs.get("image") and attrs.get("kind") == SectionKind.MILESTONES:
             raise serializers.ValidationError({"image": "Milestones cannot include photos."})
+        ends_at = attrs.get("ends_at")
+        if ends_at and attrs.get("kind") == SectionKind.EVENTS and ends_at <= attrs["occurred_at"]:
+            raise serializers.ValidationError({"ends_at": "End time must be after the start time."})
         return attrs
 
     def create(self, org: "Organization"):
@@ -148,6 +152,7 @@ class FeedPostSerializer(serializers.Serializer):
             title=self.validated_data["title"],
             body=self.validated_data.get("body", ""),
             occurred_at=self.validated_data["occurred_at"],
+            ends_at=self.validated_data.get("ends_at"),
             image=self.validated_data.get("image"),
             visibility=section.visibility,
         )

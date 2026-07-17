@@ -5,12 +5,14 @@ import { MessageBell } from "@/components/MessageBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { logoutAction } from "@/lib/auth-actions";
+import { NotificationsProvider } from "@/lib/notifications-context";
 import { noIndexMetadata } from "@/lib/site-metadata";
 
 export const metadata = noIndexMetadata;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
+    <NotificationsProvider>
     <MessagingShell>
       <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
         <header className="sticky top-0 z-10 border-b-2 border-beedero-border bg-beedero-white/95 px-4 backdrop-blur sm:px-6">
@@ -125,5 +127,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </MessagingShell>
+    </NotificationsProvider>
   );
 }

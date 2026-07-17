@@ -1,5 +1,5 @@
 import { CredibilityBadge } from "@/components/CredibilityBadge";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -9,9 +9,23 @@ const FIELD_LABELS: Record<string, string> = {
   values: "Values",
 };
 
-function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
+function FieldValue({
+  fieldKey,
+  value,
+  sectionKind,
+}: {
+  fieldKey: string;
+  value: unknown;
+  sectionKind?: string;
+}) {
   if (value && typeof value === "object" && "title" in (value as Record<string, unknown>)) {
-    const post = value as { title: string; body?: string; occurred_at?: string; image?: string };
+    const post = value as {
+      title: string;
+      body?: string;
+      occurred_at?: string;
+      ends_at?: string | null;
+      image?: string;
+    };
     return (
       <div>
         <p className="font-medium">{post.title}</p>
@@ -20,8 +34,14 @@ function FieldValue({ fieldKey, value }: { fieldKey: string; value: unknown }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />
         )}
-        {post.occurred_at && (
-          <p className="text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
+        {sectionKind === "events" && post.occurred_at && post.ends_at ? (
+          <p className="text-xs text-zinc-400">
+            {formatDateTime(post.occurred_at)} – {formatDateTime(post.ends_at)}
+          </p>
+        ) : (
+          post.occurred_at && (
+            <p className="text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
+          )
         )}
       </div>
     );
@@ -103,7 +123,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           <h2 className="text-lg font-extrabold">{SECTION_LABELS[kind] ?? kind}</h2>
           <div className="flex flex-col gap-3">
             {Object.entries(fields).map(([key, value]) => (
-              <FieldValue key={key} fieldKey={key} value={value} />
+              <FieldValue key={key} fieldKey={key} value={value} sectionKind={kind} />
             ))}
           </div>
         </section>

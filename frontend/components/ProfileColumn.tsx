@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
 import { CreateOrgButton } from "@/components/CreateOrgButton";
+import { EventsCalendar } from "@/components/EventsCalendar";
 import { InvitePeopleButton } from "@/components/InvitePeopleButton";
 
 type InvestorProfile = {
@@ -14,6 +15,7 @@ type InvestorProfile = {
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
+type CalendarEvent = { id: number | string; title: string; occurred_at: string; ends_at?: string | null };
 
 function ProfileAvatar({ name, profilePicture }: { name: string; profilePicture?: string | null }) {
   if (profilePicture) {
@@ -91,9 +93,11 @@ function ProfileCard({ me, orgs }: { me: Me; orgs: Membership[] }) {
 export function ProfileColumn({
   me,
   orgs,
+  events,
 }: {
   me: Me;
   orgs: Membership[];
+  events: CalendarEvent[];
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const profile = me.investor_profile;
@@ -129,8 +133,9 @@ export function ProfileColumn({
           </svg>
         </button>
         {mobileExpanded && (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-col gap-3">
             <ProfileCard me={me} orgs={orgs} />
+            <EventsCalendar events={events} />
           </div>
         )}
       </div>
@@ -138,6 +143,7 @@ export function ProfileColumn({
       <div className="hidden flex-col gap-6 lg:flex">
         <AppColumnHeader label="Profile" />
         <ProfileCard me={me} orgs={orgs} />
+        <EventsCalendar events={events} />
       </div>
     </>
   );

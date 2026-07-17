@@ -5,7 +5,7 @@ export function CredibilityBadge({ level }: { level: number }) {
   return (
     <span
       title={CREDIBILITY_LEVEL_LABELS[level] ?? ""}
-      className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-bold text-white"
+      className="rounded-full bg-beedero-black px-2.5 py-0.5 text-xs font-bold text-beedero-yellow"
     >
       {credibilityLevelHeading(level)}
     </span>

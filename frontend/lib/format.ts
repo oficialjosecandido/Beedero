@@ -11,6 +11,17 @@ export function formatDate(value: string | Date | null | undefined): string {
   return new Date(value).toLocaleDateString(LOCALE);
 }
 
+export function formatDateTime(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString(LOCALE, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return `$${value.toLocaleString(LOCALE)}`;

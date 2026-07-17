@@ -9,6 +9,7 @@ export type FeedItem = {
     body?: string;
     image?: string | null;
     occurred_at?: string;
+    ends_at?: string | null;
   };
   reaction_count: number;
   reaction_counts?: { like: number; insight: number; congrats: number };

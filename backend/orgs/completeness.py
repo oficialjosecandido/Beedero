@@ -38,18 +38,46 @@ CHECKLIST_HINTS = {
     "one_liner": "Add a one-liner in Profile.",
     "stage": "Select your stage in Profile.",
     "sector": "Select your sector in Profile.",
-    "geo": "Select your geography in Profile.",
-    "about": "Describe what you do — this is your public pitch.",
+    "geo": "Where is your HQ and main team based? Set this in Profile.",
+    "about": "Fill in summary, mission, vision, and values in Profile.",
     "team": "Add team members in Profile — it's what investors look at first.",
     "products": "List at least one product or service.",
     "market": "Explain the problem and market you're going after.",
+    "first_activity": "Share your first update from the Activity tab.",
+    "verified": "Complete verifications in the Credibility tab.",
 }
+
+# Full checklist shown on Overview — drives the % meter and shows what's left.
+PROFILE_STRENGTH_CHECKLIST = [
+    *ACTIVATION_REQUIREMENTS,
+    "market",
+    "first_activity",
+    "verified",
+]
+
+
+def profile_strength_checklist(org) -> list[dict]:
+    return [
+        {"key": key, "done": _has(org, key), "hint": CHECKLIST_HINTS[key]}
+        for key in PROFILE_STRENGTH_CHECKLIST
+    ]
 
 _SECTION_KIND_BY_KEY = {
     "about": SectionKind.ABOUT,
     "products": SectionKind.PRODUCTS,
     "market": SectionKind.MARKET_THESIS,
 }
+
+ABOUT_REQUIRED_KEYS = frozenset({"summary", "mission", "vision", "values"})
+
+
+def _about_complete(org) -> bool:
+    keys = OrgField.objects.filter(
+        section__org=org,
+        section__kind=SectionKind.ABOUT,
+        section__archived_at__isnull=True,
+    ).values_list("key", flat=True)
+    return ABOUT_REQUIRED_KEYS.issubset(set(keys))
 
 
 def _section_has_fields(org, kind) -> bool:
@@ -78,6 +106,8 @@ def _has(org, key: str) -> bool:
     section_kind = _SECTION_KIND_BY_KEY.get(key)
     if section_kind is None:
         raise ValueError(f"Unknown completeness key: {key}")
+    if key == "about":
+        return _about_complete(org)
     return _section_has_fields(org, section_kind)
 
 

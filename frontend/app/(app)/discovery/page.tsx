@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { apiFetch } from "@/lib/api";
-import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
+import { GEO_FILTER_HELP, GEO_FILTER_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 import type { OrgSummary } from "@/lib/types";
 
 import { DiscoveryList } from "./DiscoveryList";
@@ -169,7 +169,7 @@ export default async function DiscoveryPage({
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                Geography
+                {GEO_FILTER_LABEL}
                 <select
                   name="geo"
                   defaultValue={params.geo ?? ""}
@@ -182,6 +182,7 @@ export default async function DiscoveryPage({
                     </option>
                   ))}
                 </select>
+                <span className="text-xs font-normal text-zinc-400">{GEO_FILTER_HELP}</span>
               </label>
               <label className="flex items-center gap-2 self-end rounded-xl border border-beedero-border px-3 py-2 text-sm font-medium text-zinc-700">
                 <input

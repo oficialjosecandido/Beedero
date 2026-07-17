@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useActionState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -22,8 +23,10 @@ import {
   upsertFieldAction,
 } from "../actions";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
+import { EventsCalendar } from "@/components/EventsCalendar";
 import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { SITE_URL } from "@/lib/site-metadata";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -79,12 +82,25 @@ type Onboarding = {
   checklist: { key: string; done: boolean; hint: string }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
-type PostValue = { title?: string; body?: string; occurred_at?: string; image?: string | null };
+type PostValue = {
+  title?: string;
+  body?: string;
+  occurred_at?: string;
+  ends_at?: string | null;
+  image?: string | null;
+};
 type OrgActivity = {
   id: number;
   kind: string;
   created_at: string;
   value: PostValue;
+};
+type CalendarEvent = {
+  id: number | string;
+  title: string;
+  occurred_at: string;
+  ends_at?: string | null;
+  body?: string;
 };
 type VerificationInfo = {
   status: "pending" | "verified" | "rejected" | "expired";
@@ -95,6 +111,30 @@ type VerificationInfo = {
   payload?: Record<string, unknown>;
 };
 type CredibilityInfo = { level: number; verifications: Record<string, VerificationInfo> };
+type VitalityInfo = {
+  items: { key: string; label: string; done: boolean; hint: string }[];
+  done_count: number;
+  total_count: number;
+  presence: {
+    investor_views: number;
+    new_followers: number;
+    interest: number;
+    since_days: number;
+    has_signal: boolean;
+  };
+  badge: {
+    level: number;
+    visual_status: "verified" | "expiring" | "expired" | "unverified";
+    valid_until: string | null;
+    days_until_expiry: number | null;
+  };
+};
+type BadgeEmbedInfo = {
+  html: string;
+  verify_url: string;
+  badge_url: string;
+  json_url: string;
+};
 
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
@@ -105,7 +145,7 @@ const POST_KIND_OPTIONS = [
   { value: "news", label: "Update" },
 ];
 
-import { GEOGRAPHIES, SECTORS, STAGES } from "@/lib/org-filters";
+import { GEO_FIELD_HELP, GEO_FIELD_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 
 const CURATED_LINKS: { key: string; label: string; placeholder: string }[] = [
   { key: "website", label: "Website", placeholder: "https://yourcompany.com" },
@@ -158,7 +198,7 @@ const MARKET_THESIS_FIELDS = [
   {
     key: "market",
     label: "Market",
-    placeholder: "Who is the target market and how big is the opportunity?",
+    placeholder: "Who is the target market, how big is the opportunity, and where you operate or sell?",
     rows: 3,
   },
   {
@@ -171,6 +211,7 @@ const MARKET_THESIS_FIELDS = [
 
 const TABS = [
   { id: "overview", label: "Overview" },
+  { id: "calendar", label: "View calendar" },
   { id: "activity", label: "Activity" },
   { id: "profile", label: "Profile" },
   { id: "fundraising", label: "Fundraising" },
@@ -567,18 +608,23 @@ const CHECKLIST_LABELS: Record<string, string> = {
   one_liner: "One-liner",
   stage: "Stage",
   sector: "Sector",
-  geo: "Geography",
-  about: "About",
+  geo: "Based in",
+  about: "About (summary, mission, vision, values)",
   team: "Team",
   products: "Products",
+  market: "Market thesis",
+  first_activity: "First post",
+  verified: "Credibility verified",
 };
 
 function OnboardingPanel({
   slug,
   onboarding,
+  canManage,
 }: {
   slug: string;
   onboarding: Onboarding;
+  canManage: boolean;
 }) {
   const [error, formAction, pending] = useActionState(activateOrgAction, null);
   useActionToast(error, pending, { successMessage: "Organization published!" });
@@ -595,18 +641,38 @@ function OnboardingPanel({
           style={{ width: `${onboarding.completeness}%` }}
         />
       </div>
-      <ul className="mt-4 flex flex-col gap-1.5">
-        {onboarding.checklist.map((item) => (
-          <li key={item.key} className="flex items-start gap-2 text-sm">
-            <span>{item.done ? "✅" : "⬜"}</span>
-            <span className={item.done ? "text-zinc-400 line-through" : "text-zinc-700"}>
-              {CHECKLIST_LABELS[item.key] ?? item.key}
-            </span>
-            {!item.done && <span className="text-xs text-zinc-400">— {item.hint}</span>}
-          </li>
-        ))}
-      </ul>
-      {onboarding.status === "draft" ? (
+      <div
+        className={`mt-4 grid gap-4 ${onboarding.status === "live" ? "lg:grid-cols-[minmax(0,1fr)_240px]" : ""}`}
+      >
+        {onboarding.checklist.some((item) => !item.done) && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 lg:col-span-full">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-900">Still to do</p>
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {onboarding.checklist
+                .filter((item) => !item.done)
+                .map((item) => (
+                  <li key={item.key} className="text-sm font-medium text-amber-950">
+                    {CHECKLIST_LABELS[item.key] ?? item.key}
+                    <span className="font-normal text-amber-800/80"> — {item.hint}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+        <ul className="flex flex-col gap-1.5">
+          {onboarding.checklist.map((item) => (
+            <li key={item.key} className="flex items-start gap-2 text-sm">
+              <span>{item.done ? "✅" : "⬜"}</span>
+              <span className={item.done ? "text-zinc-400 line-through" : "text-zinc-700"}>
+                {CHECKLIST_LABELS[item.key] ?? item.key}
+              </span>
+              {!item.done && <span className="text-xs text-zinc-400">— {item.hint}</span>}
+            </li>
+          ))}
+        </ul>
+        {onboarding.status === "live" && <PublicPageShare slug={slug} />}
+      </div>
+      {onboarding.status === "draft" && canManage ? (
         <form action={formAction} className="mt-4">
           <input type="hidden" name="slug" value={slug} />
           <button
@@ -623,13 +689,14 @@ function OnboardingPanel({
           )}
           <p className="mt-2 text-xs text-zinc-400">Publishing is free.</p>
         </form>
+      ) : onboarding.status === "live" ? (
+        <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
+          Your organization is live and visible to investors 🎉
+        </p>
       ) : (
-        <>
-          <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
-            Your organization is live and visible to investors 🎉
-          </p>
-          <PublicPageShare slug={slug} />
-        </>
+        <p className="mt-4 text-xs text-zinc-500">
+          Ask an owner or admin to publish once the required Profile fields are complete.
+        </p>
       )}
     </div>
   );
@@ -639,8 +706,8 @@ function PublicPageShare({ slug }: { slug: string }) {
   const publicUrl = `${SITE_URL}/o/${slug}`;
 
   return (
-    <div className="mt-3 flex items-center gap-4 rounded-xl border-2 border-beedero-border bg-zinc-50 p-3">
-      <QRCodeSVG value={publicUrl} size={72} className="shrink-0 rounded-md bg-white p-1" />
+    <div className="flex flex-col gap-3 rounded-xl border-2 border-beedero-border bg-zinc-50 p-3 lg:self-start">
+      <QRCodeSVG value={publicUrl} size={72} className="mx-auto shrink-0 rounded-md bg-white p-1 lg:mx-0" />
       <div className="flex min-w-0 flex-col gap-1">
         <p className="text-xs font-medium text-zinc-500">Public page</p>
         <a
@@ -667,14 +734,19 @@ function OverviewTab({
   slug,
   stats,
   onboarding,
+  canManage,
+  presence,
 }: {
   slug: string;
   stats: Stats;
-  onboarding: Onboarding | null;
+  onboarding: Onboarding;
+  canManage: boolean;
+  presence: VitalityInfo["presence"] | null;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {onboarding && <OnboardingPanel slug={slug} onboarding={onboarding} />}
+      <OnboardingPanel slug={slug} onboarding={onboarding} canManage={canManage} />
+      {presence && <PresenceSignalsPanel presence={presence} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Followers</p>
@@ -722,6 +794,7 @@ function PostComposer({
   const [error, formAction, pending] = useActionState(postFeedAction, null);
   const [kind, setKind] = useState(suggestedTitle ? "milestones" : POST_KIND_OPTIONS[0].value);
   const allowsPhoto = kind === "events" || kind === "news";
+  const isEvent = kind === "events";
   useActionToast(error, pending, { successMessage: "Update posted!" });
 
   return (
@@ -787,6 +860,28 @@ function PostComposer({
           className="min-w-[10rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </div>
+      {isEvent && (
+        <div className="flex flex-wrap gap-2">
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+            Start
+            <input
+              type="datetime-local"
+              name="starts_at"
+              required
+              className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+            End
+            <input
+              type="datetime-local"
+              name="ends_at"
+              required
+              className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            />
+          </label>
+        </div>
+      )}
       <textarea
         name="body"
         placeholder="Say more..."
@@ -838,8 +933,12 @@ function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
       )}
       <h3 className="text-lg font-extrabold text-zinc-900">{value.title ?? "Update"}</h3>
       {value.body && <p className="text-sm leading-6 text-zinc-600">{value.body}</p>}
-      {value.occurred_at && (
-        <p className="text-xs text-zinc-400">{formatDate(value.occurred_at)}</p>
+      {activity.kind === "events" && value.occurred_at && value.ends_at ? (
+        <p className="text-xs text-zinc-400">
+          {formatDateTime(value.occurred_at)} – {formatDateTime(value.ends_at)}
+        </p>
+      ) : (
+        value.occurred_at && <p className="text-xs text-zinc-400">{formatDate(value.occurred_at)}</p>
       )}
     </article>
   );
@@ -1195,8 +1294,11 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-        Stage
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
+        <span>
+          Stage{" "}
+          <span className="font-normal text-zinc-400">— how far along is your company?</span>
+        </span>
         <select
           name="stage"
           defaultValue={org.stage}
@@ -1205,11 +1307,11 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
           <option value="" disabled>
-            Select stage
+            Choose your stage
           </option>
-          {STAGES.map((value) => (
-            <option key={value} value={value}>
-              {value}
+          {STAGE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} — {option.description}
             </option>
           ))}
         </select>
@@ -1226,15 +1328,18 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           <option value="" disabled>
             Select sector
           </option>
-          {SECTORS.map((value) => (
-            <option key={value} value={value}>
-              {value}
+          {SECTOR_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
-        Geography
+        <span>
+          {GEO_FIELD_LABEL}{" "}
+          <span className="font-normal text-zinc-400">— where your HQ and main team are</span>
+        </span>
         <select
           name="geo"
           defaultValue={org.geo}
@@ -1243,14 +1348,15 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
           <option value="" disabled>
-            Select geography
+            Choose where you&apos;re based
           </option>
-          {GEOGRAPHIES.map((value) => (
-            <option key={value} value={value}>
-              {value}
+          {GEO_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} — {option.description}
             </option>
           ))}
         </select>
+        <span className="font-normal leading-relaxed text-zinc-400">{GEO_FIELD_HELP}</span>
       </label>
       {canManage && (
         <div className="flex items-center gap-3 sm:col-span-2">
@@ -1426,10 +1532,14 @@ function CredibilityTab({
   slug,
   credibility,
   canManage,
+  badgeEmbed,
+  vitality,
 }: {
   slug: string;
   credibility: CredibilityInfo;
   canManage: boolean;
+  badgeEmbed: BadgeEmbedInfo | null;
+  vitality: VitalityInfo | null;
 }) {
   const [stripeError, stripeAction, stripePending] = useActionState(connectStripeTractionAction, null);
   useActionToast(stripeError, stripePending, { successMessage: "Stripe connected." });
@@ -1437,6 +1547,16 @@ function CredibilityTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {canManage && badgeEmbed && vitality && (
+        <>
+          <BadgeEmbedPanel slug={slug} embed={badgeEmbed} badge={vitality.badge} />
+          <VitalityChecklistPanel
+            items={vitality.items}
+            doneCount={vitality.done_count}
+            totalCount={vitality.total_count}
+          />
+        </>
+      )}
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="font-extrabold text-zinc-900">Credibility ladder</h3>
@@ -1448,7 +1568,7 @@ function CredibilityTab({
               key={rung.level}
               title={rung.label}
               className={`h-2 flex-1 rounded-full ${
-                credibility.level >= rung.level ? "bg-emerald-500" : "bg-zinc-100"
+                credibility.level >= rung.level ? "bg-beedero-yellow" : "bg-zinc-100"
               }`}
             />
           ))}
@@ -1526,6 +1646,7 @@ export function OrgTabs({
   org,
   sections,
   activities,
+  events,
   isFundraising,
   roundHistory,
   profileFieldCount,
@@ -1537,13 +1658,17 @@ export function OrgTabs({
   canManage,
   onboarding,
   credibility,
+  badgeEmbed,
+  vitality,
   suggestedTitle,
   suggestedBody,
+  initialTab,
 }: {
   slug: string;
   org: OrgBasics;
   sections: Section[];
   activities: OrgActivity[];
+  events: CalendarEvent[];
   isFundraising: boolean;
   roundHistory: FundraiseRound[];
   profileFieldCount: number;
@@ -1553,12 +1678,27 @@ export function OrgTabs({
   members: Member[];
   invites: Invite[];
   canManage: boolean;
-  onboarding: Onboarding | null;
+  onboarding: Onboarding;
   credibility: CredibilityInfo;
+  badgeEmbed: BadgeEmbedInfo | null;
+  vitality: VitalityInfo | null;
   suggestedTitle?: string;
   suggestedBody?: string;
+  initialTab?: TabId;
 }) {
-  const [active, setActive] = useState<TabId>(suggestedTitle ? "activity" : "overview");
+  const [active, setActive] = useState<TabId>(
+    suggestedTitle ? "activity" : (initialTab ?? "overview")
+  );
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initialTab) setActive(initialTab);
+  }, [initialTab]);
+
+  function selectTab(tabId: TabId) {
+    setActive(tabId);
+    router.replace(`/dashboard/${slug}?tab=${tabId}`, { scroll: false });
+  }
 
   const aboutSection = sections.find((s) => s.kind === "about");
   const productsSection = sections.find((s) => s.kind === "products");
@@ -1573,7 +1713,7 @@ export function OrgTabs({
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActive(tab.id)}
+            onClick={() => selectTab(tab.id)}
             className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
               active === tab.id
                 ? "bg-beedero-black text-beedero-yellow"
@@ -1586,8 +1726,16 @@ export function OrgTabs({
       </div>
 
       {active === "overview" && (
-        <OverviewTab slug={slug} stats={stats} onboarding={onboarding} />
+        <OverviewTab
+          slug={slug}
+          stats={stats}
+          onboarding={onboarding}
+          canManage={canManage}
+          presence={vitality?.presence ?? null}
+        />
       )}
+
+      {active === "calendar" && <EventsCalendar events={events} full />}
 
       {active === "activity" && (
         <ActivityTab
@@ -1596,7 +1744,7 @@ export function OrgTabs({
           canPostUpdates={canPostUpdates}
           hasPostedToday={hasPostedToday}
           profileFieldCount={profileFieldCount}
-          onGoProfile={() => setActive("profile")}
+          onGoProfile={() => selectTab("profile")}
           suggestedTitle={suggestedTitle}
           suggestedBody={suggestedBody}
         />
@@ -1619,7 +1767,7 @@ export function OrgTabs({
             section={marketSection}
             kind="market_thesis"
             title="Market thesis"
-            description="Explain the problem, market, and timing. This section is optional."
+            description="Explain the problem, market, and timing. Use Market to describe where you operate or sell — that is separate from Based in above."
             fields={MARKET_THESIS_FIELDS}
             optional
           />
@@ -1643,7 +1791,13 @@ export function OrgTabs({
       )}
 
       {active === "credibility" && (
-        <CredibilityTab slug={slug} credibility={credibility} canManage={canManage} />
+        <CredibilityTab
+          slug={slug}
+          credibility={credibility}
+          canManage={canManage}
+          badgeEmbed={badgeEmbed}
+          vitality={vitality}
+        />
       )}
     </div>
   );

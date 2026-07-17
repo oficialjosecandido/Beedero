@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
@@ -47,8 +47,14 @@ function FeedCard({ item }: { item: FeedItem }) {
           className="mt-3 max-h-96 w-full rounded-2xl object-cover"
         />
       )}
-      {item.value.occurred_at && (
-        <p className="mt-4 text-xs text-zinc-400">{formatDate(item.value.occurred_at)}</p>
+      {item.kind === "events" && item.value.occurred_at && item.value.ends_at ? (
+        <p className="mt-4 text-xs text-zinc-400">
+          {formatDateTime(item.value.occurred_at)} – {formatDateTime(item.value.ends_at)}
+        </p>
+      ) : (
+        item.value.occurred_at && (
+          <p className="mt-4 text-xs text-zinc-400">{formatDate(item.value.occurred_at)}</p>
+        )
       )}
       <ReactionBar
         activityId={item.id}

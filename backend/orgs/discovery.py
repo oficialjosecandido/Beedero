@@ -7,7 +7,8 @@ of private/restricted fields without checking per-org visibility.
 Identity filters (stage/sector/geo) live in simple, always-public columns
 on Organization (see orgs/models.py) — they don't go through the generic
 OrgField because they're precisely what public discovery uses for
-indexing. Filters on restricted metrics (e.g. mrr) only apply for
+indexing. `geo` means where the org's HQ / main team is based (not
+customer markets or legal registration). Filters on restricted metrics (e.g. mrr) only apply for
 verified investors, and even then only look at orgs where that specific
 field is visible to the viewer (concrete grant), never blindly.
 
@@ -104,6 +105,7 @@ def discover(viewer, params: dict):
 
 
 def discover_people(viewer, params: dict):
+    from accounts.completeness import profile_completeness
     from accounts.models import InvestorProfile
 
     qs = InvestorProfile.objects.exclude(full_name="").select_related("user")
@@ -114,4 +116,8 @@ def discover_people(viewer, params: dict):
     if query:
         qs = qs.filter(Q(full_name__icontains=query) | Q(headline__icontains=query))
 
-    return qs.order_by("-is_verified", "full_name")
+    profiles = list(qs)
+    profiles.sort(
+        key=lambda p: (-profile_completeness(p), -int(p.is_verified), p.full_name.lower())
+    )
+    return profiles

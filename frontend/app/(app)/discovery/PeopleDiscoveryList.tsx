@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { followUserAction } from "@/app/(app)/dashboard/actions";
@@ -10,6 +11,8 @@ type PersonSummary = {
   id: number;
   name: string;
   headline?: string;
+  handle?: string | null;
+  is_verified?: boolean;
   profile_picture?: string | null;
 };
 
@@ -32,7 +35,20 @@ function PersonCard({ person }: { person: PersonSummary }) {
           </span>
         )}
         <div>
-          <p className="font-medium text-zinc-950">{person.name}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {person.handle ? (
+              <Link href={`/p/${person.handle}`} className="font-medium text-zinc-950 hover:underline">
+                {person.name}
+              </Link>
+            ) : (
+              <p className="font-medium text-zinc-950">{person.name}</p>
+            )}
+            {person.is_verified && (
+              <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-[10px] font-bold text-beedero-black">
+                Verified
+              </span>
+            )}
+          </div>
           {person.headline && <p className="text-xs text-zinc-500">{person.headline}</p>}
         </div>
       </div>

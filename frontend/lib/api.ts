@@ -75,7 +75,18 @@ async function fetchWithTimeout(
 
 async function parse(res: Response) {
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = {
+        detail: text.trimStart().startsWith("<!")
+          ? "Server returned HTML instead of JSON — is BACKEND_URL correct and the API route deployed?"
+          : text.slice(0, 200),
+      };
+    }
+  }
   if (!res.ok) throw new ApiError(res.status, body);
   return body;
 }

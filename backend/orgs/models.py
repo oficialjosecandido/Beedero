@@ -36,6 +36,8 @@ class Organization(models.Model):
     # slice used only for discovery filters.
     stage = models.CharField(max_length=20, blank=True, db_index=True)
     sector = models.CharField(max_length=50, blank=True, db_index=True)
+    # HQ / main team location for discovery filters and density KPIs.
+    # Not customer markets (→ market thesis) or legal domicile (→ verification).
     geo = models.CharField(max_length=50, blank=True, db_index=True)
 
     def __str__(self):
@@ -211,6 +213,7 @@ class Activity(models.Model):
     body = models.TextField(blank=True, default="")
     image = models.ImageField(upload_to="activities/", blank=True, null=True)
     occurred_at = models.DateTimeField(db_index=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
     # Snapshotted at creation time (from the section's visibility for org
     # posts; always public for investor posts) rather than re-derived live —
     # a section's visibility changing later doesn't retroactively change

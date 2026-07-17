@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { geoLabel, sectorLabel, stageLabel } from "@/lib/org-filters";
 import type { OrgSummary } from "@/lib/types";
 
 import { loadMoreDiscoveryAction } from "./actions";
@@ -30,7 +31,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
           </div>
           {org.one_liner && <p className="text-xs text-zinc-600">{org.one_liner}</p>}
           <p className="text-xs text-zinc-500">
-            {org.stage} · {org.sector} · {org.geo}
+            {stageLabel(org.stage)} · {sectorLabel(org.sector)} · {geoLabel(org.geo)}
           </p>
         </div>
       </div>

@@ -8,7 +8,14 @@ import { FeedComposer } from "./FeedComposer";
 import { FeedList } from "./FeedList";
 import type { FeedItem } from "./types";
 
-type InvestorPost = { created_at: string };
+type InvestorPost = {
+  id: number;
+  kind: string;
+  title: string;
+  created_at: string;
+  occurred_at: string;
+  ends_at?: string | null;
+};
 
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type InvestorProfile = {
@@ -27,8 +34,9 @@ export default async function FeedPage() {
   let me: Me;
   let orgs: Membership[];
   let hasPostedToday = false;
+  let myPosts: InvestorPost[] = [];
   try {
-    const [feed, meRes, orgsRes, myPosts] = await Promise.all([
+    const [feed, meRes, orgsRes, posts] = await Promise.all([
       apiFetch("/feed/"),
       apiFetch("/auth/me/"),
       safeFetch(apiFetch("/orgs/"), [] as Membership[]),
@@ -37,6 +45,7 @@ export default async function FeedPage() {
     ({ items, next_cursor } = feed);
     me = meRes;
     orgs = orgsRes;
+    myPosts = posts;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
   } catch (err) {
@@ -47,12 +56,15 @@ export default async function FeedPage() {
   const profile = me.investor_profile;
   const profileComplete = Boolean(profile?.is_complete);
   const displayName = profile?.full_name || me.email;
+  const events = myPosts
+    .filter((post) => post.kind === "events")
+    .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
       <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
         <div className="order-1 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} />
+          <ProfileColumn me={me} orgs={orgs} events={events} />
         </div>
 
         <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">

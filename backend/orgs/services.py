@@ -6,7 +6,7 @@ land in the same Activity row shape."""
 from .models import Activity
 
 
-def create_activity(*, org=None, author=None, kind, title, body="", occurred_at, image=None, visibility):
+def create_activity(*, org=None, author=None, kind, title, body="", occurred_at, ends_at=None, image=None, visibility):
     return Activity.objects.create(
         org=org,
         author=author,
@@ -15,5 +15,6 @@ def create_activity(*, org=None, author=None, kind, title, body="", occurred_at,
         body=body,
         image=image,
         occurred_at=occurred_at,
+        ends_at=ends_at,
         visibility=visibility,
     )

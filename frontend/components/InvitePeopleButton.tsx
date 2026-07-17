@@ -1,32 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { FaFacebook, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 
 import { SITE_URL } from "@/lib/site-metadata";
 
-const INVITE_URL = `${SITE_URL}/register`;
+const INVITE_URL = SITE_URL;
 const SHARE_TEXT = "Join me on Beedero — structured startup profiles and verified credibility.";
 
 const SHARE_LINKS = [
   {
     label: "WhatsApp",
     href: `https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${INVITE_URL}`)}`,
+    icon: FaWhatsapp,
+    className: "text-[#25D366]",
   },
   {
     label: "LinkedIn",
     href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(INVITE_URL)}`,
-  },
-  {
-    label: "X",
-    href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(INVITE_URL)}`,
+    icon: FaLinkedin,
+    className: "text-[#0A66C2]",
   },
   {
     label: "Facebook",
     href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(INVITE_URL)}`,
-  },
-  {
-    label: "Email",
-    href: `mailto:?subject=${encodeURIComponent("Join me on Beedero")}&body=${encodeURIComponent(`${SHARE_TEXT}\n\n${INVITE_URL}`)}`,
+    icon: FaFacebook,
+    className: "text-[#1877F2]",
   },
 ];
 
@@ -89,16 +88,18 @@ export function InvitePeopleButton() {
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+            <div className="mt-4 flex items-center gap-3">
               {SHARE_LINKS.map((share) => (
                 <a
                   key={share.label}
                   href={share.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-center rounded-xl border-2 border-beedero-border px-2 py-2 text-xs font-semibold text-beedero-black hover:bg-beedero-yellow/20"
+                  aria-label={`Share on ${share.label}`}
+                  title={`Share on ${share.label}`}
+                  className="flex size-11 items-center justify-center rounded-xl border-2 border-beedero-border hover:bg-beedero-yellow/20"
                 >
-                  {share.label}
+                  <share.icon className={`size-6 ${share.className}`} />
                 </a>
               ))}
             </div>

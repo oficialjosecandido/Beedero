@@ -1,3 +1,5 @@
+import json
+
 from datetime import timedelta
 
 from django.db.models import Sum
@@ -10,8 +12,10 @@ from rest_framework.views import APIView
 from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
 
+from .badge import person_badge_embed_html
 from .models import InvestorProfile
 from .serializers import InvestorPostSerializer, InvestorProfileSerializer, MeSerializer
+from .vitality import person_vitality_state
 
 
 class MeView(APIView):
@@ -32,6 +36,7 @@ def _investor_activity_summary(activity):
         "body": activity.body,
         "image": activity.image.url if activity.image else None,
         "occurred_at": activity.occurred_at.isoformat(),
+        "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
         "created_at": activity.created_at.isoformat(),
         "author_name": _investor_display_name(activity.author),
     }
@@ -69,6 +74,7 @@ class InvestorPostListCreateView(APIView):
             title=data["title"],
             body=data.get("body", ""),
             occurred_at=data["occurred_at"],
+            ends_at=data.get("ends_at"),
             image=data.get("image"),
             visibility=Visibility.PUBLIC,
         )
@@ -105,6 +111,26 @@ class InvestorStatsView(APIView):
         )
 
 
+class InvestorVitalityView(APIView):
+    """GET /api/investors/me/vitality/ — private checklist + presence."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
+        return Response(person_vitality_state(profile))
+
+
+class InvestorBadgeEmbedView(APIView):
+    """GET /api/investors/me/badge-embed/ — copy-paste snippet for external sites."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
+        return Response(person_badge_embed_html(profile))
+
+
 class InvestorProfileView(APIView):
     """Creation/editing of one's own investor profile. Verification
     (is_verified) is manual at launch — only the verify_investor
@@ -112,13 +138,26 @@ class InvestorProfileView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    def _parse_payload(self, request):
+        data = request.data.copy()
+        for key in ("visibility", "attestation_prefs"):
+            raw = data.get(key)
+            if isinstance(raw, str) and raw:
+                try:
+                    data[key] = json.loads(raw)
+                except json.JSONDecodeError:
+                    raise ValidationError({key: "Invalid JSON."})
+        return data
+
     def get(self, request):
         profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
         return Response(InvestorProfileSerializer(profile).data)
 
     def put(self, request):
         profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
-        serializer = InvestorProfileSerializer(profile, data=request.data, partial=True)
+        serializer = InvestorProfileSerializer(
+            profile, data=self._parse_payload(request), partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)

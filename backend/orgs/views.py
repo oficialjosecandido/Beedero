@@ -24,13 +24,10 @@ from billing.services import maybe_refund_as_credit
 from social.services import viewer_has_commented_for, viewer_reactions_for, reaction_counts_for
 
 from .completeness import (
-    ACTIVATION_REQUIREMENTS,
-    CHECKLIST_HINTS,
-    REFUND_REQUIREMENTS,
-    _has,
     completeness,
     is_publish_ready,
     is_refund_eligible,
+    profile_strength_checklist,
 )
 from .constants import FUNDRAISE_KINDS, SectionKind
 from .discovery import discover, discover_people
@@ -282,21 +279,18 @@ class OrgLogoView(OrgLookupMixin, APIView):
 
 
 class OrgOnboardingView(OrgLookupMixin, APIView):
-    """GET /api/orgs/<slug>/onboarding/ — owner/admin-only status, profile
-    strength meter, and checklist. `fee`/refund fields are legacy (the
-    commitment fee is inactive per freemium doc §7) and will be null for any
-    org activated after that change; kept so old paid orgs still report
-    correctly."""
+    """GET /api/orgs/<slug>/onboarding/ — profile strength meter and activation
+    checklist for any org member. Publish remains owner/admin-only via
+    OrgActivateView. `fee`/refund fields are legacy (the commitment fee is
+    inactive per freemium doc §7) and will be null for any org activated after
+    that change; kept so old paid orgs still report correctly."""
 
-    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
 
     def get(self, request, slug):
         org = self.get_org()
         fee = getattr(org, "commitment_fee", None)
-        checklist = [
-            {"key": key, "done": _has(org, key), "hint": CHECKLIST_HINTS[key]}
-            for key in ACTIVATION_REQUIREMENTS
-        ]
+        checklist = profile_strength_checklist(org)
         return Response(
             {
                 "status": org.status,
@@ -852,6 +846,7 @@ def _activity_summary(activity, viewer_reaction=None, reaction_counts=None, view
             "body": activity.body,
             "image": activity.image.url if activity.image else None,
             "occurred_at": activity.occurred_at.isoformat(),
+            "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
         },
         "reaction_count": activity.reaction_count,
         "reaction_counts": reaction_counts or {"like": 0, "insight": 0, "congrats": 0},
@@ -1060,6 +1055,8 @@ class DiscoverPeopleView(APIView):
                         "id": profile.user_id,
                         "name": profile.full_name,
                         "headline": profile.headline,
+                        "handle": profile.handle,
+                        "is_verified": profile.is_verified,
                         "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
                     }
                     for profile in page

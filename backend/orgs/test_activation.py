@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from orgs.constants import SectionKind
-from orgs.models import OrgField, Organization
+from orgs.models import OrgField, Organization, OrgMembership
 
 
 @pytest.fixture
@@ -23,9 +23,11 @@ def _make_publish_ready(org):
     org.sector = "fintech"
     org.geo = "PT"
     org.save(update_fields=["logo", "stage", "sector", "geo"])
-    for kind in (SectionKind.ABOUT, SectionKind.PRODUCTS):
-        section = org.sections.get(kind=kind)
-        OrgField.objects.create(section=section, key="k", value="v")
+    about = org.sections.get(kind=SectionKind.ABOUT)
+    for key in ("summary", "mission", "vision", "values"):
+        OrgField.objects.create(section=about, key=key, value=key)
+    products = org.sections.get(kind=SectionKind.PRODUCTS)
+    OrgField.objects.create(section=products, key="overview", value="Product")
 
 
 @pytest.mark.django_db
@@ -90,3 +92,19 @@ def test_activate_requires_complete_profile(api, owner_unverified):
     res = api.post(f"/api/orgs/{org.slug}/activate/")
     assert res.status_code == 400
     assert "required profile fields" in res.data["detail"]
+
+
+@pytest.mark.django_db
+def test_org_member_can_read_onboarding(api, owner_unverified):
+    api.force_authenticate(owner_unverified)
+    res = api.post("/api/orgs/", {"name": "Acme", "one_liner": "We build things"}, format="json")
+    org = Organization.objects.get(slug=res.data["slug"])
+
+    member = User.objects.create_user(username="member@acme.com", email="member@acme.com", password="x")
+    OrgMembership.objects.create(org=org, user=member, role=OrgMembership.Role.MEMBER)
+
+    api.force_authenticate(member)
+    res = api.get(f"/api/orgs/{org.slug}/onboarding/")
+    assert res.status_code == 200
+    assert "checklist" in res.data
+    assert "completeness" in res.data
