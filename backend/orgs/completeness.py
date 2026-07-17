@@ -6,7 +6,7 @@ counts toward the meter but is excluded from refund gating per spec.
 """
 
 from .constants import SectionKind
-from .models import Activity, OrgField
+from .models import Activity, OrgField, OrgMembership
 
 WEIGHTS = {
     "one_liner": 5,
@@ -21,17 +21,32 @@ WEIGHTS = {
 
 REFUND_REQUIREMENTS = ["logo", "about", "team", "products", "market"]
 
+# Gates the Overview "Publish organization" action. Market thesis stays optional.
+ACTIVATION_REQUIREMENTS = [
+    "logo",
+    "one_liner",
+    "stage",
+    "sector",
+    "geo",
+    "about",
+    "team",
+    "products",
+]
+
 CHECKLIST_HINTS = {
     "logo": "Add a logo so your profile looks trustworthy.",
+    "one_liner": "Add a one-liner in Profile.",
+    "stage": "Select your stage in Profile.",
+    "sector": "Select your sector in Profile.",
+    "geo": "Select your geography in Profile.",
     "about": "Describe what you do — this is your public pitch.",
-    "team": "Add the team section — it's what investors look at first.",
+    "team": "Add team members in Profile — it's what investors look at first.",
     "products": "List at least one product or service.",
     "market": "Explain the problem and market you're going after.",
 }
 
 _SECTION_KIND_BY_KEY = {
     "about": SectionKind.ABOUT,
-    "team": SectionKind.TEAM,
     "products": SectionKind.PRODUCTS,
     "market": SectionKind.MARKET_THESIS,
 }
@@ -46,12 +61,20 @@ def _section_has_fields(org, kind) -> bool:
 def _has(org, key: str) -> bool:
     if key == "one_liner":
         return bool(org.one_liner)
+    if key == "stage":
+        return bool(org.stage)
+    if key == "sector":
+        return bool(org.sector)
+    if key == "geo":
+        return bool(org.geo)
     if key == "logo":
         return bool(org.logo)
     if key == "verified":
         return org.is_verified
     if key == "first_activity":
         return Activity.objects.filter(org=org).exists()
+    if key == "team":
+        return OrgMembership.objects.filter(org=org).exists()
     section_kind = _SECTION_KIND_BY_KEY.get(key)
     if section_kind is None:
         raise ValueError(f"Unknown completeness key: {key}")
@@ -64,3 +87,7 @@ def completeness(org) -> int:
 
 def is_refund_eligible(org) -> bool:
     return all(_has(org, key) for key in REFUND_REQUIREMENTS)
+
+
+def is_publish_ready(org) -> bool:
+    return all(_has(org, key) for key in ACTIVATION_REQUIREMENTS)

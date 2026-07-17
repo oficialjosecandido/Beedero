@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -67,6 +67,7 @@ class ConversationListCreateView(APIView):
 
     def get(self, request):
         viewer = request.user
+        last_messages = Message.objects.filter(conversation=OuterRef("pk")).order_by("-created_at", "-id")
         conversations = (
             Conversation.objects.filter(Q(participant_one=viewer) | Q(participant_two=viewer))
             .select_related(
@@ -77,7 +78,9 @@ class ConversationListCreateView(APIView):
                 unread_count=Count(
                     "messages",
                     filter=Q(messages__read_at__isnull=True) & ~Q(messages__sender=viewer),
-                )
+                ),
+                last_message_body=Subquery(last_messages.values("body")[:1]),
+                last_message_sender_id=Subquery(last_messages.values("sender_id")[:1]),
             )
             .order_by("-last_message_at", "-created_at")[:50]
         )

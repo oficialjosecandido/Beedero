@@ -47,6 +47,14 @@ def conversation_summary(conversation: Conversation, viewer, unread_count: int) 
         if conversation.participant_one_id == viewer.id
         else conversation.participant_one
     )
+    last_message_body = getattr(conversation, "last_message_body", None)
+    last_message_sender_id = getattr(conversation, "last_message_sender_id", None)
+    last_message = None
+    if last_message_body:
+        last_message = {
+            "body": last_message_body,
+            "is_mine": last_message_sender_id == viewer.id,
+        }
     return {
         "id": conversation.id,
         "other_participant": {
@@ -54,6 +62,7 @@ def conversation_summary(conversation: Conversation, viewer, unread_count: int) 
             "name": _display_name(other),
             "profile_picture": _profile_picture(other),
         },
+        "last_message": last_message,
         "last_message_at": conversation.last_message_at.isoformat() if conversation.last_message_at else None,
         "unread_count": unread_count,
     }

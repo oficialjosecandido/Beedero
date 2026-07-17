@@ -394,6 +394,12 @@ export function MessagingDock() {
                       <span className="block truncate text-sm font-semibold text-beedero-black">
                         {conversation.other_participant.name}
                       </span>
+                      {conversation.last_message && (
+                        <span className="mt-0.5 block truncate text-xs text-zinc-500">
+                          {conversation.last_message.is_mine ? "You: " : ""}
+                          {conversation.last_message.body}
+                        </span>
+                      )}
                     </span>
                     {conversation.unread_count > 0 && (
                       <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-beedero-black text-[10px] font-bold text-beedero-yellow">

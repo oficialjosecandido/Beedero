@@ -71,7 +71,7 @@ export function NotificationBell() {
   }, []);
 
   async function markAllRead() {
-    await fetch("/api/notifications/mark-read", { method: "POST", body: JSON.stringify({}) });
+    await fetch("/api/notifications", { method: "POST", body: JSON.stringify({}) });
     setUnread(0);
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
   }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useActionState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 import {
   activateOrgAction,
@@ -23,6 +24,7 @@ import {
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { SITE_URL } from "@/lib/site-metadata";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -73,6 +75,7 @@ type Onboarding = {
   status: "draft" | "live";
   completeness: number;
   refund_eligible: boolean;
+  publish_ready: boolean;
   checklist: { key: string; done: boolean; hint: string }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
@@ -169,7 +172,6 @@ const MARKET_THESIS_FIELDS = [
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "activity", label: "Activity" },
-  { id: "configurations", label: "Configurations" },
   { id: "profile", label: "Profile" },
   { id: "fundraising", label: "Fundraising" },
   { id: "credibility", label: "Credibility" },
@@ -562,10 +564,13 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
 
 const CHECKLIST_LABELS: Record<string, string> = {
   logo: "Logo",
+  one_liner: "One-liner",
+  stage: "Stage",
+  sector: "Sector",
+  geo: "Geography",
   about: "About",
   team: "Team",
   products: "Products",
-  market: "Market thesis",
 };
 
 function OnboardingPanel({
@@ -606,18 +611,54 @@ function OnboardingPanel({
           <input type="hidden" name="slug" value={slug} />
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !onboarding.publish_ready}
             className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
           >
             {pending ? "Publishing..." : "Publish organization"}
           </button>
+          {!onboarding.publish_ready && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Complete all required Profile fields before publishing. Market thesis is optional.
+            </p>
+          )}
           <p className="mt-2 text-xs text-zinc-400">Publishing is free.</p>
         </form>
       ) : (
-        <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
-          Your organization is live and visible to investors 🎉
-        </p>
+        <>
+          <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
+            Your organization is live and visible to investors 🎉
+          </p>
+          <PublicPageShare slug={slug} />
+        </>
       )}
+    </div>
+  );
+}
+
+function PublicPageShare({ slug }: { slug: string }) {
+  const publicUrl = `${SITE_URL}/o/${slug}`;
+
+  return (
+    <div className="mt-3 flex items-center gap-4 rounded-xl border-2 border-beedero-border bg-zinc-50 p-3">
+      <QRCodeSVG value={publicUrl} size={72} className="shrink-0 rounded-md bg-white p-1" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-xs font-medium text-zinc-500">Public page</p>
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate text-sm font-semibold text-beedero-black underline"
+        >
+          {publicUrl.replace(/^https?:\/\//, "")}
+        </a>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard.writeText(publicUrl)}
+          className="self-start text-xs font-semibold text-zinc-500 hover:text-beedero-black"
+        >
+          Copy link
+        </button>
+      </div>
     </div>
   );
 }
@@ -960,7 +1001,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
   );
 }
 
-function ConfigurationsTab({
+function ProfileAdminSection({
   slug,
   members,
   invites,
@@ -974,7 +1015,7 @@ function ConfigurationsTab({
   linksSection?: Section;
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <>
       <TeamSection slug={slug} members={members} canManage={canManage} />
       {canManage && <InvitesSection slug={slug} invites={invites} />}
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -990,7 +1031,7 @@ function ConfigurationsTab({
         </Link>
       </div>
       <LinksTab slug={slug} section={linksSection} />
-    </div>
+    </>
   );
 }
 
@@ -1139,12 +1180,17 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
       className="grid gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm sm:grid-cols-2"
     >
       <input type="hidden" name="slug" value={org.slug} />
+      <div className="sm:col-span-2">
+        <h3 className="font-extrabold text-zinc-900">Company details</h3>
+        <p className="mt-1 text-sm text-zinc-500">Required to publish your organization profile.</p>
+      </div>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
         One-liner
         <input
           name="one_liner"
           defaultValue={org.one_liner}
           maxLength={140}
+          required
           disabled={!canManage}
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         />
@@ -1154,10 +1200,13 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
         <select
           name="stage"
           defaultValue={org.stage}
+          required
           disabled={!canManage}
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
-          <option value="">—</option>
+          <option value="" disabled>
+            Select stage
+          </option>
           {STAGES.map((value) => (
             <option key={value} value={value}>
               {value}
@@ -1170,10 +1219,13 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
         <select
           name="sector"
           defaultValue={org.sector}
+          required
           disabled={!canManage}
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
-          <option value="">—</option>
+          <option value="" disabled>
+            Select sector
+          </option>
           {SECTORS.map((value) => (
             <option key={value} value={value}>
               {value}
@@ -1186,10 +1238,13 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
         <select
           name="geo"
           defaultValue={org.geo}
+          required
           disabled={!canManage}
           className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 disabled:bg-zinc-50"
         >
-          <option value="">—</option>
+          <option value="" disabled>
+            Select geography
+          </option>
           {GEOGRAPHIES.map((value) => (
             <option key={value} value={value}>
               {value}
@@ -1547,16 +1602,6 @@ export function OrgTabs({
         />
       )}
 
-      {active === "configurations" && (
-        <ConfigurationsTab
-          slug={slug}
-          members={members}
-          invites={invites}
-          canManage={canManage}
-          linksSection={linksSection}
-        />
-      )}
-
       {active === "profile" && (
         <div className="flex flex-col gap-4">
           <OrgBasicsForm org={org} canManage={canManage} />
@@ -1566,9 +1611,8 @@ export function OrgTabs({
             section={productsSection}
             kind="products"
             title="Products"
-            description="Help investors understand what you sell or offer. This section is optional."
+            description="Help investors understand what you sell or offer."
             fields={PRODUCTS_FIELDS}
-            optional
           />
           <CuratedProfileSection
             slug={slug}
@@ -1578,6 +1622,13 @@ export function OrgTabs({
             description="Explain the problem, market, and timing. This section is optional."
             fields={MARKET_THESIS_FIELDS}
             optional
+          />
+          <ProfileAdminSection
+            slug={slug}
+            members={members}
+            invites={invites}
+            canManage={canManage}
+            linksSection={linksSection}
           />
         </div>
       )}

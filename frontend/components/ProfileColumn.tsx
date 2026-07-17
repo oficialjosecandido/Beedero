@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
 import { CreateOrgButton } from "@/components/CreateOrgButton";
+import { InvitePeopleButton } from "@/components/InvitePeopleButton";
 
 type InvestorProfile = {
   full_name?: string;
@@ -81,6 +82,7 @@ function ProfileCard({ me, orgs }: { me: Me; orgs: Membership[] }) {
         >
           Discover →
         </Link>
+        <InvitePeopleButton />
       </div>
     </div>
   );

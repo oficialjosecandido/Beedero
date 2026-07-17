@@ -109,6 +109,24 @@ def test_send_and_read_marks_unread_messages_read(api, alice, bob):
 
 
 @pytest.mark.django_db
+def test_conversation_list_includes_last_message_preview(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hey bob"}, format="json")
+
+    listing = api.get("/api/conversations/")
+    item = listing.data["items"][0]
+    assert item["last_message"]["body"] == "hey bob"
+    assert item["last_message"]["is_mine"] is True
+
+    api.force_authenticate(bob)
+    listing = api.get("/api/conversations/")
+    item = listing.data["items"][0]
+    assert item["last_message"]["body"] == "hey bob"
+    assert item["last_message"]["is_mine"] is False
+
+
+@pytest.mark.django_db
 def test_empty_message_body_rejected(api, alice, bob):
     conversation = get_or_create_conversation(alice, bob)
     api.force_authenticate(alice)

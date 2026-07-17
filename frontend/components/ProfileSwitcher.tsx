@@ -48,8 +48,14 @@ function AvatarCircle({
 export function ProfileSwitcher() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
   const [data, setData] = useState<{ me: Me; orgs: OrgMembership[] } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  if (pathname !== menuPath) {
+    setMenuPath(pathname);
+    setOpen(false);
+  }
 
   const activeSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1] ?? null;
 
@@ -71,10 +77,6 @@ export function ProfileSwitcher() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {

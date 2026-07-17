@@ -27,6 +27,7 @@ export type Comment = {
 export type ConversationSummary = {
   id: number;
   other_participant: { id: number; name: string; profile_picture?: string | null };
+  last_message: { body: string; is_mine: boolean } | null;
   last_message_at: string | null;
   unread_count: number;
 };

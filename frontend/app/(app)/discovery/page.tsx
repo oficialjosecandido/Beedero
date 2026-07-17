@@ -43,6 +43,15 @@ export default async function DiscoveryPage({
     return next.toString();
   };
 
+  const clearSearchQuery = () => {
+    const next = new URLSearchParams(query);
+    next.delete("q");
+    next.set("tab", tab);
+    return next.toString();
+  };
+
+  const hasSearchQuery = Boolean(params.q?.trim());
+
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
       <div className="flex w-full max-w-5xl flex-col gap-8">
@@ -72,12 +81,22 @@ export default async function DiscoveryPage({
                 placeholder={tab === "people" ? "Search people by name or headline…" : "Search organizations by name…"}
                 className="flex-1 rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
-              <button
-                type="submit"
-                className="rounded-xl bg-beedero-yellow px-5 py-2 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white"
-              >
-                Search
-              </button>
+              <div className="flex gap-2">
+                {hasSearchQuery && (
+                  <Link
+                    href={`/discovery?${clearSearchQuery()}`}
+                    className="rounded-xl border border-beedero-border px-5 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-zinc-50"
+                  >
+                    Clear
+                  </Link>
+                )}
+                <button
+                  type="submit"
+                  className="rounded-xl bg-beedero-yellow px-5 py-2 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white"
+                >
+                  Search
+                </button>
+              </div>
             </div>
           </label>
         </form>

@@ -9,8 +9,9 @@ from billing.services import (
     maybe_refund_as_credit,
     start_commitment_fee,
 )
+from accounts.models import User
 from orgs.constants import SectionKind
-from orgs.models import OrgField, Organization
+from orgs.models import OrgField, OrgMembership, Organization
 
 
 @pytest.fixture
@@ -22,9 +23,11 @@ def _complete_org(org):
     """Fills every REFUND_REQUIREMENTS section so is_refund_eligible(org) is True."""
     org.logo = "org_logos/acme.png"
     org.save(update_fields=["logo"])
-    for kind in (SectionKind.ABOUT, SectionKind.TEAM, SectionKind.PRODUCTS, SectionKind.MARKET_THESIS):
+    for kind in (SectionKind.ABOUT, SectionKind.PRODUCTS, SectionKind.MARKET_THESIS):
         section = org.sections.get(kind=kind)
         OrgField.objects.create(section=section, key="k", value="v")
+    user = User.objects.create_user(username="owner", email="owner@acme.com", password="x")
+    OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.OWNER)
 
 
 @pytest.mark.django_db

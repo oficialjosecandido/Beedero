@@ -23,7 +23,15 @@ from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
 from social.services import viewer_has_commented_for, viewer_reactions_for, reaction_counts_for
 
-from .completeness import CHECKLIST_HINTS, REFUND_REQUIREMENTS, _has, completeness, is_refund_eligible
+from .completeness import (
+    ACTIVATION_REQUIREMENTS,
+    CHECKLIST_HINTS,
+    REFUND_REQUIREMENTS,
+    _has,
+    completeness,
+    is_publish_ready,
+    is_refund_eligible,
+)
 from .constants import FUNDRAISE_KINDS, SectionKind
 from .discovery import discover, discover_people
 from .feed import activity_feed_items
@@ -287,13 +295,14 @@ class OrgOnboardingView(OrgLookupMixin, APIView):
         fee = getattr(org, "commitment_fee", None)
         checklist = [
             {"key": key, "done": _has(org, key), "hint": CHECKLIST_HINTS[key]}
-            for key in REFUND_REQUIREMENTS
+            for key in ACTIVATION_REQUIREMENTS
         ]
         return Response(
             {
                 "status": org.status,
                 "completeness": completeness(org),
                 "refund_eligible": is_refund_eligible(org),
+                "publish_ready": is_publish_ready(org),
                 "checklist": checklist,
                 "fee": (
                     {"amount_cents": fee.amount_cents, "status": fee.status, "refund_as_credit": True}
@@ -403,6 +412,11 @@ class OrgActivateView(OrgLookupMixin, APIView):
             return Response(
                 {"detail": "Verify your email before publishing.", "action": "verify_email"},
                 status=403,
+            )
+        if not is_publish_ready(org):
+            return Response(
+                {"detail": "Complete all required profile fields before publishing."},
+                status=400,
             )
         # Domain-match verification only counts once the owner's email is
         # confirmed (guaranteed above) — never at creation time.

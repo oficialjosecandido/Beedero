@@ -11,6 +11,7 @@
   "dependencies": {
     "@sentry/nextjs": "^10.64.0",
     "next": "16.2.9",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sonner": "^2.0.7"
