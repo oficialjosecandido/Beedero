@@ -112,7 +112,7 @@ def test_badge_embed_owner_only(api, org, owner):
     res = api.get("/api/orgs/acme/badge-embed/")
     assert res.status_code == 200
     assert "html" in res.data
-    assert "/verify/acme" in res.data["verify_url"]
+    assert "/o/acme" in res.data["verify_url"]
 
 
 @pytest.mark.django_db

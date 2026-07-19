@@ -2,30 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 import {
   activateOrgAction,
   closeRoundAction,
-  connectStripeTractionAction,
   createInviteAction,
   deleteActivityAction,
   deleteFieldAction,
   openRoundAction,
   removeMemberAction,
   revokeInviteAction,
-  submitVerificationAction,
-  updateMemberRoleAction,
+  updateMemberTitleAction,
   updateOrgProfileAction,
   upsertFieldAction,
 } from "../actions";
-import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
-import { EventsCalendar } from "@/components/EventsCalendar";
-import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
+import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { SITE_URL } from "@/lib/site-metadata";
 import { SECTION_LABELS } from "@/lib/types";
@@ -64,6 +59,7 @@ type Member = {
   full_name: string;
   profile_picture?: string | null;
   role: string;
+  title?: string;
 };
 type Invite = {
   id: number;
@@ -95,24 +91,6 @@ type OrgActivity = {
   created_at: string;
   value: PostValue;
 };
-type CalendarEvent = {
-  id: number | string;
-  title: string;
-  occurred_at: string;
-  ends_at?: string | null;
-  body?: string;
-  role?: "created" | "attending";
-  host?: { type: "org" | "person"; name: string; slug?: string; id?: number };
-};
-type VerificationInfo = {
-  status: "pending" | "verified" | "rejected" | "expired";
-  valid_until: string | null;
-  submitted_at?: string;
-  reviewed_at?: string | null;
-  rejection_reason?: string;
-  payload?: Record<string, unknown>;
-};
-type CredibilityInfo = { level: number; verifications: Record<string, VerificationInfo> };
 type VitalityInfo = {
   items: { key: string; label: string; done: boolean; hint: string }[];
   done_count: number;
@@ -140,6 +118,12 @@ type BadgeEmbedInfo = {
 
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
+
+function membershipAccessLabel(role: string) {
+  if (role === "owner") return "Owner access";
+  if (role === "admin") return "Admin access";
+  return "Member access";
+}
 
 import { GEO_FIELD_HELP, GEO_FIELD_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 
@@ -211,7 +195,7 @@ const TABS = [
   { id: "activity", label: "Activity" },
   { id: "profile", label: "Profile" },
   { id: "fundraising", label: "Fundraising" },
-  { id: "credibility", label: "Credibility" },
+  { id: "share", label: "Share" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -863,41 +847,49 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <h3 className="font-extrabold text-zinc-900">Team</h3>
-      <div className="mt-3 flex flex-col gap-2">
+      <p className="mt-1 text-sm text-zinc-500">
+        {canManage
+          ? "Set each person’s role on the team — e.g. CEO, Designer, Advisor."
+          : "People who belong to this organization."}
+      </p>
+      <div className="mt-3 flex flex-col gap-3">
         {members.map((member) => (
-          <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
+          <div
+            key={member.id}
+            className="flex flex-col gap-2 rounded-xl border border-beedero-border bg-zinc-50/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+          >
             <div className="flex min-w-0 items-center gap-2.5">
               <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
-              <span className="truncate font-medium text-zinc-900">{member.full_name}</span>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-zinc-900">{member.full_name}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+                  {membershipAccessLabel(member.role)}
+                </p>
+              </div>
             </div>
             {canManage ? (
-              <div className="flex items-center gap-2">
-                <form action={updateMemberRoleAction}>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <form action={updateMemberTitleAction} className="flex min-w-[12rem] flex-1 sm:flex-none">
                   <input type="hidden" name="slug" value={slug} />
                   <input type="hidden" name="member_id" value={member.id} />
-                  <select
-                    name="role"
-                    defaultValue={member.role}
-                    onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                    className="rounded-lg border border-beedero-border px-2 py-1 text-xs outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                  >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    name="title"
+                    defaultValue={member.title ?? ""}
+                    placeholder="Role on the team"
+                    onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+                    className="w-full rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                  />
                 </form>
                 <form action={removeMemberAction}>
                   <input type="hidden" name="slug" value={slug} />
                   <input type="hidden" name="member_id" value={member.id} />
-                  <button className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50">
+                  <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
                     Remove
                   </button>
                 </form>
               </div>
             ) : (
-              <span className="text-xs font-medium text-zinc-400">{member.role}</span>
+              <span className="text-sm text-zinc-600">{member.title || "Team member"}</span>
             )}
           </div>
         ))}
@@ -1233,271 +1225,47 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
   );
 }
 
-const LEVEL_RUNGS = [
-  { level: 1, label: CREDIBILITY_LEVEL_LABELS[1] },
-  { level: 2, label: CREDIBILITY_LEVEL_LABELS[2] },
-  { level: 3, label: CREDIBILITY_LEVEL_LABELS[3] },
-  { level: 4, label: CREDIBILITY_LEVEL_LABELS[4] },
-];
-
-type VerificationFieldSpec = {
-  name: string;
-  label: string;
-  type: "text" | "date" | "number" | "file";
-  required?: boolean;
-};
-
-const VERIFICATION_FORMS: Record<string, { label: string; level: number; fields: VerificationFieldSpec[] }> = {
-  company_registry: {
-    label: "Company registry",
-    level: 1,
-    fields: [
-      { name: "nif", label: "NIF", type: "text", required: true },
-      { name: "registry_access_code", label: "Registry access code", type: "text", required: true },
-    ],
-  },
-  founder_role: {
-    label: "Founder / role",
-    level: 1,
-    fields: [{ name: "role", label: "Your role at the company", type: "text", required: true }],
-  },
-  tax_clearance: {
-    label: "Tax clearance (AT)",
-    level: 2,
-    fields: [
-      { name: "valid_until", label: "Certificate valid until", type: "date", required: true },
-      { name: "document", label: "Certificate (PDF)", type: "file", required: true },
-    ],
-  },
-  ss_clearance: {
-    label: "Social security clearance",
-    level: 2,
-    fields: [
-      { name: "valid_until", label: "Certificate valid until", type: "date", required: true },
-      { name: "document", label: "Certificate (PDF)", type: "file", required: true },
-    ],
-  },
-  annual_accounts: {
-    label: "Annual accounts",
-    level: 3,
-    fields: [
-      { name: "fiscal_year", label: "Fiscal year", type: "number", required: true },
-      { name: "revenue_fy", label: "Revenue", type: "number" },
-      { name: "net_income_fy", label: "Net income", type: "number" },
-      { name: "equity_fy", label: "Equity", type: "number" },
-      { name: "occ_number", label: "OCC accountant number", type: "text", required: true },
-      { name: "document", label: "Annual accounts (PDF)", type: "file", required: true },
-    ],
-  },
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  verified: "bg-emerald-100 text-emerald-700",
-  pending: "bg-amber-100 text-amber-700",
-  rejected: "bg-red-100 text-red-700",
-  expired: "bg-zinc-200 text-zinc-600",
-};
-
-function VerificationForm({ slug, type }: { slug: string; type: string }) {
-  const spec = VERIFICATION_FORMS[type];
-  const [error, formAction, pending] = useActionState(submitVerificationAction, null);
-  useActionToast(error, pending, { successMessage: "Submitted for verification." });
-
-  return (
-    <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-dashed border-beedero-border pt-3">
-      <input type="hidden" name="slug" value={slug} />
-      <input type="hidden" name="type" value={type} />
-      <div className="grid gap-2 sm:grid-cols-2">
-        {spec.fields.map((field) => (
-          <label key={field.name} className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-            {field.label}
-            {field.type === "file" ? (
-              <input
-                type="file"
-                name={field.name}
-                accept="application/pdf"
-                required={field.required}
-                className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
-              />
-            ) : (
-              <input
-                type={field.type}
-                name={field.name}
-                required={field.required}
-                className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-              />
-            )}
-          </label>
-        ))}
-      </div>
-      <button
-        disabled={pending}
-        className="self-start rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-      >
-        {pending ? "Submitting..." : "Submit for review"}
-      </button>
-    </form>
-  );
-}
-
-function VerificationCard({
+function ShareTab({
   slug,
-  type,
-  info,
-  canManage,
-}: {
-  slug: string;
-  type: string;
-  info?: VerificationInfo;
-  canManage: boolean;
-}) {
-  const spec = VERIFICATION_FORMS[type];
-  const status = info?.status;
-  const [showForm, setShowForm] = useState(false);
-
-  return (
-    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="font-extrabold text-zinc-900">{spec.label}</h4>
-        {status ? (
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
-            {status}
-          </span>
-        ) : (
-          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
-            not submitted
-          </span>
-        )}
-      </div>
-      {info?.valid_until && (
-        <p className="mt-1 text-xs text-zinc-400">Valid until {formatDate(info.valid_until)}</p>
-      )}
-      {status === "rejected" && info?.rejection_reason && (
-        <p className="mt-1 text-xs text-red-600">Rejected: {info.rejection_reason}</p>
-      )}
-      {canManage && (status === undefined || status === "rejected" || status === "expired") && !showForm && (
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="mt-3 rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium hover:bg-beedero-yellow"
-        >
-          {status ? "Resubmit" : "Submit for review"}
-        </button>
-      )}
-      {canManage && showForm && <VerificationForm slug={slug} type={type} />}
-    </div>
-  );
-}
-
-function CredibilityTab({
-  slug,
-  credibility,
   canManage,
   badgeEmbed,
   vitality,
 }: {
   slug: string;
-  credibility: CredibilityInfo;
   canManage: boolean;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
 }) {
-  const [stripeError, stripeAction, stripePending] = useActionState(connectStripeTractionAction, null);
-  useActionToast(stripeError, stripePending, { successMessage: "Stripe connected." });
-  const stripeInfo = credibility.verifications["stripe_traction"];
+  const publicUrl = `${SITE_URL}/o/${slug}`;
 
   return (
     <div className="flex flex-col gap-4">
-      {canManage && badgeEmbed && vitality && (
+      {canManage && badgeEmbed && vitality ? (
         <>
-          <BadgeEmbedPanel slug={slug} embed={badgeEmbed} badge={vitality.badge} />
+          <BadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
+          <PresenceSignalsPanel presence={vitality.presence} />
           <VitalityChecklistPanel
             items={vitality.items}
             doneCount={vitality.done_count}
             totalCount={vitality.total_count}
           />
         </>
+      ) : (
+        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
+          <h3 className="font-extrabold text-zinc-900">Public profile</h3>
+          <p className="mt-1 text-sm text-zinc-500">
+            Share your organization&apos;s public page with investors and partners.
+          </p>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+          >
+            Open {publicUrl.replace(/^https?:\/\//, "")}
+          </a>
+        </div>
       )}
-      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="font-extrabold text-zinc-900">Credibility ladder</h3>
-          <CredibilityBadge level={credibility.level} />
-        </div>
-        <div className="mt-4 flex items-center gap-1">
-          {LEVEL_RUNGS.map((rung) => (
-            <div
-              key={rung.level}
-              title={rung.label}
-              className={`h-2 flex-1 rounded-full ${
-                credibility.level >= rung.level ? "bg-beedero-yellow" : "bg-zinc-100"
-              }`}
-            />
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-zinc-400">
-          Levels are sequential — a rung only counts once every requirement below it is verified and current.
-        </p>
-      </div>
-
-      {Object.entries(VERIFICATION_FORMS).map(([type, spec]) => (
-        <div key={type} className="flex flex-col gap-2">
-          {spec.level === 1 && type === "company_registry" && (
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
-              {credibilityLevelHeading(1)}
-            </p>
-          )}
-          {spec.level === 2 && type === "tax_clearance" && (
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
-              {credibilityLevelHeading(2)}
-            </p>
-          )}
-          {spec.level === 3 && (
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
-              {credibilityLevelHeading(3)}
-            </p>
-          )}
-          <VerificationCard
-            slug={slug}
-            type={type}
-            info={credibility.verifications[type]}
-            canManage={canManage}
-          />
-        </div>
-      ))}
-
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
-          {credibilityLevelHeading(4)}
-        </p>
-        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="font-extrabold text-zinc-900">Stripe</h4>
-            {stripeInfo ? (
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[stripeInfo.status]}`}>
-                {stripeInfo.status}
-              </span>
-            ) : (
-              <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
-                not connected
-              </span>
-            )}
-          </div>
-          {stripeInfo?.valid_until && (
-            <p className="mt-1 text-xs text-zinc-400">Valid until {formatDate(stripeInfo.valid_until)}</p>
-          )}
-          {canManage && (
-            <form action={stripeAction} className="mt-3">
-              <input type="hidden" name="slug" value={slug} />
-              <button
-                disabled={stripePending}
-                className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-              >
-                {stripePending ? "Connecting..." : stripeInfo ? "Reconnect Stripe" : "Connect Stripe"}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1511,8 +1279,21 @@ function CalendarTab({
   events: CalendarEvent[];
   postingStatus: PostingStatus;
 }) {
-  const createdCount = events.filter((event) => event.role !== "attending").length;
-  const attendingCount = events.filter((event) => event.role === "attending").length;
+  const [roleFilter, setRoleFilter] = useState<EventRoleFilter>("all");
+
+  const createdEvents = useMemo(
+    () => events.filter((event) => event.role !== "attending"),
+    [events]
+  );
+  const attendingEvents = useMemo(
+    () => events.filter((event) => event.role === "attending"),
+    [events]
+  );
+  const filteredEvents = useMemo(() => {
+    if (roleFilter === "created") return createdEvents;
+    if (roleFilter === "attending") return attendingEvents;
+    return events;
+  }, [events, roleFilter, createdEvents, attendingEvents]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -1522,15 +1303,16 @@ function CalendarTab({
         defaultKind="event"
         compactCreateButton
       />
-      <div className="flex flex-wrap gap-3 text-sm">
-        <span className="rounded-full bg-beedero-black px-3 py-1 font-bold text-beedero-yellow">
-          {createdCount} organized by you
-        </span>
-        <span className="rounded-full border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-bold text-emerald-900">
-          {attendingCount} you&apos;re participating in
-        </span>
-      </div>
-      <EventsCalendar events={events} full />
+      <EventsCalendar
+        events={filteredEvents}
+        full
+        roleFilter={roleFilter}
+        onRoleFilterChange={setRoleFilter}
+        roleCounts={{
+          created: createdEvents.length,
+          attending: attendingEvents.length,
+        }}
+      />
     </div>
   );
 }
@@ -1549,7 +1331,6 @@ export function OrgTabs({
   invites,
   canManage,
   onboarding,
-  credibility,
   badgeEmbed,
   vitality,
   suggestedTitle,
@@ -1569,7 +1350,6 @@ export function OrgTabs({
   invites: Invite[];
   canManage: boolean;
   onboarding: Onboarding;
-  credibility: CredibilityInfo;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
   suggestedTitle?: string;
@@ -1580,10 +1360,6 @@ export function OrgTabs({
     suggestedTitle ? "activity" : (initialTab ?? "overview")
   );
   const router = useRouter();
-
-  useEffect(() => {
-    if (initialTab) setActive(initialTab);
-  }, [initialTab]);
 
   function selectTab(tabId: TabId) {
     setActive(tabId);
@@ -1679,14 +1455,8 @@ export function OrgTabs({
         />
       )}
 
-      {active === "credibility" && (
-        <CredibilityTab
-          slug={slug}
-          credibility={credibility}
-          canManage={canManage}
-          badgeEmbed={badgeEmbed}
-          vitality={vitality}
-        />
+      {active === "share" && (
+        <ShareTab slug={slug} canManage={canManage} badgeEmbed={badgeEmbed} vitality={vitality} />
       )}
     </div>
   );

@@ -116,10 +116,38 @@ def test_profile_view_recorded(api, person):
 
 
 @pytest.mark.django_db
-def test_handle_validation(api, person):
+def test_handle_is_assigned_from_full_name(api, db):
+    user = User.objects.create_user(username="julio", email="julio@example.com", password="x")
+    api.force_authenticate(user)
+    res = api.put(
+        "/api/investors/me/",
+        {"full_name": "Júlio Pomar", "headline": "Investor", "country": "PT"},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["handle"] == "julio-pomar"
+
+
+@pytest.mark.django_db
+def test_investor_profile_auto_handle_after_name_saved(api, db):
+    user = User.objects.create_user(username="ada", email="ada@example.com", password="x")
+    api.force_authenticate(user)
+    res = api.put(
+        "/api/investors/me/",
+        {"full_name": "Ada Lovelace", "headline": "Angel investor", "country": "GB"},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["handle"] == "ada-lovelace"
+    assert res.data["has_public_handle"] is True
+
+
+@pytest.mark.django_db
+def test_handle_cannot_be_changed_manually(api, person):
     api.force_authenticate(person.user)
-    res = api.put("/api/investors/me/", {"handle": "ab"}, format="json")
-    assert res.status_code == 400
+    res = api.put("/api/investors/me/", {"handle": "custom-handle"}, format="json")
+    assert res.status_code == 200
+    assert res.data["handle"] == "ada-lovelace"
 
 
 @pytest.mark.django_db

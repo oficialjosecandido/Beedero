@@ -24,6 +24,8 @@ def test_investor_profile_get_creates_then_put_updates(api, user):
     get_res = api.get("/api/investors/me/")
     assert get_res.status_code == 200
     assert InvestorProfile.objects.filter(user=user).exists()
+    assert not get_res.data["handle"]
+    assert get_res.data["has_public_handle"] is False
     assert get_res.data["is_complete"] is False
 
     put_res = api.put(
@@ -34,6 +36,7 @@ def test_investor_profile_get_creates_then_put_updates(api, user):
     assert put_res.status_code == 200
     assert put_res.data["is_complete"] is True
     assert put_res.data["full_name"] == "Ada Lovelace"
+    assert put_res.data["handle"] == "ada-lovelace"
 
 
 @pytest.mark.django_db

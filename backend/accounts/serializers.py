@@ -37,22 +37,7 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "is_complete",
             "has_public_handle",
         ]
-        read_only_fields = ["is_verified", "verified_at"]
-
-    def validate_handle(self, value):
-        if value in (None, ""):
-            return None
-        handle = value.lower().strip()
-        if not HANDLE_RE.match(handle):
-            raise serializers.ValidationError(
-                "Handle must be 3–50 lowercase letters, numbers, or hyphens."
-            )
-        qs = InvestorProfile.objects.filter(handle=handle)
-        if self.instance:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise serializers.ValidationError("This handle is already taken.")
-        return handle
+        read_only_fields = ["is_verified", "verified_at", "handle"]
 
     def validate_visibility(self, value):
         if not value:

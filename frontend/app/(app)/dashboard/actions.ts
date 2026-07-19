@@ -144,8 +144,6 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   body.set("headline", formData.get("headline") ?? "");
   body.set("bio", formData.get("bio") ?? "");
   body.set("country", formData.get("country") ?? "");
-  const handle = formData.get("handle");
-  if (handle !== null) body.set("handle", String(handle));
 
   const visibility: Record<string, string> = {};
   for (const key of ["bio", "country", "posts", "attestations"]) {
@@ -155,7 +153,6 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   body.set("visibility", JSON.stringify(visibility));
 
   const attestationPrefs: Record<string, boolean> = {
-    show_verified_badge: formData.get("show_verified_badge") === "on",
     show_memberships: formData.get("show_memberships") === "on",
     show_posts_count: formData.get("show_posts_count") === "on",
   };
@@ -378,6 +375,17 @@ export async function revokeInviteAction(formData: FormData) {
   const slug = String(formData.get("slug"));
   const inviteId = String(formData.get("invite_id"));
   await apiFetch(`/orgs/${slug}/invites/${inviteId}/`, { method: "DELETE" });
+  revalidatePath(`/dashboard/${slug}`);
+}
+
+export async function updateMemberTitleAction(formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const memberId = String(formData.get("member_id"));
+  const title = String(formData.get("title") ?? "").trim();
+  await apiFetch(`/orgs/${slug}/members/${memberId}/`, {
+    method: "PATCH",
+    body: { title },
+  });
   revalidatePath(`/dashboard/${slug}`);
 }
 

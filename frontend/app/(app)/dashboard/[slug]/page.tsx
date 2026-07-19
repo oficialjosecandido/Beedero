@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 
-import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { OrgDashboardSidebar } from "@/components/OrgDashboardSidebar";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { OrgLogoForm } from "./OrgLogoForm";
@@ -30,20 +29,6 @@ type OrgSummary = {
     credibility_level: number;
   };
 };
-type CredibilityInfo = {
-  level: number;
-  verifications: Record<
-    string,
-    {
-      status: "pending" | "verified" | "rejected" | "expired";
-      valid_until: string | null;
-      submitted_at?: string;
-      reviewed_at?: string | null;
-      rejection_reason?: string;
-      payload?: Record<string, unknown>;
-    }
-  >;
-};
 type Stats = { followers_count: number; visitors_count: number };
 type Member = {
   id: number;
@@ -51,6 +36,7 @@ type Member = {
   full_name: string;
   profile_picture?: string | null;
   role: string;
+  title?: string;
 };
 type Invite = {
   id: number;
@@ -129,20 +115,12 @@ type FundraiseRound = {
   closed_at: string | null;
 };
 
-const POSTING_STATUS_FALLBACK = (credibilityLevel = 0): PostingStatus => ({
+const POSTING_STATUS_FALLBACK = (): PostingStatus => ({
   can_post: true,
   next_slot_at: null,
-  allowed_kinds: credibilityLevel >= 2 ? ["update", "milestone", "event"] : credibilityLevel >= 1 ? ["update", "milestone"] : ["update"],
-  locked_kinds:
-    credibilityLevel >= 2
-      ? []
-      : credibilityLevel >= 1
-        ? [{ kind: "event", unlocks_at_level: 2, reason: "Events unlock at credibility level 2." }]
-        : [
-            { kind: "milestone", unlocks_at_level: 1, reason: "Milestones unlock at credibility level 1." },
-            { kind: "event", unlocks_at_level: 2, reason: "Events unlock at credibility level 2." },
-          ],
-  credibility_level: credibilityLevel,
+  allowed_kinds: ["update", "milestone", "event"],
+  locked_kinds: [],
+  credibility_level: 0,
   freshness: null,
 });
 
@@ -155,8 +133,7 @@ const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
   fee: null,
 });
 
-const CREDIBILITY_FALLBACK: CredibilityInfo = { level: 0, verifications: {} };
-const ORG_TABS = ["overview", "calendar", "activity", "profile", "fundraising", "credibility"] as const;
+const ORG_TABS = ["overview", "calendar", "activity", "profile", "fundraising", "share"] as const;
 type OrgTabId = (typeof ORG_TABS)[number];
 
 function parseOrgTab(tab?: string): OrgTabId | undefined {
@@ -202,7 +179,7 @@ export default async function DashboardOrgPage({
         ),
         safeFetch(
           apiFetch<PostingStatus>(`/orgs/${slug}/posting-status/`),
-          POSTING_STATUS_FALLBACK(0)
+          POSTING_STATUS_FALLBACK()
         ),
       ]);
   } catch (err) {
@@ -219,11 +196,10 @@ export default async function DashboardOrgPage({
   )?.role;
   const myRole = membershipRole ?? listedRole ?? "member";
   const canManage = myRole === "owner" || myRole === "admin";
-  const [invites, credibility, badgeEmbed, vitality] = await Promise.all([
+  const [invites, badgeEmbed, vitality] = await Promise.all([
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/invites/`) as Promise<Invite[]>, [])
       : Promise.resolve([] as Invite[]),
-    safeFetch(apiFetch(`/orgs/${slug}/credibility/`) as Promise<CredibilityInfo>, CREDIBILITY_FALLBACK),
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/badge-embed/`) as Promise<BadgeEmbed>, null)
       : Promise.resolve(null),
@@ -271,12 +247,6 @@ export default async function DashboardOrgPage({
                     Draft
                   </span>
                 )}
-                <CredibilityBadge level={profile.org.credibility_level} />
-                {profile.org.is_verified && (
-                <span className="rounded-full bg-beedero-yellow px-2.5 py-0.5 text-xs font-bold text-beedero-black">
-                    Verified
-                  </span>
-                )}
                 {profile.org.is_fundraising && (
                 <span className="rounded-full bg-beedero-black px-2.5 py-0.5 text-xs font-bold text-beedero-yellow">
                     Fundraising
@@ -297,6 +267,7 @@ export default async function DashboardOrgPage({
 
           <div className="order-1 lg:order-none">
             <OrgTabs
+              key={`${slug}-${initialTab ?? "overview"}`}
               slug={slug}
               org={profile.org}
               sections={sections}
@@ -310,7 +281,6 @@ export default async function DashboardOrgPage({
               invites={invites}
               canManage={canManage}
               onboarding={onboardingData}
-              credibility={credibility}
               badgeEmbed={badgeEmbed}
               vitality={vitality}
               suggestedTitle={suggestedTitle}

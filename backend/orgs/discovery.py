@@ -24,7 +24,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import Activity, Organization
-from .posting.freshness import discovery_score, recency_factor
+from .posting.freshness import discovery_score
 from .visibility import VisibilityResolver
 
 RESTRICTED_METRIC_KEYS = {"mrr", "arr", "valuation"}

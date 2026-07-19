@@ -130,16 +130,16 @@ def _escape_xml(value: str) -> str:
 def badge_embed_html(org) -> dict:
     site = settings.FRONTEND_URL.rstrip("/")
     slug = org.slug
-    verify_url = f"{site}/verify/{slug}"
+    profile_url = f"{site}/o/{slug}"
     badge_url = f"{site}/badge/{slug}.svg"
     html = (
-        f'<a href="{verify_url}">\n'
-        f'  <img src="{badge_url}" alt="Verified on Beedero" height="48">\n'
+        f'<a href="{profile_url}">\n'
+        f'  <img src="{badge_url}" alt="Beedero profile" height="48">\n'
         f"</a>"
     )
     return {
         "html": html,
-        "verify_url": verify_url,
+        "verify_url": profile_url,
         "badge_url": badge_url,
         "json_url": f"{site}/badge/{slug}.json",
     }

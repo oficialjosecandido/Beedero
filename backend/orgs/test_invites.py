@@ -128,3 +128,18 @@ def test_repeat_accept_by_existing_member_does_not_double_count(api, org, owner,
     assert res.status_code == 200
     invite.refresh_from_db()
     assert invite.uses_count == 1
+
+
+@pytest.mark.django_db
+def test_owner_can_update_member_title(api, org, owner, joiner):
+    membership = OrgMembership.objects.create(org=org, user=joiner, role=OrgMembership.Role.MEMBER)
+    api.force_authenticate(owner)
+    res = api.patch(
+        f"/api/orgs/{org.slug}/members/{membership.id}/",
+        {"title": "Head of Product"},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["title"] == "Head of Product"
+    membership.refresh_from_db()
+    assert membership.title == "Head of Product"

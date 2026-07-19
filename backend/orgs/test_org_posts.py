@@ -86,16 +86,9 @@ def test_second_post_same_lisbon_day_returns_429(api, org, founder):
 
 
 @pytest.mark.django_db
-def test_level_zero_can_update_not_event(api, org, founder):
+def test_level_zero_can_post_event(api, org, founder):
     api.force_authenticate(founder)
-    ok = api.post(
-        f"/api/orgs/{org.slug}/posts/",
-        {"kind": "update", "body": "Hello world"},
-        format="json",
-    )
-    assert ok.status_code == 201
-
-    blocked = api.post(
+    res = api.post(
         f"/api/orgs/{org.slug}/posts/",
         {
             "kind": "event",
@@ -106,8 +99,7 @@ def test_level_zero_can_update_not_event(api, org, founder):
         },
         format="json",
     )
-    assert blocked.status_code == 400
-    assert "level 2" in str(blocked.data).lower()
+    assert res.status_code == 201
 
 
 @pytest.mark.django_db
@@ -121,7 +113,7 @@ def test_feed_orders_by_created_at_not_milestone_display_date(api, org, founder)
         created_at=timezone.now(),
         payload={"category": "traction", "occurred_at": "2020-01-01"},
     )
-    newer = Activity.objects.create(
+    Activity.objects.create(
         org=org,
         kind=SectionKind.NEWS,
         title="Recent update",
@@ -178,6 +170,5 @@ def test_posting_status_lists_locked_kinds(api, org, founder):
     api.force_authenticate(founder)
     res = api.get(f"/api/orgs/{org.slug}/posting-status/")
     assert res.status_code == 200
-    assert "update" in res.data["allowed_kinds"]
-    locked = {item["kind"] for item in res.data["locked_kinds"]}
-    assert "event" in locked
+    assert set(res.data["allowed_kinds"]) == {"update", "milestone", "event"}
+    assert res.data["locked_kinds"] == []

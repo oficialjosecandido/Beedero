@@ -15,6 +15,9 @@ POSTING_RULES = {
 
 def posting_rule(org) -> dict:
     level = credibility_level(org)
+    # Org verification is not active yet — don't gate post types on credibility.
+    if level < 2:
+        level = 2
     bucket = 4 if level >= 4 else min(level, 3)
     return POSTING_RULES[bucket]
 

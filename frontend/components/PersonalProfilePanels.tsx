@@ -34,17 +34,6 @@ export function PersonBadgeEmbedPanel({
 }) {
   const [copied, setCopied] = useState(false);
 
-  if (!badge.handle) {
-    return (
-      <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-        <h3 className="font-extrabold text-zinc-900">Your personal badge</h3>
-        <p className="mt-1 text-sm text-zinc-500">
-          Choose a public handle in your profile settings to get a shareable badge and profile link.
-        </p>
-      </div>
-    );
-  }
-
   async function copySnippet() {
     await navigator.clipboard.writeText(embed.html);
     setCopied(true);
@@ -61,7 +50,7 @@ export function PersonBadgeEmbedPanel({
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLES[badge.visual_status]}`}>
-          {badge.verified ? "Verified" : "Profile active"}
+          Profile active
         </span>
       </div>
 
@@ -135,8 +124,6 @@ export function ProfileStrengthPanel({
 }) {
   const LABELS: Record<string, string> = {
     basics: "Basics complete",
-    handle: "Public handle set",
-    verified: "Identity verified",
     org_link: "Linked to an organization",
     first_post: "First post published",
   };

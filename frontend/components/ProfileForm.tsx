@@ -65,17 +65,19 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-        Public handle
+        Public profile
         <span className="text-xs font-normal text-zinc-400">
-          Your shareable profile URL: beedero.com/p/your-handle
+          {profile?.handle
+            ? `Your profile URL is created automatically: beedero.com/p/${profile.handle}`
+            : "Your profile URL is created automatically when you save your profile."}
         </span>
-        <input
-          name="handle"
-          placeholder="ada-lovelace"
-          defaultValue={profile?.handle ?? ""}
-          pattern="[a-z0-9][a-z0-9-]{1,48}[a-z0-9]"
-          className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-        />
+        {profile?.handle && (
+          <input
+            readOnly
+            value={`beedero.com/p/${profile.handle}`}
+            className="rounded-xl border border-beedero-border bg-zinc-50 px-3 py-2 text-sm text-zinc-600 outline-none"
+          />
+        )}
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Country
@@ -152,7 +154,6 @@ export function ProfileForm({ profile }: { profile?: Profile | null }) {
         </p>
         <div className="flex flex-col gap-2">
           {[
-            { key: "show_verified_badge", label: "Show verified identity badge" },
             { key: "show_memberships", label: "Show organization memberships" },
             { key: "show_posts_count", label: "Show post count" },
           ].map(({ key, label }) => (

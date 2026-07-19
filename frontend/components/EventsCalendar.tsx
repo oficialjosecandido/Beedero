@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 
 export type CalendarEvent = {
   id: number | string;
@@ -15,6 +15,9 @@ export type CalendarEvent = {
 };
 
 type ViewMode = "month" | "week" | "day";
+export type EventRoleFilter = "all" | "created" | "attending";
+
+type RoleCounts = { created: number; attending: number };
 
 const LOCALE = "en-GB";
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -171,19 +174,101 @@ function EventCard({ event }: { event: CalendarEvent }) {
   );
 }
 
-function CalendarLegend() {
+function EventRoleFilterBar({
+  value,
+  onChange,
+  counts,
+}: {
+  value: EventRoleFilter;
+  onChange: (value: EventRoleFilter) => void;
+  counts: RoleCounts;
+}) {
+  const total = counts.created + counts.attending;
+  const options: {
+    id: EventRoleFilter;
+    label: string;
+    count: number;
+    activeClass: string;
+    idleClass: string;
+    dotClass: string;
+  }[] = [
+    {
+      id: "all",
+      label: "All",
+      count: total,
+      activeClass: "bg-beedero-black text-beedero-yellow shadow-sm",
+      idleClass: "text-beedero-black/70 hover:bg-beedero-white",
+      dotClass: "bg-gradient-to-r from-beedero-black to-emerald-600",
+    },
+    {
+      id: "created",
+      label: "Organized by you",
+      count: counts.created,
+      activeClass: "bg-beedero-black text-beedero-yellow shadow-sm",
+      idleClass: "text-beedero-black/70 hover:bg-beedero-white",
+      dotClass: "bg-beedero-black",
+    },
+    {
+      id: "attending",
+      label: "Participating",
+      count: counts.attending,
+      activeClass: "bg-emerald-700 text-white shadow-sm",
+      idleClass: "text-emerald-900/80 hover:bg-emerald-50",
+      dotClass: "border-2 border-emerald-700 bg-emerald-50",
+    },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-beedero-black/70">
-      <span className="flex items-center gap-2">
-        <span className="size-3 rounded bg-beedero-black" />
-        Organized by you
-      </span>
-      <span className="flex items-center gap-2">
-        <span className="size-3 rounded border-2 border-emerald-700 bg-emerald-50" />
-        You&apos;re participating
-      </span>
+    <div
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      role="group"
+      aria-label="Filter events by role"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-beedero-black/45">Show</p>
+      <div className="flex flex-col gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-yellow/10 p-1 sm:inline-flex sm:flex-row">
+        {options.map((option) => {
+          const active = value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option.id)}
+              className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors sm:justify-center sm:px-4 ${
+                active ? option.activeClass : option.idleClass
+              }`}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={`size-2.5 shrink-0 rounded-full ${option.dotClass}`} />
+                <span className="truncate">{option.label}</span>
+              </span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold tabular-nums ${
+                  active
+                    ? option.id === "attending"
+                      ? "bg-white/20 text-white"
+                      : "bg-beedero-yellow/25 text-inherit"
+                    : "bg-beedero-black/5 text-beedero-black/55"
+                }`}
+              >
+                {option.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function emptyCalendarMessage(roleFilter: EventRoleFilter | undefined): string {
+  if (roleFilter === "created") {
+    return "No events organized by you yet. Use “Create event” to publish one on this calendar.";
+  }
+  if (roleFilter === "attending") {
+    return "No participating events yet. Accept events from your feed and they will appear here in green.";
+  }
+  return "No events yet. Create one above, or accept events from your feed to see them here.";
 }
 
 function ViewModeToggle({
@@ -363,7 +448,19 @@ function EmbeddedMonthCalendar({
   );
 }
 
-function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date }) {
+function FullCalendar({
+  events,
+  today,
+  roleFilter,
+  onRoleFilterChange,
+  roleCounts,
+}: {
+  events: CalendarEvent[];
+  today: Date;
+  roleFilter?: EventRoleFilter;
+  onRoleFilterChange?: (value: EventRoleFilter) => void;
+  roleCounts?: RoleCounts;
+}) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState(() => startOfDay(today));
   const eventsByDay = useEventsByDay(events);
@@ -433,7 +530,24 @@ function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date 
         <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
       </div>
       <div className="border-b border-beedero-border bg-beedero-white px-4 py-3 sm:px-5">
-        <CalendarLegend />
+        {roleCounts && onRoleFilterChange && roleFilter ? (
+          <EventRoleFilterBar
+            value={roleFilter}
+            onChange={onRoleFilterChange}
+            counts={roleCounts}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-beedero-black/70">
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded bg-beedero-black" />
+              Organized by you
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded border-2 border-emerald-700 bg-emerald-50" />
+              You&apos;re participating
+            </span>
+          </div>
+        )}
       </div>
 
       {viewMode === "month" && (
@@ -548,8 +662,7 @@ function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date 
 
       {events.length === 0 && viewMode === "month" && (
         <div className="border-t-2 border-beedero-border bg-beedero-yellow/15 px-5 py-4 text-sm font-medium text-beedero-black/70">
-          No events yet. Create one with the form above, or accept events from your feed to see them
-          here as participating.
+          {emptyCalendarMessage(roleFilter)}
         </div>
       )}
     </div>
@@ -560,15 +673,29 @@ export function EventsCalendar({
   events,
   embedded = false,
   full = false,
+  roleFilter,
+  onRoleFilterChange,
+  roleCounts,
 }: {
   events: CalendarEvent[];
   embedded?: boolean;
   full?: boolean;
+  roleFilter?: EventRoleFilter;
+  onRoleFilterChange?: (value: EventRoleFilter) => void;
+  roleCounts?: RoleCounts;
 }) {
   const today = useMemo(() => new Date(), []);
 
   if (full) {
-    return <FullCalendar events={events} today={today} />;
+    return (
+      <FullCalendar
+        events={events}
+        today={today}
+        roleFilter={roleFilter}
+        onRoleFilterChange={onRoleFilterChange}
+        roleCounts={roleCounts}
+      />
+    );
   }
 
   const calendar = <EmbeddedMonthCalendar events={events} today={today} />;

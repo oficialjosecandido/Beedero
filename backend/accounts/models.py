@@ -30,7 +30,7 @@ class InvestorProfile(models.Model):
     geo_focus = models.JSONField(default=list, blank=True)  # same values as Organization.geo
     check_min = models.PositiveIntegerField(null=True, blank=True)
     check_max = models.PositiveIntegerField(null=True, blank=True)
-    # Public shareable handle for /p/<handle> — optional until the user sets one.
+    # Public shareable handle for /p/<handle> — assigned automatically.
     handle = models.SlugField(max_length=50, unique=True, blank=True, null=True, db_index=True)
     # Per-section visibility: public | verified_investors | private
     visibility = models.JSONField(default=dict, blank=True)
@@ -66,6 +66,11 @@ class InvestorProfile(models.Model):
     @property
     def has_public_handle(self) -> bool:
         return bool(self.handle)
+
+    def ensure_handle(self) -> bool:
+        from .handles import ensure_profile_handle
+
+        return ensure_profile_handle(self)
 
 
 class InvestorPost(models.Model):

@@ -113,7 +113,6 @@ def update_org_post(activity: Activity, kind: str, data: dict) -> Activity:
         raise ValidationError({"kind": "Post kind cannot be changed."})
 
     validated = validate_payload(kind, data)
-    now = timezone.now()
 
     if kind == PostKind.UPDATE:
         activity.title = validated.get("title") or validated["body"][:120]

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { CREDIBILITY_LEVEL_LABELS } from "@/lib/credibility";
 import { formatDate } from "@/lib/format";
 import { SITE_URL } from "@/lib/site-metadata";
 
@@ -35,11 +34,9 @@ const STATUS_LABELS: Record<VitalityBadge["visual_status"], string> = {
 };
 
 export function BadgeEmbedPanel({
-  slug,
   embed,
   badge,
 }: {
-  slug: string;
   embed: BadgeEmbed;
   badge: VitalityBadge;
 }) {
@@ -55,41 +52,36 @@ export function BadgeEmbedPanel({
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-extrabold text-zinc-900">Your seal</h3>
+          <h3 className="font-extrabold text-zinc-900">Your badge</h3>
           <p className="mt-1 text-sm text-zinc-500">
-            Embed a live badge on your site — it updates automatically when your verification status changes.
+            Embed a live badge on your site — it links to your public Beedero profile.
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLES[badge.visual_status]}`}>
-          {STATUS_LABELS[badge.visual_status]}
+          {badge.level > 0 ? STATUS_LABELS[badge.visual_status] : "Profile active"}
           {badge.level > 0 && ` · Level ${badge.level}`}
         </span>
       </div>
 
       <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={embed.badge_url} alt="Beedero verification badge" className="h-12 w-auto" />
+        <img src={embed.badge_url} alt="Beedero profile badge" className="h-12 w-auto" />
         <div className="text-sm text-zinc-600">
-          {badge.level > 0 ? (
-            <p>
-              {CREDIBILITY_LEVEL_LABELS[badge.level]} —{" "}
-              {badge.days_until_expiry != null && badge.days_until_expiry <= 30
-                ? `expires in ${badge.days_until_expiry} days`
-                : badge.valid_until
-                  ? `valid until ${formatDate(badge.valid_until)}`
-                  : "no expiry set"}
-            </p>
-          ) : (
-            <p>Complete verifications to activate your seal.</p>
-          )}
           <a
             href={embed.verify_url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 inline-flex font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            className="inline-flex font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
           >
-            Preview public verification page
+            Preview public profile
           </a>
+          {badge.valid_until && badge.level > 0 && (
+            <p className="mt-1 text-xs text-zinc-400">
+              {badge.days_until_expiry != null && badge.days_until_expiry <= 30
+                ? `Expires in ${badge.days_until_expiry} days`
+                : `Valid until ${formatDate(badge.valid_until)}`}
+            </p>
+          )}
         </div>
       </div>
 

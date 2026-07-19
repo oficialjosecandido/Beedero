@@ -58,10 +58,9 @@ from .posting.services import (
     create_org_post,
     posting_status,
     update_org_post,
-    upcoming_events,
 )
+from .public import public_profile
 from .serializers import (
-    FeedPostSerializer,
     FundraiseRoundSerializer,
     OrgFieldWriteSerializer,
     OrgInviteSerializer,
@@ -486,15 +485,28 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
     def patch(self, request, slug, member_id):
         org = self.get_org()
         member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        updated_fields = []
+
+        if "title" in request.data:
+            title = str(request.data.get("title") or "").strip()[:120]
+            member.title = title
+            updated_fields.append("title")
+
         role = request.data.get("role")
-        if role not in OrgMembership.Role.values:
-            return Response({"detail": "Invalid role."}, status=400)
-        if role != OrgMembership.Role.OWNER:
-            blocked = self._protect_last_owner(org, member)
-            if blocked:
-                return blocked
-        member.role = role
-        member.save(update_fields=["role"])
+        if role is not None:
+            if role not in OrgMembership.Role.values:
+                return Response({"detail": "Invalid role."}, status=400)
+            if role != OrgMembership.Role.OWNER:
+                blocked = self._protect_last_owner(org, member)
+                if blocked:
+                    return blocked
+            member.role = role
+            updated_fields.append("role")
+
+        if not updated_fields:
+            return Response({"detail": "Nothing to update."}, status=400)
+
+        member.save(update_fields=updated_fields)
         return Response(OrgMembershipSerializer(member).data)
 
     def delete(self, request, slug, member_id):

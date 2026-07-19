@@ -165,8 +165,8 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrgMembership
-        fields = ["id", "email", "full_name", "profile_picture", "role"]
-        read_only_fields = ["id", "email", "full_name", "profile_picture"]
+        fields = ["id", "email", "full_name", "profile_picture", "role", "title"]
+        read_only_fields = ["id", "email", "full_name", "profile_picture", "role"]
 
     def get_full_name(self, obj):
         profile = getattr(obj.user, "investorprofile", None)

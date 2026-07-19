@@ -13,6 +13,7 @@ from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
 
 from .badge import person_badge_embed_html
+from .handles import ensure_profile_handle
 from .models import InvestorProfile
 from .serializers import InvestorPostSerializer, InvestorProfileSerializer, MeSerializer
 from .vitality import person_vitality_state
@@ -111,13 +112,21 @@ class InvestorStatsView(APIView):
         )
 
 
+def _get_investor_profile(user):
+    profile, _ = InvestorProfile.objects.get_or_create(user=user)
+    if profile.full_name:
+        ensure_profile_handle(profile)
+        profile.refresh_from_db()
+    return profile
+
+
 class InvestorVitalityView(APIView):
     """GET /api/investors/me/vitality/ — private checklist + presence."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
+        profile = _get_investor_profile(request.user)
         return Response(person_vitality_state(profile))
 
 
@@ -127,7 +136,7 @@ class InvestorBadgeEmbedView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
+        profile = _get_investor_profile(request.user)
         return Response(person_badge_embed_html(profile))
 
 
@@ -150,7 +159,7 @@ class InvestorProfileView(APIView):
         return data
 
     def get(self, request):
-        profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
+        profile = _get_investor_profile(request.user)
         return Response(InvestorProfileSerializer(profile).data)
 
     def put(self, request):
@@ -160,4 +169,6 @@ class InvestorProfileView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data)
+        ensure_profile_handle(profile)
+        profile.refresh_from_db()
+        return Response(InvestorProfileSerializer(profile).data)

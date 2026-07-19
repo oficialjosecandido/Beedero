@@ -53,6 +53,7 @@ class OrgMembership(models.Model):
     org = models.ForeignKey(Organization, related_name="members", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+    title = models.CharField(max_length=120, blank=True, default="")
 
     class Meta:
         unique_together = ("org", "user")

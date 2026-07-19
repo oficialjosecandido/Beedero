@@ -195,7 +195,7 @@ export default async function DashboardPage() {
               <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
                 <h2 className="text-xl font-extrabold">Profile settings</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  Update your details, public handle, visibility, and attestation preferences.
+                  Update your details, visibility, and attestation preferences.
                 </p>
               </div>
               <ProfileForm profile={me.investor_profile} />
