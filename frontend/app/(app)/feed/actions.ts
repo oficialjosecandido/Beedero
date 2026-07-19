@@ -1,4 +1,7 @@
+
 "use server";
+
+import { revalidatePath } from "next/cache";
 
 import { ApiError, apiFetch } from "@/lib/api";
 import type { Comment, ConversationSummary, FeedItem, MessageItem } from "./types";
@@ -51,7 +54,9 @@ export async function loadMoreFeedAction(cursor: string): Promise<{
   items: FeedItem[];
   next_cursor: string | null;
 }> {
-  return apiFetch(`/feed/?cursor=${encodeURIComponent(cursor)}`);
+  return apiFetch<{ items: FeedItem[]; next_cursor: string | null }>(
+    `/feed/?cursor=${encodeURIComponent(cursor)}`
+  );
 }
 
 export async function reactAction(
@@ -89,15 +94,38 @@ export async function loadCommentsAction(
   cursor?: string
 ): Promise<{ items: Comment[]; next_cursor: string | null; viewer_has_commented: boolean }> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  return apiFetch(`/activities/${activityId}/comments/${query}`);
+  return apiFetch<{ items: Comment[]; next_cursor: string | null; viewer_has_commented: boolean }>(
+    `/activities/${activityId}/comments/${query}`
+  );
 }
 
 export async function postCommentAction(
   activityId: number,
   body: string
 ): Promise<Comment> {
-  return apiFetch(`/activities/${activityId}/comments/`, {
+  return apiFetch<Comment>(`/activities/${activityId}/comments/`, {
     method: "POST",
     body: { body },
   });
+}
+
+export async function setEventParticipationAction(
+  activityId: number,
+  participating: boolean
+): Promise<{ status: "going" } | { error: string }> {
+  try {
+    if (participating) {
+      await apiFetch(`/activities/${activityId}/participation/`, {
+        method: "POST",
+        body: { status: "going" },
+      });
+    } else {
+      await apiFetch(`/activities/${activityId}/participation/`, { method: "DELETE" });
+    }
+    revalidatePath("/feed");
+    revalidatePath("/dashboard", "layout");
+    return { status: "going" };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not update your participation.") };
+  }
 }

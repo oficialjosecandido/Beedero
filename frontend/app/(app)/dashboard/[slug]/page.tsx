@@ -5,6 +5,7 @@ import { OrgDashboardSidebar } from "@/components/OrgDashboardSidebar";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
+import type { PostingStatus } from "@/components/OrgPostComposer";
 
 type SectionField = {
   id: number;
@@ -108,6 +109,14 @@ type BadgeEmbed = {
   badge_url: string;
   json_url: string;
 };
+type AttendingEvent = {
+  id: number;
+  title: string;
+  body?: string;
+  occurred_at: string;
+  ends_at?: string | null;
+  host: { type: "org" | "person"; name: string; slug?: string; id?: number };
+};
 type FundraiseRound = {
   id: number;
   valuation: number | null;
@@ -119,6 +128,23 @@ type FundraiseRound = {
   opened_at: string;
   closed_at: string | null;
 };
+
+const POSTING_STATUS_FALLBACK = (credibilityLevel = 0): PostingStatus => ({
+  can_post: true,
+  next_slot_at: null,
+  allowed_kinds: credibilityLevel >= 2 ? ["update", "milestone", "event"] : credibilityLevel >= 1 ? ["update", "milestone"] : ["update"],
+  locked_kinds:
+    credibilityLevel >= 2
+      ? []
+      : credibilityLevel >= 1
+        ? [{ kind: "event", unlocks_at_level: 2, reason: "Events unlock at credibility level 2." }]
+        : [
+            { kind: "milestone", unlocks_at_level: 1, reason: "Milestones unlock at credibility level 1." },
+            { kind: "event", unlocks_at_level: 2, reason: "Events unlock at credibility level 2." },
+          ],
+  credibility_level: credibilityLevel,
+  freshness: null,
+});
 
 const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
   status,
@@ -157,8 +183,10 @@ export default async function DashboardOrgPage({
   let activities: OrgActivity[];
   let roundHistory: FundraiseRound[];
   let onboarding: Onboarding | null;
+  let attendingEvents: AttendingEvent[];
+  let postingStatus: PostingStatus;
   try {
-    [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding] =
+    [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding, attendingEvents, postingStatus] =
       await Promise.all([
         apiFetch(`/orgs/${slug}/`) as Promise<OrgSummary>,
         apiFetch(`/orgs/${slug}/sections/`) as Promise<Section[]>,
@@ -168,6 +196,14 @@ export default async function DashboardOrgPage({
         apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
         apiFetch(`/orgs/${slug}/rounds/`) as Promise<FundraiseRound[]>,
         safeFetch(apiFetch(`/orgs/${slug}/onboarding/`) as Promise<Onboarding>, null),
+        safeFetch(
+          apiFetch<AttendingEvent[]>(`/me/events/attending/?exclude_org=${encodeURIComponent(slug)}`),
+          []
+        ),
+        safeFetch(
+          apiFetch<PostingStatus>(`/orgs/${slug}/posting-status/`),
+          POSTING_STATUS_FALLBACK(0)
+        ),
       ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
@@ -196,12 +232,9 @@ export default async function DashboardOrgPage({
       : Promise.resolve(null),
   ]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const hasPostedToday = activities.some(
-    (activity) => activity.created_at.slice(0, 10) === today
-  );
-  const canPostUpdates = !hasPostedToday;
-  const events = activities
+  const postingStatusData = postingStatus;
+
+  const createdEvents = activities
     .filter((activity) => activity.kind === "events")
     .map((activity) => ({
       id: activity.id,
@@ -209,7 +242,18 @@ export default async function DashboardOrgPage({
       occurred_at: activity.value.occurred_at ?? activity.created_at,
       ends_at: activity.value.ends_at,
       body: activity.value.body,
+      role: "created" as const,
     }));
+  const participatingEvents = attendingEvents.map((event) => ({
+    id: event.id,
+    title: event.title,
+    occurred_at: event.occurred_at,
+    ends_at: event.ends_at,
+    body: event.body,
+    role: "attending" as const,
+    host: event.host,
+  }));
+  const events = [...createdEvents, ...participatingEvents];
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
@@ -248,7 +292,7 @@ export default async function DashboardOrgPage({
 
         <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
           <div className="order-2 lg:order-none">
-            <OrgDashboardSidebar events={events} />
+            <OrgDashboardSidebar events={createdEvents} />
           </div>
 
           <div className="order-1 lg:order-none">
@@ -260,8 +304,7 @@ export default async function DashboardOrgPage({
               events={events}
               isFundraising={profile.org.is_fundraising}
               roundHistory={roundHistory}
-              canPostUpdates={canPostUpdates}
-              hasPostedToday={hasPostedToday}
+              postingStatus={postingStatusData}
               stats={stats}
               members={members}
               invites={invites}

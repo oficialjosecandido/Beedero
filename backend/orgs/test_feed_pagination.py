@@ -24,10 +24,17 @@ def viewer(db, org):
     return user
 
 
-def _post(org, title, occurred_at_iso):
-    return Activity.objects.create(
-        org=org, kind=SectionKind.NEWS, title=title, occurred_at=parse_datetime(occurred_at_iso)
+def _post(org, title, created_at_iso):
+    when = parse_datetime(created_at_iso)
+    activity = Activity.objects.create(
+        org=org,
+        kind=SectionKind.NEWS,
+        title=title,
+        occurred_at=when,
     )
+    Activity.objects.filter(pk=activity.pk).update(created_at=when)
+    activity.refresh_from_db()
+    return activity
 
 
 @pytest.mark.django_db

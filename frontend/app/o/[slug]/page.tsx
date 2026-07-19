@@ -32,7 +32,7 @@ export default async function PublicOrgPage({
 
   let data: OrgProfileData;
   try {
-    data = await publicFetch(`/public/orgs/${slug}/`);
+    data = await publicFetch<OrgProfileData>(`/public/orgs/${slug}/`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;

@@ -27,14 +27,24 @@ export default async function DiscoveryPage({
     if (params[key]) query.set(key, params[key]!);
   }
 
-  const orgResults: { items: OrgSummary[]; next_offset: number | null } =
+  const orgResults: {
+    items: OrgSummary[];
+    next_offset: number | null;
+    active_this_week?: OrgSummary[];
+  } =
     tab === "organizations"
-      ? await apiFetch(`/discovery/?${query.toString()}`)
-      : { items: [], next_offset: null };
+      ? await apiFetch<{
+          items: OrgSummary[];
+          next_offset: number | null;
+          active_this_week?: OrgSummary[];
+        }>(`/discovery/?${query.toString()}`)
+      : { items: [], next_offset: null, active_this_week: [] };
 
   const peopleResults: { items: PersonSummary[]; next_offset: number | null } =
     tab === "people"
-      ? await apiFetch(`/discovery/people/?${query.toString()}`)
+      ? await apiFetch<{ items: PersonSummary[]; next_offset: number | null }>(
+          `/discovery/people/?${query.toString()}`
+        )
       : { items: [], next_offset: null };
 
   const tabQuery = (nextTab: "organizations" | "people") => {
@@ -215,6 +225,29 @@ export default async function DiscoveryPage({
                 Filter
               </button>
             </form>
+
+            {(orgResults.active_this_week?.length ?? 0) > 0 && !hasSearchQuery && (
+              <section className="flex flex-col gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-zinc-950">Active this week</h2>
+                  <p className="text-sm text-zinc-600">
+                    Organizations that published recently, ranked by credibility.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {orgResults.active_this_week!.map((org) => (
+                    <Link
+                      key={org.slug}
+                      href={`/org/${org.slug}`}
+                      className="rounded-2xl border-2 border-emerald-700/30 bg-emerald-50/60 px-4 py-3 shadow-sm transition hover:border-emerald-700"
+                    >
+                      <p className="font-semibold text-zinc-950">{org.name}</p>
+                      {org.one_liner && <p className="mt-1 text-xs text-zinc-600">{org.one_liner}</p>}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <DiscoveryList
               initialItems={orgResults.items}

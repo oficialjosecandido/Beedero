@@ -130,9 +130,9 @@ export default async function DashboardPage() {
   let myPosts: InvestorPost[] = [];
   try {
     const [meRes, orgsRes, posts] = await Promise.all([
-      apiFetch("/auth/me/"),
-      safeFetch(apiFetch("/orgs/"), [] as Membership[]),
-      safeFetch(apiFetch("/investors/me/posts/") as Promise<InvestorPost[]>, []),
+      apiFetch<Me>("/auth/me/"),
+      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
+      safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
     ]);
     me = meRes;
     orgs = orgsRes;
@@ -140,9 +140,9 @@ export default async function DashboardPage() {
 
     if (me.investor_profile?.is_complete) {
       [profileStats, vitality, badgeEmbed] = await Promise.all([
-        safeFetch(apiFetch("/investors/me/stats/") as Promise<ProfileStats>, null),
-        safeFetch(apiFetch("/investors/me/vitality/") as Promise<Vitality>, null),
-        safeFetch(apiFetch("/investors/me/badge-embed/") as Promise<BadgeEmbed>, null),
+        safeFetch(apiFetch<ProfileStats>("/investors/me/stats/"), null),
+        safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
+        safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
       ]);
     }
   } catch (err) {

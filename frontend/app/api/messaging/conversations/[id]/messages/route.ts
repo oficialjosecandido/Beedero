@@ -18,10 +18,15 @@ export async function GET(
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
   const search = new URL(request.url).search;
-  const res = await fetch(`${backendUrl()}/conversations/${id}/messages/${search}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${backendUrl()}/conversations/${id}/messages/${search}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json({ detail: "Upstream service unavailable." }, { status: 502 });
+  }
   const body = await res.text();
   return new NextResponse(body, {
     status: res.status,
@@ -40,15 +45,20 @@ export async function POST(
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
   const payload = await request.text();
-  const res = await fetch(`${backendUrl()}/conversations/${id}/messages/`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: payload,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${backendUrl()}/conversations/${id}/messages/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: payload,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json({ detail: "Upstream service unavailable." }, { status: 502 });
+  }
   const body = await res.text();
   return new NextResponse(body, {
     status: res.status,

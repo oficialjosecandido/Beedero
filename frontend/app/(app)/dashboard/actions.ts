@@ -9,7 +9,9 @@ type WizardProgress = { completeness: number; checklist: ChecklistItem[] };
 export type WizardResult = Partial<WizardProgress> & { error: string | null };
 
 async function fetchOnboardingProgress(slug: string): Promise<WizardProgress> {
-  const data = await apiFetch(`/orgs/${slug}/onboarding/`);
+  const data = await apiFetch<{ completeness: number; checklist: ChecklistItem[] }>(
+    `/orgs/${slug}/onboarding/`
+  );
   return { completeness: data.completeness, checklist: data.checklist };
 }
 
@@ -45,7 +47,7 @@ export async function createOrgWizardAction(
 ): Promise<{ slug: string } & WizardResult> {
   let org: { slug: string };
   try {
-    org = await apiFetch("/orgs/", {
+    org = await apiFetch<{ slug: string }>("/orgs/", {
       method: "POST",
       body: { name, one_liner: oneLiner },
     });
@@ -296,20 +298,38 @@ function firstErrorMessage(err: unknown, fallback: string): string {
 
 export async function postFeedAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
-  const kind = String(formData.get("kind"));
+  const rawKind = String(formData.get("kind"));
+  const kindMap: Record<string, string> = {
+    news: "update",
+    milestones: "milestone",
+    events: "event",
+    update: "update",
+    milestone: "milestone",
+    event: "event",
+  };
+  const kind = kindMap[rawKind] ?? rawKind;
   const body = new FormData();
   body.set("kind", kind);
-  body.set("title", String(formData.get("title")));
+  body.set("title", String(formData.get("title") ?? ""));
   body.set("body", String(formData.get("body") ?? ""));
-  if (kind === "events") {
+
+  if (kind === "event") {
     const startsAt = formData.get("starts_at");
     const endsAt = formData.get("ends_at");
-    body.set("occurred_at", new Date(String(startsAt)).toISOString());
+    body.set("starts_at", new Date(String(startsAt)).toISOString());
     body.set("ends_at", new Date(String(endsAt)).toISOString());
-  } else {
-    body.set("occurred_at", new Date().toISOString());
+    body.set("format", String(formData.get("format") ?? "online"));
+    const location = formData.get("location");
+    if (location) body.set("location", String(location));
+    const registrationUrl = formData.get("registration_url");
+    if (registrationUrl) body.set("registration_url", String(registrationUrl));
+  } else if (kind === "milestone") {
+    body.set("category", String(formData.get("category") ?? "other"));
+    const occurredAt = formData.get("occurred_at");
+    if (occurredAt) body.set("occurred_at", String(occurredAt));
   }
-  if (kind === "events" || kind === "news") {
+
+  if (kind === "event" || kind === "update") {
     const image = formData.get("image");
     if (image instanceof File && image.size > 0) {
       body.set("image", image);
@@ -317,12 +337,13 @@ export async function postFeedAction(_prevState: string | null, formData: FormDa
   }
 
   try {
-    await apiFetch(`/orgs/${slug}/feed/`, { method: "POST", body });
+    await apiFetch(`/orgs/${slug}/posts/`, { method: "POST", body });
   } catch (err) {
     return firstErrorMessage(err, "Could not publish the update.");
   }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath("/feed");
+  revalidatePath("/discovery");
   return null;
 }
 

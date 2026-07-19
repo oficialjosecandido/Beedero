@@ -112,7 +112,43 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           )}
         </div>
         <p className="text-sm text-zinc-500">/o/{data.org.slug}</p>
+        {data.org.freshness && (
+          <p className="text-sm font-medium text-emerald-800">{data.org.freshness}</p>
+        )}
       </header>
+
+      {data.upcoming_events && data.upcoming_events.length > 0 && (
+        <section className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-yellow/10 p-5">
+          <h2 className="text-lg font-extrabold">Upcoming events</h2>
+          <div className="flex flex-col gap-3">
+            {data.upcoming_events.map((event) => (
+              <div key={event.id} className="rounded-xl border border-beedero-border bg-white p-4">
+                <p className="font-semibold text-beedero-black">{event.value.title}</p>
+                {event.value.occurred_at && event.value.ends_at && (
+                  <p className="mt-1 text-sm text-zinc-600">
+                    {formatDateTime(event.value.occurred_at)} – {formatDateTime(event.value.ends_at)}
+                  </p>
+                )}
+                {event.value.payload?.format && (
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    {event.value.payload.format.replace("_", " ")}
+                  </p>
+                )}
+                {event.value.payload?.registration_url && (
+                  <a
+                    href={event.value.payload.registration_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+                  >
+                    Register
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {sectionEntries.length === 0 && (
         <p className="text-sm text-zinc-500">Nothing visible to you on this page.</p>

@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
+from orgs.models import Activity
 from orgs.visibility import activity_visible_to
 
 from .models import Comment
@@ -16,7 +17,9 @@ from .services import (
     create_comment,
     get_visible_activity_or_404,
     reaction_counts_for,
+    remove_event_participation,
     remove_reaction,
+    set_event_participation,
     toggle_reaction,
     user_has_commented,
 )
@@ -140,3 +143,47 @@ class CommentDeleteView(APIView):
         if not activity_visible_to(request.user, comment.activity):
             raise Http404
         return Response({"detail": "Comments cannot be deleted."}, status=403)
+
+
+class ActivityParticipationView(APIView):
+    """POST/DELETE /api/activities/<id>/participation/ — RSVP to an event."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, activity_id):
+        activity = get_visible_activity_or_404(request.user, activity_id)
+        if activity.kind != Activity.Kind.EVENTS:
+            raise ValidationError({"detail": "Only events accept participation."})
+        set_event_participation(activity, request.user)
+        return Response({"status": "going"})
+
+    def delete(self, request, activity_id):
+        activity = get_visible_activity_or_404(request.user, activity_id)
+        remove_event_participation(activity, request.user)
+        return Response(status=204)
+
+
+class UserAttendingEventsView(APIView):
+    """GET /api/me/events/attending/ — events the viewer RSVP'd to."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from orgs.views import calendar_event_summary
+
+        from .models import EventParticipation
+
+        activities = (
+            Activity.objects.filter(
+                participations__user=request.user,
+                participations__status=EventParticipation.Status.GOING,
+                kind=Activity.Kind.EVENTS,
+            )
+            .select_related("org", "author", "author__investorprofile")
+            .order_by("occurred_at")
+            .distinct()
+        )
+        exclude_org = request.query_params.get("exclude_org")
+        if exclude_org:
+            activities = activities.exclude(org__slug=exclude_org)
+        return Response([calendar_event_summary(a) for a in activities])

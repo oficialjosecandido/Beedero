@@ -31,7 +31,8 @@ function OrgCard({ org }: { org: OrgSummary }) {
           </div>
           {org.one_liner && <p className="text-xs text-zinc-600">{org.one_liner}</p>}
           <p className="text-xs text-zinc-500">
-            {stageLabel(org.stage)} · {sectorLabel(org.sector)} · {geoLabel(org.geo)}
+            {org.stage ? stageLabel(org.stage) : "—"} ·{" "}
+            {org.sector ? sectorLabel(org.sector) : "—"} · {org.geo ? geoLabel(org.geo) : "—"}
           </p>
         </div>
       </div>

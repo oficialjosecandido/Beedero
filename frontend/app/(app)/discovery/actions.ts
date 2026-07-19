@@ -16,7 +16,9 @@ export async function loadMoreDiscoveryAction(
 ): Promise<{ items: OrgSummary[]; next_offset: number | null }> {
   const params = new URLSearchParams(query);
   params.set("offset", String(offset));
-  return apiFetch(`/discovery/?${params.toString()}`);
+  return apiFetch<{ items: OrgSummary[]; next_offset: number | null }>(
+    `/discovery/?${params.toString()}`
+  );
 }
 
 export async function loadMorePeopleDiscoveryAction(
@@ -25,5 +27,7 @@ export async function loadMorePeopleDiscoveryAction(
 ): Promise<{ items: PersonSummary[]; next_offset: number | null }> {
   const params = new URLSearchParams(query);
   params.set("offset", String(offset));
-  return apiFetch(`/discovery/people/?${params.toString()}`);
+  return apiFetch<{ items: PersonSummary[]; next_offset: number | null }>(
+    `/discovery/people/?${params.toString()}`
+  );
 }

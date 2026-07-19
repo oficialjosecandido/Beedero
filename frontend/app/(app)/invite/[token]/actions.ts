@@ -9,7 +9,9 @@ export async function acceptInviteAction(_prevState: string | null, formData: Fo
   const token = String(formData.get("token"));
   let org: { slug: string; name: string };
   try {
-    org = await apiFetch(`/invites/${token}/accept/`, { method: "POST" });
+    org = await apiFetch<{ slug: string; name: string }>(`/invites/${token}/accept/`, {
+      method: "POST",
+    });
   } catch (err) {
     if (err instanceof ApiError) {
       const body = err.body as Record<string, string> | null;

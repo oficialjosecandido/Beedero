@@ -68,15 +68,31 @@ def _seed_profile_fields(org):
 
 @pytest.mark.django_db
 def test_org_feed_allows_event_without_profile_field_gate(api, org, founder):
+    from credibility.models import Verification, VerificationType
+
+    for type_ in (
+        VerificationType.COMPANY_REGISTRY,
+        VerificationType.FOUNDER_ROLE,
+        VerificationType.TAX_CLEARANCE,
+        VerificationType.SS_CLEARANCE,
+    ):
+        Verification.objects.create(
+            org=org,
+            type=type_,
+            status=Verification.Status.VERIFIED,
+            valid_until=None,
+            payload={},
+        )
     api.force_authenticate(founder)
     res = api.post(
         f"/api/orgs/{org.slug}/feed/",
         {
-            "kind": SectionKind.EVENTS,
+            "kind": "events",
             "title": "Demo day",
             "body": "Join us",
-            "occurred_at": "2026-07-18T10:00:00Z",
-            "ends_at": "2026-07-18T12:00:00Z",
+            "starts_at": "2026-08-18T10:00:00Z",
+            "ends_at": "2026-08-18T12:00:00Z",
+            "format": "online",
         },
         format="json",
     )
@@ -86,17 +102,28 @@ def test_org_feed_allows_event_without_profile_field_gate(api, org, founder):
 
 @pytest.mark.django_db
 def test_org_feed_rejects_milestone_photo(api, org, founder):
+    from credibility.models import Verification, VerificationType
+
     _seed_profile_fields(org)
+    for type_ in (VerificationType.COMPANY_REGISTRY, VerificationType.FOUNDER_ROLE):
+        Verification.objects.create(
+            org=org,
+            type=type_,
+            status=Verification.Status.VERIFIED,
+            valid_until=None,
+            payload={},
+        )
     image = SimpleUploadedFile("shot.png", b"fake", content_type="image/png")
 
     api.force_authenticate(founder)
     res = api.post(
         f"/api/orgs/{org.slug}/feed/",
         {
-            "kind": SectionKind.MILESTONES,
+            "kind": "milestones",
             "title": "Shipped",
             "body": "v1",
-            "occurred_at": "2026-07-13T12:00:00Z",
+            "category": "product",
+            "occurred_at": "2026-07-13",
             "image": image,
         },
         format="multipart",

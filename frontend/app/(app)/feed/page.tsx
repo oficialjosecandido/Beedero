@@ -37,10 +37,10 @@ export default async function FeedPage() {
   let myPosts: InvestorPost[] = [];
   try {
     const [feed, meRes, orgsRes, posts] = await Promise.all([
-      apiFetch("/feed/"),
-      apiFetch("/auth/me/"),
-      safeFetch(apiFetch("/orgs/"), [] as Membership[]),
-      safeFetch(apiFetch("/investors/me/posts/") as Promise<InvestorPost[]>, []),
+      apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
+      apiFetch<Me>("/auth/me/"),
+      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
+      safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;

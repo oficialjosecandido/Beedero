@@ -13,15 +13,20 @@ async function proxy(method: "GET" | "PATCH", body?: string) {
   if (!token) {
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
-  const res = await fetch(`${backendUrl()}/notifications/preferences/`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    body,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${backendUrl()}/notifications/preferences/`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json({ detail: "Upstream service unavailable." }, { status: 502 });
+  }
   const responseBody = await res.text();
   return new NextResponse(responseBody, {
     status: res.status,

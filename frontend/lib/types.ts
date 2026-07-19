@@ -10,11 +10,29 @@ export type OrgSummary = {
   is_verified: boolean;
   is_fundraising: boolean;
   credibility_level?: number;
+  freshness?: string | null;
+};
+
+export type UpcomingEvent = {
+  id: number;
+  kind: string;
+  value: {
+    title?: string;
+    body?: string;
+    occurred_at?: string;
+    ends_at?: string | null;
+    payload?: {
+      format?: string;
+      location?: string;
+      registration_url?: string;
+    };
+  };
 };
 
 export type OrgProfile = {
   org: OrgSummary;
   sections: Record<string, Record<string, unknown>>;
+  upcoming_events?: UpcomingEvent[];
 };
 
 export const SECTION_LABELS: Record<string, string> = {
@@ -23,7 +41,8 @@ export const SECTION_LABELS: Record<string, string> = {
   products: "Products",
   market_thesis: "Market thesis",
   links: "Website & Social",
-  news: "News",
+  update: "Update",
+  news: "Update",
   milestones: "Milestones",
   events: "Events",
   awards: "Awards",

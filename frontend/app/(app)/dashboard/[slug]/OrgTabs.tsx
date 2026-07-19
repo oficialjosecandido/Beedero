@@ -14,7 +14,6 @@ import {
   deleteActivityAction,
   deleteFieldAction,
   openRoundAction,
-  postFeedAction,
   removeMemberAction,
   revokeInviteAction,
   submitVerificationAction,
@@ -24,6 +23,7 @@ import {
 } from "../actions";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
+import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar } from "@/components/EventsCalendar";
 import { CREDIBILITY_LEVEL_LABELS, credibilityLevelHeading } from "@/lib/credibility";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
@@ -101,6 +101,8 @@ type CalendarEvent = {
   occurred_at: string;
   ends_at?: string | null;
   body?: string;
+  role?: "created" | "attending";
+  host?: { type: "org" | "person"; name: string; slug?: string; id?: number };
 };
 type VerificationInfo = {
   status: "pending" | "verified" | "rejected" | "expired";
@@ -138,12 +140,6 @@ type BadgeEmbedInfo = {
 
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
-
-const POST_KIND_OPTIONS = [
-  { value: "milestones", label: "Milestone" },
-  { value: "events", label: "Event" },
-  { value: "news", label: "Update" },
-];
 
 import { GEO_FIELD_HELP, GEO_FIELD_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 
@@ -787,123 +783,6 @@ function OverviewTab({
   );
 }
 
-function PostComposer({
-  slug,
-  canPostUpdates,
-  hasPostedToday,
-  suggestedTitle,
-  suggestedBody,
-}: {
-  slug: string;
-  canPostUpdates: boolean;
-  hasPostedToday: boolean;
-  suggestedTitle?: string;
-  suggestedBody?: string;
-}) {
-  const [error, formAction, pending] = useActionState(postFeedAction, null);
-  const [kind, setKind] = useState(suggestedTitle ? "milestones" : POST_KIND_OPTIONS[0].value);
-  const allowsPhoto = kind === "events" || kind === "news";
-  const isEvent = kind === "events";
-  useActionToast(error, pending, { successMessage: "Update posted!" });
-
-  return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm"
-    >
-      <input type="hidden" name="slug" value={slug} />
-      <h3 className="font-extrabold text-zinc-900">Share an update</h3>
-      {hasPostedToday ? (
-        <div className="rounded-2xl border border-beedero-border bg-zinc-50 p-4">
-          <p className="text-sm font-semibold text-beedero-black">
-            You have already posted today.
-          </p>
-          <p className="mt-1 text-sm text-zinc-600">
-            To avoid noisy feeds, each profile can publish one update per day. Come back tomorrow.
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-zinc-500">
-          Milestones, events, and updates appear in your followers&apos; feed.
-        </p>
-      )}
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-          Type
-          <select
-            name="kind"
-            value={kind}
-            onChange={(event) => setKind(event.target.value)}
-            className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          >
-            {POST_KIND_OPTIONS.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <input
-          name="title"
-          placeholder="Title"
-          defaultValue={suggestedTitle}
-          required
-          className="min-w-[10rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-        />
-      </div>
-      {isEvent && (
-        <div className="flex flex-wrap gap-2">
-          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-            Start
-            <input
-              type="datetime-local"
-              name="starts_at"
-              required
-              className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-            End
-            <input
-              type="datetime-local"
-              name="ends_at"
-              required
-              className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-            />
-          </label>
-        </div>
-      )}
-      <textarea
-        name="body"
-        placeholder="Say more..."
-        rows={3}
-        defaultValue={suggestedBody}
-        className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-      />
-      {allowsPhoto ? (
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-          Photo (optional, max 1)
-          <input
-            type="file"
-            name="image"
-            accept="image/*"
-            className="text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
-          />
-        </label>
-      ) : (
-        <p className="text-xs text-zinc-500">Milestones are text-only and cannot include photos.</p>
-      )}
-      <button
-        disabled={!canPostUpdates || pending}
-        title={!canPostUpdates ? "You can publish one update per day." : undefined}
-        className="self-start rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {pending ? "Publishing..." : "Publish"}
-      </button>
-    </form>
-  );
-}
-
 function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
   const value = activity.value;
   return (
@@ -938,24 +817,21 @@ function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
 function ActivityTab({
   slug,
   activities,
-  canPostUpdates,
-  hasPostedToday,
+  postingStatus,
   suggestedTitle,
   suggestedBody,
 }: {
   slug: string;
   activities: OrgActivity[];
-  canPostUpdates: boolean;
-  hasPostedToday: boolean;
+  postingStatus: PostingStatus;
   suggestedTitle?: string;
   suggestedBody?: string;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <PostComposer
+      <OrgPostComposer
         slug={slug}
-        canPostUpdates={canPostUpdates}
-        hasPostedToday={hasPostedToday}
+        postingStatus={postingStatus}
         suggestedTitle={suggestedTitle}
         suggestedBody={suggestedBody}
       />
@@ -1626,6 +1502,39 @@ function CredibilityTab({
   );
 }
 
+function CalendarTab({
+  slug,
+  events,
+  postingStatus,
+}: {
+  slug: string;
+  events: CalendarEvent[];
+  postingStatus: PostingStatus;
+}) {
+  const createdCount = events.filter((event) => event.role !== "attending").length;
+  const attendingCount = events.filter((event) => event.role === "attending").length;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <OrgPostComposer
+        slug={slug}
+        postingStatus={postingStatus}
+        defaultKind="event"
+        compactCreateButton
+      />
+      <div className="flex flex-wrap gap-3 text-sm">
+        <span className="rounded-full bg-beedero-black px-3 py-1 font-bold text-beedero-yellow">
+          {createdCount} organized by you
+        </span>
+        <span className="rounded-full border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-bold text-emerald-900">
+          {attendingCount} you&apos;re participating in
+        </span>
+      </div>
+      <EventsCalendar events={events} full />
+    </div>
+  );
+}
+
 export function OrgTabs({
   slug,
   org,
@@ -1634,8 +1543,7 @@ export function OrgTabs({
   events,
   isFundraising,
   roundHistory,
-  canPostUpdates,
-  hasPostedToday,
+  postingStatus,
   stats,
   members,
   invites,
@@ -1655,8 +1563,7 @@ export function OrgTabs({
   events: CalendarEvent[];
   isFundraising: boolean;
   roundHistory: FundraiseRound[];
-  canPostUpdates: boolean;
-  hasPostedToday: boolean;
+  postingStatus: PostingStatus;
   stats: Stats;
   members: Member[];
   invites: Invite[];
@@ -1718,14 +1625,15 @@ export function OrgTabs({
         />
       )}
 
-      {active === "calendar" && <EventsCalendar events={events} full />}
+      {active === "calendar" && (
+        <CalendarTab slug={slug} events={events} postingStatus={postingStatus} />
+      )}
 
       {active === "activity" && (
         <ActivityTab
           slug={slug}
           activities={activities}
-          canPostUpdates={canPostUpdates}
-          hasPostedToday={hasPostedToday}
+          postingStatus={postingStatus}
           suggestedTitle={suggestedTitle}
           suggestedBody={suggestedBody}
         />

@@ -22,6 +22,32 @@ class Reaction(models.Model):
         return f"{self.user_id} {self.kind} on activity {self.activity_id}"
 
 
+class EventParticipation(models.Model):
+    """RSVP to an event activity — distinct from reactions."""
+
+    class Status(models.TextChoices):
+        GOING = "going"
+
+    activity = models.ForeignKey(
+        "orgs.Activity", related_name="participations", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="event_participations", on_delete=models.CASCADE
+    )
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.GOING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["activity", "user"], name="uniq_event_participation_per_user"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} {self.status} on activity {self.activity_id}"
+
+
 class Comment(models.Model):
     activity = models.ForeignKey("orgs.Activity", related_name="comments", on_delete=models.CASCADE)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="comments", on_delete=models.CASCADE)

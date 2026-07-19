@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from orgs.models import Activity
 from orgs.visibility import activity_visible_to
 
-from .models import Comment, Reaction
+from .models import Comment, EventParticipation, Reaction
 
 REACTION_KINDS = ("like", "insight", "congrats")
 
@@ -59,6 +59,32 @@ def viewer_has_commented_for(user, activity_ids) -> set[int]:
             deleted_at__isnull=True,
         ).values_list("activity_id", flat=True)
     )
+
+
+def viewer_participations_for(user, activity_ids) -> dict[int, str]:
+    if not user or not user.is_authenticated or not activity_ids:
+        return {}
+    return dict(
+        EventParticipation.objects.filter(
+            user=user, activity_id__in=list(activity_ids), status=EventParticipation.Status.GOING
+        ).values_list("activity_id", "status")
+    )
+
+
+@transaction.atomic
+def set_event_participation(activity: Activity, user) -> EventParticipation:
+    participation, _ = EventParticipation.objects.get_or_create(
+        activity=activity, user=user, defaults={"status": EventParticipation.Status.GOING}
+    )
+    if participation.status != EventParticipation.Status.GOING:
+        participation.status = EventParticipation.Status.GOING
+        participation.save(update_fields=["status"])
+    return participation
+
+
+@transaction.atomic
+def remove_event_participation(activity: Activity, user) -> None:
+    EventParticipation.objects.filter(activity=activity, user=user).delete()
 
 
 def user_has_commented(activity: Activity, user) -> bool:

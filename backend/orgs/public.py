@@ -16,6 +16,9 @@ from .models import OrgField, Organization, Visibility
 def public_profile(slug: str) -> dict:
     from credibility.levels import credibility_level
 
+    from .posting.freshness import freshness_label
+    from .posting.services import upcoming_events
+
     org = get_object_or_404(Organization, slug=slug, status=Organization.Status.LIVE)
     fields = OrgField.objects.filter(
         section__org=org,
@@ -36,6 +39,8 @@ def public_profile(slug: str) -> dict:
             "is_verified": org.is_verified,
             "is_fundraising": org.is_fundraising,
             "credibility_level": credibility_level(org),
+            "freshness": freshness_label(org),
         },
         "sections": sections,
+        "upcoming_events": upcoming_events(org),
     }

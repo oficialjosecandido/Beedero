@@ -60,7 +60,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
 
   let data: PublicPerson;
   try {
-    data = await publicFetch(`/public/people/${handle}/`);
+    data = await publicFetch<PublicPerson>(`/public/people/${handle}/`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;

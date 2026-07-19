@@ -10,12 +10,14 @@ export type FeedItem = {
     image?: string | null;
     occurred_at?: string;
     ends_at?: string | null;
+    payload?: Record<string, unknown>;
   };
   reaction_count: number;
   reaction_counts?: { like: number; insight: number; congrats: number };
   comment_count: number;
   viewer_reaction: string | null;
   viewer_has_commented?: boolean;
+  viewer_participation?: "going" | null;
 };
 
 export type Comment = {

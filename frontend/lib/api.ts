@@ -102,13 +102,13 @@ async function parse(res: Response) {
 }
 
 /** §7: public profile — cacheable, no auth. */
-export async function publicFetch(path: string, revalidate = 300) {
+export async function publicFetch<T = unknown>(path: string, revalidate = 300): Promise<T> {
   const res = await fetchWithTimeout(
     `${getBackendUrl()}${path}`,
     { next: { revalidate } },
     DEFAULT_API_TIMEOUT_MS
   );
-  return parse(res);
+  return parse(res) as T;
 }
 
 function doFetch(path: string, options: { method?: string; body?: unknown }, token?: string) {
@@ -176,10 +176,10 @@ async function tryRefresh(): Promise<string | null> {
 }
 
 /** §7: any authenticated response — never in shared cache. */
-export async function apiFetch(
+export async function apiFetch<T = unknown>(
   path: string,
   options: { method?: string; body?: unknown } = {}
-) {
+): Promise<T> {
   const token = await getAccessToken();
   let res = await doFetch(path, options, token);
   if (res.status === 401) {
@@ -187,7 +187,7 @@ export async function apiFetch(
     if (!refreshed) throw new ApiError(401, null);
     res = await doFetch(path, options, refreshed); // retry exactly once
   }
-  return parse(res);
+  return parse(res) as T;
 }
 
 /** Every Server Action re-renders the page it was invoked from to build its

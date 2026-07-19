@@ -138,6 +138,67 @@ def test_comment_rate_limited(api, outsider, org):
 
 
 @pytest.mark.django_db
+def test_event_participation_accept_and_list(api, outsider, org):
+    event = Activity.objects.create(
+        org=org,
+        kind=Activity.Kind.EVENTS,
+        title="Demo day",
+        occurred_at=now(),
+        ends_at=now(),
+    )
+    api.force_authenticate(outsider)
+
+    accept = api.post(f"/api/activities/{event.id}/participation/")
+    assert accept.status_code == 200
+    assert accept.data["status"] == "going"
+
+    listed = api.get("/api/me/events/attending/")
+    assert listed.status_code == 200
+    assert len(listed.data) == 1
+    assert listed.data[0]["title"] == "Demo day"
+    assert listed.data[0]["host"]["type"] == "org"
+    assert listed.data[0]["host"]["slug"] == org.slug
+
+    cancel = api.delete(f"/api/activities/{event.id}/participation/")
+    assert cancel.status_code == 204
+    assert api.get("/api/me/events/attending/").data == []
+
+
+@pytest.mark.django_db
+def test_event_participation_rejects_non_events(api, outsider, activity):
+    api.force_authenticate(outsider)
+    res = api.post(f"/api/activities/{activity.id}/participation/")
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_attending_events_can_exclude_org(api, outsider, org, db):
+    other = Organization.objects.create(slug="other", name="Other", status=Organization.Status.LIVE)
+    own_event = Activity.objects.create(
+        org=org,
+        kind=Activity.Kind.EVENTS,
+        title="Our event",
+        occurred_at=now(),
+        ends_at=now(),
+    )
+    other_event = Activity.objects.create(
+        org=other,
+        kind=Activity.Kind.EVENTS,
+        title="Their event",
+        occurred_at=now(),
+        ends_at=now(),
+    )
+    api.force_authenticate(outsider)
+    api.post(f"/api/activities/{own_event.id}/participation/")
+    api.post(f"/api/activities/{other_event.id}/participation/")
+
+    filtered = api.get(f"/api/me/events/attending/?exclude_org={org.slug}")
+    assert filtered.status_code == 200
+    assert len(filtered.data) == 1
+    assert filtered.data[0]["title"] == "Their event"
+
+
+@pytest.mark.django_db
 def test_restricted_activity_is_404_not_403_to_non_members(api, outsider, founder, restricted_activity):
     api.force_authenticate(outsider)
 

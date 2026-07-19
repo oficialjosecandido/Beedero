@@ -29,9 +29,9 @@ export default async function AccessPage({
   let grants: Grant[];
   try {
     [profile, sections, grants] = await Promise.all([
-      apiFetch(`/orgs/${slug}/`),
-      apiFetch(`/orgs/${slug}/sections/`),
-      apiFetch(`/orgs/${slug}/grants/`),
+      apiFetch(`/orgs/${slug}/`) as Promise<OrgSummary>,
+      apiFetch(`/orgs/${slug}/sections/`) as Promise<Section[]>,
+      apiFetch(`/orgs/${slug}/grants/`) as Promise<Grant[]>,
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();

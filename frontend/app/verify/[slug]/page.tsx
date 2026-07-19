@@ -49,7 +49,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ slug: s
 
   let data: VerifyData;
   try {
-    data = await publicFetch(`/public/verify/${slug}/`);
+    data = await publicFetch<VerifyData>(`/public/verify/${slug}/`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;

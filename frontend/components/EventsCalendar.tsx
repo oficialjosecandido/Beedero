@@ -10,6 +10,8 @@ export type CalendarEvent = {
   occurred_at: string;
   ends_at?: string | null;
   body?: string;
+  role?: "created" | "attending";
+  host?: { type: "org" | "person"; name: string; slug?: string; id?: number };
 };
 
 type ViewMode = "month" | "week" | "day";
@@ -101,16 +103,34 @@ function useEventsByDay(events: CalendarEvent[]) {
   }, [events]);
 }
 
+function eventRoleStyles(role: CalendarEvent["role"], compact = false) {
+  if (role === "attending") {
+    return compact
+      ? "border-2 border-emerald-700 bg-emerald-50 text-emerald-950"
+      : "border-2 border-emerald-700 bg-emerald-50 text-emerald-950";
+  }
+  return compact
+    ? "border border-beedero-black/10 bg-beedero-black text-beedero-yellow"
+    : "border-2 border-beedero-black bg-beedero-black text-beedero-yellow";
+}
+
 function EventChip({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
   return (
     <div
-      className={`rounded-lg border border-beedero-black/10 bg-beedero-black px-2 py-1 text-beedero-yellow shadow-sm ${
+      className={`rounded-lg px-2 py-1 shadow-sm ${eventRoleStyles(event.role, compact)} ${
         compact ? "text-[10px] leading-tight" : "text-xs"
       }`}
     >
       <p className="truncate font-bold">{event.title}</p>
+      {!compact && event.role === "attending" && event.host && (
+        <p className="mt-0.5 truncate text-[10px] font-medium opacity-80">by {event.host.name}</p>
+      )}
       {!compact && (
-        <p className="mt-0.5 text-[10px] font-medium text-beedero-yellow/80">
+        <p
+          className={`mt-0.5 text-[10px] font-medium ${
+            event.role === "attending" ? "text-emerald-800/80" : "text-beedero-yellow/80"
+          }`}
+        >
           {formatTime(event.occurred_at)}
           {event.ends_at ? ` – ${formatTime(event.ends_at)}` : ""}
         </p>
@@ -120,15 +140,49 @@ function EventChip({ event, compact = false }: { event: CalendarEvent; compact?:
 }
 
 function EventCard({ event }: { event: CalendarEvent }) {
+  const isAttending = event.role === "attending";
   return (
-    <article className="rounded-2xl border-2 border-beedero-border border-l-4 border-l-beedero-black bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-5 shadow-sm">
-      <p className="font-extrabold text-beedero-black">{event.title}</p>
+    <article
+      className={`rounded-2xl border-2 p-5 shadow-sm ${
+        isAttending
+          ? "border-emerald-700 border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50 to-beedero-white"
+          : "border-beedero-border border-l-4 border-l-beedero-black bg-gradient-to-br from-beedero-yellow/25 to-beedero-white"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            isAttending ? "bg-emerald-700 text-white" : "bg-beedero-black text-beedero-yellow"
+          }`}
+        >
+          {isAttending ? "Participating" : "Organized by you"}
+        </span>
+        {isAttending && event.host && (
+          <span className="text-xs font-medium text-emerald-900/70">by {event.host.name}</span>
+        )}
+      </div>
+      <p className="mt-2 font-extrabold text-beedero-black">{event.title}</p>
       <p className="mt-1 text-sm font-medium text-beedero-black/70">
         {formatDateTime(event.occurred_at)}
         {event.ends_at ? ` – ${formatDateTime(event.ends_at)}` : ""}
       </p>
       {event.body && <p className="mt-3 text-sm leading-6 text-zinc-700">{event.body}</p>}
     </article>
+  );
+}
+
+function CalendarLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-beedero-black/70">
+      <span className="flex items-center gap-2">
+        <span className="size-3 rounded bg-beedero-black" />
+        Organized by you
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="size-3 rounded border-2 border-emerald-700 bg-emerald-50" />
+        You&apos;re participating
+      </span>
+    </div>
   );
 }
 
@@ -282,7 +336,17 @@ function EmbeddedMonthCalendar({
         <div className="mt-4 flex flex-col gap-2 border-t border-beedero-border pt-3">
           {selectedEvents.map((event) => (
             <div key={event.id}>
-              <p className="text-sm font-semibold text-beedero-black">{event.title}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-beedero-black">{event.title}</p>
+                {event.role === "attending" && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Participating
+                  </span>
+                )}
+              </div>
+              {event.host && event.role === "attending" && (
+                <p className="text-xs text-emerald-800/70">by {event.host.name}</p>
+              )}
               <p className="text-xs text-zinc-500">
                 {formatDateTime(event.occurred_at)}
                 {event.ends_at ? ` – ${formatDateTime(event.ends_at)}` : ""}
@@ -293,7 +357,7 @@ function EmbeddedMonthCalendar({
       )}
 
       {events.length === 0 && (
-        <p className="mt-4 text-xs text-zinc-400">No events yet. Post an event from Activity.</p>
+        <p className="mt-4 text-xs text-zinc-400">No events yet. Create one from the calendar tab.</p>
       )}
     </>
   );
@@ -367,6 +431,9 @@ function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date 
           <h2 className="text-base font-extrabold text-beedero-black sm:text-lg">{headerLabel}</h2>
         </div>
         <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+      </div>
+      <div className="border-b border-beedero-border bg-beedero-white px-4 py-3 sm:px-5">
+        <CalendarLegend />
       </div>
 
       {viewMode === "month" && (
@@ -470,7 +537,7 @@ function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date 
             <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-beedero-border bg-beedero-yellow/15 p-8 text-center">
               <p className="text-sm font-extrabold text-beedero-black">No events on this day</p>
               <p className="mt-1 text-sm text-beedero-black/60">
-                Post an event from the Activity tab to see it here.
+                Create an event above or accept an invitation from your feed.
               </p>
             </div>
           ) : (
@@ -481,7 +548,8 @@ function FullCalendar({ events, today }: { events: CalendarEvent[]; today: Date 
 
       {events.length === 0 && viewMode === "month" && (
         <div className="border-t-2 border-beedero-border bg-beedero-yellow/15 px-5 py-4 text-sm font-medium text-beedero-black/70">
-          No events yet. Share an event from the Activity tab and it will appear on this calendar.
+          No events yet. Create one with the form above, or accept events from your feed to see them
+          here as participating.
         </div>
       )}
     </div>

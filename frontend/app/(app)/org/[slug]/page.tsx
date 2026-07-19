@@ -13,7 +13,7 @@ export default async function AuthedOrgPage({
 
   let data: OrgProfileData;
   try {
-    data = await apiFetch(`/orgs/${slug}/`);
+    data = await apiFetch<OrgProfileData>(`/orgs/${slug}/`);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 401)) notFound();
     throw err;

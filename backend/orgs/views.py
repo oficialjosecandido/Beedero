@@ -21,7 +21,12 @@ from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
-from social.services import viewer_has_commented_for, viewer_reactions_for, reaction_counts_for
+from social.services import (
+    reaction_counts_for,
+    viewer_has_commented_for,
+    viewer_participations_for,
+    viewer_reactions_for,
+)
 
 from .completeness import (
     completeness,
@@ -30,7 +35,7 @@ from .completeness import (
     profile_strength_checklist,
 )
 from .constants import FUNDRAISE_KINDS, SectionKind
-from .discovery import discover, discover_people
+from .discovery import discover, discover_active_this_week, discover_people
 from .feed import activity_feed_items
 from .models import (
     Activity,
@@ -47,7 +52,14 @@ from .models import (
     VisibilityGrant,
 )
 from .permissions import IsOrgMember, IsOrgOwnerOrAdmin, IsVerifiedInvestor, OrgLookupMixin
-from .public import public_profile
+from .posting.constants import ACTIVITY_TO_POST_KIND
+from .posting.services import (
+    activity_post_summary,
+    create_org_post,
+    posting_status,
+    update_org_post,
+    upcoming_events,
+)
 from .serializers import (
     FeedPostSerializer,
     FundraiseRoundSerializer,
@@ -783,24 +795,75 @@ class FeedPostView(OrgLookupMixin, APIView):
 
     def get(self, request, slug):
         org = self.get_org()
-        activities = Activity.objects.filter(org=org).order_by("-occurred_at", "-id")
+        activities = Activity.objects.filter(org=org).order_by("-created_at", "-id")
         return Response({"items": [_activity_summary(a) for a in activities]})
 
     def post(self, request, slug):
         org = self.get_org()
-        if Activity.objects.filter(org=org, created_at__date=timezone.localdate()).exists():
-            return Response(
-                {"detail": "This profile has already shared a post today."},
-                status=400,
-            )
-        serializer = FeedPostSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        activity = serializer.create(org)
+        kind = request.data.get("kind")
+        legacy_map = {
+            SectionKind.NEWS: "update",
+            SectionKind.MILESTONES: "milestone",
+            SectionKind.EVENTS: "event",
+        }
+        if kind in legacy_map:
+            kind = legacy_map[kind]
+
+        data = dict(request.data)
+        if kind == "event":
+            if "occurred_at" in data and "starts_at" not in data:
+                data["starts_at"] = data["occurred_at"]
+        if kind == "milestone" and "category" not in data:
+            data["category"] = "other"
+
+        activity = create_org_post(org, kind, data)
 
         from notifications.milestones import check_first_post_milestone
 
         check_first_post_milestone(org)
         return Response(_activity_summary(activity), status=status.HTTP_201_CREATED)
+
+
+class OrgPostingStatusView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def get(self, request, slug):
+        return Response(posting_status(self.get_org()))
+
+
+class OrgPostsView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        kind = request.data.get("kind")
+        data = dict(request.data)
+        activity = create_org_post(org, kind, data)
+
+        from notifications.milestones import check_first_post_milestone
+
+        check_first_post_milestone(org)
+        return Response(activity_post_summary(activity), status=status.HTTP_201_CREATED)
+
+
+class OrgPostDetailView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def patch(self, request, slug, activity_id):
+        org = self.get_org()
+        activity = get_object_or_404(Activity, id=activity_id, org=org)
+        post_kind = ACTIVITY_TO_POST_KIND.get(activity.kind)
+        if post_kind is None:
+            return Response({"detail": "This activity is not an org post."}, status=400)
+        kind = request.data.get("kind", post_kind)
+        activity = update_org_post(activity, kind, dict(request.data))
+        return Response(activity_post_summary(activity))
+
+    def delete(self, request, slug, activity_id):
+        org = self.get_org()
+        activity = get_object_or_404(Activity, id=activity_id, org=org)
+        activity.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class OrgActivityDetailView(OrgLookupMixin, APIView):
@@ -813,8 +876,26 @@ class OrgActivityDetailView(OrgLookupMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def _activity_summary(activity, viewer_reaction=None, reaction_counts=None, viewer_has_commented=False):
-    return {
+def _activity_summary(
+    activity,
+    viewer_reaction=None,
+    reaction_counts=None,
+    viewer_has_commented=False,
+    viewer_participation=None,
+):
+    kind = activity.kind
+    if activity.org_id:
+        kind = ACTIVITY_TO_POST_KIND.get(activity.kind, activity.kind)
+    value = {
+        "title": activity.title,
+        "body": activity.body,
+        "image": activity.image.url if activity.image else None,
+        "occurred_at": activity.occurred_at.isoformat(),
+        "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
+    }
+    if activity.payload:
+        value["payload"] = activity.payload
+    summary = {
         "id": activity.id,
         "type": "org" if activity.org_id else "person",
         "org": _org_summary(activity.org) if activity.org_id else None,
@@ -823,14 +904,8 @@ def _activity_summary(activity, viewer_reaction=None, reaction_counts=None, view
             if activity.org_id
             else {"id": activity.author_id, "name": _investor_display_name(activity.author)}
         ),
-        "kind": activity.kind,
-        "value": {
-            "title": activity.title,
-            "body": activity.body,
-            "image": activity.image.url if activity.image else None,
-            "occurred_at": activity.occurred_at.isoformat(),
-            "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
-        },
+        "kind": kind,
+        "value": value,
         "reaction_count": activity.reaction_count,
         "reaction_counts": reaction_counts or {"like": 0, "insight": 0, "congrats": 0},
         "comment_count": activity.comment_count,
@@ -838,12 +913,28 @@ def _activity_summary(activity, viewer_reaction=None, reaction_counts=None, view
         "viewer_has_commented": viewer_has_commented,
         "created_at": activity.created_at.isoformat(),
     }
+    if activity.kind == Activity.Kind.EVENTS:
+        summary["viewer_participation"] = viewer_participation
+    return summary
+
+
+def calendar_event_summary(activity):
+    if activity.org_id:
+        host = {"type": "org", "slug": activity.org.slug, "name": activity.org.name}
+    else:
+        host = {"type": "person", "id": activity.author_id, "name": _investor_display_name(activity.author)}
+    return {
+        "id": activity.id,
+        "title": activity.title,
+        "body": activity.body,
+        "occurred_at": activity.occurred_at.isoformat(),
+        "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
+        "host": host,
+    }
 
 
 class FeedView(APIView):
-    """§4: keyset-paginated feed, ordered by (occurred_at, id) descending so
-    that ties don't reorder between requests and pages don't skip/repeat
-    items as new posts land — an offset-based `page=N` would."""
+    """§4: keyset-paginated feed, ordered by (created_at, id) descending."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -880,12 +971,13 @@ class FeedView(APIView):
         next_cursor = None
         if len(activities) > limit:
             last = activities[limit - 1]
-            next_cursor = encode_cursor(last.occurred_at, last.id)
+            next_cursor = encode_cursor(last.created_at, last.id)
             activities = activities[:limit]
 
         viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
         reaction_counts = reaction_counts_for([a.id for a in activities])
         commented_activity_ids = viewer_has_commented_for(request.user, [a.id for a in activities])
+        viewer_participations = viewer_participations_for(request.user, [a.id for a in activities])
 
         return Response(
             {
@@ -895,6 +987,7 @@ class FeedView(APIView):
                         viewer_reactions.get(a.id),
                         reaction_counts.get(a.id),
                         a.id in commented_activity_ids,
+                        viewer_participations.get(a.id),
                     )
                     for a in activities
                 ],
@@ -1002,6 +1095,7 @@ class DiscoveryView(APIView):
             {
                 "items": [_org_summary(o) for o in page],
                 "next_offset": offset + limit if has_more else None,
+                "active_this_week": [_org_summary(o) for o in discover_active_this_week(request.user)],
             }
         )
 

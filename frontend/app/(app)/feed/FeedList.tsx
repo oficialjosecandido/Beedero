@@ -8,6 +8,7 @@ import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
 import { CommentThread } from "./CommentThread";
+import { EventParticipationBar } from "@/components/EventParticipationBar";
 import { ReactionBar } from "./ReactionBar";
 import type { FeedItem } from "./types";
 
@@ -55,6 +56,40 @@ function FeedCard({ item }: { item: FeedItem }) {
         item.value.occurred_at && (
           <p className="mt-4 text-xs text-zinc-400">{formatDate(item.value.occurred_at)}</p>
         )
+      )}
+      {item.kind === "events" && item.value.payload && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
+          {typeof item.value.payload.format === "string" && (
+            <span className="rounded-full bg-zinc-100 px-2.5 py-1 font-semibold uppercase">
+              {item.value.payload.format.replace("_", " ")}
+            </span>
+          )}
+          {typeof item.value.payload.location === "string" && item.value.payload.location && (
+            <span>{item.value.payload.location}</span>
+          )}
+          {typeof item.value.payload.registration_url === "string" && (
+            <a
+              href={item.value.payload.registration_url}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
+              Register
+            </a>
+          )}
+        </div>
+      )}
+      {(item.kind === "milestones" || item.kind === "milestone") &&
+        typeof item.value.payload?.category === "string" && (
+        <span className="mt-3 inline-flex rounded-full bg-beedero-yellow/40 px-2.5 py-1 text-xs font-bold uppercase text-beedero-black">
+          {item.value.payload.category}
+        </span>
+      )}
+      {item.kind === "events" && (
+        <EventParticipationBar
+          activityId={item.id}
+          initialParticipating={item.viewer_participation === "going"}
+        />
       )}
       <ReactionBar
         activityId={item.id}
