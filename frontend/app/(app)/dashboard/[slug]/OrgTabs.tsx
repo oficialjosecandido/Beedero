@@ -613,9 +613,20 @@ const CHECKLIST_LABELS: Record<string, string> = {
   team: "Team",
   products: "Products",
   market: "Market thesis",
-  first_activity: "First post",
-  verified: "Credibility verified",
 };
+
+/** Profile setup items only — not blockers for posting (first post / credibility are boosts). */
+const PROFILE_SETUP_CHECKLIST_KEYS = new Set([
+  "logo",
+  "one_liner",
+  "stage",
+  "sector",
+  "geo",
+  "about",
+  "team",
+  "products",
+  "market",
+]);
 
 function OnboardingPanel({
   slug,
@@ -644,12 +655,14 @@ function OnboardingPanel({
       <div
         className={`mt-4 grid gap-4 ${onboarding.status === "live" ? "lg:grid-cols-[minmax(0,1fr)_240px]" : ""}`}
       >
-        {onboarding.checklist.some((item) => !item.done) && (
+        {onboarding.checklist.some(
+          (item) => !item.done && PROFILE_SETUP_CHECKLIST_KEYS.has(item.key)
+        ) && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 lg:col-span-full">
             <p className="text-xs font-bold uppercase tracking-wide text-amber-900">Still to do</p>
             <ul className="mt-1.5 flex flex-col gap-1">
               {onboarding.checklist
-                .filter((item) => !item.done)
+                .filter((item) => !item.done && PROFILE_SETUP_CHECKLIST_KEYS.has(item.key))
                 .map((item) => (
                   <li key={item.key} className="text-sm font-medium text-amber-950">
                     {CHECKLIST_LABELS[item.key] ?? item.key}
@@ -778,16 +791,12 @@ function PostComposer({
   slug,
   canPostUpdates,
   hasPostedToday,
-  profileFieldCount,
-  onGoProfile,
   suggestedTitle,
   suggestedBody,
 }: {
   slug: string;
   canPostUpdates: boolean;
   hasPostedToday: boolean;
-  profileFieldCount: number;
-  onGoProfile: () => void;
   suggestedTitle?: string;
   suggestedBody?: string;
 }) {
@@ -813,28 +822,10 @@ function PostComposer({
             To avoid noisy feeds, each profile can publish one update per day. Come back tomorrow.
           </p>
         </div>
-      ) : canPostUpdates ? (
+      ) : (
         <p className="text-sm text-zinc-500">
           Milestones, events, and updates appear in your followers&apos; feed.
         </p>
-      ) : (
-        <div className="rounded-2xl border border-beedero-border bg-beedero-yellow/25 p-4">
-          <p className="text-sm font-bold text-beedero-black">
-            Publishing is locked until About has 4 fields filled in.
-          </p>
-          <p className="mt-1 text-sm text-zinc-700">
-            You have {profileFieldCount} of 4 required fields. Fill in summary, mission, vision, and
-            values in the Profile tab. Products and Market thesis are optional and do not count toward
-            this requirement.
-          </p>
-          <button
-            type="button"
-            onClick={onGoProfile}
-            className="mt-3 rounded-xl bg-beedero-black px-4 py-2 text-sm font-bold text-beedero-yellow hover:bg-beedero-yellow hover:text-beedero-black"
-          >
-            Complete profile fields
-          </button>
-        </div>
       )}
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -904,7 +895,7 @@ function PostComposer({
       )}
       <button
         disabled={!canPostUpdates || pending}
-        title={!canPostUpdates ? "Complete 4 About fields before publishing." : undefined}
+        title={!canPostUpdates ? "You can publish one update per day." : undefined}
         className="self-start rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         {pending ? "Publishing..." : "Publish"}
@@ -949,8 +940,6 @@ function ActivityTab({
   activities,
   canPostUpdates,
   hasPostedToday,
-  profileFieldCount,
-  onGoProfile,
   suggestedTitle,
   suggestedBody,
 }: {
@@ -958,8 +947,6 @@ function ActivityTab({
   activities: OrgActivity[];
   canPostUpdates: boolean;
   hasPostedToday: boolean;
-  profileFieldCount: number;
-  onGoProfile: () => void;
   suggestedTitle?: string;
   suggestedBody?: string;
 }) {
@@ -969,8 +956,6 @@ function ActivityTab({
         slug={slug}
         canPostUpdates={canPostUpdates}
         hasPostedToday={hasPostedToday}
-        profileFieldCount={profileFieldCount}
-        onGoProfile={onGoProfile}
         suggestedTitle={suggestedTitle}
         suggestedBody={suggestedBody}
       />
@@ -1649,7 +1634,6 @@ export function OrgTabs({
   events,
   isFundraising,
   roundHistory,
-  profileFieldCount,
   canPostUpdates,
   hasPostedToday,
   stats,
@@ -1671,7 +1655,6 @@ export function OrgTabs({
   events: CalendarEvent[];
   isFundraising: boolean;
   roundHistory: FundraiseRound[];
-  profileFieldCount: number;
   canPostUpdates: boolean;
   hasPostedToday: boolean;
   stats: Stats;
@@ -1743,8 +1726,6 @@ export function OrgTabs({
           activities={activities}
           canPostUpdates={canPostUpdates}
           hasPostedToday={hasPostedToday}
-          profileFieldCount={profileFieldCount}
-          onGoProfile={() => selectTab("profile")}
           suggestedTitle={suggestedTitle}
           suggestedBody={suggestedBody}
         />

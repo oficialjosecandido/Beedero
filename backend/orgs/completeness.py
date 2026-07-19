@@ -6,7 +6,7 @@ counts toward the meter but is excluded from refund gating per spec.
 """
 
 from .constants import SectionKind
-from .models import Activity, OrgField, OrgMembership
+from .models import OrgField, OrgMembership
 
 WEIGHTS = {
     "one_liner": 5,
@@ -15,8 +15,6 @@ WEIGHTS = {
     "team": 20,
     "products": 15,
     "market": 15,
-    "first_activity": 10,
-    "verified": 15,
 }
 
 REFUND_REQUIREMENTS = ["logo", "about", "team", "products", "market"]
@@ -43,16 +41,12 @@ CHECKLIST_HINTS = {
     "team": "Add team members in Profile — it's what investors look at first.",
     "products": "List at least one product or service.",
     "market": "Explain the problem and market you're going after.",
-    "first_activity": "Share your first update from the Activity tab.",
-    "verified": "Complete verifications in the Credibility tab.",
 }
 
-# Full checklist shown on Overview — drives the % meter and shows what's left.
+# Overview checklist — profile setup only; posting and credibility are separate products.
 PROFILE_STRENGTH_CHECKLIST = [
     *ACTIVATION_REQUIREMENTS,
     "market",
-    "first_activity",
-    "verified",
 ]
 
 
@@ -71,7 +65,7 @@ _SECTION_KIND_BY_KEY = {
 ABOUT_REQUIRED_KEYS = frozenset({"summary", "mission", "vision", "values"})
 
 
-def _about_complete(org) -> bool:
+def about_complete(org) -> bool:
     keys = OrgField.objects.filter(
         section__org=org,
         section__kind=SectionKind.ABOUT,
@@ -97,17 +91,13 @@ def _has(org, key: str) -> bool:
         return bool(org.geo)
     if key == "logo":
         return bool(org.logo)
-    if key == "verified":
-        return org.is_verified
-    if key == "first_activity":
-        return Activity.objects.filter(org=org).exists()
     if key == "team":
         return OrgMembership.objects.filter(org=org).exists()
     section_kind = _SECTION_KIND_BY_KEY.get(key)
     if section_kind is None:
         raise ValueError(f"Unknown completeness key: {key}")
     if key == "about":
-        return _about_complete(org)
+        return about_complete(org)
     return _section_has_fields(org, section_kind)
 
 

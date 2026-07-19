@@ -67,6 +67,24 @@ def _seed_profile_fields(org):
 
 
 @pytest.mark.django_db
+def test_org_feed_allows_event_without_profile_field_gate(api, org, founder):
+    api.force_authenticate(founder)
+    res = api.post(
+        f"/api/orgs/{org.slug}/feed/",
+        {
+            "kind": SectionKind.EVENTS,
+            "title": "Demo day",
+            "body": "Join us",
+            "occurred_at": "2026-07-18T10:00:00Z",
+            "ends_at": "2026-07-18T12:00:00Z",
+        },
+        format="json",
+    )
+    assert res.status_code == 201
+    assert Activity.objects.filter(org=org, kind=SectionKind.EVENTS).count() == 1
+
+
+@pytest.mark.django_db
 def test_org_feed_rejects_milestone_photo(api, org, founder):
     _seed_profile_fields(org)
     image = SimpleUploadedFile("shot.png", b"fake", content_type="image/png")

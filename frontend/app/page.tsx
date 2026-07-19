@@ -30,7 +30,7 @@ const audiences = [
 ];
 
 const metrics = [
-  ["5+", "profile fields before updates"],
+  ["4", "About fields before updates"],
   ["24/7", "controlled discovery"],
   ["1", "source of truth per startup "],
 ];

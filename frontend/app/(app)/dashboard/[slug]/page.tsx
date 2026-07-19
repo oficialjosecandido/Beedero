@@ -130,8 +130,6 @@ const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
 });
 
 const CREDIBILITY_FALLBACK: CredibilityInfo = { level: 0, verifications: {} };
-const ABOUT_REQUIRED_KEYS = ["summary", "mission", "vision", "values"] as const;
-const POST_REQUIRED_FIELD_COUNT = ABOUT_REQUIRED_KEYS.length;
 const ORG_TABS = ["overview", "calendar", "activity", "profile", "fundraising", "credibility"] as const;
 type OrgTabId = (typeof ORG_TABS)[number];
 
@@ -162,11 +160,11 @@ export default async function DashboardOrgPage({
   try {
     [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding] =
       await Promise.all([
-        apiFetch(`/orgs/${slug}/`),
-        apiFetch(`/orgs/${slug}/sections/`),
-        apiFetch(`/orgs/${slug}/stats/`),
-        apiFetch(`/orgs/${slug}/members/`),
-        apiFetch("/auth/me/"),
+        apiFetch(`/orgs/${slug}/`) as Promise<OrgSummary>,
+        apiFetch(`/orgs/${slug}/sections/`) as Promise<Section[]>,
+        apiFetch(`/orgs/${slug}/stats/`) as Promise<Stats>,
+        apiFetch(`/orgs/${slug}/members/`) as Promise<Member[]>,
+        apiFetch("/auth/me/") as Promise<Me>,
         apiFetch(`/orgs/${slug}/feed/`) as Promise<{ items: OrgActivity[] }>,
         apiFetch(`/orgs/${slug}/rounds/`) as Promise<FundraiseRound[]>,
         safeFetch(apiFetch(`/orgs/${slug}/onboarding/`) as Promise<Onboarding>, null),
@@ -198,14 +196,11 @@ export default async function DashboardOrgPage({
       : Promise.resolve(null),
   ]);
 
-  const aboutSection = sections.find((section) => section.kind === "about");
-  const filledAboutKeys = new Set(aboutSection?.fields.map((field) => field.key) ?? []);
-  const profileFieldCount = ABOUT_REQUIRED_KEYS.filter((key) => filledAboutKeys.has(key)).length;
   const today = new Date().toISOString().slice(0, 10);
   const hasPostedToday = activities.some(
     (activity) => activity.created_at.slice(0, 10) === today
   );
-  const canPostUpdates = profileFieldCount >= POST_REQUIRED_FIELD_COUNT && !hasPostedToday;
+  const canPostUpdates = !hasPostedToday;
   const events = activities
     .filter((activity) => activity.kind === "events")
     .map((activity) => ({
@@ -265,7 +260,6 @@ export default async function DashboardOrgPage({
               events={events}
               isFundraising={profile.org.is_fundraising}
               roundHistory={roundHistory}
-              profileFieldCount={profileFieldCount}
               canPostUpdates={canPostUpdates}
               hasPostedToday={hasPostedToday}
               stats={stats}

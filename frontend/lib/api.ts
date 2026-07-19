@@ -52,6 +52,16 @@ export class ApiTimeoutError extends Error {
   }
 }
 
+export class ApiNetworkError extends Error {
+  cause: unknown;
+
+  constructor(cause?: unknown) {
+    super("Could not reach the Beedero API. Check your network and BACKEND_URL.");
+    this.name = "ApiNetworkError";
+    this.cause = cause;
+  }
+}
+
 export class BackendConfigError extends Error {}
 
 async function fetchWithTimeout(
@@ -67,7 +77,7 @@ async function fetchWithTimeout(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiTimeoutError();
     }
-    throw err;
+    throw new ApiNetworkError(err);
   } finally {
     clearTimeout(timeout);
   }

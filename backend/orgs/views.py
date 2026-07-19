@@ -71,11 +71,6 @@ FIELD_KEY_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 # of inflated by page refreshes/re-renders.
 PROFILE_VIEW_DEDUPE_HOURS = 24
 
-POST_REQUIRED_PROFILE_KINDS = [
-    SectionKind.ABOUT,
-    SectionKind.TEAM,
-]
-
 
 def unique_org_slug(name: str) -> str:
     base = slugify(name)[:45] or "organization"
@@ -115,13 +110,6 @@ def ensure_default_beedero_follow(user):
         },
     )
     OrgFollow.objects.get_or_create(user=user, org=org)
-
-
-def org_profile_field_count(org):
-    return OrgField.objects.filter(
-        section__org=org,
-        section__kind__in=POST_REQUIRED_PROFILE_KINDS,
-    ).count()
 
 
 def _investor_display_name(user):
@@ -800,11 +788,6 @@ class FeedPostView(OrgLookupMixin, APIView):
 
     def post(self, request, slug):
         org = self.get_org()
-        if org_profile_field_count(org) < 5:
-            return Response(
-                {"detail": "Add at least 5 organization profile fields before posting updates."},
-                status=400,
-            )
         if Activity.objects.filter(org=org, created_at__date=timezone.localdate()).exists():
             return Response(
                 {"detail": "This profile has already shared a post today."},
