@@ -4,49 +4,48 @@ import { LegalPageShell } from "@/components/LegalPageShell";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Resolução de Litígios",
-  description: "Resolução alternativa de litígios de consumo e Livro de Reclamações.",
+  title: "Dispute Resolution",
+  description: "Alternative consumer dispute resolution and Complaints Book.",
   path: "/litigios",
 });
 
 export default function LitigiosPage() {
   return (
-    <LegalPageShell title="Resolução Alternativa de Litígios de Consumo">
+    <LegalPageShell title="Alternative Consumer Dispute Resolution">
       <p>
-        Nos termos da Lei n.º 144/2015, de 8 de setembro, em caso de litígio de consumo, o
-        consumidor pode recorrer a uma Entidade de Resolução Alternativa de Litígios de
-        Consumo (RAL).
+        Under Law No. 144/2015 of 8 September, in the event of a consumer dispute, the
+        consumer may turn to an Alternative Consumer Dispute Resolution entity (ADR).
       </p>
 
-      <h2>Entidade competente</h2>
+      <h2>Competent entity</h2>
       <p>
         <strong>
-          CNIACC — Centro Nacional de Informação e Arbitragem de Conflitos de Consumo
+          CNIACC — National Centre for Consumer Dispute Information and Arbitration
         </strong>
         <br />
         Faculdade de Direito da Universidade Nova de Lisboa, Campus de Campolide, 1099-032
-        Lisboa
+        Lisbon
         <br />
         Email:{" "}
-        <a href="mailto:cniacc@fd.unl.pt">cniacc@fd.unl.pt</a> · Tel.: (+351) 21 384 74 84
+        <a href="mailto:cniacc@fd.unl.pt">cniacc@fd.unl.pt</a> · Phone: (+351) 21 384 74 84
         <br />
-        Site:{" "}
+        Website:{" "}
         <a href="https://www.arbitragemdeconsumo.org" target="_blank" rel="noopener noreferrer">
           www.arbitragemdeconsumo.org
         </a>
       </p>
 
       <p>
-        Mais informação no Portal do Consumidor:{" "}
+        More information on the Consumer Portal:{" "}
         <a href="https://www.consumidor.pt" target="_blank" rel="noopener noreferrer">
           www.consumidor.pt
         </a>
       </p>
 
-      <h2>Livro de Reclamações</h2>
+      <h2>Complaints Book</h2>
       <p>
-        A Beedero disponibiliza Livro de Reclamações eletrónico, nos termos do Decreto-Lei
-        n.º 156/2005:{" "}
+        Beedero provides an electronic Complaints Book, in accordance with Decree-Law No.
+        156/2005:{" "}
         <a
           href="https://www.livroreclamacoes.pt/inicio"
           target="_blank"
