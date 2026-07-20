@@ -2,16 +2,21 @@
 
 import { Suspense } from "react";
 
-import { AppColumnHeader } from "@/components/AppColumnHeader";
+import { AppColumnSection } from "@/components/AppColumnSection";
 
-import { MessagingInbox } from "./MessagingInbox";
+import { MessagingInboxWithContext } from "./MessagingInbox";
 
 function MessagingColumnContent() {
   return (
-    <div className="hidden flex-col gap-6 lg:flex">
-      <AppColumnHeader label="Mensagens" />
+    <div className="hidden lg:block">
       <div className="sticky top-[5.5rem]">
-        <MessagingInbox variant="column" />
+        <AppColumnSection
+          label="Mensagens"
+          className="flex min-h-[min(720px,calc(100vh-8rem))] flex-col"
+          bodyClassName="flex min-h-0 flex-1 flex-col"
+        >
+          <MessagingInboxWithContext variant="column" embedded />
+        </AppColumnSection>
       </div>
     </div>
   );

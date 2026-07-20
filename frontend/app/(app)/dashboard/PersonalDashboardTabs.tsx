@@ -218,8 +218,14 @@ export function PersonalDashboardTabs({
   initialTab?: PersonalTabId;
 }) {
   const [active, setActive] = useState<PersonalTabId>(initialTab ?? "kpis");
+  const [prevInitialPosts, setPrevInitialPosts] = useState(initialPosts);
   const [myPosts, setMyPosts] = useState(initialPosts);
   const router = useRouter();
+
+  if (initialPosts !== prevInitialPosts) {
+    setPrevInitialPosts(initialPosts);
+    setMyPosts(initialPosts);
+  }
 
   const refreshPosts = useCallback(async () => {
     try {
@@ -233,15 +239,6 @@ export function PersonalDashboardTabs({
   }, []);
 
   useEffect(() => {
-    setMyPosts(initialPosts);
-  }, [initialPosts]);
-
-  useEffect(() => {
-    if (active !== "posts") return;
-    void refreshPosts();
-  }, [active, refreshPosts]);
-
-  useEffect(() => {
     if (active !== "posts") return;
     const onFocus = () => void refreshPosts();
     window.addEventListener("focus", onFocus);
@@ -251,6 +248,9 @@ export function PersonalDashboardTabs({
   function selectTab(tabId: PersonalTabId) {
     setActive(tabId);
     router.replace(`/dashboard?tab=${tabId}`, { scroll: false });
+    if (tabId === "posts") {
+      void refreshPosts();
+    }
   }
 
   return (

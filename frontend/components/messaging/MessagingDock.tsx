@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useMessaging } from "@/lib/messaging-context";
 
 import { ChatWindow, loadMe, MessagingChatStack, ParticipantAvatar } from "./messaging-shared";
-import { MessagingInbox } from "./MessagingInbox";
+import { MessagingInboxWithContext } from "./MessagingInbox";
 
 function MobileInboxTrigger({
   unreadTotal,
@@ -78,7 +78,7 @@ function MobileMessagingDock() {
       <div className="pointer-events-none fixed bottom-0 right-0 z-50 flex flex-row-reverse items-end gap-2 p-2 sm:right-4 lg:hidden">
         <div className={`pointer-events-auto ${activeMobileChat ? "hidden" : ""}`}>
           {inboxExpanded ? (
-            <MessagingInbox variant="dock" expanded onMinimize={minimizeInbox} />
+            <MessagingInboxWithContext variant="dock" expanded onMinimize={minimizeInbox} />
           ) : (
             <MobileInboxTrigger unreadTotal={unreadTotal} onExpand={expandInbox} />
           )}
