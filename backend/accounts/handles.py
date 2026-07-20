@@ -1,8 +1,6 @@
 """Automatic public handles for investor profiles (/p/<handle>)."""
 
-from beedero.handles import MAX_HANDLE_BASE, compact_handle_base, unique_public_id, valid_handle
-
-from .models import InvestorProfile
+from beedero.handles import compact_handle_base, unique_public_id, valid_handle
 
 
 def person_handle_base(profile) -> str:

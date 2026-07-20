@@ -6,7 +6,7 @@ from accounts.models import User
 from notifications.models import Notification
 from orgs.models import OrgMembership, Organization, UserFollow
 
-from .models import Conversation, Message, OrgConversation, OrgMessage
+from .models import Conversation, Message, OrgMessage
 from .services import get_or_create_conversation, get_or_create_org_conversation
 from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR
 

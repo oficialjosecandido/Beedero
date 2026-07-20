@@ -1,8 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from beedero.handles import HANDLE_RE
-
 from .models import InvestorPost, InvestorProfile
 from .visibility import ALL_LEVELS
 
