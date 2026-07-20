@@ -7,15 +7,15 @@ import { pageMetadata } from "@/lib/site-metadata";
 import { TERMS_OF_SERVICE_MARKDOWN } from "../terms/content";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Termos e Condições",
-  description: "Termos e condições de utilização da plataforma Beedero.",
+  title: "Terms & Conditions",
+  description: "Terms and conditions for using the Beedero platform.",
   path: "/termos",
 });
 
 export default function TermosPage() {
   return (
     <LegalDocument
-      title="Termos e Condições"
+      title="Terms & Conditions"
       content={prepareLegalMarkdown(TERMS_OF_SERVICE_MARKDOWN)}
       draft={false}
     />

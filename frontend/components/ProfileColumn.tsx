@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { AppColumnHeader } from "@/components/AppColumnHeader";
+import { AppColumnSection } from "@/components/AppColumnSection";
 import { CreateOrgButton } from "@/components/CreateOrgButton";
 import { EventsCalendar } from "@/components/EventsCalendar";
 import { InvitePeopleButton } from "@/components/InvitePeopleButton";
@@ -49,17 +49,19 @@ function ProfileCard({
   me,
   orgs,
   stats,
+  embedded = false,
 }: {
   me: Me;
   orgs: Membership[];
   stats?: ProfileStats | null;
+  embedded?: boolean;
 }) {
   const profile = me.investor_profile;
   const name = profile?.full_name || me.email;
   const atHandle = formatAtHandle(profile?.handle);
 
-  return (
-    <div className="overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
+  const content = (
+    <>
       <div
         className="h-20 bg-gradient-to-br from-beedero-yellow/40 to-zinc-100 bg-cover bg-center"
         style={profile?.cover_image ? { backgroundImage: `url(${profile.cover_image})` } : undefined}
@@ -138,6 +140,14 @@ function ProfileCard({
           <InvitePeopleButton />
         </div>
       </div>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
+      {content}
     </div>
   );
 }
@@ -187,17 +197,26 @@ export function ProfileColumn({
           </svg>
         </button>
         {mobileExpanded && (
-          <div className="mt-3 flex flex-col gap-3">
-            <ProfileCard me={me} orgs={orgs} stats={stats} />
-            <EventsCalendar events={events} />
+          <div className="mt-3">
+            <AppColumnSection label="Profile">
+              <ProfileCard me={me} orgs={orgs} stats={stats} embedded />
+              <div className="border-t border-beedero-border px-5 pb-5">
+                <EventsCalendar events={events} embedded />
+              </div>
+            </AppColumnSection>
           </div>
         )}
       </div>
 
-      <div className="hidden flex-col gap-6 lg:flex">
-        <AppColumnHeader label="Profile" />
-        <ProfileCard me={me} orgs={orgs} stats={stats} />
-        <EventsCalendar events={events} />
+      <div className="hidden lg:block">
+        <div className="sticky top-[5.5rem]">
+          <AppColumnSection label="Profile">
+            <ProfileCard me={me} orgs={orgs} stats={stats} embedded />
+            <div className="border-t border-beedero-border px-5 pb-5">
+              <EventsCalendar events={events} embedded />
+            </div>
+          </AppColumnSection>
+        </div>
       </div>
     </>
   );

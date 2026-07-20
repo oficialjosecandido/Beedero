@@ -7,15 +7,15 @@ import { pageMetadata } from "@/lib/site-metadata";
 import { PRIVACY_POLICY_MARKDOWN } from "../privacy/content";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Política de Privacidade",
-  description: "Como a Beedero recolhe, utiliza e protege os teus dados pessoais.",
+  title: "Privacy Policy",
+  description: "How Beedero collects, uses, and protects your personal data.",
   path: "/privacidade",
 });
 
 export default function PrivacidadePage() {
   return (
     <LegalDocument
-      title="Política de Privacidade"
+      title="Privacy Policy"
       content={prepareLegalMarkdown(PRIVACY_POLICY_MARKDOWN)}
       draft={false}
     />

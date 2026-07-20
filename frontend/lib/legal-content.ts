@@ -3,7 +3,7 @@ export const LEGAL_ENTITY = {
   legalName: "Beedero, Unipessoal Lda.",
   address: "Lisbon, Portugal",
   registryLocation: "Conservatória do Registo Comercial de Lisboa",
-  nif: "Disponível mediante pedido a privacy@beedero.com",
+  nif: "Available upon request to privacy@beedero.com",
   shareCapital: "—",
   privacyEmail: "privacy@beedero.com",
   contactEmail: "hello@beedero.com",

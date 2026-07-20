@@ -3,25 +3,25 @@ import Link from "next/link";
 import { COMPANY } from "@/lib/legal-content";
 
 const PRODUCT_LINKS = [
-  { href: "/discovery", label: "Descobrir" },
-  { href: "/pricing", label: "Preços" },
-  { href: "/", label: "Como funciona" },
+  { href: "/discovery", label: "Discover" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/", label: "How it works" },
 ] as const;
 
 const LEGAL_LINKS = [
-  { href: "/privacidade", label: "Política de Privacidade" },
-  { href: "/termos", label: "Termos e Condições" },
-  { href: "/cookies", label: "Política de Cookies" },
-  { href: "/litigios", label: "Resolução de Litígios" },
-  { href: "/sobre", label: "Informação legal" },
+  { href: "/privacidade", label: "Privacy Policy" },
+  { href: "/termos", label: "Terms & Conditions" },
+  { href: "/cookies", label: "Cookie Policy" },
+  { href: "/litigios", label: "Dispute Resolution" },
+  { href: "/sobre", label: "Legal Information" },
 ] as const;
 
 const COMPANY_LINKS = [
-  { href: "/sobre", label: "Sobre" },
-  { href: `mailto:${COMPANY.contactEmail}`, label: "Contacto", external: false },
+  { href: "/sobre", label: "About" },
+  { href: `mailto:${COMPANY.contactEmail}`, label: "Contact", external: false },
   {
     href: "https://www.livroreclamacoes.pt/inicio",
-    label: "Livro de Reclamações",
+    label: "Complaints Book",
     external: true,
   },
 ] as const;
@@ -84,21 +84,21 @@ export function Footer() {
               Beedero
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-6 text-beedero-black/75">
-              A rede de confiança para startups e investidores.
+              The trust network for startups and investors.
             </p>
           </div>
 
-          <FooterNav title="Produto" label="Produto" links={PRODUCT_LINKS} />
+          <FooterNav title="Product" label="Product" links={PRODUCT_LINKS} />
           <FooterNav title="Legal" label="Legal" links={LEGAL_LINKS} />
-          <FooterNav title="Empresa" label="Empresa" links={COMPANY_LINKS} />
+          <FooterNav title="Company" label="Company" links={COMPANY_LINKS} />
         </div>
 
         <div className="mt-10 border-t border-beedero-black/15 pt-8 text-xs leading-6 text-beedero-black/75">
           <p>
-            {COMPANY.name} · NIF {COMPANY.nif} · {COMPANY.address} · Capital social{" "}
+            {COMPANY.name} · Tax ID {COMPANY.nif} · {COMPANY.address} · Share capital{" "}
             {COMPANY.capital} · {COMPANY.registry}
           </p>
-          <p className="mt-2">© {year} Beedero. Todos os direitos reservados.</p>
+          <p className="mt-2">© {year} Beedero. All rights reserved.</p>
         </div>
       </div>
     </footer>

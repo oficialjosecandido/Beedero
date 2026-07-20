@@ -42,11 +42,11 @@ export default function RegisterPage() {
         <p className="text-center text-xs text-zinc-500">
           By creating an account you agree to our{" "}
           <Link href="/termos" className="underline underline-offset-2 hover:text-beedero-black">
-            Termos
+            Terms
           </Link>{" "}
           and{" "}
           <Link href="/privacidade" className="underline underline-offset-2 hover:text-beedero-black">
-            Política de Privacidade
+            Privacy Policy
           </Link>
           .
         </p>

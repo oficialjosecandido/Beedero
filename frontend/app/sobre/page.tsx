@@ -5,49 +5,49 @@ import { COMPANY, LEGAL_ENTITY } from "@/lib/legal-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Sobre a Beedero",
-  description: "Informação sobre a Beedero e identificação legal da empresa.",
+  title: "About Beedero",
+  description: "Information about Beedero and the company's legal identification.",
   path: "/sobre",
 });
 
 export default function SobrePage() {
   return (
-    <LegalPageShell title="Sobre a Beedero">
+    <LegalPageShell title="About Beedero">
       <p>
-        A Beedero é a rede de confiança para startups e investidores — perfis verificados,
-        discovery e feed para partilhar marcos, eventos e atualizações.
+        Beedero is the trust network for startups and investors — verified profiles,
+        discovery, and a feed for sharing milestones, events, and updates.
       </p>
 
-      <h2>Informação legal</h2>
+      <h2>Legal information</h2>
       <ul>
         <li>
-          <strong>Denominação:</strong> {COMPANY.name}
+          <strong>Legal name:</strong> {COMPANY.name}
         </li>
         <li>
-          <strong>Sede:</strong> {COMPANY.address}
+          <strong>Registered office:</strong> {COMPANY.address}
         </li>
         <li>
-          <strong>NIF:</strong> {COMPANY.nif}
+          <strong>Tax ID (NIF):</strong> {COMPANY.nif}
         </li>
         <li>
-          <strong>Capital social:</strong> {COMPANY.capital}
+          <strong>Share capital:</strong> {COMPANY.capital}
         </li>
         <li>
-          <strong>Registo comercial:</strong> {COMPANY.registry}
+          <strong>Commercial registry:</strong> {COMPANY.registry}
         </li>
         <li>
-          <strong>Contacto:</strong>{" "}
+          <strong>Contact:</strong>{" "}
           <a href={`mailto:${COMPANY.contactEmail}`}>{COMPANY.contactEmail}</a>
         </li>
         <li>
-          <strong>Privacidade:</strong>{" "}
+          <strong>Privacy:</strong>{" "}
           <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>
         </li>
       </ul>
 
       <p className="text-xs text-zinc-500">
-        Última atualização: {LEGAL_ENTITY.lastUpdated}. Em caso de divergência entre versões
-        linguísticas, prevalece a versão em português.
+        Last updated: {LEGAL_ENTITY.lastUpdated}. In case of discrepancy between language
+        versions, the Portuguese version prevails.
       </p>
     </LegalPageShell>
   );

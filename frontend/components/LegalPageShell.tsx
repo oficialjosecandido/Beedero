@@ -17,7 +17,7 @@ export function LegalPageShell({
           href="/"
           className="text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-black/60 hover:text-beedero-black"
         >
-          Início
+          Home
         </Link>
       </nav>
       <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-12 sm:px-8">
