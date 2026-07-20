@@ -36,7 +36,7 @@ def test_investor_profile_get_creates_then_put_updates(api, user):
     assert put_res.status_code == 200
     assert put_res.data["is_complete"] is True
     assert put_res.data["full_name"] == "Ada Lovelace"
-    assert put_res.data["handle"] == "ada-lovelace"
+    assert put_res.data["handle"] == "adalovelace"
 
 
 @pytest.mark.django_db
@@ -90,6 +90,32 @@ def test_me_view_reports_profile_and_memberships(api, user):
     assert res.data["email"] == user.email
     assert res.data["is_email_verified"] is False
     assert res.data["memberships"] == []
+
+
+@pytest.mark.django_db
+def test_investor_posts_include_engagement_metrics(api, user):
+    from social.models import Reaction
+
+    activity = Activity.objects.create(
+        author=user,
+        org=None,
+        kind="update",
+        title="Hello",
+        body="World",
+        occurred_at=timezone.now(),
+        reaction_count=2,
+        feed_impression_count=5,
+    )
+    Reaction.objects.create(activity=activity, user=user, kind=Reaction.Kind.LIKE)
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/posts/")
+    assert res.status_code == 200
+    assert len(res.data) == 1
+    post = res.data[0]
+    assert post["reaction_count"] == 2
+    assert post["reaction_counts"]["like"] == 1
+    assert post["feed_impression_count"] == 5
 
 
 @pytest.mark.django_db

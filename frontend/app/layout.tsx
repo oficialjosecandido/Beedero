@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { Footer } from "@/components/Footer";
 import { siteMetadata } from "@/lib/site-metadata";
 import "./globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-beedero-white text-beedero-black">
         {children}
+        <Footer />
         <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>

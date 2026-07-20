@@ -20,7 +20,7 @@ def person(db):
         full_name="Ada Lovelace",
         headline="Angel investor",
         country="GB",
-        handle="ada-lovelace",
+        handle="adalovelace",
         is_verified=True,
     )
     return profile
@@ -28,7 +28,7 @@ def person(db):
 
 @pytest.mark.django_db
 def test_public_person_profile_is_public(api, person):
-    res = api.get("/api/public/people/ada-lovelace/")
+    res = api.get("/api/public/people/adalovelace/")
     assert res.status_code == 200
     body = res.json()
     assert body["person"]["full_name"] == "Ada Lovelace"
@@ -41,7 +41,7 @@ def test_public_person_profile_hides_private_bio(api, person):
     person.visibility = {"bio": "private"}
     person.bio = "Secret bio"
     person.save(update_fields=["visibility", "bio"])
-    res = api.get("/api/public/people/ada-lovelace/")
+    res = api.get("/api/public/people/adalovelace/")
     assert res.status_code == 200
     assert "bio" not in res.json()["person"]
 
@@ -50,13 +50,13 @@ def test_public_person_profile_hides_private_bio(api, person):
 def test_public_person_profile_incomplete_returns_404(api, person):
     person.full_name = ""
     person.save(update_fields=["full_name"])
-    res = api.get("/api/public/people/ada-lovelace/")
+    res = api.get("/api/public/people/adalovelace/")
     assert res.status_code == 404
 
 
 @pytest.mark.django_db
 def test_person_badge_svg_is_public(api, person):
-    res = api.get("/api/public/pbadge/ada-lovelace/svg/")
+    res = api.get("/api/public/pbadge/adalovelace/svg/")
     assert res.status_code == 200
     assert res["Content-Type"] == "image/svg+xml"
     assert b"Ada Lovelace" in res.content
@@ -64,10 +64,10 @@ def test_person_badge_svg_is_public(api, person):
 
 @pytest.mark.django_db
 def test_person_badge_json_is_public(api, person):
-    res = api.get("/api/public/pbadge/ada-lovelace/json/")
+    res = api.get("/api/public/pbadge/adalovelace/json/")
     assert res.status_code == 200
     data = res.json()
-    assert data["handle"] == "ada-lovelace"
+    assert data["handle"] == "adalovelace"
     assert data["verified"] is True
 
 
@@ -77,7 +77,7 @@ def test_attestations_respect_opt_in(api, person):
     OrgMembership.objects.create(org=org, user=person.user, role=OrgMembership.Role.OWNER)
     person.attestation_prefs = {"show_memberships": False}
     person.save(update_fields=["attestation_prefs"])
-    res = api.get("/api/public/people/ada-lovelace/")
+    res = api.get("/api/public/people/adalovelace/")
     kinds = [a["kind"] for a in res.json()["attestations"]]
     assert "org_membership" not in kinds
 
@@ -86,7 +86,7 @@ def test_attestations_respect_opt_in(api, person):
 def test_attestations_show_membership_when_opted_in(api, person):
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=person.user, role=OrgMembership.Role.OWNER)
-    res = api.get("/api/public/people/ada-lovelace/")
+    res = api.get("/api/public/people/adalovelace/")
     kinds = [a["kind"] for a in res.json()["attestations"]]
     assert "org_membership" in kinds
 
@@ -104,14 +104,14 @@ def test_badge_embed_requires_handle(api, person):
     api.force_authenticate(person.user)
     res = api.get("/api/investors/me/badge-embed/")
     assert res.status_code == 200
-    assert "/p/ada-lovelace" in res.json()["profile_url"]
+    assert "/p/adalovelace" in res.json()["profile_url"]
 
 
 @pytest.mark.django_db
 def test_profile_view_recorded(api, person):
     viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
     api.force_authenticate(viewer)
-    api.get("/api/public/people/ada-lovelace/")
+    api.get("/api/public/people/adalovelace/")
     assert PersonProfileView.objects.filter(subject=person.user, viewer=viewer).count() == 1
 
 
@@ -125,7 +125,7 @@ def test_handle_is_assigned_from_full_name(api, db):
         format="json",
     )
     assert res.status_code == 200
-    assert res.data["handle"] == "julio-pomar"
+    assert res.data["handle"] == "juliopomar"
 
 
 @pytest.mark.django_db
@@ -138,8 +138,15 @@ def test_investor_profile_auto_handle_after_name_saved(api, db):
         format="json",
     )
     assert res.status_code == 200
-    assert res.data["handle"] == "ada-lovelace"
+    assert res.data["handle"] == "adalovelace"
     assert res.data["has_public_handle"] is True
+
+
+@pytest.mark.django_db
+def test_full_name_cannot_be_changed_after_set(api, person):
+    api.force_authenticate(person.user)
+    res = api.put("/api/investors/me/", {"full_name": "Someone Else"}, format="json")
+    assert res.status_code == 400
 
 
 @pytest.mark.django_db
@@ -147,7 +154,7 @@ def test_handle_cannot_be_changed_manually(api, person):
     api.force_authenticate(person.user)
     res = api.put("/api/investors/me/", {"handle": "custom-handle"}, format="json")
     assert res.status_code == 200
-    assert res.data["handle"] == "ada-lovelace"
+    assert res.data["handle"] == "adalovelace"
 
 
 @pytest.mark.django_db
@@ -161,7 +168,7 @@ def test_discovery_ranks_complete_verified_first(api):
         full_name="Anna Strong",
         headline="Investor",
         country="GB",
-        handle="anna-strong",
+        handle="annastrong",
         is_verified=True,
     )
     Activity.objects.create(

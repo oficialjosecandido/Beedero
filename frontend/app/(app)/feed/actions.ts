@@ -50,6 +50,37 @@ export async function sendMessageAction(
   }
 }
 
+export async function startOrgConversationAction(
+  orgSlug: string,
+  userId: number
+): Promise<{ conversation: ConversationSummary } | { error: string }> {
+  try {
+    const conversation = (await apiFetch(`/orgs/${orgSlug}/conversations/`, {
+      method: "POST",
+      body: { user_id: userId },
+    })) as ConversationSummary;
+    return { conversation };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not start the conversation.") };
+  }
+}
+
+export async function sendOrgMessageAction(
+  orgSlug: string,
+  conversationId: number,
+  body: string
+): Promise<{ message: MessageItem } | { error: string }> {
+  try {
+    const message = (await apiFetch(`/orgs/${orgSlug}/conversations/${conversationId}/messages/`, {
+      method: "POST",
+      body: { body },
+    })) as MessageItem;
+    return { message };
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not send your message.") };
+  }
+}
+
 export async function loadMoreFeedAction(cursor: string): Promise<{
   items: FeedItem[];
   next_cursor: string | null;
@@ -66,10 +97,12 @@ export async function reactAction(
   { reaction_count: number; reaction_counts: Record<string, number> } | { error: string }
 > {
   try {
-    return (await apiFetch(`/activities/${activityId}/reactions/`, {
+    const result = (await apiFetch(`/activities/${activityId}/reactions/`, {
       method: "POST",
       body: { kind },
     })) as { reaction_count: number; reaction_counts: Record<string, number> };
+    revalidatePath("/dashboard");
+    return result;
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not save your reaction.") };
   }
@@ -81,9 +114,11 @@ export async function unreactAction(
   { reaction_count: number; reaction_counts: Record<string, number> } | { error: string }
 > {
   try {
-    return (await apiFetch(`/activities/${activityId}/reactions/`, {
+    const result = (await apiFetch(`/activities/${activityId}/reactions/`, {
       method: "DELETE",
     })) as { reaction_count: number; reaction_counts: Record<string, number> };
+    revalidatePath("/dashboard");
+    return result;
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not remove your reaction.") };
   }

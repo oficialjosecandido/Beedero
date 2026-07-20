@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from orgs.models import Organization
 
-from .badge import badge_state, get_live_org, render_badge_svg
+from .badge import badge_state, render_badge_svg
 
 
 class PublicBadgeSvgView(APIView):

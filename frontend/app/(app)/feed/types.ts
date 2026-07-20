@@ -2,7 +2,7 @@ export type FeedItem = {
   id: number;
   type: "org" | "person";
   org?: { slug: string; name: string; logo?: string | null };
-  author?: { id: number; name: string };
+  author?: { id: number; name: string; handle?: string | null; headline?: string; profile_picture?: string | null };
   kind: string;
   value: {
     title?: string;

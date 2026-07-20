@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { formatDate, formatDateTime } from "@/lib/format";
+import { formatAtHandle } from "@/lib/handles";
 import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
@@ -12,50 +13,98 @@ import { EventParticipationBar } from "@/components/EventParticipationBar";
 import { ReactionBar } from "./ReactionBar";
 import type { FeedItem } from "./types";
 
+const BODY_TRUNCATE_THRESHOLD = 220;
+
 function FeedCard({ item }: { item: FeedItem }) {
+  const [bodyExpanded, setBodyExpanded] = useState(false);
+  const isLongBody = (item.value.body?.length ?? 0) > BODY_TRUNCATE_THRESHOLD;
+
+  const dateLabel =
+    item.kind === "events" && item.value.occurred_at && item.value.ends_at
+      ? `${formatDateTime(item.value.occurred_at)} – ${formatDateTime(item.value.ends_at)}`
+      : item.value.occurred_at
+        ? formatDate(item.value.occurred_at)
+        : null;
+
+  const name = item.type === "org" && item.org ? item.org.name : item.author?.name ?? "Someone";
+  const pictureUrl = item.type === "org" && item.org ? item.org.logo : item.author?.profile_picture;
+  const subtitle =
+    item.type === "org"
+      ? SECTION_LABELS[item.kind] ?? item.kind
+      : item.author?.headline || (SECTION_LABELS[item.kind] ?? item.kind);
+
+  const avatar = pictureUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={pictureUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+  ) : (
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+
+  const atHandle =
+    item.type === "org" && item.org
+      ? formatAtHandle(item.org.slug)
+      : formatAtHandle(item.author?.handle);
+
+  const nameBlock = (
+    <div className="min-w-0 flex-1">
+      <p className="truncate font-semibold text-zinc-950">{name}</p>
+      {atHandle && <p className="truncate text-xs font-medium text-zinc-500">{atHandle}</p>}
+      {subtitle && !atHandle && <p className="truncate text-xs text-zinc-500">{subtitle}</p>}
+      {subtitle && atHandle && item.type === "person" && (
+        <p className="truncate text-xs text-zinc-500">{subtitle}</p>
+      )}
+      {dateLabel && <p className="text-xs text-zinc-400">{dateLabel}</p>}
+    </div>
+  );
+
   return (
-    <article className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        {item.type === "org" && item.org ? (
-          <Link
-            href={`/org/${item.org.slug}`}
-            className="flex items-center gap-2 font-semibold text-zinc-950 hover:underline hover:decoration-beedero-yellow hover:decoration-2 hover:underline-offset-4"
+    <article className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm">
+      {item.type === "org" && item.org ? (
+        <Link href={`/org/${item.org.slug}`} className="flex items-start gap-3 hover:opacity-90">
+          {avatar}
+          {nameBlock}
+        </Link>
+      ) : item.author?.handle ? (
+        <Link href={`/p/${item.author.handle}`} className="flex items-start gap-3 hover:opacity-90">
+          {avatar}
+          {nameBlock}
+        </Link>
+      ) : (
+        <div className="flex items-start gap-3">
+          {avatar}
+          {nameBlock}
+        </div>
+      )}
+      <h2 className="mt-3 text-base font-bold">{item.value.title ?? "Update"}</h2>
+      {item.value.body && (
+        <>
+          <p
+            className={`mt-1.5 text-sm leading-5 text-zinc-600 ${
+              !bodyExpanded && isLongBody ? "line-clamp-3" : ""
+            }`}
           >
-            {item.org.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.org.logo} alt="" className="size-8 rounded-lg object-cover" />
-            ) : (
-              <span className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-500">
-                {item.org.name.charAt(0).toUpperCase()}
-              </span>
-            )}
-            {item.org.name}
-          </Link>
-        ) : (
-          <span className="font-semibold text-zinc-950">{item.author?.name ?? "Someone"}</span>
-        )}
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
-          {SECTION_LABELS[item.kind] ?? item.kind}
-        </span>
-      </div>
-      <h2 className="mt-4 text-lg font-extrabold">{item.value.title ?? "Update"}</h2>
-      {item.value.body && <p className="mt-2 text-sm leading-6 text-zinc-600">{item.value.body}</p>}
+            {item.value.body}
+          </p>
+          {isLongBody && (
+            <button
+              type="button"
+              onClick={() => setBodyExpanded((value) => !value)}
+              className="mt-0.5 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline"
+            >
+              {bodyExpanded ? "See less" : "…see more"}
+            </button>
+          )}
+        </>
+      )}
       {item.value.image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={item.value.image}
           alt=""
-          className="mt-3 max-h-96 w-full rounded-2xl object-cover"
+          className="mt-3 max-h-72 w-full rounded-xl object-cover"
         />
-      )}
-      {item.kind === "events" && item.value.occurred_at && item.value.ends_at ? (
-        <p className="mt-4 text-xs text-zinc-400">
-          {formatDateTime(item.value.occurred_at)} – {formatDateTime(item.value.ends_at)}
-        </p>
-      ) : (
-        item.value.occurred_at && (
-          <p className="mt-4 text-xs text-zinc-400">{formatDate(item.value.occurred_at)}</p>
-        )
       )}
       {item.kind === "events" && item.value.payload && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
@@ -142,7 +191,7 @@ export function FeedList({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       {items.map((item) => (
         <FeedCard key={`${item.type}-${item.id}`} item={item} />
       ))}

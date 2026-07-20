@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from orgs.models import Organization
+from orgs.models import Activity, Organization
 
 
 class ProfileView(models.Model):
@@ -56,6 +56,30 @@ class InterestSignal(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["org", "-created_at"])]
+
+
+class ActivityFeedImpression(models.Model):
+    """One row the first time an authenticated user is served an activity in
+    their feed — used for post-level "how many people saw this" metrics."""
+
+    activity = models.ForeignKey(
+        Activity, related_name="feed_impressions", on_delete=models.CASCADE
+    )
+    viewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="activity_feed_impressions",
+        on_delete=models.CASCADE,
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["activity", "viewer"],
+                name="uniq_feed_impression_per_viewer_per_activity",
+            )
+        ]
+        indexes = [models.Index(fields=["activity", "-viewed_at"])]
 
 
 class DailyOrgStats(models.Model):

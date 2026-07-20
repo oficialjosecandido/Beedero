@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.models import InvestorProfile
 
-from .models import Conversation, Message
+from .models import Conversation, Message, OrgConversation, OrgMessage
 
 
 def _investor_profile(user):
@@ -69,6 +69,38 @@ def conversation_summary(conversation: Conversation, viewer, unread_count: int) 
 
 
 def message_summary(message: Message, viewer) -> dict:
+    return {
+        "id": message.id,
+        "body": message.body,
+        "created_at": message.created_at.isoformat(),
+        "is_mine": message.sender_id == viewer.id,
+    }
+
+
+def org_conversation_summary(conversation: OrgConversation, viewer, unread_count: int) -> dict:
+    other = conversation.external_user
+    last_message_body = getattr(conversation, "last_message_body", None)
+    last_message_sender_id = getattr(conversation, "last_message_sender_id", None)
+    last_message = None
+    if last_message_body:
+        last_message = {
+            "body": last_message_body,
+            "is_mine": last_message_sender_id == viewer.id,
+        }
+    return {
+        "id": conversation.id,
+        "other_participant": {
+            "id": other.id,
+            "name": _display_name(other),
+            "profile_picture": _profile_picture(other),
+        },
+        "last_message": last_message,
+        "last_message_at": conversation.last_message_at.isoformat() if conversation.last_message_at else None,
+        "unread_count": unread_count,
+    }
+
+
+def org_message_summary(message: OrgMessage, viewer) -> dict:
     return {
         "id": message.id,
         "body": message.body,

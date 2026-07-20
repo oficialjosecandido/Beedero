@@ -9,7 +9,7 @@ export function MessageBell() {
     <button
       type="button"
       onClick={toggleInboxFromHeader}
-      className="relative rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+      className="relative rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black lg:hidden"
       aria-label="Messages"
     >
       <svg

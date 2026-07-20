@@ -5,6 +5,7 @@ import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
 import type { PostingStatus } from "@/components/OrgPostComposer";
+import { formatAtHandle } from "@/lib/handles";
 
 type SectionField = {
   id: number;
@@ -253,6 +254,7 @@ export default async function DashboardOrgPage({
                   </span>
                 )}
               </div>
+              <p className="mt-1 text-sm font-semibold text-zinc-600">{formatAtHandle(slug)}</p>
               {profile.org.one_liner && (
                 <p className="mt-1 text-sm text-zinc-500">{profile.org.one_liner}</p>
               )}

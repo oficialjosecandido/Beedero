@@ -25,16 +25,46 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/terms`,
+      url: `${SITE_URL}/termos`,
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${SITE_URL}/privacy`,
+      url: `${SITE_URL}/privacidade`,
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/cookies`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${SITE_URL}/litigios`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${SITE_URL}/sobre`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${SITE_URL}/terms`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.2,
     },
   ];
 }

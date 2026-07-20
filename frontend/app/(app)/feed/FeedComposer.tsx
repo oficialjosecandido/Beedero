@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { FaRegCalendarAlt, FaRegFileAlt, FaTrophy } from "react-icons/fa";
+import type { IconType } from "react-icons";
 
 import { createInvestorPostAction } from "@/app/(app)/dashboard/actions";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -11,6 +13,12 @@ const POST_KIND_OPTIONS = [
   { value: "milestone", label: "Milestone" },
   { value: "event", label: "Event" },
   { value: "update", label: "Update" },
+];
+
+const COMPOSER_ACTIONS: { value: string; label: string; icon: IconType; color: string }[] = [
+  { value: "milestone", label: "Milestone", icon: FaTrophy, color: "text-amber-500" },
+  { value: "event", label: "Event", icon: FaRegCalendarAlt, color: "text-sky-600" },
+  { value: "update", label: "Update", icon: FaRegFileAlt, color: "text-emerald-600" },
 ];
 
 type FeedComposerProps = {
@@ -48,6 +56,11 @@ export function FeedComposer({
   const allowsPhoto = kind === "event" || kind === "update";
   const isEvent = kind === "event";
   useActionToast(error, pending, { successMessage: "Post published!" });
+
+  function openWithKind(value: string) {
+    setKind(value);
+    setExpanded(true);
+  }
 
   useEffect(() => {
     const justFinished = prevPending.current && !pending;
@@ -102,13 +115,28 @@ export function FeedComposer({
         <Avatar name={name} profilePicture={profilePicture} />
         <div className="min-w-0 flex-1">
           {!expanded ? (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="w-full rounded-full bg-zinc-50 px-4 py-3 text-left text-sm text-zinc-500 transition hover:bg-zinc-100"
-            >
-              Share an update…
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="w-full rounded-full bg-zinc-50 px-4 py-3 text-left text-sm text-zinc-500 transition hover:bg-zinc-100"
+              >
+                Share an update…
+              </button>
+              <div className="mt-2 flex items-center justify-around gap-1 border-t border-beedero-border pt-2">
+                {COMPOSER_ACTIONS.map(({ value, label, icon: Icon, color }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => openWithKind(value)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-100"
+                  >
+                    <Icon className={`text-base ${color}`} aria-hidden />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
           ) : (
             <form action={formAction} className="flex flex-col gap-3">
               <div className="flex flex-wrap items-end gap-2">

@@ -1,15 +1,28 @@
 export const LEGAL_ENTITY = {
   companyName: "Beedero",
+  legalName: "Beedero, Unipessoal Lda.",
   address: "Lisbon, Portugal",
-  registryLocation: "Lisbon, Portugal",
-  nif: "Available on request at privacy@beedero.com",
+  registryLocation: "Conservatória do Registo Comercial de Lisboa",
+  nif: "Disponível mediante pedido a privacy@beedero.com",
+  shareCapital: "—",
   privacyEmail: "privacy@beedero.com",
   contactEmail: "hello@beedero.com",
   lastUpdated: "13 July 2026",
   profileViewRetention: "12 months",
   auditRetention: "24 months",
   verificationDocRetention: "24 months after verification or account deletion, whichever comes first",
-};
+} as const;
+
+/** Footer + DL 7/2004 identification block. */
+export const COMPANY = {
+  name: LEGAL_ENTITY.legalName,
+  nif: LEGAL_ENTITY.nif,
+  address: LEGAL_ENTITY.address,
+  capital: LEGAL_ENTITY.shareCapital,
+  registry: LEGAL_ENTITY.registryLocation,
+  contactEmail: LEGAL_ENTITY.contactEmail,
+  privacyEmail: LEGAL_ENTITY.privacyEmail,
+} as const;
 
 export function prepareLegalMarkdown(source: string): string {
   let text = source

@@ -45,3 +45,36 @@ class Message(models.Model):
 
     def __str__(self):
         return f"message {self.pk} in conversation {self.conversation_id}"
+
+
+class OrgConversation(models.Model):
+    """A thread between an organization and an external user."""
+
+    org = models.ForeignKey("orgs.Organization", related_name="org_conversations", on_delete=models.CASCADE)
+    external_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="org_conversations_as_external", on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org", "external_user"], name="uniq_org_external_user_conversation"),
+        ]
+
+    def __str__(self):
+        return f"org conversation {self.pk} ({self.org_id}, {self.external_user_id})"
+
+
+class OrgMessage(models.Model):
+    org_conversation = models.ForeignKey(OrgConversation, related_name="messages", on_delete=models.CASCADE)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sent_org_messages", on_delete=models.CASCADE)
+    body = models.CharField(max_length=4000)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["org_conversation", "-created_at"])]
+
+    def __str__(self):
+        return f"org message {self.pk} in org conversation {self.org_conversation_id}"

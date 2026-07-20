@@ -1134,6 +1134,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
       <input type="hidden" name="slug" value={org.slug} />
       <div className="sm:col-span-2">
         <h3 className="font-extrabold text-zinc-900">Company details</h3>
+        <p className="mt-1 text-sm font-semibold text-zinc-600">@{org.slug}</p>
         <p className="mt-1 text-sm text-zinc-500">Required to publish your organization profile.</p>
       </div>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">

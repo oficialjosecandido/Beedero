@@ -1,5 +1,6 @@
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { formatAtHandle } from "@/lib/handles";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -111,7 +112,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
             </span>
           )}
         </div>
-        <p className="text-sm text-zinc-500">/o/{data.org.slug}</p>
+        <p className="text-sm font-semibold text-zinc-600">{formatAtHandle(data.org.slug)}</p>
         {data.org.freshness && (
           <p className="text-sm font-medium text-emerald-800">{data.org.freshness}</p>
         )}

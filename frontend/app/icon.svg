@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Beedero">
+  <rect width="64" height="64" rx="16" fill="#050604"/>
+  <circle cx="32" cy="32" r="14" fill="#f9de4a"/>
+  <circle cx="32" cy="32" r="6" fill="#050604"/>
+</svg>

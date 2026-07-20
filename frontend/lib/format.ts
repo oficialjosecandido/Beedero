@@ -26,3 +26,18 @@ export function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return `$${value.toLocaleString(LOCALE)}`;
 }
+
+/** Short timestamp for messaging lists — time today, date otherwise. */
+export function formatMessageTimestamp(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleDateString(LOCALE, {
+    day: "numeric",
+    month: "short",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
+  });
+}

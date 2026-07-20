@@ -110,6 +110,40 @@ def test_feed_includes_viewer_own_personal_posts(api, viewer):
 
 
 @pytest.mark.django_db
+def test_feed_records_impression_once_per_viewer(api, org, viewer):
+    activity = _post(org, "hello", "2026-01-01T00:00:00Z")
+
+    api.force_authenticate(viewer)
+    first = api.get("/api/feed/")
+    assert first.status_code == 200
+    activity.refresh_from_db()
+    assert activity.feed_impression_count == 1
+
+    second = api.get("/api/feed/")
+    assert second.status_code == 200
+    activity.refresh_from_db()
+    assert activity.feed_impression_count == 1
+
+
+@pytest.mark.django_db
+def test_feed_does_not_count_author_own_post_as_impression(api, viewer):
+    activity = Activity.objects.create(
+        author=viewer,
+        org=None,
+        kind="update",
+        title="Mine",
+        body="",
+        occurred_at=parse_datetime("2026-06-01T00:00:00Z"),
+    )
+
+    api.force_authenticate(viewer)
+    res = api.get("/api/feed/")
+    assert res.status_code == 200
+    activity.refresh_from_db()
+    assert activity.feed_impression_count == 0
+
+
+@pytest.mark.django_db
 def test_feed_reports_viewer_own_reaction(api, org, viewer):
     from social.models import Reaction
 

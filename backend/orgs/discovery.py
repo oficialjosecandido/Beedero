@@ -47,7 +47,9 @@ def discover(viewer, params: dict):
 
     query = (params.get("q") or "").strip()
     if query:
-        qs = qs.filter(Q(name__icontains=query) | Q(one_liner__icontains=query))
+        qs = qs.filter(
+            Q(name__icontains=query) | Q(one_liner__icontains=query) | Q(slug__icontains=query)
+        )
 
     if params.get("stage"):
         qs = qs.filter(stage=params["stage"])
@@ -134,7 +136,11 @@ def discover_people(viewer, params: dict):
 
     query = (params.get("q") or "").strip()
     if query:
-        qs = qs.filter(Q(full_name__icontains=query) | Q(headline__icontains=query))
+        qs = qs.filter(
+            Q(full_name__icontains=query)
+            | Q(headline__icontains=query)
+            | Q(handle__icontains=query)
+        )
 
     profiles = list(qs)
     profiles.sort(

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
+import { MessagingColumn } from "@/components/messaging/MessagingColumn";
 import { ProfileColumn } from "@/components/ProfileColumn";
+import { TrendingPanel, type TrendingItem } from "@/components/TrendingPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import { FeedComposer } from "./FeedComposer";
@@ -24,9 +26,11 @@ type InvestorProfile = {
   bio?: string;
   country?: string;
   profile_picture?: string | null;
+  cover_image?: string | null;
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
+type ProfileStats = { profile_views_count: number; post_impressions_count: number };
 
 export default async function FeedPage() {
   let items: FeedItem[];
@@ -35,17 +39,23 @@ export default async function FeedPage() {
   let orgs: Membership[];
   let hasPostedToday = false;
   let myPosts: InvestorPost[] = [];
+  let trending: TrendingItem[] = [];
+  let stats: ProfileStats | null = null;
   try {
-    const [feed, meRes, orgsRes, posts] = await Promise.all([
+    const [feed, meRes, orgsRes, posts, trendingRes, statsRes] = await Promise.all([
       apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
+      safeFetch(apiFetch<{ items: TrendingItem[] }>("/trending/"), { items: [] }),
+      safeFetch(apiFetch<ProfileStats>("/investors/me/stats/"), null),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;
     orgs = orgsRes;
     myPosts = posts;
+    trending = trendingRes.items;
+    stats = statsRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
   } catch (err) {
@@ -62,9 +72,9 @@ export default async function FeedPage() {
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+      <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
         <div className="order-1 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} />
+          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} />
         </div>
 
         <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">
@@ -80,6 +90,12 @@ export default async function FeedPage() {
           />
 
           <FeedList initialItems={items} initialCursor={next_cursor} />
+
+          {trending.length > 0 && <TrendingPanel items={trending} />}
+        </div>
+
+        <div className="order-3 lg:order-none">
+          <MessagingColumn />
         </div>
       </div>
     </main>

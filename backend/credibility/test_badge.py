@@ -9,10 +9,8 @@ from analytics.models import ProfileView
 from orgs.models import Organization, OrgMembership
 
 from .badge import badge_state, badge_visual_status, render_badge_svg
-from .levels import credibility_level
 from .models import Verification, VerificationType
 from .presence import presence_signals
-from .vitality import vitality_state
 
 
 @pytest.fixture

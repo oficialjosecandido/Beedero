@@ -17,6 +17,7 @@ from django.contrib.auth import get_user_model
 
 from accounts.models import InvestorProfile
 from analytics.models import InterestSignal, ProfileView
+from analytics.services import record_feed_impressions
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
@@ -49,6 +50,7 @@ from .models import (
     OrgVisit,
     RestrictedAccessLog,
     UserFollow,
+    Visibility,
     VisibilityGrant,
 )
 from .permissions import IsOrgMember, IsOrgOwnerOrAdmin, IsVerifiedInvestor, OrgLookupMixin
@@ -84,13 +86,10 @@ PROFILE_VIEW_DEDUPE_HOURS = 24
 
 
 def unique_org_slug(name: str) -> str:
-    base = slugify(name)[:45] or "organization"
-    slug = base
-    suffix = 2
-    while Organization.objects.filter(slug=slug).exists():
-        slug = f"{base}-{suffix}"
-        suffix += 1
-    return slug
+    from beedero.handles import compact_handle_base, unique_public_id
+
+    base = compact_handle_base(name) or "organization"
+    return unique_public_id(base, fallback="organization")
 
 
 def _owner_email_verifies_org(email: str, name: str) -> bool:
@@ -126,6 +125,15 @@ def ensure_default_beedero_follow(user):
 def _investor_display_name(user):
     profile = getattr(user, "investorprofile", None)
     return (profile.full_name if profile and profile.full_name else None) or user.email
+
+
+def _investor_avatar_fields(user):
+    profile = getattr(user, "investorprofile", None)
+    return {
+        "handle": profile.handle if profile else None,
+        "headline": profile.headline if profile else "",
+        "profile_picture": profile.profile_picture.url if profile and profile.profile_picture else None,
+    }
 
 
 def _investor_public_name(user):
@@ -914,7 +922,11 @@ def _activity_summary(
         "author": (
             None
             if activity.org_id
-            else {"id": activity.author_id, "name": _investor_display_name(activity.author)}
+            else {
+                "id": activity.author_id,
+                "name": _investor_display_name(activity.author),
+                **_investor_avatar_fields(activity.author),
+            }
         ),
         "kind": kind,
         "value": value,
@@ -991,6 +1003,8 @@ class FeedView(APIView):
         commented_activity_ids = viewer_has_commented_for(request.user, [a.id for a in activities])
         viewer_participations = viewer_participations_for(request.user, [a.id for a in activities])
 
+        record_feed_impressions(request.user, activities)
+
         return Response(
             {
                 "items": [
@@ -1004,6 +1018,51 @@ class FeedView(APIView):
                     for a in activities
                 ],
                 "next_cursor": next_cursor,
+            }
+        )
+
+
+class TrendingView(APIView):
+    """Right-rail 'Trending' panel: most-engaged public activities in the
+    trailing window, site-wide (not filtered by who the viewer follows) —
+    same visibility rule as the main feed, minus the follow restriction."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    WINDOW_DAYS = 7
+    LIMIT = 5
+
+    def get(self, request):
+        since = timezone.now() - timedelta(days=self.WINDOW_DAYS)
+        activities = (
+            Activity.objects.filter(Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True))
+            .filter(occurred_at__gte=since)
+            .select_related("org", "author", "author__investorprofile")
+            .annotate(engagement=F("reaction_count") + F("comment_count"))
+            .order_by("-engagement", "-occurred_at")[: self.LIMIT]
+        )
+        return Response(
+            {
+                "items": [
+                    {
+                        "id": a.id,
+                        "title": a.title,
+                        "kind": ACTIVITY_TO_POST_KIND.get(a.kind, a.kind) if a.org_id else a.kind,
+                        "engagement": a.reaction_count + a.comment_count,
+                        "org": _org_summary(a.org) if a.org_id else None,
+                        "author": (
+                            None
+                            if a.org_id
+                            else {
+                                "id": a.author_id,
+                                "name": _investor_display_name(a.author),
+                                "handle": getattr(a.author, "investorprofile", None)
+                                and a.author.investorprofile.handle,
+                                **_investor_avatar_fields(a.author),
+                            }
+                        ),
+                    }
+                    for a in activities
+                ]
             }
         )
 

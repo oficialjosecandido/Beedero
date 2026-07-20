@@ -42,7 +42,7 @@ def person_badge_embed_html(profile) -> dict:
     badge_url = f"{site}/pbadge/{handle}.svg"
     html = (
         f'<a href="{profile_url}">\n'
-        f'  <img src="{badge_url}" alt="Verified on Beedero" height="48">\n'
+        f'  <img src="{badge_url}" alt="Beedero profile" height="48">\n'
         f"</a>"
     )
     return {

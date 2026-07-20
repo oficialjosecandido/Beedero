@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { FaRegComment } from "react-icons/fa";
 
 import { formatDate } from "@/lib/format";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -83,9 +84,10 @@ export function CommentThread({
       <button
         type="button"
         onClick={expand}
-        className="mt-3 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline"
+        className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline"
       >
-        {count > 0 ? `View ${count} comment${count === 1 ? "" : "s"}` : "Add a comment"}
+        <FaRegComment className="text-sm" aria-hidden />
+        {count > 0 ? `${count} comment${count === 1 ? "" : "s"}` : "Add a comment"}
       </button>
     );
   }

@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -9,15 +10,28 @@ from accounts.models import InvestorProfile
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from orgs.models import UserFollow
+from orgs.permissions import OrgLookupMixin
 
-from .models import Conversation, Message
+from .models import Conversation, Message, OrgConversation, OrgMessage
 from .serializers import (
     MessageSendSerializer,
     StartConversationSerializer,
     conversation_summary,
     message_summary,
+    org_conversation_summary,
+    org_message_summary,
 )
-from .services import get_or_create_conversation, get_visible_conversation_or_404, mark_conversation_read, send_message
+from .services import (
+    get_or_create_conversation,
+    get_or_create_org_conversation,
+    get_visible_conversation_or_404,
+    get_visible_org_conversation_or_404,
+    is_org_member,
+    mark_conversation_read,
+    mark_org_conversation_read,
+    send_message,
+    send_org_message,
+)
 
 User = get_user_model()
 
@@ -169,3 +183,137 @@ class ConversationMessageListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         message = send_message(conversation, request.user, serializer.validated_data["body"])
         return Response(message_summary(message, request.user), status=201)
+
+
+class OrgConversationListCreateView(OrgLookupMixin, APIView):
+    """GET/POST /api/orgs/<slug>/conversations/ — org inbox for members."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, slug):
+        org = self.get_org()
+        if not is_org_member(org, request.user):
+            raise Http404
+        viewer = request.user
+        last_messages = OrgMessage.objects.filter(org_conversation=OuterRef("pk")).order_by(
+            "-created_at", "-id"
+        )
+        conversations = (
+            OrgConversation.objects.filter(org=org)
+            .select_related("external_user__investorprofile")
+            .annotate(
+                unread_count=Count(
+                    "messages",
+                    filter=Q(messages__read_at__isnull=True) & Q(messages__sender_id=F("external_user_id")),
+                ),
+                last_message_body=Subquery(last_messages.values("body")[:1]),
+                last_message_sender_id=Subquery(last_messages.values("sender_id")[:1]),
+            )
+            .order_by("-last_message_at", "-created_at")[:50]
+        )
+        return Response(
+            {
+                "items": [
+                    org_conversation_summary(c, viewer, c.unread_count) for c in conversations
+                ]
+            }
+        )
+
+    def post(self, request, slug):
+        org = self.get_org()
+        viewer = request.user
+
+        if is_org_member(org, viewer):
+            serializer = StartConversationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            target_id = serializer.validated_data["user_id"]
+            if target_id == viewer.id:
+                return Response({"detail": "You can't message yourself."}, status=400)
+            target = get_object_or_404(User, pk=target_id)
+
+            enforce_rate_limit(
+                f"start-org-conversation:{viewer.id}:{org.id}",
+                limit=CONVERSATIONS_PER_DAY,
+                window_seconds=86400,
+            )
+            conversation = get_or_create_org_conversation(org, target)
+        else:
+            enforce_rate_limit(
+                f"start-org-conversation-external:{viewer.id}:{org.id}",
+                limit=CONVERSATIONS_PER_DAY,
+                window_seconds=86400,
+            )
+            conversation = get_or_create_org_conversation(org, viewer)
+
+        conversation = (
+            OrgConversation.objects.filter(pk=conversation.pk)
+            .select_related("external_user__investorprofile")
+            .get()
+        )
+        return Response(org_conversation_summary(conversation, viewer, 0), status=201)
+
+
+class OrgConversationMessageListCreateView(OrgLookupMixin, APIView):
+    """GET/POST /api/orgs/<slug>/conversations/<id>/messages/."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 30
+    MAX_LIMIT = 100
+
+    def get(self, request, slug, conversation_id):
+        org = self.get_org()
+        conversation = get_visible_org_conversation_or_404(org, request.user, conversation_id)
+
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        cursor = None
+        cursor_raw = request.query_params.get("cursor")
+        if cursor_raw:
+            cursor = decode_cursor(cursor_raw)
+            if cursor is None:
+                return Response({"detail": "Invalid cursor."}, status=400)
+
+        qs = OrgMessage.objects.filter(org_conversation=conversation).select_related("sender").order_by(
+            "-created_at", "-id"
+        )
+        if cursor is not None:
+            created_at, item_id = cursor
+            qs = qs.filter(Q(created_at__lt=created_at) | Q(created_at=created_at, id__lt=int(item_id)))
+
+        messages = list(qs[: limit + 1])
+        next_cursor = None
+        if len(messages) > limit:
+            last = messages[limit - 1]
+            next_cursor = encode_cursor(last.created_at, last.id)
+            messages = messages[:limit]
+
+        mark_org_conversation_read(conversation, request.user)
+
+        return Response(
+            {
+                "items": [org_message_summary(m, request.user) for m in messages],
+                "next_cursor": next_cursor,
+            }
+        )
+
+    def post(self, request, slug, conversation_id):
+        org = self.get_org()
+        conversation = get_visible_org_conversation_or_404(org, request.user, conversation_id)
+        if not (
+            conversation.external_user_id == request.user.id or is_org_member(org, request.user)
+        ):
+            raise Http404
+
+        enforce_rate_limit(
+            f"send-org-message:{request.user.id}", limit=MESSAGES_PER_HOUR, window_seconds=3600
+        )
+
+        serializer = MessageSendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = send_org_message(conversation, request.user, serializer.validated_data["body"])
+        return Response(org_message_summary(message, request.user), status=201)

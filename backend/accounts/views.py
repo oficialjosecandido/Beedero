@@ -9,8 +9,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from analytics.models import PersonProfileView
 from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
+from social.services import reaction_counts_for
 
 from .badge import person_badge_embed_html
 from .handles import ensure_profile_handle
@@ -29,7 +31,8 @@ class MeView(APIView):
 INVESTOR_POST_KIND_MAP = {"milestone": "milestones", "event": "events", "update": "update"}
 
 
-def _investor_activity_summary(activity):
+def _investor_activity_summary(activity, reaction_counts=None):
+    counts = reaction_counts or {"like": 0, "insight": 0, "congrats": 0}
     return {
         "id": activity.id,
         "kind": activity.kind,
@@ -40,7 +43,18 @@ def _investor_activity_summary(activity):
         "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
         "created_at": activity.created_at.isoformat(),
         "author_name": _investor_display_name(activity.author),
+        "reaction_count": activity.reaction_count,
+        "reaction_counts": counts,
+        "feed_impression_count": activity.feed_impression_count,
     }
+
+
+def _investor_activity_summaries(activities):
+    activity_list = list(activities)
+    reaction_counts = reaction_counts_for([a.id for a in activity_list])
+    return [
+        _investor_activity_summary(a, reaction_counts.get(a.id)) for a in activity_list
+    ]
 
 
 def _investor_display_name(user):
@@ -59,7 +73,7 @@ class InvestorPostListCreateView(APIView):
         activities = Activity.objects.filter(author=request.user, org__isnull=True).order_by(
             "-occurred_at"
         )
-        return Response([_investor_activity_summary(a) for a in activities])
+        return Response(_investor_activity_summaries(activities))
 
     def post(self, request):
         if Activity.objects.filter(
@@ -99,6 +113,8 @@ class InvestorStatsView(APIView):
         personal_posts = Activity.objects.filter(author=user, org__isnull=True)
         posts_count = personal_posts.count()
         reactions_received = personal_posts.aggregate(total=Sum("reaction_count"))["total"] or 0
+        post_impressions_count = personal_posts.aggregate(total=Sum("feed_impression_count"))["total"] or 0
+        profile_views_count = PersonProfileView.objects.filter(subject=user).count()
 
         return Response(
             {
@@ -108,6 +124,8 @@ class InvestorStatsView(APIView):
                 "new_followers": new_followers,
                 "posts_count": posts_count,
                 "reactions_received": reactions_received,
+                "post_impressions_count": post_impressions_count,
+                "profile_views_count": profile_views_count,
             }
         )
 

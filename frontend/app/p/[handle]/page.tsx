@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ApiError, publicFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { COUNTRIES } from "@/lib/countries";
+import { formatAtHandle } from "@/lib/handles";
 import { pageMetadata } from "@/lib/site-metadata";
 
 type PublicPerson = {
@@ -94,6 +95,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                   </span>
                 )}
               </div>
+              <p className="mt-1 text-sm font-semibold text-zinc-600">{formatAtHandle(person.handle)}</p>
               {person.headline && <p className="mt-1 text-sm text-zinc-600">{person.headline}</p>}
               {person.country && (
                 <p className="mt-1 text-xs text-zinc-400">

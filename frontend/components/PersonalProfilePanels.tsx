@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { formatDate } from "@/lib/format";
 import { SITE_URL } from "@/lib/site-metadata";
 
@@ -32,13 +30,11 @@ export function PersonBadgeEmbedPanel({
   embed: PersonBadgeEmbed;
   badge: PersonBadge;
 }) {
-  const [copied, setCopied] = useState(false);
+  const handle = badge.handle;
+  const previewSrc = handle ? personBadgePath(handle) : embed.badge_url;
+  const profileUrl = handle ? personProfileUrl(handle) : embed.profile_url;
 
-  async function copySnippet() {
-    await navigator.clipboard.writeText(embed.html);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  if (!handle && !embed.badge_url) return null;
 
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
@@ -46,7 +42,7 @@ export function PersonBadgeEmbedPanel({
         <div>
           <h3 className="font-extrabold text-zinc-900">Your personal badge</h3>
           <p className="mt-1 text-sm text-zinc-500">
-            Embed a live badge on LinkedIn, email, or X — it links to your Beedero profile.
+            Your live badge links to your public Beedero profile.
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLES[badge.visual_status]}`}>
@@ -56,10 +52,10 @@ export function PersonBadgeEmbedPanel({
 
       <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={embed.badge_url} alt="Beedero personal badge" className="h-12 w-auto" />
+        <img src={previewSrc} alt="Beedero personal badge" className="h-12 w-auto" />
         <div className="text-sm text-zinc-600">
           <a
-            href={embed.profile_url}
+            href={profileUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
@@ -68,20 +64,6 @@ export function PersonBadgeEmbedPanel({
           </a>
           <p className="mt-1 text-xs text-zinc-400">As of {formatDate(badge.as_of)}</p>
         </div>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-beedero-border bg-zinc-50 p-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Embed code</p>
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-xs text-zinc-700">
-          {embed.html}
-        </pre>
-        <button
-          type="button"
-          onClick={copySnippet}
-          className="mt-3 rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
-        >
-          {copied ? "Copied!" : "Copy embed code"}
-        </button>
       </div>
     </div>
   );
@@ -99,7 +81,7 @@ export function PersonPresenceSignalsPanel({
   if (!presence.has_signal) return null;
 
   return (
-    <div className="rounded-2xl border-2 border-beedero-border bg-gradient-to-br from-beedero-yellow/20 to-beedero-white p-6 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-yellow bg-beedero-yellow p-6 shadow-sm">
       <h3 className="font-extrabold text-zinc-900">Who&apos;s looking this week</h3>
       <p className="mt-1 text-sm text-zinc-500">
         Aggregated signals from the last {presence.since_days} days — no names shown here.
@@ -164,4 +146,12 @@ export function ProfileStrengthPanel({
 
 export function personProfileUrl(handle: string) {
   return `${SITE_URL}/p/${handle}`;
+}
+
+export function personBadgePath(handle: string) {
+  return `/pbadge/${handle}.svg`;
+}
+
+export function personBadgeUrl(handle: string) {
+  return `${SITE_URL}${personBadgePath(handle)}`;
 }

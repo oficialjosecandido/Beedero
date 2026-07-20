@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { followUserAction } from "@/app/(app)/dashboard/actions";
+import { formatAtHandle } from "@/lib/handles";
 
 import { loadMorePeopleDiscoveryAction } from "./actions";
 
@@ -49,6 +50,9 @@ function PersonCard({ person }: { person: PersonSummary }) {
               </span>
             )}
           </div>
+          {person.handle && (
+            <p className="text-xs font-medium text-zinc-500">{formatAtHandle(person.handle)}</p>
+          )}
           {person.headline && <p className="text-xs text-zinc-500">{person.headline}</p>}
         </div>
       </div>

@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { FaGlassCheers, FaLightbulb, FaThumbsUp } from "react-icons/fa";
+import type { IconType } from "react-icons";
 
 import { reactAction, unreactAction } from "./actions";
 
-const REACTIONS: { kind: string; emoji: string; label: string }[] = [
-  { kind: "like", emoji: "👍", label: "Like" },
-  { kind: "insight", emoji: "💡", label: "Insight" },
-  { kind: "congrats", emoji: "🎉", label: "Congrats" },
+const REACTIONS: { kind: string; icon: IconType; label: string }[] = [
+  { kind: "like", icon: FaThumbsUp, label: "Like" },
+  { kind: "insight", icon: FaLightbulb, label: "Insight" },
+  { kind: "congrats", icon: FaGlassCheers, label: "Congrats" },
 ];
 
 type ReactionCounts = Record<string, number>;
@@ -65,7 +67,7 @@ export function ReactionBar({
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      {REACTIONS.map(({ kind, emoji, label }) => {
+      {REACTIONS.map(({ kind, icon: Icon, label }) => {
         const kindCount = counts[kind] ?? 0;
         return (
           <button
@@ -74,13 +76,13 @@ export function ReactionBar({
             title={label}
             disabled={isPending}
             onClick={() => toggle(kind)}
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-bold transition-colors disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-bold transition-colors disabled:opacity-50 ${
               reaction === kind
                 ? "bg-beedero-yellow text-beedero-black"
                 : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
             }`}
           >
-            <span>{emoji}</span>
+            <Icon className="text-sm" aria-hidden />
             <span className="min-w-[1ch] text-xs tabular-nums">{kindCount}</span>
           </button>
         );

@@ -4,10 +4,10 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from notifications.models import Notification
-from orgs.models import UserFollow
+from orgs.models import OrgMembership, Organization, UserFollow
 
-from .models import Conversation, Message
-from .services import get_or_create_conversation
+from .models import Conversation, Message, OrgConversation, OrgMessage
+from .services import get_or_create_conversation, get_or_create_org_conversation
 from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR
 
 
@@ -164,3 +164,48 @@ def test_sending_a_message_does_not_notify_the_recipient(api, alice, bob):
 
     api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
     assert not Notification.objects.filter(user=bob).exists()
+
+
+@pytest.fixture
+def org(db, alice):
+    organization = Organization.objects.create(name="Acme", slug="acme")
+    OrgMembership.objects.create(org=organization, user=alice, role=OrgMembership.Role.OWNER)
+    return organization
+
+
+@pytest.mark.django_db
+def test_org_conversation_list_and_reply(api, alice, bob, org):
+    conversation = get_or_create_org_conversation(org, bob)
+    OrgMessage.objects.create(org_conversation=conversation, sender=bob, body="Hello Acme")
+
+    api.force_authenticate(alice)
+    listing = api.get(f"/api/orgs/{org.slug}/conversations/")
+    assert listing.status_code == 200
+    assert len(listing.data["items"]) == 1
+    assert listing.data["items"][0]["unread_count"] == 1
+
+    res = api.post(
+        f"/api/orgs/{org.slug}/conversations/{conversation.id}/messages/",
+        {"body": "Thanks for reaching out"},
+        format="json",
+    )
+    assert res.status_code == 201
+
+    opened = api.get(f"/api/orgs/{org.slug}/conversations/{conversation.id}/messages/")
+    assert opened.status_code == 200
+
+    listing_after = api.get(f"/api/orgs/{org.slug}/conversations/")
+    assert listing_after.data["items"][0]["unread_count"] == 0
+
+
+@pytest.mark.django_db
+def test_external_user_can_start_org_conversation(api, alice, bob, org):
+    api.force_authenticate(bob)
+    res = api.post(f"/api/orgs/{org.slug}/conversations/", {}, format="json")
+    assert res.status_code == 201
+
+    api.force_authenticate(alice)
+    listing = api.get(f"/api/orgs/{org.slug}/conversations/")
+    assert listing.status_code == 200
+    assert len(listing.data["items"]) == 1
+    assert listing.data["items"][0]["other_participant"]["id"] == bob.id

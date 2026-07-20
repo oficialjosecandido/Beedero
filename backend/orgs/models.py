@@ -224,6 +224,7 @@ class Activity(models.Model):
 
     reaction_count = models.PositiveIntegerField(default=0)
     comment_count = models.PositiveIntegerField(default=0)
+    feed_impression_count = models.PositiveIntegerField(default=0)
     payload = models.JSONField(default=dict, blank=True)
 
     # Backfill breadcrumbs, not FKs (source rows may be pruned later).

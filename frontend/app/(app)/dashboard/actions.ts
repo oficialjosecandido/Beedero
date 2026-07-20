@@ -140,7 +140,10 @@ export async function activateOrgAction(_prevState: string | null, formData: For
 
 export async function updateProfileAction(_prevState: string | null, formData: FormData) {
   const body = new FormData();
-  body.set("full_name", formData.get("full_name") ?? "");
+  const fullName = formData.get("full_name");
+  if (fullName !== null && String(fullName).trim()) {
+    body.set("full_name", String(fullName).trim());
+  }
   body.set("headline", formData.get("headline") ?? "");
   body.set("bio", formData.get("bio") ?? "");
   body.set("country", formData.get("country") ?? "");
@@ -161,6 +164,11 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   const picture = formData.get("profile_picture");
   if (picture instanceof File && picture.size > 0) {
     body.set("profile_picture", picture);
+  }
+
+  const cover = formData.get("cover_image");
+  if (cover instanceof File && cover.size > 0) {
+    body.set("cover_image", cover);
   }
 
   try {

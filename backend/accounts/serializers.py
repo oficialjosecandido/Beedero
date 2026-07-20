@@ -1,14 +1,12 @@
-import re
-
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+
+from beedero.handles import HANDLE_RE
 
 from .models import InvestorPost, InvestorProfile
 from .visibility import ALL_LEVELS
 
 User = get_user_model()
-
-HANDLE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$")
 VISIBILITY_SECTIONS = {"bio", "country", "memberships", "posts", "attestations"}
 
 
@@ -26,6 +24,7 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "bio",
             "country",
             "profile_picture",
+            "cover_image",
             "stage_focus",
             "sector_focus",
             "geo_focus",
@@ -38,6 +37,11 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "has_public_handle",
         ]
         read_only_fields = ["is_verified", "verified_at", "handle"]
+
+    def validate_full_name(self, value):
+        if self.instance and self.instance.full_name and value != self.instance.full_name:
+            raise serializers.ValidationError("Full name cannot be changed.")
+        return value
 
     def validate_visibility(self, value):
         if not value:

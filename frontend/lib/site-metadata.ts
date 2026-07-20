@@ -14,6 +14,12 @@ export const OG_IMAGE = {
   alt: "Beedero — structured startup profiles for founders and investors",
 } as const;
 
+export const SITE_ICONS = {
+  icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  shortcut: "/favicon.svg",
+  apple: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+};
+
 function absoluteUrl(path: string): string {
   if (path.startsWith("http")) return path;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
@@ -73,6 +79,7 @@ export const siteMetadata: Metadata = {
   description: DEFAULT_DESCRIPTION,
   applicationName: SITE_NAME,
   category: "business",
+  icons: SITE_ICONS,
   alternates: {
     canonical: "/",
   },

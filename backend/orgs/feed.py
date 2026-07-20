@@ -36,7 +36,7 @@ def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, c
     qs = (
         Activity.objects.filter(visibility_filter)
         .filter(Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True) | Q(org_id__in=member_org_ids))
-        .select_related("org", "author")
+        .select_related("org", "author", "author__investorprofile")
     )
     if cursor is not None:
         created_at, item_id = cursor

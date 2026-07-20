@@ -188,7 +188,6 @@ export function renderLegalMarkdown(source: string): React.ReactNode[] {
 }
 
 export function LegalDocument({
-  title,
   content,
   draft = false,
 }: {
@@ -197,21 +196,21 @@ export function LegalDocument({
   draft?: boolean;
 }) {
   return (
-    <main className="min-h-screen bg-beedero-white text-beedero-black">
-      <nav className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5 sm:px-8">
+    <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
+      <nav className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8">
         <Link href="/" className="text-lg font-black uppercase tracking-[-0.04em]">
           Beedero
         </Link>
-        <div className="flex items-center gap-5 text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-black/60">
-          <Link href="/privacy" className="hover:text-beedero-black">
-            Privacy
+        <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-black/60">
+          <Link href="/privacidade" className="hover:text-beedero-black">
+            Privacidade
           </Link>
-          <Link href="/terms" className="hover:text-beedero-black">
-            Terms
+          <Link href="/termos" className="hover:text-beedero-black">
+            Termos
           </Link>
         </div>
       </nav>
-      <div className="mx-auto max-w-3xl px-5 pb-24 sm:px-8">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-12 sm:px-8">
         {draft && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
             Draft pending legal review.
@@ -219,9 +218,6 @@ export function LegalDocument({
         )}
         <article>{renderLegalMarkdown(content)}</article>
       </div>
-      <footer className="border-t border-beedero-border py-8 text-center text-xs font-medium text-beedero-black/50">
-        {title} — Beedero
-      </footer>
-    </main>
+    </div>
   );
 }
