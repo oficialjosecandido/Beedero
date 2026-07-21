@@ -37,7 +37,7 @@ function displayHost(url: string) {
   return url.replace(/^https?:\/\//, "");
 }
 
-export function InvitePeopleButton() {
+export function InvitePeopleButton({ className = "mt-3" }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const titleId = useId();
@@ -71,14 +71,14 @@ export function InvitePeopleButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-beedero-border bg-beedero-white px-3 py-2.5 text-sm font-bold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/15"
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-beedero-border bg-beedero-white px-3 py-2.5 text-sm font-bold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/15 ${className}`}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path d="M19 8v6M22 11h-6" />
         </svg>
-        Invite people
+        Convidar pessoas
       </button>
 
       {open && (
@@ -107,10 +107,10 @@ export function InvitePeopleButton() {
                   </span>
                   <div>
                     <h2 id={titleId} className="text-lg font-extrabold tracking-tight text-zinc-900">
-                      Invite people
+                      Convidar pessoas
                     </h2>
                     <p id={descriptionId} className="mt-1 max-w-sm text-sm leading-6 text-zinc-600">
-                      Share Beedero with founders, investors, or researchers you think should be here.
+                      Partilha o Beedero com fundadores, investidores ou investigadores que deviam estar aqui.
                     </p>
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export function InvitePeopleButton() {
 
             <div className="space-y-5 px-6 py-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">Invite link</p>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">Link de convite</p>
                 <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <div className="min-w-0 flex-1 rounded-xl border-2 border-beedero-border bg-zinc-50 px-3 py-2.5">
                     <p className="truncate font-mono text-sm text-zinc-800">{displayHost(INVITE_URL)}</p>

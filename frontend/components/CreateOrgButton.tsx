@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { CreateOrgForm } from "@/components/CreateOrgForm";
 
-export function CreateOrgButton() {
+export function CreateOrgButton({ className = "mt-4" }: { className?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -12,9 +12,9 @@ export function CreateOrgButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 w-full rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+        className={`w-full rounded-2xl bg-beedero-yellow px-3 py-2.5 text-sm font-bold text-beedero-black transition hover:bg-beedero-black hover:text-beedero-white ${className}`}
       >
-        Create organization
+        Criar organização
       </button>
       {open && (
         <div
@@ -24,7 +24,7 @@ export function CreateOrgButton() {
           <div className="w-full max-w-md" onClick={(event) => event.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between px-1">
               <p className="text-sm font-bold uppercase tracking-[0.15em] text-beedero-black/60">
-                New organization
+                Nova organização
               </p>
               <button
                 type="button"

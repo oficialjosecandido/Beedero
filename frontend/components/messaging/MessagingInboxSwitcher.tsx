@@ -42,7 +42,7 @@ function ContextAvatar({
 
 export function MessagingInboxSwitcher() {
   const { inboxContext, setInboxContext } = useMessaging();
-  const [personalName, setPersonalName] = useState("You");
+  const [personalName, setPersonalName] = useState("Tu");
   const [personalImage, setPersonalImage] = useState<string | null>(null);
   const [orgs, setOrgs] = useState<OrgMembership[]>([]);
 

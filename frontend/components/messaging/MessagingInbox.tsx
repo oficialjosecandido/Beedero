@@ -162,11 +162,11 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
   const emptyMessage =
     inboxContext.type === "org"
       ? inboxTab === "unread"
-        ? `No unread messages for ${inboxContext.name}.`
-        : `No messages yet for ${inboxContext.name}. Use ✏️ to message someone on behalf of the organization.`
+        ? `Sem mensagens por ler para ${inboxContext.name}.`
+        : `Ainda não há mensagens para ${inboxContext.name}. Usa ✏️ para contactar alguém em nome da organização.`
       : inboxTab === "unread"
-        ? "No unread messages."
-        : "You don't have any conversations yet.";
+        ? "Sem mensagens por ler."
+        : "Ainda não tens conversas.";
 
   if (!expanded) return null;
 
@@ -189,7 +189,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
               setError(null);
             }}
             className="rounded p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-beedero-black"
-            aria-label="New message"
+            aria-label="Nova mensagem"
           >
             <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12 20h9" />
@@ -201,7 +201,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
               type="button"
               onClick={onMinimize}
               className="rounded p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-beedero-black"
-              aria-label="Minimize messages"
+              aria-label="Minimizar mensagens"
             >
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
@@ -227,7 +227,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search messages"
+            placeholder="Pesquisar mensagens"
             className="w-full rounded-md border border-zinc-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-beedero-black"
           />
         </div>
@@ -241,7 +241,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
             inboxTab === "all" ? "text-beedero-black" : "text-zinc-500 hover:text-beedero-black"
           }`}
         >
-          All
+          Todas
           {inboxTab === "all" && (
             <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-beedero-black" />
           )}
@@ -253,7 +253,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
             inboxTab === "unread" ? "text-beedero-black" : "text-zinc-500 hover:text-beedero-black"
           }`}
         >
-          Unread
+          Não lidas
           {unreadInList > 0 && (
             <span className="ml-1.5 text-xs font-bold text-zinc-500">({unreadInList})</span>
           )}
@@ -268,7 +268,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
         <div className="max-h-44 overflow-y-auto border-b border-zinc-200 p-2">
           {filteredContacts.length === 0 ? (
             <p className="px-2 py-3 text-sm text-zinc-500">
-              Follow people on Discover to message them.
+              Segue pessoas no Discover para lhes enviar mensagens.
             </p>
           ) : (
             filteredContacts.map((person) => (
@@ -294,7 +294,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="px-4 py-6 text-sm text-zinc-500">Loading…</p>
+          <p className="px-4 py-6 text-sm text-zinc-500">A carregar…</p>
         ) : filteredConversations.length === 0 ? (
           <p className="px-4 py-6 text-sm text-zinc-500">{emptyMessage}</p>
         ) : (
@@ -334,7 +334,7 @@ export function MessagingInbox({ variant, embedded = false, expanded = true, onM
                       conversation.unread_count > 0 ? "font-medium text-zinc-700" : "text-zinc-500"
                     }`}
                   >
-                    {conversation.last_message.is_mine ? "You: " : ""}
+                    {conversation.last_message.is_mine ? "Tu: " : ""}
                     {conversation.last_message.body}
                   </span>
                 )}

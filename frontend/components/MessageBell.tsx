@@ -10,7 +10,7 @@ export function MessageBell() {
       type="button"
       onClick={toggleInboxFromHeader}
       className="relative rounded-full p-2.5 text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black lg:hidden"
-      aria-label="Messages"
+      aria-label="Mensagens"
     >
       <svg
         viewBox="0 0 24 24"

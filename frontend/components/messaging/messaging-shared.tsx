@@ -154,7 +154,7 @@ export function ChatWindow({
             type="button"
             onClick={onMinimize}
             className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
-            aria-label="Minimize conversation"
+            aria-label="Minimizar conversa"
           >
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12h14" />
@@ -164,7 +164,7 @@ export function ChatWindow({
             type="button"
             onClick={onClose}
             className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
-            aria-label="Close conversation"
+            aria-label="Fechar conversa"
           >
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6 6 18M6 6l12 12" />

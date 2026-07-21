@@ -15,8 +15,10 @@ export function AppColumnSection({
     <section
       className={`overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm ${className}`}
     >
-      <header className="border-b border-beedero-border bg-beedero-yellow px-4 py-2.5">
-        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">{label}</h2>
+      <header className="border-b border-beedero-border bg-beedero-yellow px-4 py-3 sm:px-5">
+        <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-beedero-black sm:text-sm">
+          {label}
+        </h2>
       </header>
       <div className={bodyClassName}>{children}</div>
     </section>

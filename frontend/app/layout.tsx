@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/Footer";
 import { siteMetadata } from "@/lib/site-metadata";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const clashGrotesk = localFont({
+  src: [
+    { path: "../public/fonts/ClashGrotesk-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../public/fonts/ClashGrotesk-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../public/fonts/ClashGrotesk-Semibold.ttf", weight: "600", style: "normal" },
+    { path: "../public/fonts/ClashGrotesk-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-clash",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -25,7 +32,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${clashGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-beedero-white text-beedero-black">
         {children}
