@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.models import InvestorProfile
 
-from .models import Conversation, Message, OrgConversation, OrgMessage
+from .models import Conversation, Message, MessageReport, OrgConversation, OrgMessage, UserBlock
 
 
 def _investor_profile(user):
@@ -29,6 +29,15 @@ def _profile_picture(user):
 
 class StartConversationSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
+
+
+class BlockUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+
+
+class ReportConversationSerializer(serializers.Serializer):
+    reason = serializers.ChoiceField(choices=MessageReport.Reason.choices)
+    details = serializers.CharField(max_length=1000, required=False, allow_blank=True, default="")
 
 
 class MessageSendSerializer(serializers.Serializer):
@@ -106,4 +115,13 @@ def org_message_summary(message: OrgMessage, viewer) -> dict:
         "body": message.body,
         "created_at": message.created_at.isoformat(),
         "is_mine": message.sender_id == viewer.id,
+    }
+
+
+def blocked_user_summary(block: UserBlock) -> dict:
+    other = block.blocked
+    return {
+        "id": other.id,
+        "name": _display_name(other),
+        "created_at": block.created_at.isoformat(),
     }

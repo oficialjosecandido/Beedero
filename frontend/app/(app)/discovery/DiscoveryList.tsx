@@ -11,11 +11,8 @@ import { loadMoreDiscoveryAction } from "./actions";
 
 function OrgCard({ org }: { org: OrgSummary }) {
   return (
-    <Link
-      href={`/org/${org.slug}`}
-      className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-border hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-border hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+      <Link href={`/org/${org.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
         {org.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={org.logo} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
@@ -24,7 +21,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
             {org.name.charAt(0).toUpperCase()}
           </span>
         )}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-baseline gap-1.5">
             <p className="font-medium text-zinc-950">{org.name}</p>
             <p className="text-xs text-zinc-400">@{org.slug}</p>
@@ -35,8 +32,8 @@ function OrgCard({ org }: { org: OrgSummary }) {
             {org.sector ? sectorLabel(org.sector) : "—"} · {org.geo ? geoLabel(org.geo) : "—"}
           </p>
         </div>
-      </div>
-      <div className="flex gap-2">
+      </Link>
+      <div className="flex flex-wrap items-center gap-2">
         <CredibilityBadge level={org.credibility_level ?? 0} />
         {org.is_verified && (
           <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
@@ -49,7 +46,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
           </span>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
 

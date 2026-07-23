@@ -6,9 +6,9 @@ from accounts.models import User
 from notifications.models import Notification
 from orgs.models import OrgMembership, Organization, UserFollow
 
-from .models import Conversation, Message, OrgMessage
+from .models import Conversation, Message, MessageReport, OrgMessage, UserBlock
 from .services import get_or_create_conversation, get_or_create_org_conversation
-from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR
+from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR, REPORTS_PER_DAY
 
 
 @pytest.fixture(autouse=True)
@@ -209,3 +209,135 @@ def test_external_user_can_start_org_conversation(api, alice, bob, org):
     assert listing.status_code == 200
     assert len(listing.data["items"]) == 1
     assert listing.data["items"][0]["other_participant"]["id"] == bob.id
+
+
+@pytest.mark.django_db
+def test_cannot_start_conversation_with_someone_who_blocked_you(api, alice, bob):
+    UserBlock.objects.create(blocker=bob, blocked=alice)
+
+    api.force_authenticate(alice)
+    res = api.post("/api/conversations/", {"user_id": bob.id}, format="json")
+    assert res.status_code == 403
+    assert not Conversation.objects.exists()
+
+
+@pytest.mark.django_db
+def test_cannot_start_conversation_with_someone_you_blocked(api, alice, bob):
+    UserBlock.objects.create(blocker=alice, blocked=bob)
+
+    api.force_authenticate(alice)
+    res = api.post("/api/conversations/", {"user_id": bob.id}, format="json")
+    assert res.status_code == 403
+
+
+@pytest.mark.django_db
+def test_blocked_user_cannot_send_message_in_existing_conversation(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    UserBlock.objects.create(blocker=alice, blocked=bob)
+
+    api.force_authenticate(bob)
+    res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    assert res.status_code == 403
+    assert not Message.objects.exists()
+
+
+@pytest.mark.django_db
+def test_blocker_also_cannot_send_message_after_blocking(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    UserBlock.objects.create(blocker=alice, blocked=bob)
+
+    api.force_authenticate(alice)
+    res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    assert res.status_code == 403
+
+
+@pytest.mark.django_db
+def test_unblock_restores_ability_to_message(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    UserBlock.objects.create(blocker=alice, blocked=bob)
+
+    api.force_authenticate(alice)
+    res = api.delete(f"/api/blocks/{bob.id}/")
+    assert res.status_code == 204
+    assert not UserBlock.objects.exists()
+
+    res = api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
+    assert res.status_code == 201
+
+
+@pytest.mark.django_db
+def test_cannot_block_self(api, alice):
+    api.force_authenticate(alice)
+    res = api.post("/api/blocks/", {"user_id": alice.id}, format="json")
+    assert res.status_code == 400
+    assert not UserBlock.objects.exists()
+
+
+@pytest.mark.django_db
+def test_block_is_idempotent_and_listed_for_blocker_only(api, alice, bob):
+    api.force_authenticate(alice)
+    first = api.post("/api/blocks/", {"user_id": bob.id}, format="json")
+    assert first.status_code == 204
+    second = api.post("/api/blocks/", {"user_id": bob.id}, format="json")
+    assert second.status_code == 204
+    assert UserBlock.objects.count() == 1
+
+    listing = api.get("/api/blocks/")
+    assert listing.status_code == 200
+    assert [item["id"] for item in listing.data["items"]] == [bob.id]
+
+    api.force_authenticate(bob)
+    bobs_listing = api.get("/api/blocks/")
+    assert bobs_listing.data["items"] == []
+
+
+@pytest.mark.django_db
+def test_report_conversation_records_reported_user_and_reason(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+
+    res = api.post(
+        f"/api/conversations/{conversation.id}/report/",
+        {"reason": "harassment", "details": "unwanted messages"},
+        format="json",
+    )
+    assert res.status_code == 201
+
+    report = MessageReport.objects.get()
+    assert report.reporter_id == alice.id
+    assert report.reported_user_id == bob.id
+    assert report.conversation_id == conversation.id
+    assert report.reason == "harassment"
+    assert report.details == "unwanted messages"
+
+
+@pytest.mark.django_db
+def test_report_rejects_invalid_reason(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+
+    res = api.post(
+        f"/api/conversations/{conversation.id}/report/", {"reason": "not-a-real-reason"}, format="json"
+    )
+    assert res.status_code == 400
+    assert not MessageReport.objects.exists()
+
+
+@pytest.mark.django_db
+def test_reporting_non_participant_conversation_gets_404(api, alice, bob, carol):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(carol)
+
+    res = api.post(f"/api/conversations/{conversation.id}/report/", {"reason": "unsolicited"}, format="json")
+    assert res.status_code == 404
+
+
+@pytest.mark.django_db
+def test_report_rate_limit(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    for _ in range(REPORTS_PER_DAY):
+        res = api.post(f"/api/conversations/{conversation.id}/report/", {"reason": "unsolicited"}, format="json")
+        assert res.status_code == 201
+    over_limit = api.post(f"/api/conversations/{conversation.id}/report/", {"reason": "unsolicited"}, format="json")
+    assert over_limit.status_code == 429

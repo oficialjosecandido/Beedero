@@ -5,14 +5,17 @@ export function AppColumnSection({
   children,
   className = "",
   bodyClassName = "",
+  id,
 }: {
   label: string;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       className={`overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm ${className}`}
     >
       <header className="border-b border-beedero-border bg-beedero-yellow px-4 py-3 sm:px-5">

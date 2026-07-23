@@ -33,6 +33,7 @@ def run_management_job(request):
         "compute_daily_org_stats": ("compute_daily_org_stats", []),
         "check_milestones": ("check_milestones", []),
         "send_weekly_digest": ("send_weekly_digest", []),
+        "send_investor_alerts": ("send_investor_alerts", []),
     }
     if job not in allowed:
         return JsonResponse({"detail": "Unknown job"}, status=400)

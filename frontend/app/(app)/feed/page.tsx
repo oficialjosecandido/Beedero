@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
-import { MessagingColumn } from "@/components/messaging/MessagingColumn";
+import { AppRightColumn } from "@/components/AppRightColumn";
 import { ProfileColumn } from "@/components/ProfileColumn";
+import { SuggestedFollowsPanel } from "@/components/SuggestedFollowsPanel";
 import { TrendingPanel, type TrendingItem } from "@/components/TrendingPanel";
+import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
+import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import { FeedComposer } from "./FeedComposer";
@@ -30,7 +33,7 @@ type InvestorProfile = {
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
-type ProfileStats = { profile_views_count: number; post_impressions_count: number };
+type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
 
 export default async function FeedPage() {
   let items: FeedItem[];
@@ -40,22 +43,32 @@ export default async function FeedPage() {
   let hasPostedToday = false;
   let myPosts: InvestorPost[] = [];
   let trending: TrendingItem[] = [];
+  let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let stats: ProfileStats | null = null;
+  let recommendations: { organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] } = {
+    organizations: [],
+  };
   try {
-    const [feed, meRes, orgsRes, posts, trendingRes, statsRes] = await Promise.all([
+    const [feed, meRes, orgsRes, posts, trendingRes, updatesRes, statsRes, recRes] = await Promise.all([
       apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
       safeFetch(apiFetch<{ items: TrendingItem[] }>("/trending/"), { items: [] }),
+      safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
       safeFetch(apiFetch<ProfileStats>("/investors/me/stats/"), null),
+      safeFetch(apiFetch<{ organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] }>("/recommendations/"), {
+        organizations: [],
+      }),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;
     orgs = orgsRes;
     myPosts = posts;
     trending = trendingRes.items;
+    recentOrgUpdates = updatesRes.items;
     stats = statsRes;
+    recommendations = recRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
   } catch (err) {
@@ -69,6 +82,8 @@ export default async function FeedPage() {
   const events = myPosts
     .filter((post) => post.kind === "events")
     .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
+
+  const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, items);
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
@@ -89,13 +104,17 @@ export default async function FeedPage() {
             hasPostedToday={hasPostedToday}
           />
 
+          {items.length < 3 && recommendations.organizations.length > 0 && (
+            <SuggestedFollowsPanel organizations={recommendations.organizations} />
+          )}
+
           <FeedList initialItems={items} initialCursor={next_cursor} />
 
           {trending.length > 0 && <TrendingPanel items={trending} />}
         </div>
 
         <div className="order-3 lg:order-none">
-          <MessagingColumn />
+          <AppRightColumn updates={orgNews} />
         </div>
       </div>
     </main>

@@ -161,6 +161,24 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   };
   body.set("attestation_prefs", JSON.stringify(attestationPrefs));
 
+  const parseList = (name: string) =>
+    formData
+      .getAll(name)
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+
+  const stageFocus = parseList("stage_focus");
+  const sectorFocus = parseList("sector_focus");
+  const geoFocus = parseList("geo_focus");
+  if (stageFocus.length) body.set("stage_focus", JSON.stringify(stageFocus));
+  if (sectorFocus.length) body.set("sector_focus", JSON.stringify(sectorFocus));
+  if (geoFocus.length) body.set("geo_focus", JSON.stringify(geoFocus));
+
+  const checkMin = formData.get("check_min");
+  const checkMax = formData.get("check_max");
+  if (checkMin) body.set("check_min", String(checkMin));
+  if (checkMax) body.set("check_max", String(checkMax));
+
   const picture = formData.get("profile_picture");
   if (picture instanceof File && picture.size > 0) {
     body.set("profile_picture", picture);
@@ -185,6 +203,7 @@ export async function followOrgAction(formData: FormData) {
   await apiFetch(`/orgs/${slug}/follow/`, { method: "POST" });
   revalidatePath("/dashboard");
   revalidatePath("/feed");
+  revalidatePath(`/org/${slug}`);
 }
 
 export async function followUserAction(formData: FormData) {

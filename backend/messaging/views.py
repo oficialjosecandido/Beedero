@@ -3,6 +3,7 @@ from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,31 +13,46 @@ from beedero.ratelimit import enforce_rate_limit
 from orgs.models import UserFollow
 from orgs.permissions import OrgLookupMixin
 
-from .models import Conversation, Message, OrgConversation, OrgMessage
+from .models import Conversation, Message, OrgConversation, OrgMessage, UserBlock
 from .serializers import (
+    BlockUserSerializer,
     MessageSendSerializer,
+    ReportConversationSerializer,
     StartConversationSerializer,
+    blocked_user_summary,
     conversation_summary,
     message_summary,
     org_conversation_summary,
     org_message_summary,
 )
 from .services import (
+    block_user,
+    can_initiate_conversation,
+    create_report,
     get_or_create_conversation,
     get_or_create_org_conversation,
     get_visible_conversation_or_404,
     get_visible_org_conversation_or_404,
+    is_blocked,
     is_org_member,
     mark_conversation_read,
     mark_org_conversation_read,
     send_message,
     send_org_message,
+    unblock_user,
 )
 
 User = get_user_model()
 
 CONVERSATIONS_PER_DAY = 30
 MESSAGES_PER_HOUR = 60
+REPORTS_PER_DAY = 20
+
+BLOCKED_DETAIL = "You can't contact this user."
+CONTACT_GATE_DETAIL = (
+    "Verified investors can reach founders directly. Founders need prior investor interest "
+    "(follow or save) before messaging. Follow this person on Discover to start a conversation."
+)
 
 
 class MessageContactsView(APIView):
@@ -111,6 +127,12 @@ class ConversationListCreateView(APIView):
             return Response({"detail": "You can't message yourself."}, status=400)
         target = get_object_or_404(User, pk=target_id)
 
+        if is_blocked(request.user, target):
+            raise PermissionDenied(BLOCKED_DETAIL)
+
+        if not can_initiate_conversation(request.user, target):
+            raise PermissionDenied(CONTACT_GATE_DETAIL)
+
         enforce_rate_limit(
             f"start-conversation:{request.user.id}", limit=CONVERSATIONS_PER_DAY, window_seconds=86400
         )
@@ -175,6 +197,14 @@ class ConversationMessageListCreateView(APIView):
 
     def post(self, request, conversation_id):
         conversation = get_visible_conversation_or_404(request.user, conversation_id)
+        other = (
+            conversation.participant_two
+            if conversation.participant_one_id == request.user.id
+            else conversation.participant_one
+        )
+        if is_blocked(request.user, other):
+            raise PermissionDenied(BLOCKED_DETAIL)
+
         enforce_rate_limit(
             f"send-message:{request.user.id}", limit=MESSAGES_PER_HOUR, window_seconds=3600
         )
@@ -317,3 +347,62 @@ class OrgConversationMessageListCreateView(OrgLookupMixin, APIView):
         serializer.is_valid(raise_exception=True)
         message = send_org_message(conversation, request.user, serializer.validated_data["body"])
         return Response(org_message_summary(message, request.user), status=201)
+
+
+class BlockListCreateView(APIView):
+    """GET/POST /api/blocks/ — the viewer's own block list."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        blocks = UserBlock.objects.filter(blocker=request.user).select_related(
+            "blocked__investorprofile"
+        )
+        return Response({"items": [blocked_user_summary(b) for b in blocks]})
+
+    def post(self, request):
+        serializer = BlockUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_id = serializer.validated_data["user_id"]
+        if target_id == request.user.id:
+            return Response({"detail": "You can't block yourself."}, status=400)
+        target = get_object_or_404(User, pk=target_id)
+        block_user(request.user, target)
+        return Response(status=204)
+
+
+class BlockDetailView(APIView):
+    """DELETE /api/blocks/<user_id>/ — unblock."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, user_id):
+        target = get_object_or_404(User, pk=user_id)
+        unblock_user(request.user, target)
+        return Response(status=204)
+
+
+class ConversationReportView(APIView):
+    """POST /api/conversations/<id>/report/ — flag the other participant for
+    abuse/unsolicited contact. Doesn't block automatically — the reporter
+    still has to call BlockListCreateView.post for that, since reporting and
+    blocking are independent actions (you might report without blocking, or
+    block without reporting)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, conversation_id):
+        conversation = get_visible_conversation_or_404(request.user, conversation_id)
+        enforce_rate_limit(
+            f"report-conversation:{request.user.id}", limit=REPORTS_PER_DAY, window_seconds=86400
+        )
+
+        serializer = ReportConversationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        create_report(
+            reporter=request.user,
+            conversation=conversation,
+            reason=serializer.validated_data["reason"],
+            details=serializer.validated_data["details"],
+        )
+        return Response(status=201)

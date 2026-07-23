@@ -8,6 +8,7 @@ urlpatterns = [
     # Antes de admin/, senão o admin apanha admin/kpis/ como um URL seu e devolve 404.
     path("admin/kpis/", kpis.kpis_view, name="admin-kpis"),
     path("admin/", admin.site.urls),
+    path("api/", include("analytics.urls")),
     path("api/", include("accounts.urls")),
     path("api/", include("orgs.urls")),
     path("api/", include("billing.urls")),

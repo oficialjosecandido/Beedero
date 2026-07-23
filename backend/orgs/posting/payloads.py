@@ -4,15 +4,16 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .constants import PostKind
+from .imaging import PostImageValidationMixin
 
 
-class UpdatePayloadSerializer(serializers.Serializer):
+class UpdatePayloadSerializer(PostImageValidationMixin, serializers.Serializer):
     title = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
     body = serializers.CharField(max_length=2000)
     image = serializers.ImageField(required=False, allow_null=True)
 
 
-class EventPayloadSerializer(serializers.Serializer):
+class EventPayloadSerializer(PostImageValidationMixin, serializers.Serializer):
     FORMAT_CHOICES = ("in_person", "online", "hybrid")
 
     title = serializers.CharField(max_length=120)

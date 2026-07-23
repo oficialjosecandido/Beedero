@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 
 import { AppColumnHeader } from "@/components/AppColumnHeader";
-import { MessagingColumn } from "@/components/messaging/MessagingColumn";
+import { AppRightColumn } from "@/components/AppRightColumn";
 import { ProfileColumn } from "@/components/ProfileColumn";
+import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
+import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
+import type { FeedItem } from "@/app/(app)/feed/types";
 import { ProfileForm } from "@/components/ProfileForm";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
@@ -93,15 +96,24 @@ export default async function DashboardPage({
   let vitality: Vitality | null = null;
   let badgeEmbed: BadgeEmbed | null = null;
   let myPosts: InvestorPost[] = [];
+  let recentOrgUpdates: RecentOrgUpdateItem[] = [];
+  let feedItems: FeedItem[] = [];
   try {
-    const [meRes, orgsRes, posts] = await Promise.all([
+    const [meRes, orgsRes, posts, updatesRes, feedRes] = await Promise.all([
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
+      safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
+      safeFetch(apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/?limit=20"), {
+        items: [],
+        next_cursor: null,
+      }),
     ]);
     me = meRes;
     orgs = orgsRes;
     myPosts = posts;
+    recentOrgUpdates = updatesRes.items;
+    feedItems = feedRes.items;
 
     if (me.investor_profile?.is_complete) {
       [profileStats, vitality, badgeEmbed] = await Promise.all([
@@ -118,6 +130,8 @@ export default async function DashboardPage({
   const events = myPosts
     .filter((post) => post.kind === "events")
     .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
+
+  const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, feedItems);
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
@@ -145,7 +159,7 @@ export default async function DashboardPage({
         </div>
 
         <div className="order-3 lg:order-none">
-          <MessagingColumn />
+          <AppRightColumn updates={orgNews} />
         </div>
       </div>
     </main>

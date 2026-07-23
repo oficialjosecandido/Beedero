@@ -40,7 +40,7 @@ function MobileInboxTrigger({
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         )}
-        <span className="text-sm font-semibold text-beedero-black">Mensagens</span>
+        <span className="text-sm font-semibold text-beedero-black">Messages</span>
         {unreadTotal > 0 && (
           <span className="flex size-5 items-center justify-center rounded-full bg-beedero-black text-[10px] font-bold text-beedero-yellow">
             {unreadTotal > 9 ? "9+" : unreadTotal}

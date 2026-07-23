@@ -31,6 +31,7 @@ urlpatterns = [
     path("orgs/<slug:slug>/invites/<int:invite_id>/", views.OrgInviteDetailView.as_view()),
     path("invites/<str:token>/accept/", views.OrgInviteAcceptView.as_view()),
     path("feed/", views.FeedView.as_view()),
+    path("recent-org-updates/", views.RecentOrgUpdatesView.as_view()),
     path("trending/", views.TrendingView.as_view()),
     path("recommendations/", views.RecommendationView.as_view()),
     path("discovery/", views.DiscoveryView.as_view()),

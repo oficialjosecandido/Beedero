@@ -42,7 +42,7 @@ function ContextAvatar({
 
 export function MessagingInboxSwitcher() {
   const { inboxContext, setInboxContext } = useMessaging();
-  const [personalName, setPersonalName] = useState("Tu");
+  const [personalName, setPersonalName] = useState("You");
   const [personalImage, setPersonalImage] = useState<string | null>(null);
   const [orgs, setOrgs] = useState<OrgMembership[]>([]);
 
@@ -87,7 +87,7 @@ export function MessagingInboxSwitcher() {
         image={personalImage}
         selected
         onClick={() => setInboxContext({ type: "personal" })}
-        label="Mensagens pessoais"
+        label="Personal messages"
       />
     );
   }
@@ -99,7 +99,7 @@ export function MessagingInboxSwitcher() {
         image={personalImage}
         selected={isSelected({ type: "personal" })}
         onClick={() => setInboxContext({ type: "personal" })}
-        label="Mensagens pessoais"
+        label="Personal messages"
       />
       {orgs.map((org) => (
         <ContextAvatar
@@ -120,7 +120,7 @@ export function MessagingInboxSwitcher() {
               logo: org.logo,
             })
           }
-          label={`Mensagens de ${org.name}`}
+          label={`${org.name} messages`}
         />
       ))}
     </div>

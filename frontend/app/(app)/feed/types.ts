@@ -18,6 +18,8 @@ export type FeedItem = {
   viewer_reaction: string | null;
   viewer_has_commented?: boolean;
   viewer_participation?: "going" | null;
+  is_suggested?: boolean;
+  created_at?: string;
 };
 
 export type Comment = {

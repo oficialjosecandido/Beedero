@@ -8,6 +8,7 @@ from .constants import ACTIVITY_KINDS, SectionKind
 from .models import (
     FundraiseRound,
     Organization,
+    OrgFollow,
     OrgInvite,
     OrgMembership,
     OrgSection,
@@ -53,9 +54,16 @@ class OrgProfileSerializer:
         sections = defaultdict(dict)
         for f in fields:
             sections[f.section.kind][f.key] = f.value
+        viewer = self.resolver.viewer
+        viewer_is_member = self.resolver.is_member
+        viewer_is_following = False
+        if viewer and getattr(viewer, "is_authenticated", False):
+            viewer_is_following = OrgFollow.objects.filter(user=viewer, org=self.org).exists()
         return {
             "org": _org_summary(self.org),
             "sections": sections,
+            "viewer_is_following": viewer_is_following,
+            "viewer_is_member": viewer_is_member,
         }
 
     def _log_restricted(self, fields):

@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from orgs.posting.imaging import PostImageValidationMixin
+
 from .models import InvestorPost, InvestorProfile
 from .visibility import ALL_LEVELS
 
@@ -65,7 +67,7 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
         return value
 
 
-class InvestorPostSerializer(serializers.Serializer):
+class InvestorPostSerializer(PostImageValidationMixin, serializers.Serializer):
     """Validation only — persisted as an orgs.Activity via
     orgs.services.create_activity, not an InvestorPost (kept as a legacy,
     unread table; see orgs.models.Activity)."""

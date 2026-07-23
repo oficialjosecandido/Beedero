@@ -279,6 +279,9 @@ class OrgLogoView(OrgLookupMixin, APIView):
         except (serializers.ValidationError, DjangoValidationError) as exc:
             detail = exc.detail if isinstance(exc, serializers.ValidationError) else exc.messages
             return Response({"detail": detail}, status=400)
+        from orgs.posting.imaging import process_logo_image
+
+        logo = process_logo_image(logo)
         org.logo = logo
         org.save(update_fields=["logo"])
         maybe_refund_as_credit(org)
@@ -829,7 +832,11 @@ class FeedPostView(OrgLookupMixin, APIView):
         if kind in legacy_map:
             kind = legacy_map[kind]
 
-        data = dict(request.data)
+        # .copy(), not dict(...): request.data is a QueryDict for multipart
+        # uploads (image posts), and dict(a_querydict) listifies every value
+        # (e.g. body="hi" becomes body=["hi"]) — .copy() preserves QueryDict's
+        # own single-value semantics while still giving us a mutable copy.
+        data = request.data.copy()
         if kind == "event":
             if "occurred_at" in data and "starts_at" not in data:
                 data["starts_at"] = data["occurred_at"]
@@ -857,7 +864,8 @@ class OrgPostsView(OrgLookupMixin, APIView):
     def post(self, request, slug):
         org = self.get_org()
         kind = request.data.get("kind")
-        data = dict(request.data)
+        # .copy(), not dict(...) — see FeedPostView.post for why.
+        data = request.data.copy()
         activity = create_org_post(org, kind, data)
 
         from notifications.milestones import check_first_post_milestone
@@ -876,7 +884,8 @@ class OrgPostDetailView(OrgLookupMixin, APIView):
         if post_kind is None:
             return Response({"detail": "This activity is not an org post."}, status=400)
         kind = request.data.get("kind", post_kind)
-        activity = update_org_post(activity, kind, dict(request.data))
+        # .copy(), not dict(...) — see FeedPostView.post for why.
+        activity = update_org_post(activity, kind, request.data.copy())
         return Response(activity_post_summary(activity))
 
     def delete(self, request, slug, activity_id):
@@ -902,6 +911,7 @@ def _activity_summary(
     reaction_counts=None,
     viewer_has_commented=False,
     viewer_participation=None,
+    is_suggested=False,
 ):
     kind = activity.kind
     if activity.org_id:
@@ -936,6 +946,7 @@ def _activity_summary(
         "viewer_reaction": viewer_reaction,
         "viewer_has_commented": viewer_has_commented,
         "created_at": activity.created_at.isoformat(),
+        "is_suggested": is_suggested,
     }
     if activity.kind == Activity.Kind.EVENTS:
         summary["viewer_participation"] = viewer_participation
@@ -998,6 +1009,23 @@ class FeedView(APIView):
             next_cursor = encode_cursor(last.created_at, last.id)
             activities = activities[:limit]
 
+        suggested_ids: set[int] = set()
+        if cursor is None and len(activities) < 5:
+            existing_ids = {a.id for a in activities}
+            needed = 5 - len(activities)
+            fallback = (
+                Activity.objects.filter(
+                    org__isnull=False,
+                    org__status=Organization.Status.LIVE,
+                    visibility=Visibility.PUBLIC,
+                )
+                .exclude(id__in=existing_ids)
+                .select_related("org", "author", "author__investorprofile")
+                .order_by("-created_at", "-id")[:needed]
+            )
+            suggested_ids = {a.id for a in fallback}
+            activities = list(activities) + list(fallback)
+
         viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
         reaction_counts = reaction_counts_for([a.id for a in activities])
         commented_activity_ids = viewer_has_commented_for(request.user, [a.id for a in activities])
@@ -1014,10 +1042,43 @@ class FeedView(APIView):
                         reaction_counts.get(a.id),
                         a.id in commented_activity_ids,
                         viewer_participations.get(a.id),
+                        is_suggested=a.id in suggested_ids,
                     )
                     for a in activities
                 ],
                 "next_cursor": next_cursor,
+            }
+        )
+
+
+class RecentOrgUpdatesView(APIView):
+    """Right-rail panel: latest public org updates site-wide."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    LIMIT = 5
+
+    def get(self, request):
+        activities = (
+            Activity.objects.filter(
+                org__isnull=False,
+                org__status=Organization.Status.LIVE,
+                visibility=Visibility.PUBLIC,
+            )
+            .select_related("org")
+            .order_by("-created_at", "-id")[: self.LIMIT]
+        )
+        return Response(
+            {
+                "items": [
+                    {
+                        "id": a.id,
+                        "title": a.title,
+                        "kind": ACTIVITY_TO_POST_KIND.get(a.kind, a.kind),
+                        "created_at": a.created_at.isoformat(),
+                        "org": _org_summary(a.org),
+                    }
+                    for a in activities
+                ]
             }
         )
 

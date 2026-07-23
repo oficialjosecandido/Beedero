@@ -33,6 +33,8 @@ export type OrgProfile = {
   org: OrgSummary;
   sections: Record<string, Record<string, unknown>>;
   upcoming_events?: UpcomingEvent[];
+  viewer_is_following?: boolean;
+  viewer_is_member?: boolean;
 };
 
 export const SECTION_LABELS: Record<string, string> = {

@@ -5,6 +5,7 @@ import { useActionState, useId, useState } from "react";
 import { updateProfileAction } from "@/app/(app)/dashboard/actions";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
+import { GEO_INVESTOR_FOCUS_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 import { useActionToast } from "@/lib/use-action-toast";
 
 type Visibility = Record<string, string>;
@@ -20,6 +21,11 @@ type Profile = {
   handle?: string | null;
   visibility?: Visibility;
   attestation_prefs?: AttestationPrefs;
+  stage_focus?: string[];
+  sector_focus?: string[];
+  geo_focus?: string[];
+  check_min?: number | null;
+  check_max?: number | null;
 };
 
 const VISIBILITY_SECTIONS = [
@@ -255,6 +261,101 @@ export function ProfileForm({
               </div>
             </div>
           </section>
+
+          {variant === "onboarding" && (
+            <section className="flex flex-col gap-4 lg:col-span-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-zinc-900">Investment thesis</h3>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Complete your thesis to get better weekly matches and alerts.
+                </p>
+              </div>
+              <fieldset className="rounded-2xl border border-beedero-border p-4">
+                <legend className="px-1 text-sm font-semibold text-zinc-800">Stage focus</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {STAGE_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className="inline-flex items-center gap-2 rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium"
+                    >
+                      <input
+                        type="checkbox"
+                        name="stage_focus"
+                        value={option.value}
+                        defaultChecked={profile?.stage_focus?.includes(option.value)}
+                        className="accent-beedero-black"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="rounded-2xl border border-beedero-border p-4">
+                <legend className="px-1 text-sm font-semibold text-zinc-800">Sector focus</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {SECTOR_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className="inline-flex items-center gap-2 rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium"
+                    >
+                      <input
+                        type="checkbox"
+                        name="sector_focus"
+                        value={option.value}
+                        defaultChecked={profile?.sector_focus?.includes(option.value)}
+                        className="accent-beedero-black"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="rounded-2xl border border-beedero-border p-4">
+                <legend className="px-1 text-sm font-semibold text-zinc-800">{GEO_INVESTOR_FOCUS_LABEL}</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {GEO_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className="inline-flex items-center gap-2 rounded-lg border border-beedero-border px-2.5 py-1.5 text-xs font-medium"
+                    >
+                      <input
+                        type="checkbox"
+                        name="geo_focus"
+                        value={option.value}
+                        defaultChecked={profile?.geo_focus?.includes(option.value)}
+                        className="accent-beedero-black"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+                  Min check (USD)
+                  <input
+                    name="check_min"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 25000"
+                    defaultValue={profile?.check_min ?? ""}
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+                  Max check (USD)
+                  <input
+                    name="check_max"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 500000"
+                    defaultValue={profile?.check_max ?? ""}
+                    className={fieldClass}
+                  />
+                </label>
+              </div>
+            </section>
+          )}
 
           <div className="flex flex-col gap-8">
             <section>

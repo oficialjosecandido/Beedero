@@ -78,3 +78,53 @@ class OrgMessage(models.Model):
 
     def __str__(self):
         return f"org message {self.pk} in org conversation {self.org_conversation_id}"
+
+
+class UserBlock(models.Model):
+    """A directed block: `blocker` no longer wants contact from `blocked`.
+    services.is_blocked() checks both directions, so once either side blocks
+    the other, neither can start a new conversation or send a message —
+    RLS below mirrors Conversation's own policy (visible to both parties,
+    not just the blocker) so that direction check can actually see the row
+    regardless of which side is querying."""
+
+    blocker = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="blocks_made", on_delete=models.CASCADE)
+    blocked = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="blocks_received", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["blocker", "blocked"], name="uniq_user_block"),
+            models.CheckConstraint(check=~models.Q(blocker=models.F("blocked")), name="block_not_self"),
+        ]
+
+    def __str__(self):
+        return f"{self.blocker_id} blocks {self.blocked_id}"
+
+
+class MessageReport(models.Model):
+    """A user flagging another for abuse/unsolicited contact within a DM
+    thread. Reviewed only via /admin (like credibility.Verification) —
+    never read back through a public API, so unlike UserBlock this has no
+    RLS policy: a `beedero_app`-role admin session runs with
+    beedero.viewer_id=0 (no JWT on session-authenticated /admin/ requests,
+    see orgs.middleware._viewer_id), which would hide every row from staff
+    if FORCE ROW LEVEL SECURITY applied here."""
+
+    class Reason(models.TextChoices):
+        UNSOLICITED = "unsolicited", "Unwanted contact"
+        HARASSMENT = "harassment", "Harassment or abuse"
+        SCAM = "scam", "Scam or fraud"
+        OTHER = "other", "Other"
+
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="reports_filed", on_delete=models.CASCADE)
+    reported_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="reports_against", on_delete=models.CASCADE
+    )
+    conversation = models.ForeignKey(Conversation, related_name="reports", on_delete=models.CASCADE)
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    details = models.CharField(max_length=1000, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        return f"report {self.pk}: {self.reporter_id} -> {self.reported_user_id} ({self.reason})"

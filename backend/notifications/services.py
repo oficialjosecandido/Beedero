@@ -22,6 +22,7 @@ _ENGAGEMENT_KINDS = {
     Notification.Kind.FOLLOWER,
     Notification.Kind.INTEREST,
     Notification.Kind.PROFILE_VIEWS,
+    Notification.Kind.PIPELINE,
 }
 
 

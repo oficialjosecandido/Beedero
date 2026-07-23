@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements-dev.txt
-      - run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN PASSWORD 'test';"
+      - run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE ROLE beedero_app LOGIN PASSWORD 'test' NOSUPERUSER NOBYPASSRLS;"
       - run: python manage.py createcachetable
       - run: ruff check .
       - run: python manage.py check

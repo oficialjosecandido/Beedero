@@ -101,3 +101,19 @@ USING (
           )
     )
 );
+
+-- Blocks (source of truth: messaging/migrations/0006_user_block_rls.py).
+-- Visible to either side of the pair, not just the blocker — services.is_blocked()
+-- needs to see the row regardless of which of the two users is the current
+-- viewer. messaging_messagereport has no policy: it's only ever read via
+-- /admin (session-authenticated, so beedero.viewer_id is always 0 there —
+-- see orgs.middleware._viewer_id), never through a viewer-scoped API.
+
+ALTER TABLE messaging_userblock ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messaging_userblock FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY user_block_participants ON messaging_userblock
+USING (
+    blocker_id = current_setting('beedero.viewer_id', true)::int
+    OR blocked_id = current_setting('beedero.viewer_id', true)::int
+);

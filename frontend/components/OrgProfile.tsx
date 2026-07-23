@@ -1,4 +1,5 @@
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { OrgProfileActions } from "@/components/OrgProfileActions";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
@@ -89,6 +90,11 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-8">
+      <OrgProfileActions
+        slug={data.org.slug}
+        isFollowing={data.viewer_is_following ?? false}
+        isMember={data.viewer_is_member ?? false}
+      />
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-3">
           {data.org.logo ? (

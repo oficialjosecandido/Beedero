@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import type { ConversationSummary } from "@/app/(app)/feed/types";
+
 export type PersonSummary = {
   id: number;
   name: string;
@@ -44,6 +46,7 @@ type MessagingContextValue = {
   openChats: OpenChat[];
   unreadTotal: number;
   setUnreadTotal: (count: number) => void;
+  refreshUnreadTotal: () => Promise<void>;
   setInboxContext: (context: InboxContext) => void;
   minimizeInbox: () => void;
   expandInbox: () => void;
@@ -56,12 +59,54 @@ type MessagingContextValue = {
 
 const MessagingContext = createContext<MessagingContextValue | null>(null);
 
+async function loadConversationUnread(url: string): Promise<number> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return 0;
+    const data = (await res.json()) as { items: ConversationSummary[] };
+    return data.items.reduce((sum, item) => sum + item.unread_count, 0);
+  } catch {
+    return 0;
+  }
+}
+
+async function fetchTotalUnread(): Promise<number> {
+  let total = await loadConversationUnread("/api/messaging/conversations");
+
+  try {
+    const switcherRes = await fetch("/api/profile-switcher", { cache: "no-store" });
+    if (switcherRes.ok) {
+      const data = (await switcherRes.json()) as { orgs: OrgMembership[] };
+      const orgTotals = await Promise.all(
+        data.orgs.map((org) =>
+          loadConversationUnread(`/api/orgs/${org.slug}/messaging/conversations`)
+        )
+      );
+      total += orgTotals.reduce((sum, count) => sum + count, 0);
+    }
+  } catch {
+    // ignore org inbox errors
+  }
+
+  return total;
+}
+
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
   const [isDesktop, setIsDesktop] = useState(false);
   const [inboxState, setInboxState] = useState<InboxState>("minimized");
   const [inboxContext, setInboxContext] = useState<InboxContext>({ type: "personal" });
   const [openChats, setOpenChats] = useState<OpenChat[]>([]);
   const [unreadTotal, setUnreadTotal] = useState(0);
+
+  const refreshUnreadTotal = useCallback(async () => {
+    setUnreadTotal(await fetchTotalUnread());
+  }, []);
+
+  useEffect(() => {
+    void refreshUnreadTotal();
+    const timer = window.setInterval(() => void refreshUnreadTotal(), 20_000);
+    return () => window.clearInterval(timer);
+  }, [refreshUnreadTotal]);
 
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_MQ);
@@ -152,6 +197,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       openChats,
       unreadTotal,
       setUnreadTotal,
+      refreshUnreadTotal,
       setInboxContext,
       minimizeInbox,
       expandInbox,
@@ -174,6 +220,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       closeChatWindow,
       minimizeChatWindow,
       restoreChatWindow,
+      refreshUnreadTotal,
     ]
   );
 

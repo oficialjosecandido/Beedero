@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
+from analytics.models import ActivityFeedImpression, PersonProfileView
 from orgs.models import Activity, UserFollow
 
 
@@ -142,3 +143,38 @@ def test_investor_stats_returns_profile_kpis(api, user):
     assert res.data["new_followers"] == 1
     assert res.data["posts_count"] == 1
     assert res.data["reactions_received"] == 3
+    assert res.data["range_days"] == 7
+
+
+@pytest.mark.django_db
+def test_investor_stats_profile_views_and_impressions_are_windowed_to_range_days(api, user):
+    viewer = User.objects.create_user(
+        username="viewer@example.com", email="viewer@example.com", password="pw"
+    )
+    post = Activity.objects.create(
+        author=user, org=None, kind="update", title="Hello", body="", occurred_at=timezone.now()
+    )
+
+    old = timezone.now() - timedelta(days=10)
+    recent = timezone.now() - timedelta(days=1)
+
+    old_view = PersonProfileView.objects.create(subject=user, viewer=viewer)
+    PersonProfileView.objects.filter(pk=old_view.pk).update(viewed_at=old)
+    recent_view = PersonProfileView.objects.create(subject=user, viewer=viewer)
+    PersonProfileView.objects.filter(pk=recent_view.pk).update(viewed_at=recent)
+
+    old_impression = ActivityFeedImpression.objects.create(activity=post, viewer=viewer)
+    ActivityFeedImpression.objects.filter(pk=old_impression.pk).update(viewed_at=old)
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/stats/")
+    assert res.status_code == 200
+    assert res.data["range_days"] == 7
+    # Only the view/impression inside the last 7 days counts.
+    assert res.data["profile_views_count"] == 1
+    assert res.data["post_impressions_count"] == 0
+
+    res_30d = api.get("/api/investors/me/stats/?range=30d")
+    assert res_30d.data["range_days"] == 30
+    assert res_30d.data["profile_views_count"] == 2
+    assert res_30d.data["post_impressions_count"] == 1

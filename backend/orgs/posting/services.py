@@ -62,7 +62,7 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
 
     if kind == PostKind.UPDATE:
         title = validated.get("title") or validated["body"][:120]
-        return create_activity(
+        activity = create_activity(
             org=org,
             kind=activity_kind,
             title=title,
@@ -72,13 +72,17 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
             visibility=section.visibility,
             payload={},
         )
+        from analytics.pipeline_notifications import notify_pipeline_new_post
+
+        notify_pipeline_new_post(org, activity)
+        return activity
 
     if kind == PostKind.MILESTONE:
         display_date = validated.get("occurred_at")
         payload = {"category": validated["category"]}
         if display_date:
             payload["occurred_at"] = display_date.isoformat()
-        return create_activity(
+        activity = create_activity(
             org=org,
             kind=activity_kind,
             title=validated["title"],
@@ -88,6 +92,10 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
             visibility=section.visibility,
             payload=payload,
         )
+        from analytics.pipeline_notifications import notify_pipeline_new_post
+
+        notify_pipeline_new_post(org, activity)
+        return activity
 
     # Event
     payload = {

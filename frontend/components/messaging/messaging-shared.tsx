@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { sendMessageAction, sendOrgMessageAction } from "@/app/(app)/feed/actions";
@@ -77,6 +78,8 @@ export function ChatWindow({
   minimized,
   onMinimize,
   onClose,
+  embedded = false,
+  onBack,
 }: {
   conversationId: number;
   participant: PersonSummary;
@@ -84,6 +87,8 @@ export function ChatWindow({
   minimized: boolean;
   onMinimize: () => void;
   onClose: () => void;
+  embedded?: boolean;
+  onBack?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -129,7 +134,7 @@ export function ChatWindow({
     });
   }
 
-  if (minimized) {
+  if (minimized && !embedded) {
     return (
       <button
         type="button"
@@ -143,33 +148,55 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex h-[min(420px,60vh)] w-full flex-col overflow-hidden rounded-t-lg border border-b-0 border-zinc-300 bg-beedero-white shadow-xl lg:w-[min(328px,calc(100vw-2rem))]">
+    <div
+      className={
+        embedded
+          ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-beedero-white"
+          : "flex h-[min(420px,60vh)] w-full flex-col overflow-hidden rounded-t-lg border border-b-0 border-zinc-300 bg-beedero-white shadow-xl lg:w-[min(328px,calc(100vw-2rem))]"
+      }
+    >
       <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
+          {embedded && onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black lg:hidden"
+              aria-label="Back to conversations"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          )}
           <ParticipantAvatar name={participant.name} profilePicture={participant.profile_picture} size="sm" />
           <p className="truncate text-sm font-semibold text-beedero-black">{participant.name}</p>
         </div>
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={onMinimize}
-            className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
-            aria-label="Minimizar conversa"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
-            aria-label="Fechar conversa"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
+          {!embedded && (
+            <>
+              <button
+                type="button"
+                onClick={onMinimize}
+                className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
+                aria-label="Minimize conversation"
+              >
+                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-beedero-black"
+                aria-label="Close conversation"
+              >
+                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-3">
@@ -199,7 +226,7 @@ export function ChatWindow({
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Escreve uma mensagem…"
+          placeholder="Write a message…"
           className="flex-1 rounded-full border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-beedero-black"
           maxLength={4000}
         />
@@ -208,7 +235,7 @@ export function ChatWindow({
           disabled={!draft.trim() || isPending}
           className="rounded-full bg-beedero-yellow px-3 py-2 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
         >
-          {isPending ? "…" : "Enviar"}
+          {isPending ? "…" : "Send"}
         </button>
       </form>
     </div>
@@ -220,12 +247,13 @@ export const MESSAGES_CHAT_STACK_CLASS =
   "fixed bottom-0 z-50 hidden flex-row-reverse items-end gap-2 p-2 lg:flex right-[max(1rem,calc((100vw-min(100vw,80rem))/2+320px))]";
 
 export function MessagingChatStack() {
+  const pathname = usePathname();
   const { openChats, closeChatWindow, minimizeChatWindow, restoreChatWindow } = useMessaging();
 
-  if (openChats.length === 0) return null;
+  if (pathname.startsWith("/messages") || openChats.length === 0) return null;
 
   return (
-    <div className={`pointer-events-none ${MESSAGES_CHAT_STACK_CLASS}`}>
+    <div className={`pointer-events-none messages-chat-stack ${MESSAGES_CHAT_STACK_CLASS}`}>
       {openChats.map((chat) => (
         <div key={chatKey(chat.conversationId, chat.inboxContext)} className="pointer-events-auto">
           <ChatWindow

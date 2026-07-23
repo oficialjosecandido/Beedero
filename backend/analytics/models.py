@@ -97,3 +97,36 @@ class DailyOrgStats(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["org", "date"], name="uniq_daily_org_stats_per_day")]
         indexes = [models.Index(fields=["org", "-date"])]
+
+
+class PipelineEntry(models.Model):
+    """Private deal-flow list for an investor — never visible to founders."""
+
+    class Stage(models.TextChoices):
+        WATCHING = "watching", "Watching"
+        REVIEWING = "reviewing", "Reviewing"
+        MEETING = "meeting", "Meeting"
+        DILIGENCE = "diligence", "Diligence"
+        PASSED = "passed", "Passed"
+        INVESTED = "invested", "Invested"
+
+    investor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="pipeline_entries", on_delete=models.CASCADE
+    )
+    org = models.ForeignKey(Organization, related_name="pipeline_entries", on_delete=models.CASCADE)
+    stage = models.CharField(max_length=12, choices=Stage.choices, default=Stage.WATCHING)
+    note = models.TextField(max_length=2000, blank=True, default="")
+    pass_reason = models.CharField(max_length=200, blank=True, default="")
+    next_action_at = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["investor", "org"], name="uniq_pipeline_entry"),
+        ]
+        indexes = [models.Index(fields=["investor", "stage"])]
+        ordering = ["-updated_at", "-id"]
+
+    def __str__(self):
+        return f"pipeline:{self.investor_id}:{self.org_id} ({self.stage})"

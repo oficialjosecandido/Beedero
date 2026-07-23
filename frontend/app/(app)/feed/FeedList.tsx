@@ -192,9 +192,20 @@ export function FeedList({
 
   return (
     <div className="grid gap-3">
-      {items.map((item) => (
-        <FeedCard key={`${item.type}-${item.id}`} item={item} />
-      ))}
+      {items.map((item, index) => {
+        const showSuggestedHeader =
+          item.is_suggested && (index === 0 || !items[index - 1]?.is_suggested);
+        return (
+          <div key={`${item.type}-${item.id}`}>
+            {showSuggestedHeader && (
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
+                Suggested for you
+              </p>
+            )}
+            <FeedCard item={item} />
+          </div>
+        );
+      })}
       {cursor && (
         <button
           type="button"

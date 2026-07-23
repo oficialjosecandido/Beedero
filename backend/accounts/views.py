@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from analytics.models import PersonProfileView
+from analytics.models import ActivityFeedImpression, PersonProfileView
 from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
 from social.services import reaction_counts_for
@@ -113,8 +113,16 @@ class InvestorStatsView(APIView):
         personal_posts = Activity.objects.filter(author=user, org__isnull=True)
         posts_count = personal_posts.count()
         reactions_received = personal_posts.aggregate(total=Sum("reaction_count"))["total"] or 0
-        post_impressions_count = personal_posts.aggregate(total=Sum("feed_impression_count"))["total"] or 0
-        profile_views_count = PersonProfileView.objects.filter(subject=user).count()
+        # Windowed to `since`, unlike `reactions_received`/`posts_count` above
+        # (lifetime totals) — Activity.feed_impression_count is itself a
+        # lifetime counter (analytics.services.record_feed_impressions
+        # increments it forever), so it can't answer "in the last N days" on
+        # its own; ActivityFeedImpression rows are timestamped per first-view
+        # and give us that window directly.
+        post_impressions_count = ActivityFeedImpression.objects.filter(
+            activity__in=personal_posts, viewed_at__gte=since
+        ).count()
+        profile_views_count = PersonProfileView.objects.filter(subject=user, viewed_at__gte=since).count()
 
         return Response(
             {
