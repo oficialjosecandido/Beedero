@@ -43,14 +43,12 @@ type InvestorPost = {
   feed_impression_count?: number;
 };
 type ProfileStats = {
-  followers_count: number;
-  following_count: number;
+  profile_views_count: number;
+  post_impressions_count: number;
   range_days: number;
   new_followers: number;
   posts_count: number;
   reactions_received: number;
-  post_impressions_count: number;
-  profile_views_count: number;
 };
 type Vitality = {
   completeness: number;
@@ -117,7 +115,7 @@ export default async function DashboardPage({
 
     if (me.investor_profile?.is_complete) {
       [profileStats, vitality, badgeEmbed] = await Promise.all([
-        safeFetch(apiFetch<ProfileStats>("/investors/me/stats/"), null),
+        safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
         safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
         safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
       ]);

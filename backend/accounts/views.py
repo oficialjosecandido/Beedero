@@ -2,7 +2,6 @@ import json
 
 from datetime import timedelta
 
-from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
@@ -12,6 +11,7 @@ from rest_framework.views import APIView
 from analytics.models import ActivityFeedImpression, PersonProfileView
 from orgs.models import Activity, UserFollow, Visibility
 from orgs.services import create_activity
+from social.models import Reaction
 from social.services import reaction_counts_for
 
 from .badge import person_badge_embed_html
@@ -96,6 +96,14 @@ class InvestorPostListCreateView(APIView):
         return Response(_investor_activity_summary(activity), status=201)
 
 
+INVESTOR_STATS_RANGES = {"7d": 7, "30d": 30, "90d": 90}
+
+
+def _investor_stats_range_days(request) -> int:
+    raw = request.query_params.get("range", "7d")
+    return INVESTOR_STATS_RANGES.get(raw, 7)
+
+
 class InvestorStatsView(APIView):
     """Personal profile KPIs for the authenticated investor."""
 
@@ -103,7 +111,7 @@ class InvestorStatsView(APIView):
 
     def get(self, request):
         user = request.user
-        days = 30 if request.query_params.get("range") == "30d" else 7
+        days = _investor_stats_range_days(request)
         since = timezone.now() - timedelta(days=days)
 
         followers_count = UserFollow.objects.filter(followed=user).count()
@@ -111,8 +119,10 @@ class InvestorStatsView(APIView):
         new_followers = UserFollow.objects.filter(followed=user, created_at__gte=since).count()
 
         personal_posts = Activity.objects.filter(author=user, org__isnull=True)
-        posts_count = personal_posts.count()
-        reactions_received = personal_posts.aggregate(total=Sum("reaction_count"))["total"] or 0
+        posts_count = personal_posts.filter(created_at__gte=since).count()
+        reactions_received = Reaction.objects.filter(
+            activity__in=personal_posts, created_at__gte=since
+        ).count()
         # Windowed to `since`, unlike `reactions_received`/`posts_count` above
         # (lifetime totals) — Activity.feed_impression_count is itself a
         # lifetime counter (analytics.services.record_feed_impressions

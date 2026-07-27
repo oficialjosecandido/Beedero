@@ -10,6 +10,7 @@ import {
   PersonBadgeEmbedPanel,
   PersonPresenceSignalsPanel,
 } from "@/components/PersonalProfilePanels";
+import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ProfileForm } from "@/components/ProfileForm";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
@@ -23,14 +24,7 @@ const TABS = [
 
 export type PersonalTabId = (typeof TABS)[number]["id"];
 
-type ProfileStats = {
-  followers_count: number;
-  following_count: number;
-  range_days: number;
-  new_followers: number;
-  posts_count: number;
-  reactions_received: number;
-};
+type ProfileStats = PersonalKpiStats;
 
 type InvestorPost = {
   id: number;
@@ -81,67 +75,6 @@ type BadgeEmbed = {
   badge_url: string;
   json_url: string;
 };
-
-function PersonalKpiCard({ stats }: { stats: ProfileStats }) {
-  const metrics = [
-    {
-      label: "Followers",
-      value: stats.followers_count,
-      hint:
-        stats.new_followers > 0
-          ? `+${stats.new_followers} in the last ${stats.range_days} days`
-          : `No new followers in the last ${stats.range_days} days`,
-    },
-    {
-      label: "Following",
-      value: stats.following_count,
-    },
-    {
-      label: "Posts published",
-      value: stats.posts_count,
-    },
-    {
-      label: "Reactions received",
-      value: stats.reactions_received,
-    },
-  ] as const;
-
-  return (
-    <section className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-      <div className="border-b border-beedero-border pb-5">
-        <h2 className="text-xl font-extrabold text-zinc-900">Your KPIs</h2>
-        <p className="mt-1 text-sm leading-6 text-zinc-600">
-          Followers, posts, and engagement on your personal profile.
-        </p>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {metrics.map((metric) => (
-          <div
-            key={metric.label}
-            className="rounded-2xl border-2 border-beedero-yellow bg-beedero-yellow p-4"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
-              {metric.label}
-            </p>
-            <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-tight text-zinc-900">
-              {metric.value}
-            </p>
-            {"hint" in metric && metric.hint && (
-              <p
-                className={`mt-1 text-xs font-medium ${
-                  stats.new_followers > 0 ? "text-emerald-600" : "text-zinc-400"
-                }`}
-              >
-                {metric.hint}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function PostEngagementMetrics({ post }: { post: InvestorPost }) {
   const feedViews = post.feed_impression_count ?? 0;
@@ -274,7 +207,7 @@ export function PersonalDashboardTabs({
 
       {active === "kpis" && (
         <div className="flex flex-col gap-5">
-          {profileStats && <PersonalKpiCard stats={profileStats} />}
+          <PersonalKpiPanel initialStats={profileStats} />
           {vitality && <PersonPresenceSignalsPanel presence={vitality.presence} />}
           {!profileStats && !vitality?.presence.has_signal && (
             <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
