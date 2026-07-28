@@ -57,7 +57,7 @@ type Onboarding = {
   completeness: number;
   refund_eligible: boolean;
   publish_ready: boolean;
-  checklist: { key: string; done: boolean; hint: string }[];
+  checklist: { key: string; done: boolean; hint: string; weight: number }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
 type OrgActivity = {

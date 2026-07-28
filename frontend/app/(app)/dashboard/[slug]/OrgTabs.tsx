@@ -75,7 +75,7 @@ type Onboarding = {
   completeness: number;
   refund_eligible: boolean;
   publish_ready: boolean;
-  checklist: { key: string; done: boolean; hint: string }[];
+  checklist: { key: string; done: boolean; hint: string; weight: number }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
 };
 type PostValue = {
@@ -593,6 +593,7 @@ const CHECKLIST_LABELS: Record<string, string> = {
   team: "Team",
   products: "Products",
   market: "Market thesis",
+  activity: "Weekly activity",
 };
 
 /** Profile setup items only — not blockers for posting (first post / credibility are boosts). */
@@ -659,10 +660,19 @@ function OnboardingPanel({
               <span className={item.done ? "text-zinc-400 line-through" : "text-zinc-700"}>
                 {CHECKLIST_LABELS[item.key] ?? item.key}
               </span>
+              <span className="text-xs font-semibold text-zinc-400">+{item.weight}%</span>
               {!item.done && <span className="text-xs text-zinc-400">— {item.hint}</span>}
+              {item.key === "activity" && item.done && (
+                <span className="text-xs text-zinc-400">— resets if you go quiet for a week</span>
+              )}
             </li>
           ))}
         </ul>
+        {onboarding.completeness < 100 && (
+          <p className="text-xs font-medium text-zinc-500 lg:col-span-full">
+            {100 - onboarding.completeness}% to go until your profile strength hits 100%.
+          </p>
+        )}
         {onboarding.status === "live" && <PublicPageShare slug={slug} />}
       </div>
       {onboarding.status === "draft" && canManage ? (
@@ -695,6 +705,63 @@ function OnboardingPanel({
   );
 }
 
+function PublicProfileShareCard({ slug }: { slug: string }) {
+  const publicUrl = `${SITE_URL}/o/${slug}`;
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
+      <h3 className="font-extrabold text-zinc-900">Public profile</h3>
+      <p className="mt-1 text-sm text-zinc-500">
+        Share your organization&apos;s public page with investors and partners.
+      </p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
+        <QRCodeSVG
+          value={publicUrl}
+          size={96}
+          className="mx-auto shrink-0 rounded-lg border border-beedero-border bg-white p-2 sm:mx-0"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="rounded-xl border border-beedero-border bg-zinc-50 px-3 py-2.5">
+            <p className="text-xs font-medium text-zinc-500">Public URL</p>
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-0.5 block truncate text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
+              {publicUrl.replace(/^https?:\/\//, "")}
+            </a>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void copyLink()}
+              className="rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
+            >
+              {copied ? "Copied!" : "Copy link"}
+            </button>
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-beedero-border px-3 py-1.5 text-xs font-semibold text-beedero-black hover:bg-beedero-yellow"
+            >
+              Open profile
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PublicPageShare({ slug }: { slug: string }) {
   const publicUrl = `${SITE_URL}/o/${slug}`;
 
@@ -723,6 +790,10 @@ function PublicPageShare({ slug }: { slug: string }) {
   );
 }
 
+function deltaTrendClass(value: number) {
+  return value > 0 ? "text-emerald-600" : "text-red-600";
+}
+
 function OverviewTab({
   slug,
   stats,
@@ -745,7 +816,7 @@ function OverviewTab({
           <p className="text-sm font-medium text-zinc-500">Followers</p>
           <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.followers_count}</p>
           {typeof stats.new_followers === "number" && (
-            <p className="mt-1 text-xs font-semibold text-emerald-600">
+            <p className={`mt-1 text-xs font-semibold ${deltaTrendClass(stats.new_followers)}`}>
               +{stats.new_followers} in the last {stats.range_days ?? 7} days
             </p>
           )}
@@ -757,7 +828,7 @@ function OverviewTab({
             Distinct people outside your organization who viewed this profile.
           </p>
           {typeof stats.profile_views === "number" && (
-            <p className="mt-1 text-xs font-semibold text-emerald-600">
+            <p className={`mt-1 text-xs font-semibold ${deltaTrendClass(stats.profile_views)}`}>
               {stats.profile_views} views in the last {stats.range_days ?? 7} days
             </p>
           )}
@@ -958,13 +1029,11 @@ function ProfileAdminSection({
   members,
   invites,
   canManage,
-  linksSection,
 }: {
   slug: string;
   members: Member[];
   invites: Invite[];
   canManage: boolean;
-  linksSection?: Section;
 }) {
   return (
     <>
@@ -982,7 +1051,6 @@ function ProfileAdminSection({
           Manage granted access
         </Link>
       </div>
-      <LinksTab slug={slug} section={linksSection} />
     </>
   );
 }
@@ -1231,17 +1299,19 @@ function ShareTab({
   canManage,
   badgeEmbed,
   vitality,
+  linksSection,
 }: {
   slug: string;
   canManage: boolean;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
+  linksSection?: Section;
 }) {
-  const publicUrl = `${SITE_URL}/o/${slug}`;
-
   return (
     <div className="flex flex-col gap-4">
-      {canManage && badgeEmbed && vitality ? (
+      <PublicProfileShareCard slug={slug} />
+
+      {canManage && badgeEmbed && vitality && (
         <>
           <BadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
           <PresenceSignalsPanel presence={vitality.presence} />
@@ -1251,22 +1321,9 @@ function ShareTab({
             totalCount={vitality.total_count}
           />
         </>
-      ) : (
-        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-          <h3 className="font-extrabold text-zinc-900">Public profile</h3>
-          <p className="mt-1 text-sm text-zinc-500">
-            Share your organization&apos;s public page with investors and partners.
-          </p>
-          <a
-            href={publicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-          >
-            Open {publicUrl.replace(/^https?:\/\//, "")}
-          </a>
-        </div>
       )}
+
+      <LinksTab slug={slug} section={linksSection} />
     </div>
   );
 }
@@ -1442,7 +1499,6 @@ export function OrgTabs({
             members={members}
             invites={invites}
             canManage={canManage}
-            linksSection={linksSection}
           />
         </div>
       )}
@@ -1457,7 +1513,13 @@ export function OrgTabs({
       )}
 
       {active === "share" && (
-        <ShareTab slug={slug} canManage={canManage} badgeEmbed={badgeEmbed} vitality={vitality} />
+        <ShareTab
+          slug={slug}
+          canManage={canManage}
+          badgeEmbed={badgeEmbed}
+          vitality={vitality}
+          linksSection={linksSection}
+        />
       )}
     </div>
   );

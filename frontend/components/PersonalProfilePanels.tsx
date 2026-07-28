@@ -81,7 +81,7 @@ export function PersonPresenceSignalsPanel({
   if (!presence.has_signal) return null;
 
   return (
-    <div className="rounded-2xl border-2 border-beedero-yellow bg-beedero-yellow p-6 shadow-sm">
+    <div className="rounded-2xl border-2 border-beedero-border bg-gradient-to-br from-beedero-yellow/20 to-beedero-white p-6 shadow-sm">
       <h3 className="font-extrabold text-zinc-900">Who&apos;s looking this week</h3>
       <p className="mt-1 text-sm text-zinc-500">
         Aggregated signals from the last {presence.since_days} days — no names shown here.

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { useMessaging } from "@/lib/messaging-context";
 
@@ -24,7 +25,7 @@ function MobileInboxTrigger({
     <button
       type="button"
       onClick={onExpand}
-      className="flex h-12 w-[min(280px,calc(100vw-2rem))] items-center justify-between rounded-t-lg border border-b-0 border-zinc-300 bg-beedero-white px-4 shadow-lg hover:bg-zinc-50"
+      className="flex h-12 w-full items-center justify-between rounded-t-xl border border-b-0 border-zinc-300 bg-beedero-white px-4 shadow-lg hover:bg-zinc-50"
     >
       <div className="flex items-center gap-2">
         {me ? (
@@ -55,6 +56,7 @@ function MobileInboxTrigger({
 }
 
 function MobileMessagingDock() {
+  const pathname = usePathname();
   const {
     inboxState,
     isDesktop,
@@ -66,6 +68,13 @@ function MobileMessagingDock() {
     minimizeChatWindow,
   } = useMessaging();
 
+  useEffect(() => {
+    if (isDesktop) return;
+    minimizeInbox();
+  }, [pathname, isDesktop, minimizeInbox]);
+
+  if (pathname.startsWith("/messages")) return null;
+
   const inboxExpanded = !isDesktop && inboxState === "expanded";
 
   const activeMobileChat =
@@ -75,8 +84,8 @@ function MobileMessagingDock() {
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-0 right-0 z-50 flex flex-row-reverse items-end gap-2 p-2 sm:right-4 lg:hidden">
-        <div className={`pointer-events-auto ${activeMobileChat ? "hidden" : ""}`}>
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-2 lg:hidden">
+        <div className={`pointer-events-auto w-full max-w-lg ${activeMobileChat ? "hidden" : ""}`}>
           {inboxExpanded ? (
             <MessagingInboxWithContext variant="dock" expanded onMinimize={minimizeInbox} />
           ) : (
@@ -94,7 +103,7 @@ function MobileMessagingDock() {
             minimized={false}
             onMinimize={() => {
               minimizeChatWindow(activeMobileChat.conversationId, activeMobileChat.inboxContext);
-              expandInbox();
+              minimizeInbox();
             }}
             onClose={() => closeChatWindow(activeMobileChat.conversationId, activeMobileChat.inboxContext)}
           />

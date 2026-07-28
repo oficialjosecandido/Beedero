@@ -14,9 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationsProvider>
     <MessagingShell>
-      <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
-        <header className="sticky top-0 z-10 border-b-2 border-beedero-black bg-beedero-yellow px-4 text-beedero-black sm:px-6">
-          <nav className="mx-auto flex max-w-6xl items-center justify-between py-4">
+      <div className="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
+        <header className="sticky top-0 z-20 w-full bg-beedero-yellow text-beedero-black">
+          <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
             <Link href="/feed" className="text-lg font-black uppercase tracking-[-0.04em]">
               Beedero
             </Link>

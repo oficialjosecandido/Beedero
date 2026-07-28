@@ -151,9 +151,17 @@ function ProfileCard({
                 <p className="mt-0.5 text-[11px] leading-tight text-zinc-500">Post impressions</p>
               </div>
             </div>
-            <p className="mt-2 text-center text-[10px] uppercase tracking-wide text-zinc-400">
-              Last {stats.range_days} days
-            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wide text-zinc-400">
+                Last {stats.range_days} days
+              </p>
+              <Link
+                href="/dashboard?tab=kpis"
+                className="text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 hover:underline"
+              >
+                More insights →
+              </Link>
+            </div>
           </div>
         )}
 

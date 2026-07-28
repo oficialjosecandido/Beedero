@@ -3,18 +3,32 @@ refund-eligibility checklist (doc §2/§10). The meter (WEIGHTS) motivates
 completion; the checklist (REFUND_REQUIREMENTS) gates the commitment-fee
 refund and is intentionally narrower — a verification badge, for instance,
 counts toward the meter but is excluded from refund gating per spec.
+
+The last 10 points of the meter ("activity") are not sticky: they require a
+post within the last ACTIVITY_WINDOW_DAYS days, so a fully-filled-out profile
+that goes quiet drops from 100% to 90% until it posts again.
 """
 
+from datetime import timedelta
+
+from django.utils.timezone import now
+
 from .constants import SectionKind
-from .models import OrgField, OrgMembership
+from .models import Activity, OrgField, OrgMembership
+
+ACTIVITY_WINDOW_DAYS = 7
 
 WEIGHTS = {
     "one_liner": 5,
     "logo": 5,
+    "stage": 5,
+    "sector": 5,
+    "geo": 5,
     "about": 15,
     "team": 20,
     "products": 15,
     "market": 15,
+    "activity": 10,
 }
 
 REFUND_REQUIREMENTS = ["logo", "about", "team", "products", "market"]
@@ -41,20 +55,33 @@ CHECKLIST_HINTS = {
     "team": "Add team members in Profile — it's what investors look at first.",
     "products": "List at least one product or service.",
     "market": "Explain the problem and market you're going after.",
+    "activity": f"Post an update at least once every {ACTIVITY_WINDOW_DAYS} days to keep your profile strength at 100%.",
 }
 
-# Overview checklist — profile setup only; posting and credibility are separate products.
+# Overview checklist — profile setup, plus staying active. Credibility is a separate product.
 PROFILE_STRENGTH_CHECKLIST = [
     *ACTIVATION_REQUIREMENTS,
     "market",
+    "activity",
 ]
 
 
 def profile_strength_checklist(org) -> list[dict]:
     return [
-        {"key": key, "done": _has(org, key), "hint": CHECKLIST_HINTS[key]}
+        {
+            "key": key,
+            "done": _has(org, key),
+            "hint": CHECKLIST_HINTS[key],
+            "weight": WEIGHTS.get(key, 0),
+        }
         for key in PROFILE_STRENGTH_CHECKLIST
     ]
+
+
+def has_recent_activity(org) -> bool:
+    return Activity.objects.filter(
+        org=org, created_at__gte=now() - timedelta(days=ACTIVITY_WINDOW_DAYS)
+    ).exists()
 
 _SECTION_KIND_BY_KEY = {
     "about": SectionKind.ABOUT,
@@ -81,6 +108,8 @@ def _section_has_fields(org, kind) -> bool:
 
 
 def _has(org, key: str) -> bool:
+    if key == "activity":
+        return has_recent_activity(org)
     if key == "one_liner":
         return bool(org.one_liner)
     if key == "stage":

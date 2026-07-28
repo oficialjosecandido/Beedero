@@ -198,7 +198,7 @@ export function MessagingInbox({
         ? embedded
           ? "flex min-h-0 flex-1 flex-col overflow-hidden"
           : "flex min-h-[min(720px,calc(100vh-8rem))] flex-col overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm"
-        : "flex h-[min(520px,70vh)] w-[min(360px,calc(100vw-1rem))] flex-col overflow-hidden rounded-t-lg border border-b-0 border-zinc-300 bg-beedero-white shadow-xl";
+        : "flex h-[min(520px,70vh)] w-full flex-col overflow-hidden rounded-t-xl border border-b-0 border-zinc-300 bg-beedero-white shadow-xl";
 
   return (
     <div className={containerClass}>

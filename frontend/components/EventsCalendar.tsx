@@ -86,6 +86,22 @@ function eventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
     .sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
 }
 
+function eventOverlapsRange(event: CalendarEvent, rangeStart: Date, rangeEnd: Date): boolean {
+  const start = new Date(event.occurred_at);
+  const end = event.ends_at ? new Date(event.ends_at) : start;
+  return start <= rangeEnd && end >= rangeStart;
+}
+
+function eventsInRange(events: CalendarEvent[], rangeStart: Date, rangeEnd: Date): CalendarEvent[] {
+  return events
+    .filter((event) => eventOverlapsRange(event, rangeStart, rangeEnd))
+    .sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
+}
+
+function endOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
 function useEventsByDay(events: CalendarEvent[]) {
   return useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -331,6 +347,47 @@ function NavButton({
   );
 }
 
+type QuickView = { type: "day"; key: string } | { type: "week" } | { type: "month" };
+
+function QuickViewBar({
+  quickView,
+  todayKey,
+  onToday,
+  onWeek,
+  onMonth,
+}: {
+  quickView: QuickView | null;
+  todayKey: string;
+  onToday: () => void;
+  onWeek: () => void;
+  onMonth: () => void;
+}) {
+  const options: { id: string; label: string; active: boolean; onClick: () => void }[] = [
+    { id: "today", label: "Today", active: quickView?.type === "day" && quickView.key === todayKey, onClick: onToday },
+    { id: "week", label: "This week", active: quickView?.type === "week", onClick: onWeek },
+    { id: "month", label: "This month", active: quickView?.type === "month", onClick: onMonth },
+  ];
+
+  return (
+    <div className="mt-3 flex gap-1 rounded-lg bg-zinc-100 p-1">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={option.onClick}
+          className={`flex-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
+            option.active
+              ? "bg-beedero-black text-beedero-yellow"
+              : "text-zinc-500 hover:bg-beedero-yellow/20 hover:text-beedero-black"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function EmbeddedMonthCalendar({
   events,
   today,
@@ -339,8 +396,9 @@ function EmbeddedMonthCalendar({
   today: Date;
 }) {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(today));
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [quickView, setQuickView] = useState<QuickView | null>(null);
   const eventsByDay = useEventsByDay(events);
+  const todayKey = dateKey(today);
 
   const gridDays = useMemo(() => {
     const first = startOfMonth(monthCursor);
@@ -353,7 +411,43 @@ function EmbeddedMonthCalendar({
     return days;
   }, [monthCursor]);
 
-  const selectedEvents = selectedKey ? eventsByDay.get(selectedKey) ?? [] : [];
+  function selectDay(key: string) {
+    setQuickView((cur) => (cur?.type === "day" && cur.key === key ? null : { type: "day", key }));
+  }
+
+  function goToday() {
+    setMonthCursor(startOfMonth(today));
+    setQuickView({ type: "day", key: todayKey });
+  }
+
+  function goThisWeek() {
+    setMonthCursor(startOfMonth(today));
+    setQuickView((cur) => (cur?.type === "week" ? null : { type: "week" }));
+  }
+
+  function goThisMonth() {
+    setMonthCursor(startOfMonth(today));
+    setQuickView((cur) => (cur?.type === "month" ? null : { type: "month" }));
+  }
+
+  const listedEvents = useMemo(() => {
+    if (!quickView) return [];
+    if (quickView.type === "day") return eventsByDay.get(quickView.key) ?? [];
+    if (quickView.type === "week") {
+      const weekStart = startOfWeek(today);
+      return eventsInRange(events, weekStart, endOfDay(addDays(weekStart, 6)));
+    }
+    const monthStart = startOfMonth(monthCursor);
+    const monthEnd = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
+    return eventsInRange(events, monthStart, endOfDay(monthEnd));
+  }, [quickView, eventsByDay, events, monthCursor, today]);
+
+  const listedEmptyMessage =
+    quickView?.type === "week"
+      ? "No events this week."
+      : quickView?.type === "month"
+        ? "No events this month."
+        : "No events on this day.";
 
   return (
     <>
@@ -377,6 +471,14 @@ function EmbeddedMonthCalendar({
         </button>
       </div>
 
+      <QuickViewBar
+        quickView={quickView}
+        todayKey={todayKey}
+        onToday={goToday}
+        onWeek={goThisWeek}
+        onMonth={goThisMonth}
+      />
+
       <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
         {WEEKDAY_SHORT.map((label) => (
           <span key={label}>{label}</span>
@@ -390,12 +492,12 @@ function EmbeddedMonthCalendar({
           const dayEvents = eventsByDay.get(key) ?? [];
           const hasEvents = dayEvents.length > 0;
           const isToday = isSameDay(day, today);
-          const isSelected = key === selectedKey;
+          const isSelected = quickView?.type === "day" && quickView.key === key;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => setSelectedKey((cur) => (cur === key ? null : key))}
+              onClick={() => selectDay(key)}
               className={`flex flex-col items-center gap-0.5 rounded-lg py-1 text-xs ${
                 isSelected
                   ? "bg-beedero-black font-bold text-beedero-yellow"
@@ -417,9 +519,10 @@ function EmbeddedMonthCalendar({
         })}
       </div>
 
-      {selectedEvents.length > 0 && (
+      {quickView && (
         <div className="mt-4 flex flex-col gap-2 border-t border-beedero-border pt-3">
-          {selectedEvents.map((event) => (
+          {listedEvents.length === 0 && <p className="text-xs text-zinc-400">{listedEmptyMessage}</p>}
+          {listedEvents.map((event) => (
             <div key={event.id}>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold text-beedero-black">{event.title}</p>

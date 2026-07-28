@@ -7,6 +7,7 @@ import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
 import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
 import type { FeedItem } from "@/app/(app)/feed/types";
 import { ProfileForm } from "@/components/ProfileForm";
+import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import {

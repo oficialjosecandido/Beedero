@@ -34,7 +34,7 @@ export default function RootLayout({
       lang="en"
       className={`${clashGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-beedero-white text-beedero-black">
+      <body className="flex min-h-full w-full flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
         {children}
         <Footer />
         <Toaster position="bottom-right" richColors closeButton />

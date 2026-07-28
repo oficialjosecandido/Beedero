@@ -113,7 +113,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     const syncViewport = () => {
       const desktop = media.matches;
       setIsDesktop(desktop);
-      if (desktop) setInboxState("expanded");
+      setInboxState(desktop ? "expanded" : "minimized");
     };
     syncViewport();
     media.addEventListener("change", syncViewport);
