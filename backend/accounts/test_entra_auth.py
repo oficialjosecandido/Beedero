@@ -67,6 +67,58 @@ def test_entra_token_provisions_verified_email(api):
 
 
 @pytest.mark.django_db
+@override_settings(**ENTRA_SETTINGS, NEW_USER_NOTIFY_EMAIL="admin@example.com")
+def test_new_user_provisioning_notifies_admin(api):
+    with (
+        patch("accounts.entra_auth._jwks_client", return_value=_mock_jwks_client()),
+        patch("accounts.entra_auth.jwt.decode", return_value=CLAIMS),
+        patch("accounts.notifications.send_mail") as send_mail,
+    ):
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+        res = api.get("/api/auth/me/")
+
+    assert res.status_code == 200
+    send_mail.assert_called_once()
+    subject, body, from_email, recipients = send_mail.call_args[0]
+    assert recipients == ["admin@example.com"]
+    assert CLAIMS["email"] in body
+
+
+@pytest.mark.django_db
+@override_settings(**ENTRA_SETTINGS, NEW_USER_NOTIFY_EMAIL="admin@example.com")
+def test_existing_user_login_does_not_notify_admin(api):
+    with (
+        patch("accounts.entra_auth._jwks_client", return_value=_mock_jwks_client()),
+        patch("accounts.entra_auth.jwt.decode", return_value=CLAIMS),
+        patch("accounts.notifications.send_mail") as send_mail,
+    ):
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+        api.get("/api/auth/me/")
+        send_mail.reset_mock()
+        res = api.get("/api/auth/me/")
+
+    assert res.status_code == 200
+    send_mail.assert_not_called()
+
+
+@pytest.mark.django_db
+@override_settings(**ENTRA_SETTINGS, NEW_USER_NOTIFY_EMAIL="admin@example.com")
+def test_admin_notification_failure_does_not_block_sign_up(api):
+    with (
+        patch("accounts.entra_auth._jwks_client", return_value=_mock_jwks_client()),
+        patch("accounts.entra_auth.jwt.decode", return_value=CLAIMS),
+        patch("accounts.notifications.send_mail", side_effect=RuntimeError("mail down")),
+        patch("accounts.notifications.sentry_sdk.capture_exception") as capture_exception,
+    ):
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+        res = api.get("/api/auth/me/")
+
+    assert res.status_code == 200
+    assert User.objects.filter(entra_oid=CLAIMS["oid"]).exists()
+    capture_exception.assert_called_once()
+
+
+@pytest.mark.django_db
 @override_settings(**ENTRA_SETTINGS)
 @pytest.mark.parametrize(
     "raised",

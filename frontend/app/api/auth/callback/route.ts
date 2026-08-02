@@ -13,6 +13,7 @@ const OAUTH_COOKIE_NAMES = [
   "beedero_oidc_state",
   "beedero_oidc_nonce",
   "beedero_oidc_next",
+  "beedero_oidc_screen",
 ];
 
 export async function GET(request: NextRequest) {
@@ -30,13 +31,19 @@ export async function GET(request: NextRequest) {
   const expectedState = store.get("beedero_oidc_state")?.value;
   const verifier = store.get("beedero_oidc_verifier")?.value;
   const next = store.get("beedero_oidc_next")?.value || "/feed";
+  const oidcScreen = store.get("beedero_oidc_screen")?.value;
   for (const name of OAUTH_COOKIE_NAMES) store.delete(name);
 
+  const errorRedirect = (error: string) => {
+    const base = oidcScreen === "signup" ? "/register" : "/login";
+    return NextResponse.redirect(new URL(`${base}?error=${encodeURIComponent(error)}`, SITE_URL));
+  };
+
   if (providerError) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(providerError)}`, SITE_URL));
+    return errorRedirect(providerError);
   }
   if (!code || !state || !verifier || state !== expectedState) {
-    return NextResponse.redirect(new URL("/login?error=entra_invalid_state", SITE_URL));
+    return errorRedirect("entra_invalid_state");
   }
 
   const body = new URLSearchParams({
@@ -57,11 +64,11 @@ export async function GET(request: NextRequest) {
       body,
     });
     if (!res.ok) {
-      return NextResponse.redirect(new URL("/login?error=entra_token_exchange_failed", SITE_URL));
+      return errorRedirect("entra_token_exchange_failed");
     }
     tokens = await res.json();
   } catch {
-    return NextResponse.redirect(new URL("/login?error=entra_unreachable", SITE_URL));
+    return errorRedirect("entra_unreachable");
   }
 
   await setSession(tokens.access_token, tokens.refresh_token ?? "");

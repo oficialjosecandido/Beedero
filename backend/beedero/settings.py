@@ -197,6 +197,8 @@ if not (AZURE_COMMUNICATION_CONNECTION_STRING and DEFAULT_FROM_EMAIL):
 
 EMAIL_BACKEND = "beedero.email_backend.AzureCommunicationEmailBackend"
 
+NEW_USER_NOTIFY_EMAIL = os.environ.get("NEW_USER_NOTIFY_EMAIL", "josevcandido@gmail.com")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # App Service termina TLS na edge e reencaminha em HTTP; sem isto o Django

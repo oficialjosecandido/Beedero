@@ -22,6 +22,8 @@ type InvestorPost = {
   ends_at?: string | null;
 };
 
+type ChecklistItem = { key: string; done: boolean; hint: string; weight: number };
+type Vitality = { completeness: number; checklist: ChecklistItem[] };
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type InvestorProfile = {
   full_name?: string;
@@ -45,6 +47,7 @@ export default async function FeedPage() {
   let trending: TrendingItem[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let stats: ProfileStats | null = null;
+  let vitality: Vitality | null = null;
   let recommendations: { organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] } = {
     organizations: [],
   };
@@ -71,6 +74,9 @@ export default async function FeedPage() {
     recommendations = recRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
+    if (!me.investor_profile?.is_complete) {
+      vitality = await safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null);
+    }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
@@ -102,6 +108,8 @@ export default async function FeedPage() {
             profilePicture={profile?.profile_picture}
             profileComplete={profileComplete}
             hasPostedToday={hasPostedToday}
+            completeness={vitality?.completeness ?? 0}
+            checklist={vitality?.checklist ?? []}
           />
 
           {items.length < 3 && recommendations.organizations.length > 0 && (

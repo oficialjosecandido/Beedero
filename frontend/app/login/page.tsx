@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { noIndexMetadata, pageMetadata } from "@/lib/site-metadata";
 
@@ -24,6 +26,11 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
+  const store = await cookies();
+  if (store.get("beedero_signup_after_logout")?.value === "1") {
+    redirect("/api/auth/login?screen=signup");
+  }
+
   const { next, error } = await searchParams;
   const errorMessage = error ? ENTRA_ERROR_MESSAGES[error] ?? "Sign-in failed. Please try again." : null;
   const entraLoginHref = next ? `/api/auth/login?next=${encodeURIComponent(next)}` : "/api/auth/login";

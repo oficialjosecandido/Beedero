@@ -21,12 +21,31 @@ const COMPOSER_ACTIONS: { value: string; label: string; icon: IconType; color: s
   { value: "update", label: "Update", icon: FaRegFileAlt, color: "text-emerald-600" },
 ];
 
+type ChecklistItem = { key: string; done: boolean; hint: string; weight: number };
+
 type FeedComposerProps = {
   name: string;
   profilePicture?: string | null;
   profileComplete: boolean;
   hasPostedToday: boolean;
+  completeness?: number;
+  checklist?: ChecklistItem[];
 };
+
+const REQUIRED_KEYS = ["full_name", "headline", "country"];
+const FIELD_LABELS: Record<string, string> = {
+  full_name: "your name",
+  headline: "a headline",
+  country: "your country",
+};
+
+function formatMissingList(keys: string[]): string {
+  const labels = keys.map((key) => FIELD_LABELS[key] ?? key);
+  if (labels.length === 0) return "";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
 
 function Avatar({ name, profilePicture }: { name: string; profilePicture?: string | null }) {
   if (profilePicture) {
@@ -47,6 +66,8 @@ export function FeedComposer({
   profilePicture,
   profileComplete,
   hasPostedToday,
+  completeness = 0,
+  checklist = [],
 }: FeedComposerProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -72,23 +93,64 @@ export function FeedComposer({
   }, [pending, error, router]);
 
   if (!profileComplete) {
+    const missingRequired = checklist
+      .filter((item) => REQUIRED_KEYS.includes(item.key) && !item.done)
+      .map((item) => item.key);
+    const headline =
+      missingRequired.length > 0
+        ? `Add ${formatMissingList(missingRequired)} before sharing updates.`
+        : "Finish the steps below before sharing updates.";
+
     return (
       <div className="rounded-3xl bg-beedero-white p-5">
         <div className="flex items-center gap-3">
           <Avatar name={name} profilePicture={profilePicture} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-beedero-black">Complete your profile to post</p>
-            <p className="mt-0.5 text-sm text-zinc-500">
-              Add your name, headline, and country before sharing updates.
+            <p className="mt-0.5 text-sm text-zinc-500">{headline}</p>
+            <p className="mt-1 text-xs text-zinc-400">
+              An incomplete profile also won&apos;t show up in search or on your public page —
+              other people can&apos;t find you until it&apos;s done.
             </p>
-            <Link
-              href="/dashboard"
-              className="mt-2 inline-flex rounded-xl bg-beedero-yellow px-3 py-1.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
-            >
-              Go to dashboard
-            </Link>
           </div>
         </div>
+
+        {checklist.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
+              <span>Profile strength</span>
+              <span>{completeness}%</span>
+            </div>
+            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+              <div
+                className="h-full rounded-full bg-beedero-yellow transition-all"
+                style={{ width: `${completeness}%` }}
+              />
+            </div>
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {checklist.map((item) => (
+                <li key={item.key} className="flex items-center justify-between gap-2 text-xs">
+                  <span
+                    className={`flex items-center gap-1.5 ${
+                      item.done ? "text-zinc-400 line-through" : "text-zinc-700"
+                    }`}
+                  >
+                    <span aria-hidden>{item.done ? "✅" : "⬜"}</span>
+                    {item.hint}
+                  </span>
+                  <span className="shrink-0 font-semibold text-zinc-400">+{item.weight}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <Link
+          href="/dashboard"
+          className="mt-4 inline-flex rounded-xl bg-beedero-yellow px-3 py-1.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+        >
+          Go to dashboard
+        </Link>
       </div>
     );
   }

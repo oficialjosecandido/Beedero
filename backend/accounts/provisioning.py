@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
 
+from .notifications import notify_admin_new_user
+
 User = get_user_model()
 
 
@@ -24,7 +26,7 @@ def get_or_provision_user(claims: dict):
         return user
 
     email = claims.get("email") or claims.get("preferred_username") or ""
-    return User.objects.create(
+    user = User.objects.create(
         username=f"entra:{entra_oid}",
         email=email,
         entra_oid=entra_oid,
@@ -32,3 +34,5 @@ def get_or_provision_user(claims: dict):
         # token, so a token bearing an email implies it's already verified.
         email_verified_at=timezone.now() if email else None,
     )
+    notify_admin_new_user(user)
+    return user

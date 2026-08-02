@@ -33,6 +33,10 @@ export async function GET(request: NextRequest) {
   store.set("beedero_oidc_state", state, OAUTH_COOKIE_OPTS);
   store.set("beedero_oidc_nonce", nonce, OAUTH_COOKIE_OPTS);
   store.set("beedero_oidc_next", next, OAUTH_COOKIE_OPTS);
+  if (screen === "signup") {
+    store.set("beedero_oidc_screen", "signup", OAUTH_COOKIE_OPTS);
+    store.delete("beedero_signup_after_logout");
+  }
 
   const url = new URL(authorizeUrl(config));
   url.searchParams.set("client_id", config.webClientId);
@@ -44,7 +48,13 @@ export async function GET(request: NextRequest) {
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("state", state);
   url.searchParams.set("nonce", nonce);
-  if (screen === "signup") url.searchParams.set("prompt", "create");
+  url.searchParams.set("ui_locales", "en");
+  if (screen === "signup") {
+    url.searchParams.set("prompt", "create");
+    url.searchParams.set("screen_hint", "signup");
+  } else {
+    url.searchParams.set("prompt", "login");
+  }
 
   return NextResponse.redirect(url);
 }

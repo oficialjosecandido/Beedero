@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { AppColumnSection } from "@/components/AppColumnSection";
 import { CreateOrgButton } from "@/components/CreateOrgButton";
 import { EventsCalendar } from "@/components/EventsCalendar";
 import { InvitePeopleButton } from "@/components/InvitePeopleButton";
@@ -20,18 +21,10 @@ type Membership = { slug: string; name: string; role: string; logo?: string | nu
 type CalendarEvent = { id: number | string; title: string; occurred_at: string; ends_at?: string | null };
 type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
 
-function SidebarCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className={`overflow-hidden rounded-lg border border-zinc-300/80 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.05)] ${className}`}
-    >
-      {children}
-    </div>
+    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-beedero-black/50">{children}</p>
   );
-}
-
-function SectionTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={`text-sm font-semibold text-zinc-900 ${className}`}>{children}</h3>;
 }
 
 function ProfileAvatar({
@@ -45,7 +38,7 @@ function ProfileAvatar({
   className?: string;
   size?: "md" | "lg";
 }) {
-  const sizeClass = size === "lg" ? "size-[72px] text-lg" : "size-11 text-sm";
+  const sizeClass = size === "lg" ? "size-14 text-base" : "size-11 text-sm";
   if (profilePicture) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -54,46 +47,10 @@ function ProfileAvatar({
   }
   return (
     <span
-      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-zinc-200 font-semibold text-zinc-600 ${className}`}
+      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold text-zinc-500 ${className}`}
     >
       {name.charAt(0).toUpperCase()}
     </span>
-  );
-}
-
-function QuickActionRow({
-  href,
-  onClick,
-  icon,
-  children,
-}: {
-  href?: string;
-  onClick?: () => void;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  const className =
-    "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900";
-
-  const content = (
-    <>
-      <span className="flex size-5 shrink-0 items-center justify-center text-zinc-500">{icon}</span>
-      <span className="flex-1">{children}</span>
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className={className}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={className}>
-      {content}
-    </button>
   );
 }
 
@@ -101,99 +58,98 @@ function ProfileCard({
   me,
   orgs,
   stats,
+  embedded = false,
 }: {
   me: Me;
   orgs: Membership[];
   stats?: ProfileStats | null;
+  embedded?: boolean;
 }) {
   const profile = me.investor_profile;
   const name = profile?.full_name || me.email;
   const atHandle = formatAtHandle(profile?.handle);
 
-  return (
-    <SidebarCard>
+  const content = (
+    <>
       <div
-        className="h-[54px] bg-zinc-200 bg-cover bg-center"
+        className={`h-16 bg-gradient-to-br from-beedero-yellow/70 via-beedero-yellow/25 to-beedero-white bg-cover bg-center ${
+          embedded ? "" : "rounded-t-[1.35rem]"
+        }`}
         style={profile?.cover_image ? { backgroundImage: `url(${profile.cover_image})` } : undefined}
       />
-      <div className="px-4 pb-4">
-        <div className="-mt-[38px] mb-3">
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+        <div className="-mt-9 flex items-end gap-3">
           <ProfileAvatar
             name={name}
             profilePicture={profile?.profile_picture}
             size="lg"
-            className="ring-2 ring-white"
+            className="ring-4 ring-beedero-white"
           />
+          <div className="min-w-0 flex-1 pb-1">
+            <p className="truncate text-base font-bold text-beedero-black">{name}</p>
+            {atHandle && <p className="truncate text-xs font-medium text-zinc-500">{atHandle}</p>}
+          </div>
         </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold leading-snug text-zinc-900">{name}</p>
-          {atHandle && <p className="truncate text-xs text-zinc-500">{atHandle}</p>}
-          {profile?.headline && (
-            <p className="mt-1.5 text-sm leading-snug text-zinc-600">{profile.headline}</p>
-          )}
-        </div>
+        {profile?.headline && (
+          <p className="mt-2 text-sm leading-snug text-zinc-600">{profile.headline}</p>
+        )}
 
         {stats && (
-          <div className="mt-3 border-y border-zinc-200 py-3">
-            <div className="flex">
-              <div className="flex-1 text-center">
-                <p className="text-lg font-semibold tabular-nums text-zinc-900">
-                  {stats.profile_views_count}
-                </p>
-                <p className="mt-0.5 text-[11px] leading-tight text-zinc-500">Profile views</p>
-              </div>
-              <div className="w-px bg-zinc-200" aria-hidden />
-              <div className="flex-1 text-center">
-                <p className="text-lg font-semibold tabular-nums text-zinc-900">
-                  {stats.post_impressions_count}
-                </p>
-                <p className="mt-0.5 text-[11px] leading-tight text-zinc-500">Post impressions</p>
-              </div>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-wide text-zinc-400">
-                Last {stats.range_days} days
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-beedero-border/80 bg-beedero-yellow/15 p-3">
+            <div>
+              <p className="text-xl font-extrabold tabular-nums text-beedero-black">
+                {stats.profile_views_count}
               </p>
-              <Link
-                href="/dashboard?tab=kpis"
-                className="text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 hover:underline"
-              >
-                More insights →
-              </Link>
+              <p className="text-[11px] font-medium text-zinc-500">Profile views</p>
+            </div>
+            <div>
+              <p className="text-xl font-extrabold tabular-nums text-beedero-black">
+                {stats.post_impressions_count}
+              </p>
+              <p className="text-[11px] font-medium text-zinc-500">Post impressions</p>
             </div>
           </div>
         )}
 
-        <div className="mt-4">
-          <SectionTitle>Organizations</SectionTitle>
-          <div className="mt-2 flex flex-col gap-1">
+        <div className="mt-5">
+          <SectionLabel>Organizations</SectionLabel>
+          <div className="mt-2.5 flex flex-col gap-2">
             {orgs.length === 0 ? (
-              <p className="rounded-md bg-zinc-50 px-3 py-3 text-center text-sm text-zinc-500">
-                You don&apos;t manage any organizations yet.
+              <p className="rounded-2xl border border-dashed border-beedero-border bg-zinc-50 px-3 py-4 text-center text-sm text-zinc-500">
+                You don&apos;t belong to any org.
               </p>
             ) : (
               orgs.map((org) => (
                 <Link
                   key={org.slug}
                   href={`/dashboard/${org.slug}`}
-                  className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-zinc-100"
+                  className="group flex items-center gap-3 rounded-2xl border border-beedero-border bg-beedero-white px-3 py-2.5 transition hover:border-beedero-black hover:bg-beedero-yellow/15"
                 >
                   {org.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={org.logo} alt="" className="size-10 shrink-0 rounded-sm object-cover" />
+                    <img src={org.logo} alt="" className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border/60" />
                   ) : (
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-zinc-200 text-sm font-semibold text-zinc-600">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/30 text-xs font-bold text-beedero-black">
                       {org.name.charAt(0).toUpperCase()}
                     </span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-zinc-900">{org.name}</span>
+                    <span className="block truncate text-sm font-semibold text-beedero-black">{org.name}</span>
                     <span className="block truncate text-xs text-zinc-500">{formatAtHandle(org.slug)}</span>
                   </div>
-                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                  <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                     {org.role}
                   </span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-beedero-black"
+                    aria-hidden
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
                 </Link>
               ))
             )}
@@ -201,25 +157,35 @@ function ProfileCard({
           <CreateOrgButton className="mt-3" />
         </div>
 
-        <div className="mt-4 border-t border-zinc-200 pt-1">
-          <SectionTitle className="px-4 pt-3">Quick actions</SectionTitle>
-          <div className="-mx-4 mt-1">
-            <QuickActionRow
+        <div className="mt-5 border-t border-beedero-border/70 pt-5">
+          <SectionLabel>Quick actions</SectionLabel>
+          <div className="mt-2.5 flex flex-col gap-2">
+            <Link
               href="/discovery"
-              icon={
+              className="flex items-center justify-between rounded-2xl border border-beedero-border px-3 py-2.5 text-sm font-semibold text-beedero-black transition hover:border-beedero-black hover:bg-beedero-yellow/15"
+            >
+              <span className="flex items-center gap-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
                   <circle cx="11" cy="11" r="7" />
                   <path d="m20 20-3.5-3.5" />
                 </svg>
-              }
-            >
-              Discover
-            </QuickActionRow>
-            <InvitePeopleButton variant="row" className="mt-0" />
+                Discover
+              </span>
+              <span aria-hidden>→</span>
+            </Link>
+            <InvitePeopleButton className="mt-0" />
           </div>
         </div>
       </div>
-    </SidebarCard>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
+      {content}
+    </div>
   );
 }
 
@@ -238,27 +204,18 @@ export function ProfileColumn({
   const profile = me.investor_profile;
   const name = profile?.full_name || me.email;
 
-  const calendarCard = (
-    <SidebarCard className="p-4">
-      <SectionTitle>Calendar</SectionTitle>
-      <div className="mt-3">
-        <EventsCalendar events={events} embedded />
-      </div>
-    </SidebarCard>
-  );
-
   return (
     <>
       <div className="lg:hidden">
         <button
           type="button"
           onClick={() => setMobileExpanded((value) => !value)}
-          className="flex w-full items-center gap-3 rounded-lg border border-zinc-300/80 bg-white px-4 py-3 text-left shadow-sm"
+          className="flex w-full items-center gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white px-4 py-3 text-left shadow-sm"
           aria-expanded={mobileExpanded}
         >
           <ProfileAvatar name={name} profilePicture={profile?.profile_picture} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-zinc-900">{name}</p>
+            <p className="truncate text-sm font-semibold text-beedero-black">{name}</p>
             {profile?.headline && (
               <p className="truncate text-xs text-zinc-500">{profile.headline}</p>
             )}
@@ -268,7 +225,7 @@ export function ProfileColumn({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className={`size-4 shrink-0 text-zinc-400 transition-transform ${
+            className={`size-4 shrink-0 text-zinc-500 transition-transform ${
               mobileExpanded ? "rotate-180" : ""
             }`}
             aria-hidden="true"
@@ -277,17 +234,31 @@ export function ProfileColumn({
           </svg>
         </button>
         {mobileExpanded && (
-          <div className="mt-2 space-y-2">
-            <ProfileCard me={me} orgs={orgs} stats={stats} />
-            {calendarCard}
+          <div className="mt-3">
+            <AppColumnSection label="Profile">
+              <ProfileCard me={me} orgs={orgs} stats={stats} embedded />
+              <div className="border-t border-beedero-border/70 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                <SectionLabel>Calendar</SectionLabel>
+                <div className="mt-2.5">
+                  <EventsCalendar events={events} embedded />
+                </div>
+              </div>
+            </AppColumnSection>
           </div>
         )}
       </div>
 
       <div className="hidden lg:block">
-        <div className="sticky top-[5.5rem] space-y-2">
-          <ProfileCard me={me} orgs={orgs} stats={stats} />
-          {calendarCard}
+        <div className="sticky top-[5.5rem]">
+          <AppColumnSection label="Profile">
+            <ProfileCard me={me} orgs={orgs} stats={stats} embedded />
+            <div className="border-t border-beedero-border/70 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+              <SectionLabel>Calendar</SectionLabel>
+              <div className="mt-2.5">
+                <EventsCalendar events={events} embedded />
+              </div>
+            </div>
+          </AppColumnSection>
         </div>
       </div>
     </>

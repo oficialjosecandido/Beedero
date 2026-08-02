@@ -21,11 +21,10 @@ export default function RegisterPage() {
             Create account
           </h1>
         </div>
-        {/* New signups always go through Entra (Fase A of the auth migration —
-            see docs/entra-migration.md §4). prompt=create skips straight to
-            Entra's sign-up screen instead of its login screen. */}
+        {/* Clears any lingering Entra SSO session, then starts OAuth with
+            prompt=create so CIAM shows the sign-up form. */}
         <a
-          href="/api/auth/login?screen=signup"
+          href="/api/auth/signup"
           className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"
         >
           Create account with Beedero ID
