@@ -21,7 +21,11 @@ type InvestorPost = {
   occurred_at: string;
   ends_at?: string | null;
 };
-type ProfileStats = { profile_views_count: number; post_impressions_count: number };
+type ProfileStats = {
+  profile_views_count: number;
+  post_impressions_count: number;
+  range_days: number;
+};
 
 export type AppShellData = {
   me: Me;
