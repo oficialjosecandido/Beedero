@@ -7,7 +7,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.core.management.base import BaseCommand
-from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 from django.utils.html import escape
 
