@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 const ACCESS_COOKIE = "beedero_access";
 const REFRESH_COOKIE = "beedero_refresh";
+const ID_TOKEN_COOKIE = "beedero_id_token";
 
 const cookieOptions = {
   httpOnly: true,
@@ -23,11 +24,14 @@ function isReadonlyCookiesError(err: unknown) {
   return err instanceof Error && err.message.includes("can only be modified in a Server Action");
 }
 
-export async function setSession(access: string, refresh: string) {
+export async function setSession(access: string, refresh: string, idToken?: string) {
   const store = await cookies();
   try {
     store.set(ACCESS_COOKIE, access, { ...cookieOptions, maxAge: 60 * 30 });
     store.set(REFRESH_COOKIE, refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+    if (idToken) {
+      store.set(ID_TOKEN_COOKIE, idToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+    }
   } catch (err) {
     if (!isReadonlyCookiesError(err)) throw err;
   }
@@ -38,6 +42,7 @@ export async function clearSession() {
   try {
     store.delete(ACCESS_COOKIE);
     store.delete(REFRESH_COOKIE);
+    store.delete(ID_TOKEN_COOKIE);
   } catch (err) {
     if (!isReadonlyCookiesError(err)) throw err;
   }
@@ -51,6 +56,11 @@ export async function getAccessToken(): Promise<string | undefined> {
 export async function getRefreshToken(): Promise<string | undefined> {
   const store = await cookies();
   return store.get(REFRESH_COOKIE)?.value;
+}
+
+export async function getIdToken(): Promise<string | undefined> {
+  const store = await cookies();
+  return store.get(ID_TOKEN_COOKIE)?.value;
 }
 
 export async function isAuthenticated(): Promise<boolean> {

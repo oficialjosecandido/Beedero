@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     scope: `openid offline_access ${config.scope}`,
   });
 
-  let tokens: { access_token: string; refresh_token?: string };
+  let tokens: { access_token: string; refresh_token?: string; id_token?: string };
   try {
     const res = await fetch(tokenUrl(config), {
       method: "POST",
@@ -71,6 +71,6 @@ export async function GET(request: NextRequest) {
     return errorRedirect("entra_unreachable");
   }
 
-  await setSession(tokens.access_token, tokens.refresh_token ?? "");
+  await setSession(tokens.access_token, tokens.refresh_token ?? "", tokens.id_token);
   return NextResponse.redirect(new URL(next, SITE_URL));
 }

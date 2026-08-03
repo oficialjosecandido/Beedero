@@ -21,8 +21,7 @@ export default function RegisterPage() {
             Create account
           </h1>
         </div>
-        {/* Clears any lingering Entra SSO session, then starts OAuth with
-            prompt=create so CIAM shows the sign-up form. */}
+        {/* Goes straight to Entra sign-up (prompt=create), not Entra logout. */}
         <a
           href="/api/auth/signup"
           className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"

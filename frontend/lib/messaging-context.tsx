@@ -103,10 +103,21 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refreshUnreadTotal();
-    const timer = window.setInterval(() => void refreshUnreadTotal(), 20_000);
-    return () => window.clearInterval(timer);
-  }, [refreshUnreadTotal]);
+    let cancelled = false;
+
+    const syncUnread = () => {
+      void fetchTotalUnread().then((total) => {
+        if (!cancelled) setUnreadTotal(total);
+      });
+    };
+
+    syncUnread();
+    const timer = window.setInterval(syncUnread, 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_MQ);

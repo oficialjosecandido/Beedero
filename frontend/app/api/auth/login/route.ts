@@ -35,7 +35,6 @@ export async function GET(request: NextRequest) {
   store.set("beedero_oidc_next", next, OAUTH_COOKIE_OPTS);
   if (screen === "signup") {
     store.set("beedero_oidc_screen", "signup", OAUTH_COOKIE_OPTS);
-    store.delete("beedero_signup_after_logout");
   }
 
   const url = new URL(authorizeUrl(config));

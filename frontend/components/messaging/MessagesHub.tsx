@@ -1,20 +1,20 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 
 import type { ConversationSummary } from "@/app/(app)/feed/types";
-import { useMessaging } from "@/lib/messaging-context";
+import { useMessaging, type InboxContext } from "@/lib/messaging-context";
 
 import { ChatWindow } from "./messaging-shared";
 import { MessagingInboxWithContext } from "./MessagingInbox";
 
+function inboxContextKey(context: InboxContext) {
+  return context.type === "org" ? `org:${context.slug}` : "personal";
+}
+
 function MessagesHubContent() {
   const { inboxContext } = useMessaging();
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
-
-  useEffect(() => {
-    setSelected(null);
-  }, [inboxContext]);
 
   const participant = selected
     ? {
@@ -67,7 +67,12 @@ function MessagesHubContent() {
 export function MessagesHub() {
   return (
     <Suspense fallback={<p className="text-sm text-zinc-500">Loading messages…</p>}>
-      <MessagesHubContent />
+      <MessagesHubKeyed />
     </Suspense>
   );
+}
+
+function MessagesHubKeyed() {
+  const { inboxContext } = useMessaging();
+  return <MessagesHubContent key={inboxContextKey(inboxContext)} />;
 }
