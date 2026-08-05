@@ -181,6 +181,25 @@ def test_archived_fundraise_section_hidden_after_round_closes(org, verified_inve
 
 
 @pytest.mark.django_db
+def test_public_profile_includes_team_members_with_public_handle(org, founder):
+    from orgs.public import public_profile
+
+    InvestorProfile.objects.create(
+        user=founder,
+        full_name="Ada Founder",
+        headline="Founder",
+        country="PT",
+        handle="ada-founder",
+    )
+
+    data = public_profile(org.slug)
+
+    assert len(data["team_members"]) == 1
+    assert data["team_members"][0]["full_name"] == "Ada Founder"
+    assert data["team_members"][0]["handle"] == "ada-founder"
+
+
+@pytest.mark.django_db
 def test_public_path_never_returns_restricted_or_private(org, about_public_field, verified_investor):
     from orgs.public import public_profile
 

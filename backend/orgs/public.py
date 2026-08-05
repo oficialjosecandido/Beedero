@@ -11,6 +11,7 @@ from collections import defaultdict
 from django.shortcuts import get_object_or_404
 
 from .models import OrgField, Organization, Visibility
+from .team import serialize_team_members
 
 
 def public_profile(slug: str) -> dict:
@@ -42,5 +43,6 @@ def public_profile(slug: str) -> dict:
             "freshness": freshness_label(org),
         },
         "sections": sections,
+        "team_members": serialize_team_members(org),
         "upcoming_events": upcoming_events(org),
     }

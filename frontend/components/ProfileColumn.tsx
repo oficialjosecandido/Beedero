@@ -13,7 +13,6 @@ type InvestorProfile = {
   full_name?: string;
   headline?: string;
   profile_picture?: string | null;
-  cover_image?: string | null;
   handle?: string | null;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
@@ -72,10 +71,9 @@ function ProfileCard({
   const content = (
     <>
       <div
-        className={`h-16 bg-gradient-to-br from-beedero-yellow/70 via-beedero-yellow/25 to-beedero-white bg-cover bg-center ${
+        className={`h-16 bg-gradient-to-br from-beedero-yellow/70 via-beedero-yellow/25 to-beedero-white ${
           embedded ? "" : "rounded-t-[1.35rem]"
         }`}
-        style={profile?.cover_image ? { backgroundImage: `url(${profile.cover_image})` } : undefined}
       />
       <div className="px-4 pb-4 sm:px-5 sm:pb-5">
         <div className="-mt-9 flex items-end gap-3">

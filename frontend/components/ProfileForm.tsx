@@ -17,7 +17,6 @@ type Profile = {
   bio?: string;
   country?: string;
   profile_picture?: string | null;
-  cover_image?: string | null;
   handle?: string | null;
   visibility?: Visibility;
   attestation_prefs?: AttestationPrefs;
@@ -49,6 +48,10 @@ const ATTESTATION_OPTIONS = [
 const fieldClass =
   "w-full rounded-xl border border-beedero-border bg-white px-3 py-2.5 text-sm text-beedero-black outline-none transition-colors focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
 
+function headlineIsInvestor(headline: string) {
+  return headline.toLowerCase().includes("investor");
+}
+
 function ProfileAvatar({
   name,
   profilePicture,
@@ -72,21 +75,6 @@ function ProfileAvatar({
   );
 }
 
-function CoverPreview({ coverImage, preview }: { coverImage?: string | null; preview?: string | null }) {
-  const src = preview ?? coverImage;
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className="h-24 w-full rounded-xl border border-beedero-border object-cover shadow-sm sm:w-48" />
-    );
-  }
-  return (
-    <div className="flex h-24 w-full items-center justify-center rounded-xl border border-dashed border-beedero-border bg-gradient-to-br from-beedero-yellow/20 to-zinc-100 text-xs font-medium text-zinc-400 sm:w-48">
-      No cover photo
-    </div>
-  );
-}
-
 export function ProfileForm({
   profile,
   variant = "settings",
@@ -98,16 +86,15 @@ export function ProfileForm({
   useActionToast(error, pending, { successMessage: "Profile updated." });
 
   const fileInputId = useId();
-  const coverInputId = useId();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState<string | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [coverName, setCoverName] = useState<string | null>(null);
+  const [headline, setHeadline] = useState(profile?.headline ?? "");
 
   const visibility = profile?.visibility ?? {};
   const attestationPrefs = profile?.attestation_prefs ?? {};
   const displayName = profile?.full_name || "Your profile";
   const nameLocked = Boolean(profile?.full_name);
+  const showInvestmentThesis = variant === "onboarding" && headlineIsInvestor(headline);
 
   function onPhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -118,17 +105,6 @@ export function ProfileForm({
     }
     setPhotoName(file.name);
     setPhotoPreview(URL.createObjectURL(file));
-  }
-
-  function onCoverChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setCoverPreview(null);
-      setCoverName(null);
-      return;
-    }
-    setCoverName(file.name);
-    setCoverPreview(URL.createObjectURL(file));
   }
 
   return (
@@ -175,7 +151,8 @@ export function ProfileForm({
                 name="headline"
                 required
                 placeholder="Investor, founder, operator..."
-                defaultValue={profile?.headline ?? ""}
+                value={headline}
+                onChange={(event) => setHeadline(event.target.value)}
                 className={fieldClass}
               />
             </label>
@@ -233,36 +210,9 @@ export function ProfileForm({
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-beedero-border bg-zinc-50/50 p-4">
-              <p className="text-sm font-semibold text-zinc-800">Cover photo</p>
-              <p className="mt-0.5 text-xs text-zinc-400">Optional — the banner shown behind your profile.</p>
-              <div className="mt-4 flex flex-col items-start gap-4">
-                <CoverPreview coverImage={profile?.cover_image} preview={coverPreview} />
-                <div>
-                  <input
-                    id={coverInputId}
-                    type="file"
-                    name="cover_image"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={onCoverChange}
-                  />
-                  <label
-                    htmlFor={coverInputId}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border-2 border-beedero-border bg-white px-3 py-2 text-sm font-semibold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/15"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4" aria-hidden>
-                      <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" />
-                    </svg>
-                    {coverName ? "Change cover" : "Upload cover"}
-                  </label>
-                  {coverName && <p className="mt-1.5 truncate text-xs text-zinc-500">{coverName}</p>}
-                </div>
-              </div>
-            </div>
           </section>
 
-          {variant === "onboarding" && (
+          {showInvestmentThesis && (
             <section className="flex flex-col gap-4 lg:col-span-2">
               <div>
                 <h3 className="text-sm font-extrabold text-zinc-900">Investment thesis</h3>

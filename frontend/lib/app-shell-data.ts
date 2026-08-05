@@ -10,7 +10,6 @@ type InvestorProfile = {
   full_name?: string;
   headline?: string;
   profile_picture?: string | null;
-  cover_image?: string | null;
   handle?: string | null;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };

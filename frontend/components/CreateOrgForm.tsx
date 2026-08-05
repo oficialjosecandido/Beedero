@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
-  addOrgTeamMemberWizardAction,
   createOrgWizardAction,
   saveOrgLogoWizardAction,
   saveOrgTextFieldWizardAction,
@@ -12,9 +11,8 @@ import {
 } from "@/app/(app)/dashboard/actions";
 
 type ChecklistItem = { key: string; done: boolean; hint: string };
-type TeamMember = { name: string; role: string; linkedin: string };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 const inputClass =
   "rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
@@ -54,8 +52,6 @@ export function CreateOrgForm() {
   const [about, setAbout] = useState("");
   const [products, setProducts] = useState("");
   const [market, setMarket] = useState("");
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [memberDraft, setMemberDraft] = useState<TeamMember>({ name: "", role: "", linkedin: "" });
 
   function applyProgress(result: WizardResult) {
     setError(result.error);
@@ -107,18 +103,6 @@ export function CreateOrgForm() {
       const result = await saveOrgTextFieldWizardAction(slug, "about", "summary", about.trim());
       applyProgress(result);
       if (!result.error) setStep(3);
-    });
-  }
-
-  function handleAddMember() {
-    if (!slug || !memberDraft.name.trim()) return;
-    startTransition(async () => {
-      const result = await addOrgTeamMemberWizardAction(slug, memberDraft);
-      applyProgress(result);
-      if (!result.error) {
-        setMembers((prev) => [...prev, memberDraft]);
-        setMemberDraft({ name: "", role: "", linkedin: "" });
-      }
     });
   }
 
@@ -249,59 +233,6 @@ export function CreateOrgForm() {
       )}
 
       {step === 3 && slug && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-zinc-700">Team (optional)</p>
-          {members.length > 0 && (
-            <ul className="flex flex-col gap-1">
-              {members.map((member, index) => (
-                <li key={index} className="truncate text-xs text-zinc-600">
-                  {member.name}
-                  {member.role ? ` · ${member.role}` : ""}
-                </li>
-              ))}
-            </ul>
-          )}
-          <input
-            value={memberDraft.name}
-            onChange={(event) => setMemberDraft((prev) => ({ ...prev, name: event.target.value }))}
-            placeholder="Name"
-            className={inputClass}
-          />
-          <input
-            value={memberDraft.role}
-            onChange={(event) => setMemberDraft((prev) => ({ ...prev, role: event.target.value }))}
-            placeholder="Role"
-            className={inputClass}
-          />
-          <input
-            value={memberDraft.linkedin}
-            onChange={(event) => setMemberDraft((prev) => ({ ...prev, linkedin: event.target.value }))}
-            placeholder="LinkedIn (optional)"
-            className={inputClass}
-          />
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleAddMember}
-              disabled={pending || !memberDraft.name.trim()}
-              className="rounded-xl border border-beedero-border px-3 py-1.5 text-xs font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
-            >
-              Add member
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(4)}
-              disabled={pending}
-              className="text-xs font-semibold text-zinc-500 hover:text-beedero-black"
-            >
-              {members.length > 0 ? "Continue" : "Skip"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && slug && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-zinc-700">Products & market (optional)</p>
           <textarea

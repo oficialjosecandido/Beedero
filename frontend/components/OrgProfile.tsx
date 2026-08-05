@@ -1,8 +1,10 @@
+import Link from "next/link";
+
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { OrgProfileActions } from "@/components/OrgProfileActions";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
-import { OrgProfile as OrgProfileData, SECTION_LABELS } from "@/lib/types";
+import { OrgProfile as OrgProfileData, OrgTeamMember, SECTION_LABELS } from "@/lib/types";
 
 const FIELD_LABELS: Record<string, string> = {
   summary: "About",
@@ -81,12 +83,73 @@ function FieldValue({
   return <p className="text-sm text-zinc-700">{String(value)}</p>;
 }
 
+function TeamMemberAvatar({ name, profilePicture }: { name: string; profilePicture?: string | null }) {
+  if (profilePicture) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={profilePicture} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+    );
+  }
+  return (
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function TeamMemberCard({ member }: { member: OrgTeamMember }) {
+  const card = (
+    <div className="flex items-center gap-3 rounded-xl border border-beedero-border p-3 transition-colors">
+      <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
+      <div className="min-w-0">
+        <p className="font-medium text-beedero-black">{member.full_name}</p>
+        {member.title ? <p className="text-sm text-zinc-600">{member.title}</p> : null}
+        {member.handle ? (
+          <p className="text-xs font-medium text-zinc-500">{formatAtHandle(member.handle)}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  if (member.handle) {
+    return (
+      <Link
+        href={`/p/${member.handle}`}
+        className="block rounded-xl hover:bg-beedero-yellow/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-beedero-black"
+      >
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
+}
+
+function TeamMembersSection({ members }: { members: OrgTeamMember[] }) {
+  if (members.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3 border-t border-beedero-border pt-4">
+      <h2 className="text-lg font-extrabold">Team</h2>
+      <div className="flex flex-col gap-3">
+        {members.map((member) => (
+          <TeamMemberCard key={member.handle ?? member.full_name} member={member} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /**
  * §5.1: the frontend never decides visibility — it only renders what
  * `sections` contains. Absent sections simply don't appear.
  */
 export function OrgProfile({ data }: { data: OrgProfileData }) {
-  const sectionEntries = Object.entries(data.sections);
+  const teamMembers = data.team_members ?? [];
+  const sectionEntries = Object.entries(data.sections).filter(
+    ([kind]) => !(kind === "team" && teamMembers.length > 0)
+  );
+  const hasContent = sectionEntries.length > 0 || teamMembers.length > 0;
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-8">
@@ -157,7 +220,9 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
         </section>
       )}
 
-      {sectionEntries.length === 0 && (
+      <TeamMembersSection members={teamMembers} />
+
+      {!hasContent && (
         <p className="text-sm text-zinc-500">Nothing visible to you on this page.</p>
       )}
 

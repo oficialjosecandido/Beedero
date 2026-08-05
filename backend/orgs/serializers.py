@@ -16,6 +16,7 @@ from .models import (
     Visibility,
     VisibilityGrant,
 )
+from .team import serialize_team_members
 from .visibility import VisibilityResolver
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class OrgProfileSerializer:
         return {
             "org": _org_summary(self.org),
             "sections": sections,
+            "team_members": serialize_team_members(self.org),
             "viewer_is_following": viewer_is_following,
             "viewer_is_member": viewer_is_member,
         }
@@ -170,11 +172,12 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     full_name = serializers.SerializerMethodField()
     profile_picture = serializers.SerializerMethodField()
+    handle = serializers.SerializerMethodField()
 
     class Meta:
         model = OrgMembership
-        fields = ["id", "email", "full_name", "profile_picture", "role", "title"]
-        read_only_fields = ["id", "email", "full_name", "profile_picture", "role"]
+        fields = ["id", "email", "full_name", "profile_picture", "handle", "role", "title"]
+        read_only_fields = ["id", "email", "full_name", "profile_picture", "handle", "role"]
 
     def get_full_name(self, obj):
         profile = getattr(obj.user, "investorprofile", None)
@@ -188,6 +191,12 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
             return profile.profile_picture.url
         except ValueError:
             return None
+
+    def get_handle(self, obj):
+        profile = getattr(obj.user, "investorprofile", None)
+        if profile and profile.handle and profile.is_complete:
+            return profile.handle
+        return None
 
 
 class OrgFieldWriteSerializer(serializers.Serializer):

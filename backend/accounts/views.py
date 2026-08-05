@@ -1,5 +1,3 @@
-import json
-
 from datetime import timedelta
 
 from django.utils import timezone
@@ -183,17 +181,6 @@ class InvestorProfileView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
-    def _parse_payload(self, request):
-        data = request.data.copy()
-        for key in ("visibility", "attestation_prefs"):
-            raw = data.get(key)
-            if isinstance(raw, str) and raw:
-                try:
-                    data[key] = json.loads(raw)
-                except json.JSONDecodeError:
-                    raise ValidationError({key: "Invalid JSON."})
-        return data
-
     def get(self, request):
         profile = _get_investor_profile(request.user)
         return Response(InvestorProfileSerializer(profile).data)
@@ -201,7 +188,7 @@ class InvestorProfileView(APIView):
     def put(self, request):
         profile, _ = InvestorProfile.objects.get_or_create(user=request.user)
         serializer = InvestorProfileSerializer(
-            profile, data=self._parse_payload(request), partial=True
+            profile, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

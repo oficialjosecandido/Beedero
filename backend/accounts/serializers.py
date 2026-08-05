@@ -24,7 +24,6 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "bio",
             "country",
             "profile_picture",
-            "cover_image",
             "stage_focus",
             "sector_focus",
             "geo_focus",

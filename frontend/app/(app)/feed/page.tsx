@@ -31,7 +31,6 @@ type InvestorProfile = {
   bio?: string;
   country?: string;
   profile_picture?: string | null;
-  cover_image?: string | null;
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };

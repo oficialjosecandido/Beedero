@@ -13,6 +13,13 @@ export type OrgSummary = {
   freshness?: string | null;
 };
 
+export type OrgTeamMember = {
+  full_name: string;
+  title?: string;
+  profile_picture?: string | null;
+  handle?: string | null;
+};
+
 export type UpcomingEvent = {
   id: number;
   kind: string;
@@ -32,6 +39,7 @@ export type UpcomingEvent = {
 export type OrgProfile = {
   org: OrgSummary;
   sections: Record<string, Record<string, unknown>>;
+  team_members?: OrgTeamMember[];
   upcoming_events?: UpcomingEvent[];
   viewer_is_following?: boolean;
   viewer_is_member?: boolean;

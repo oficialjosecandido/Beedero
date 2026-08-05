@@ -184,11 +184,6 @@ export async function updateProfileAction(_prevState: string | null, formData: F
     body.set("profile_picture", picture);
   }
 
-  const cover = formData.get("cover_image");
-  if (cover instanceof File && cover.size > 0) {
-    body.set("cover_image", cover);
-  }
-
   try {
     await apiFetch("/investors/me/", { method: "PUT", body });
   } catch {

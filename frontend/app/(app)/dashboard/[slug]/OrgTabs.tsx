@@ -22,6 +22,7 @@ import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatAtHandle } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site-metadata";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -58,6 +59,7 @@ type Member = {
   email: string;
   full_name: string;
   profile_picture?: string | null;
+  handle?: string | null;
   role: string;
   title?: string;
 };
@@ -705,7 +707,7 @@ function OnboardingPanel({
   );
 }
 
-function PublicProfileShareCard({ slug }: { slug: string }) {
+function PublicProfileShareCard({ slug, members }: { slug: string; members: Member[] }) {
   const publicUrl = `${SITE_URL}/o/${slug}`;
   const [copied, setCopied] = useState(false);
 
@@ -721,6 +723,47 @@ function PublicProfileShareCard({ slug }: { slug: string }) {
       <p className="mt-1 text-sm text-zinc-500">
         Share your organization&apos;s public page with investors and partners.
       </p>
+      {members.length > 0 && (
+        <div className="mt-4 rounded-xl border border-beedero-border bg-zinc-50/80 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Team on public page</p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {members.map((member) => (
+              <li key={member.id}>
+                {member.handle ? (
+                  <Link
+                    href={`/p/${member.handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-beedero-yellow/20"
+                  >
+                    <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2">
+                        {member.full_name}
+                      </span>
+                      {(member.title || member.handle) && (
+                        <span className="block truncate text-xs text-zinc-500">
+                          {member.title || formatAtHandle(member.handle)}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-2.5 px-1 py-1">
+                    <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-zinc-800">{member.full_name}</span>
+                      {member.title && (
+                        <span className="block truncate text-xs text-zinc-500">{member.title}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
         <QRCodeSVG
           value={publicUrl}
@@ -932,7 +975,18 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
             <div className="flex min-w-0 items-center gap-2.5">
               <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
               <div className="min-w-0">
-                <p className="truncate font-medium text-zinc-900">{member.full_name}</p>
+                {member.handle ? (
+                  <Link
+                    href={`/p/${member.handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2 hover:text-beedero-black/80"
+                  >
+                    {member.full_name}
+                  </Link>
+                ) : (
+                  <p className="truncate font-medium text-zinc-900">{member.full_name}</p>
+                )}
                 <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
                   {membershipAccessLabel(member.role)}
                 </p>
@@ -1300,16 +1354,18 @@ function ShareTab({
   badgeEmbed,
   vitality,
   linksSection,
+  members,
 }: {
   slug: string;
   canManage: boolean;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
   linksSection?: Section;
+  members: Member[];
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <PublicProfileShareCard slug={slug} />
+      <PublicProfileShareCard slug={slug} members={members} />
 
       {canManage && badgeEmbed && vitality && (
         <>
@@ -1519,6 +1575,7 @@ export function OrgTabs({
           badgeEmbed={badgeEmbed}
           vitality={vitality}
           linksSection={linksSection}
+          members={members}
         />
       )}
     </div>

@@ -24,7 +24,6 @@ class InvestorProfile(models.Model):
     bio = models.TextField(blank=True)  # optional
     country = models.CharField(max_length=2, blank=True)  # ISO 3166-1 alpha-2
     profile_picture = models.ImageField(upload_to="avatars/", blank=True, null=True)
-    cover_image = models.ImageField(upload_to="avatars/", blank=True, null=True)
     # JSONField instead of ArrayField (Postgres-only) for SQLite/Postgres portability.
     stage_focus = models.JSONField(default=list, blank=True)
     sector_focus = models.JSONField(default=list, blank=True)

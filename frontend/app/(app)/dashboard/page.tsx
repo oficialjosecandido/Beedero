@@ -22,7 +22,6 @@ type InvestorProfile = {
   bio?: string;
   country?: string;
   profile_picture?: string | null;
-  cover_image?: string | null;
   handle?: string | null;
   visibility?: Record<string, string>;
   attestation_prefs?: Record<string, boolean>;
