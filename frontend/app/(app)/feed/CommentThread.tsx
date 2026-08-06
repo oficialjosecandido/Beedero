@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { FaRegComment } from "react-icons/fa";
 
@@ -9,11 +10,49 @@ import { useActionToast } from "@/lib/use-action-toast";
 import { loadCommentsAction, postCommentAction } from "./actions";
 import type { Comment } from "./types";
 
-function CommentAvatar({ name }: { name: string }) {
+function CommentAvatar({ name, pictureUrl }: { name: string; pictureUrl?: string | null }) {
+  if (pictureUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={pictureUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+    );
+  }
   return (
     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/40 text-xs font-bold text-beedero-black">
       {name.charAt(0).toUpperCase()}
     </span>
+  );
+}
+
+function CommentAuthor({ comment }: { comment: Comment }) {
+  const avatar = <CommentAvatar name={comment.author_name} pictureUrl={comment.author_profile_picture} />;
+  const content = (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="font-semibold text-beedero-black">{comment.author_name}</span>
+        <span className="text-xs text-zinc-400">{formatDate(comment.created_at)}</span>
+      </div>
+      <p className="mt-1 text-sm leading-6 text-zinc-700">{comment.body}</p>
+    </div>
+  );
+
+  if (comment.author_handle) {
+    return (
+      <Link
+        href={`/p/${comment.author_handle}`}
+        className="flex min-w-0 flex-1 gap-3 hover:opacity-90"
+      >
+        {avatar}
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      {avatar}
+      {content}
+    </>
   );
 }
 
@@ -101,14 +140,7 @@ export function CommentThread({
               key={comment.id}
               className="flex gap-3 rounded-2xl border border-beedero-border/60 bg-zinc-50/80 p-3"
             >
-              <CommentAvatar name={comment.author_name} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span className="font-semibold text-beedero-black">{comment.author_name}</span>
-                  <span className="text-xs text-zinc-400">{formatDate(comment.created_at)}</span>
-                </div>
-                <p className="mt-1 text-sm leading-6 text-zinc-700">{comment.body}</p>
-              </div>
+              <CommentAuthor comment={comment} />
             </li>
           ))}
         </ul>

@@ -11,7 +11,10 @@ type PersonSummary = {
   id: number;
   name: string;
   headline?: string;
+  handle?: string | null;
+  is_verified?: boolean;
   profile_picture?: string | null;
+  is_following?: boolean;
 };
 
 export default async function DiscoveryPage({
@@ -20,7 +23,7 @@ export default async function DiscoveryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const tab = params.tab === "people" ? "people" : "organizations";
+  const tab = params.tab === "organizations" ? "organizations" : "people";
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   for (const key of ["stage", "sector", "geo", "fundraising", "min_credibility"]) {
@@ -113,16 +116,6 @@ export default async function DiscoveryPage({
 
         <div className="flex gap-2">
           <Link
-            href={`/discovery?${tabQuery("organizations")}`}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
-              tab === "organizations"
-                ? "bg-beedero-black text-beedero-yellow"
-                : "bg-beedero-white text-beedero-black/70 ring-1 ring-beedero-black/10 hover:bg-beedero-yellow/20"
-            }`}
-          >
-            Organizations
-          </Link>
-          <Link
             href={`/discovery?${tabQuery("people")}`}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${
               tab === "people"
@@ -131,6 +124,16 @@ export default async function DiscoveryPage({
             }`}
           >
             People
+          </Link>
+          <Link
+            href={`/discovery?${tabQuery("organizations")}`}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              tab === "organizations"
+                ? "bg-beedero-black text-beedero-yellow"
+                : "bg-beedero-white text-beedero-black/70 ring-1 ring-beedero-black/10 hover:bg-beedero-yellow/20"
+            }`}
+          >
+            Organizations
           </Link>
         </div>
 

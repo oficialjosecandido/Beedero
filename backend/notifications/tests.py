@@ -17,7 +17,7 @@ from .milestones import (
     check_round_closed_milestone,
 )
 from .models import DigestSend, Notification, NotificationPreference
-from .services import notify, notify_milestone
+from .services import notify, notify_milestone, notify_user_followed
 from .views import digest_pixel_token, digest_unsubscribe_token
 
 
@@ -91,6 +91,28 @@ def test_notify_verification_kind_ignores_engagement_preference(owner):
     result = notify(owner, kind=Notification.Kind.VERIFICATION, aggregate_key="k1", title="t", body="b")
 
     assert result is not None
+
+
+@pytest.mark.django_db
+def test_notify_user_followed_creates_follower_notification():
+    from accounts.models import InvestorProfile
+
+    target = User.objects.create_user(username="target", email="target@example.com", password="x")
+    InvestorProfile.objects.create(
+        user=target, full_name="Target User", headline="Founder", country="PT"
+    )
+    actor = User.objects.create_user(username="actor", email="actor@example.com", password="x")
+    InvestorProfile.objects.create(
+        user=actor, full_name="Actor Name", headline="Investor", country="PT"
+    )
+
+    notify_user_followed(target, actor)
+
+    notification = Notification.objects.get(user=target, kind=Notification.Kind.FOLLOWER)
+    assert notification.title == "New follower"
+    assert "Actor Name" in notification.body
+    assert notification.link == "/dashboard"
+    assert notification.aggregate_key == f"user_follow:{target.id}"
 
 
 # --- notify_milestone(): fire-once-forever idempotency ---

@@ -111,6 +111,28 @@ def test_one_comment_per_user(api, outsider, activity):
 
 
 @pytest.mark.django_db
+def test_comment_includes_author_profile_fields(api, outsider, activity):
+    from accounts.models import InvestorProfile
+
+    InvestorProfile.objects.create(
+        user=outsider,
+        full_name="Júlio Pomar",
+        headline="Investor",
+        country="PT",
+        handle="juliopomar",
+    )
+    api.force_authenticate(outsider)
+    api.post(f"/api/activities/{activity.id}/comments/", {"body": "Very well James."}, format="json")
+
+    listing = api.get(f"/api/activities/{activity.id}/comments/")
+    assert listing.status_code == 200
+    item = listing.data["items"][0]
+    assert item["author_name"] == "Júlio Pomar"
+    assert item["author_id"] == outsider.id
+    assert item["author_handle"] == "juliopomar"
+
+
+@pytest.mark.django_db
 def test_comment_cannot_be_deleted(api, outsider, activity):
     api.force_authenticate(outsider)
     created = api.post(f"/api/activities/{activity.id}/comments/", {"body": "hello"}, format="json")

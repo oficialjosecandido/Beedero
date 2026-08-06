@@ -66,8 +66,14 @@ def public_person_profile(handle: str, viewer) -> dict:
                 }
             )
 
-    return {
+    payload = {
         "person": person,
         "attestations": attestations,
         "posts": posts,
     }
+    if viewer and viewer.is_authenticated and viewer.id != profile.user_id:
+        payload["viewer_actions"] = {
+            "can_message": True,
+            "user_id": profile.user_id,
+        }
+    return payload

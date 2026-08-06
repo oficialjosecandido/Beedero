@@ -203,10 +203,15 @@ export async function followOrgAction(formData: FormData) {
 
 export async function followUserAction(formData: FormData) {
   const userId = String(formData.get("user_id"));
-  await apiFetch(`/users/${userId}/follow/`, { method: "POST" });
+  try {
+    await apiFetch(`/users/${userId}/follow/`, { method: "POST" });
+  } catch {
+    return "Could not follow this person.";
+  }
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   revalidatePath("/discovery");
+  return null;
 }
 
 export async function upsertFieldAction(_prevState: string | null, formData: FormData) {

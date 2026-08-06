@@ -1191,7 +1191,11 @@ class FollowUserView(APIView):
         if user_id == request.user.id:
             return Response({"detail": "You cannot follow yourself."}, status=400)
         target = get_object_or_404(get_user_model(), id=user_id)
-        UserFollow.objects.get_or_create(follower=request.user, followed=target)
+        _, created = UserFollow.objects.get_or_create(follower=request.user, followed=target)
+        if created:
+            from notifications.services import notify_user_followed
+
+            notify_user_followed(target, request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -1257,6 +1261,13 @@ class DiscoverPeopleView(APIView):
         has_more = len(page) > limit
         page = page[:limit]
 
+        followed_ids = set(
+            UserFollow.objects.filter(
+                follower=request.user,
+                followed_id__in=[profile.user_id for profile in page],
+            ).values_list("followed_id", flat=True)
+        )
+
         return Response(
             {
                 "items": [
@@ -1267,6 +1278,7 @@ class DiscoverPeopleView(APIView):
                         "handle": profile.handle,
                         "is_verified": profile.is_verified,
                         "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
+                        "is_following": profile.user_id in followed_ids,
                     }
                     for profile in page
                 ],

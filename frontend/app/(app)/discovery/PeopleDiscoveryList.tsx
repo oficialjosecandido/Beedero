@@ -15,13 +15,31 @@ type PersonSummary = {
   handle?: string | null;
   is_verified?: boolean;
   profile_picture?: string | null;
+  is_following?: boolean;
 };
 
 function PersonCard({ person }: { person: PersonSummary }) {
   const [pending, startTransition] = useTransition();
+  const [following, setFollowing] = useState(Boolean(person.is_following));
+  const [error, setError] = useState<string | null>(null);
+
+  function follow() {
+    if (following) return;
+    startTransition(async () => {
+      setError(null);
+      const formData = new FormData();
+      formData.set("user_id", String(person.id));
+      const result = await followUserAction(formData);
+      if (result) {
+        setError(result);
+        return;
+      }
+      setFollowing(true);
+    });
+  }
 
   return (
-    <div className="flex items-center justify-between rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm">
+    <div className="flex flex-col gap-2 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         {person.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -56,20 +74,23 @@ function PersonCard({ person }: { person: PersonSummary }) {
           {person.headline && <p className="text-xs text-zinc-500">{person.headline}</p>}
         </div>
       </div>
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            const formData = new FormData();
-            formData.set("user_id", String(person.id));
-            await followUserAction(formData);
-          })
-        }
-        className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
-      >
-        {pending ? "Following…" : "Follow"}
-      </button>
+      <div className="flex flex-col items-start gap-1 sm:items-end">
+        {following ? (
+          <span className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-semibold text-zinc-600">
+            Following
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={follow}
+            className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
+          >
+            {pending ? "Following…" : "Follow"}
+          </button>
+        )}
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </div>
     </div>
   );
 }

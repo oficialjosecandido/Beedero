@@ -116,6 +116,32 @@ def test_profile_view_recorded(api, person):
 
 
 @pytest.mark.django_db
+def test_public_profile_viewer_actions_for_authenticated_viewer(api, person):
+    viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
+    api.force_authenticate(viewer)
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.status_code == 200
+    actions = res.json()["viewer_actions"]
+    assert actions["can_message"] is True
+    assert actions["user_id"] == person.user_id
+
+
+@pytest.mark.django_db
+def test_public_profile_hides_viewer_actions_for_owner(api, person):
+    api.force_authenticate(person.user)
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.status_code == 200
+    assert "viewer_actions" not in res.json()
+
+
+@pytest.mark.django_db
+def test_public_profile_hides_viewer_actions_for_anonymous(api, person):
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.status_code == 200
+    assert "viewer_actions" not in res.json()
+
+
+@pytest.mark.django_db
 def test_handle_is_assigned_from_full_name(api, db):
     user = User.objects.create_user(username="julio", email="julio@example.com", password="x")
     api.force_authenticate(user)

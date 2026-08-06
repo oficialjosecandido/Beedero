@@ -25,6 +25,9 @@ export type FeedItem = {
 export type Comment = {
   id: number;
   author_name: string;
+  author_id: number;
+  author_handle?: string | null;
+  author_profile_picture?: string | null;
   body: string;
   created_at: string;
 };

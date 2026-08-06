@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ApiError, publicFetch } from "@/lib/api";
+import { PersonProfileActions } from "@/components/PersonProfileActions";
+import { ApiError, apiFetch, publicFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
 import { pageMetadata } from "@/lib/site-metadata";
+import { getAccessToken } from "@/lib/session";
 
 type PublicPerson = {
   person: {
@@ -30,6 +32,10 @@ type PublicPerson = {
     body: string;
     occurred_at: string;
   }[];
+  viewer_actions?: {
+    can_message: boolean;
+    user_id: number;
+  };
 };
 
 const COUNTRY_NAMES = Object.fromEntries(COUNTRIES);
@@ -61,13 +67,16 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
 
   let data: PublicPerson;
   try {
-    data = await publicFetch<PublicPerson>(`/public/people/${handle}/`);
+    const token = await getAccessToken();
+    data = token
+      ? await apiFetch<PublicPerson>(`/public/people/${handle}/`)
+      : await publicFetch<PublicPerson>(`/public/people/${handle}/`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   }
 
-  const { person, attestations, posts } = data;
+  const { person, attestations, posts, viewer_actions } = data;
 
   return (
     <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
@@ -107,6 +116,10 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
 
           {person.bio && (
             <p className="mt-6 text-sm leading-7 text-zinc-700">{person.bio}</p>
+          )}
+
+          {viewer_actions?.can_message && (
+            <PersonProfileActions userId={viewer_actions.user_id} name={person.full_name} />
           )}
 
           {attestations.length > 0 && (
