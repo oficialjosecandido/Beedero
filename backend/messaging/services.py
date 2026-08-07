@@ -8,53 +8,12 @@ from django.utils import timezone
 
 from django.db.models import Q
 
-from orgs.models import OrgMembership, OrgFollow, UserFollow
+from orgs.models import OrgMembership
 
 from .models import Conversation, Message, MessageReport, OrgConversation, OrgMessage, UserBlock
 
 
 BLOCKED_DETAIL = "You can't contact this user."
-CONTACT_GATE_DETAIL = (
-    "Verified investors can reach founders directly. Founders need prior investor interest "
-    "(follow or save) before messaging. Follow this person on Discover to start a conversation."
-)
-
-
-def is_verified_investor(user) -> bool:
-    profile = getattr(user, "investorprofile", None)
-    return bool(profile and profile.is_verified)
-
-
-def user_manages_org(user) -> bool:
-    return OrgMembership.objects.filter(user=user).exists()
-
-
-def investor_has_interest_in_user_orgs(investor, founder) -> bool:
-    founder_org_ids = OrgMembership.objects.filter(user=founder).values_list("org_id", flat=True)
-    if not founder_org_ids:
-        return False
-    if OrgFollow.objects.filter(user=investor, org_id__in=founder_org_ids).exists():
-        return True
-    from analytics.models import InterestSignal
-
-    return InterestSignal.objects.filter(investor=investor, org_id__in=founder_org_ids).exists()
-
-
-def users_are_connected(initiator, target) -> bool:
-    if UserFollow.objects.filter(follower=initiator, followed=target).exists():
-        return True
-    if UserFollow.objects.filter(follower=target, followed=initiator).exists():
-        return True
-    return False
-
-
-def can_initiate_conversation(initiator, target) -> bool:
-    """Option (b): verified investors contact freely; founders need investor interest."""
-    if is_verified_investor(initiator):
-        return True
-    if user_manages_org(initiator) and not user_manages_org(target):
-        return investor_has_interest_in_user_orgs(target, initiator)
-    return users_are_connected(initiator, target)
 
 
 def is_blocked(user_a, user_b) -> bool:

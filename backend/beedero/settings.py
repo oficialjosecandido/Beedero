@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "social",
     "notifications",
     "messaging",
+    "connections",
 ]
 
 MIDDLEWARE = [

@@ -117,3 +117,40 @@ USING (
     blocker_id = current_setting('beedero.viewer_id', true)::int
     OR blocked_id = current_setting('beedero.viewer_id', true)::int
 );
+
+-- Connections (source of truth: connections/migrations/0002_connections_rls.py).
+-- Same shape as messaging_conversation above: a connection request/connection
+-- has no audience beyond the two people it involves. An org connection
+-- request is additionally visible to any member of the org it targets, so
+-- admins can see incoming requests without being a party to them.
+
+ALTER TABLE connections_connectionrequest ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connections_connectionrequest FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY connection_request_participants ON connections_connectionrequest
+USING (
+    requester_id = current_setting('beedero.viewer_id', true)::int
+    OR recipient_id = current_setting('beedero.viewer_id', true)::int
+);
+
+ALTER TABLE connections_connection ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connections_connection FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY connection_participants ON connections_connection
+USING (
+    user_one_id = current_setting('beedero.viewer_id', true)::int
+    OR user_two_id = current_setting('beedero.viewer_id', true)::int
+);
+
+ALTER TABLE connections_orgconnectionrequest ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connections_orgconnectionrequest FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY org_connection_request_visibility ON connections_orgconnectionrequest
+USING (
+    requester_id = current_setting('beedero.viewer_id', true)::int
+    OR EXISTS (
+        SELECT 1 FROM orgs_orgmembership m
+        WHERE m.org_id = connections_orgconnectionrequest.org_id
+          AND m.user_id = current_setting('beedero.viewer_id', true)::int
+    )
+);

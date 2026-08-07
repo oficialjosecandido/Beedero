@@ -34,6 +34,7 @@ type PublicPerson = {
   }[];
   viewer_actions?: {
     can_message: boolean;
+    connection_status: "none" | "pending_sent" | "pending_received" | "connected";
     user_id: number;
   };
 };
@@ -118,8 +119,13 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
             <p className="mt-6 text-sm leading-7 text-zinc-700">{person.bio}</p>
           )}
 
-          {viewer_actions?.can_message && (
-            <PersonProfileActions userId={viewer_actions.user_id} name={person.full_name} />
+          {viewer_actions && (
+            <PersonProfileActions
+              userId={viewer_actions.user_id}
+              name={person.full_name}
+              canMessage={viewer_actions.can_message}
+              connectionStatus={viewer_actions.connection_status}
+            />
           )}
 
           {attestations.length > 0 && (

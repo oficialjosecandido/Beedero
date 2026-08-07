@@ -3,12 +3,18 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from connections.models import Connection, OrgConnectionRequest
 from notifications.models import Notification
-from orgs.models import OrgMembership, Organization, UserFollow
+from orgs.models import OrgMembership, Organization
 
 from .models import Conversation, Message, MessageReport, OrgMessage, UserBlock
 from .services import get_or_create_conversation, get_or_create_org_conversation
 from .views import CONVERSATIONS_PER_DAY, MESSAGES_PER_HOUR, REPORTS_PER_DAY
+
+
+def _connect(user_a, user_b):
+    first, second = sorted([user_a, user_b], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
 
 
 @pytest.fixture(autouse=True)
@@ -39,10 +45,10 @@ def carol(db):
 
 
 @pytest.mark.django_db
-def test_message_contacts_lists_following_and_followers(api, alice, bob, carol):
+def test_message_contacts_lists_connections(api, alice, bob, carol):
     api.force_authenticate(alice)
-    UserFollow.objects.create(follower=alice, followed=bob)
-    UserFollow.objects.create(follower=carol, followed=alice)
+    _connect(alice, bob)
+    _connect(carol, alice)
 
     res = api.get("/api/contacts/")
     assert res.status_code == 200
@@ -52,6 +58,7 @@ def test_message_contacts_lists_following_and_followers(api, alice, bob, carol):
 
 @pytest.mark.django_db
 def test_starting_a_conversation_twice_reuses_the_same_row(api, alice, bob):
+    _connect(alice, bob)
     api.force_authenticate(alice)
 
     first = api.post("/api/conversations/", {"user_id": bob.id}, format="json")
@@ -150,9 +157,11 @@ def test_new_conversation_rate_limit(api, alice):
     api.force_authenticate(alice)
     for i in range(CONVERSATIONS_PER_DAY):
         target = User.objects.create_user(username=f"user{i}", email=f"user{i}@example.com", password="x")
+        _connect(alice, target)
         res = api.post("/api/conversations/", {"user_id": target.id}, format="json")
         assert res.status_code == 201
     extra = User.objects.create_user(username="oneTooMany", email="onetoomany@example.com", password="x")
+    _connect(alice, extra)
     over_limit = api.post("/api/conversations/", {"user_id": extra.id}, format="json")
     assert over_limit.status_code == 429
 
@@ -200,6 +209,13 @@ def test_org_conversation_list_and_reply(api, alice, bob, org):
 
 @pytest.mark.django_db
 def test_external_user_can_start_org_conversation(api, alice, bob, org):
+    OrgConnectionRequest.objects.create(
+        org=org,
+        requester=bob,
+        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
+        created_by=bob,
+        status=OrgConnectionRequest.Status.ACCEPTED,
+    )
     api.force_authenticate(bob)
     res = api.post(f"/api/orgs/{org.slug}/conversations/", {}, format="json")
     assert res.status_code == 201

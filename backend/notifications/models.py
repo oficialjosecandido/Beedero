@@ -14,6 +14,8 @@ class Notification(models.Model):
         PROFILE_VIEWS = "profile_views"
         MILESTONE = "milestone"
         PIPELINE = "pipeline"
+        CONNECTION_REQUEST = "connection_request"
+        CONNECTION_ACCEPTED = "connection_accepted"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE

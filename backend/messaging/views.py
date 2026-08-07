@@ -10,7 +10,8 @@ from rest_framework.views import APIView
 from accounts.models import InvestorProfile
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
-from orgs.models import UserFollow
+from connections.models import Connection
+from connections.services import can_message_directly, can_message_org_directly
 from orgs.permissions import OrgLookupMixin
 
 from .models import Conversation, Message, OrgConversation, OrgMessage, UserBlock
@@ -27,7 +28,6 @@ from .serializers import (
 )
 from .services import (
     block_user,
-    can_initiate_conversation,
     create_report,
     get_or_create_conversation,
     get_or_create_org_conversation,
@@ -49,23 +49,19 @@ MESSAGES_PER_HOUR = 60
 REPORTS_PER_DAY = 20
 
 BLOCKED_DETAIL = "You can't contact this user."
-CONTACT_GATE_DETAIL = (
-    "Verified investors can reach founders directly. Founders need prior investor interest "
-    "(follow or save) before messaging. Follow this person on Discover to start a conversation."
-)
+CONTACT_GATE_DETAIL = "You need to connect first. Send a connection request to start a conversation."
 
 
 class MessageContactsView(APIView):
-    """GET /api/contacts/ — people the viewer follows or who follow them."""
+    """GET /api/contacts/ — people the viewer is connected to."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         viewer = request.user
-        following_ids = UserFollow.objects.filter(follower=viewer).values_list("followed_id", flat=True)
-        follower_ids = UserFollow.objects.filter(followed=viewer).values_list("follower_id", flat=True)
-        contact_ids = set(following_ids) | set(follower_ids)
-        contact_ids.discard(viewer.id)
+        as_one = Connection.objects.filter(user_one=viewer).values_list("user_two_id", flat=True)
+        as_two = Connection.objects.filter(user_two=viewer).values_list("user_one_id", flat=True)
+        contact_ids = set(as_one) | set(as_two)
 
         profiles = {
             profile.user_id: profile
@@ -130,7 +126,7 @@ class ConversationListCreateView(APIView):
         if is_blocked(request.user, target):
             raise PermissionDenied(BLOCKED_DETAIL)
 
-        if not can_initiate_conversation(request.user, target):
+        if not can_message_directly(request.user, target):
             raise PermissionDenied(CONTACT_GATE_DETAIL)
 
         enforce_rate_limit(
@@ -260,6 +256,8 @@ class OrgConversationListCreateView(OrgLookupMixin, APIView):
             if target_id == viewer.id:
                 return Response({"detail": "You can't message yourself."}, status=400)
             target = get_object_or_404(User, pk=target_id)
+            if not can_message_org_directly(target, org):
+                raise PermissionDenied(CONTACT_GATE_DETAIL)
 
             enforce_rate_limit(
                 f"start-org-conversation:{viewer.id}:{org.id}",
@@ -268,6 +266,8 @@ class OrgConversationListCreateView(OrgLookupMixin, APIView):
             )
             conversation = get_or_create_org_conversation(org, target)
         else:
+            if not can_message_org_directly(viewer, org):
+                raise PermissionDenied(CONTACT_GATE_DETAIL)
             enforce_rate_limit(
                 f"start-org-conversation-external:{viewer.id}:{org.id}",
                 limit=CONVERSATIONS_PER_DAY,

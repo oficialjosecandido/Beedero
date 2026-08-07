@@ -157,6 +157,9 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
         slug={data.org.slug}
         isFollowing={data.viewer_is_following ?? false}
         isMember={data.viewer_is_member ?? false}
+        canConnect={Boolean(data.viewer_actions)}
+        canMessage={data.viewer_actions?.can_message ?? false}
+        connectionStatus={data.viewer_actions?.connection_status ?? "none"}
       />
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-3">

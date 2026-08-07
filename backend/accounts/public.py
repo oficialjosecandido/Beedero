@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
 from analytics.models import PersonProfileView
+from connections import services as connections_services
 from orgs.models import Activity
 
 from .attestations import platform_attestations
@@ -73,7 +74,8 @@ def public_person_profile(handle: str, viewer) -> dict:
     }
     if viewer and viewer.is_authenticated and viewer.id != profile.user_id:
         payload["viewer_actions"] = {
-            "can_message": True,
+            "can_message": connections_services.can_message_directly(viewer, profile.user),
+            "connection_status": connections_services.connection_status(viewer, profile.user),
             "user_id": profile.user_id,
         }
     return payload

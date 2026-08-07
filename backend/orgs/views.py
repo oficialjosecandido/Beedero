@@ -149,13 +149,15 @@ def _investor_public_name(user):
 
 
 class PublicOrgProfileView(APIView):
-    """§4: GET /api/public/orgs/<slug>/ — no auth, public fields only."""
+    """§4: GET /api/public/orgs/<slug>/ — public fields only, but
+    viewer-aware (like PublicPersonProfileView) so viewer_is_following/
+    viewer_is_member/viewer_actions reflect who's actually looking."""
 
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []
 
     def get(self, request, slug):
-        return Response(public_profile(slug))
+        viewer = request.user if request.user.is_authenticated else None
+        return Response(public_profile(slug, viewer))
 
 
 class OrgListCreateView(APIView):

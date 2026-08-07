@@ -116,14 +116,31 @@ def test_profile_view_recorded(api, person):
 
 
 @pytest.mark.django_db
-def test_public_profile_viewer_actions_for_authenticated_viewer(api, person):
+def test_public_profile_viewer_actions_for_unconnected_viewer(api, person):
     viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
     api.force_authenticate(viewer)
     res = api.get("/api/public/people/adalovelace/")
     assert res.status_code == 200
     actions = res.json()["viewer_actions"]
-    assert actions["can_message"] is True
+    assert actions["can_message"] is False
+    assert actions["connection_status"] == "none"
     assert actions["user_id"] == person.user_id
+
+
+@pytest.mark.django_db
+def test_public_profile_viewer_actions_for_connected_viewer(api, person):
+    from connections.models import Connection
+
+    viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
+    first, second = sorted([viewer, person.user], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
+
+    api.force_authenticate(viewer)
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.status_code == 200
+    actions = res.json()["viewer_actions"]
+    assert actions["can_message"] is True
+    assert actions["connection_status"] == "connected"
 
 
 @pytest.mark.django_db
