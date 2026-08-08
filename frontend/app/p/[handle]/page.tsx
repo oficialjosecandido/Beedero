@@ -8,6 +8,8 @@ import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
 import { pageMetadata } from "@/lib/site-metadata";
 import { getAccessToken } from "@/lib/session";
+import { engagementLabel, expertiseLabel } from "@/lib/advisory-options";
+import { sectorLabel, stageLabel } from "@/lib/org-filters";
 
 type PublicPerson = {
   person: {
@@ -24,6 +26,8 @@ type PublicPerson = {
     label: string;
     detail: string;
     org_slug?: string;
+    org_name?: string;
+    org_logo?: string | null;
   }[];
   posts: {
     id: number;
@@ -32,6 +36,13 @@ type PublicPerson = {
     body: string;
     occurred_at: string;
   }[];
+  advisor?: {
+    is_available: boolean;
+    expertise: string[];
+    stages: string[];
+    sectors: string[];
+    engagement_types: string[];
+  };
   viewer_actions?: {
     can_message: boolean;
     connection_status: "none" | "pending_sent" | "pending_received" | "connected";
@@ -77,7 +88,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
     throw err;
   }
 
-  const { person, attestations, posts, viewer_actions } = data;
+  const { person, attestations, posts, advisor, viewer_actions } = data;
 
   return (
     <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
@@ -137,22 +148,80 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                 {attestations.map((item) => (
                   <li
                     key={`${item.kind}-${item.label}`}
-                    className="rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3"
+                    className="flex items-center gap-3 rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3"
                   >
                     {item.org_slug ? (
-                      <Link
-                        href={`/o/${item.org_slug}`}
-                        className="font-semibold text-beedero-black hover:underline"
-                      >
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <p className="font-semibold text-beedero-black">{item.label}</p>
-                    )}
-                    <p className="text-xs text-zinc-500">{item.detail}</p>
+                      item.org_logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.org_logo}
+                          alt=""
+                          className="size-10 shrink-0 rounded-xl border border-beedero-border/60 object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-beedero-border/60 bg-beedero-white text-sm font-bold text-beedero-black">
+                          {(item.org_name ?? item.label).charAt(0).toUpperCase()}
+                        </span>
+                      )
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      {item.org_slug ? (
+                        <Link
+                          href={`/o/${item.org_slug}`}
+                          className="font-semibold text-beedero-black hover:underline"
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <p className="font-semibold text-beedero-black">{item.label}</p>
+                      )}
+                      <p className="text-xs text-zinc-500">{item.detail}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {advisor?.is_available && (
+            <section className="mt-8">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
+                Advisory &amp; board
+              </h2>
+              <div className="mt-3 rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3">
+                <p className="text-sm font-semibold text-beedero-black">Open to advisory work</p>
+                {advisor.engagement_types.length > 0 && (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {advisor.engagement_types.map(engagementLabel).join(", ")}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {advisor.expertise.map((value) => (
+                    <span
+                      key={`expertise-${value}`}
+                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
+                    >
+                      {expertiseLabel(value)}
+                    </span>
+                  ))}
+                  {advisor.stages.map((value) => (
+                    <span
+                      key={`stage-${value}`}
+                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
+                    >
+                      {stageLabel(value)}
+                    </span>
+                  ))}
+                  {advisor.sectors.map((value) => (
+                    <span
+                      key={`sector-${value}`}
+                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
+                    >
+                      {sectorLabel(value)}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </section>
           )}
 

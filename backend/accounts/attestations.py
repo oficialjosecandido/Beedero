@@ -34,6 +34,8 @@ def platform_attestations(profile) -> list[dict]:
                     "label": f"{membership.get_role_display()} at {org.name}",
                     "detail": f"Org credibility level {level}" if level else "Organization member",
                     "org_slug": org.slug,
+                    "org_name": org.name,
+                    "org_logo": org.logo.url if org.logo else None,
                 }
             )
 

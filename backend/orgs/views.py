@@ -37,6 +37,7 @@ from .completeness import (
 )
 from .constants import FUNDRAISE_KINDS, SectionKind
 from .discovery import discover, discover_active_this_week, discover_people
+from advisory.discovery import find_advisors
 from .feed import activity_feed_items
 from .models import (
     Activity,
@@ -1283,6 +1284,62 @@ class DiscoverPeopleView(APIView):
                         "is_following": profile.user_id in followed_ids,
                     }
                     for profile in page
+                ],
+                "next_offset": offset + limit if has_more else None,
+            }
+        )
+
+
+class DiscoverAdvisorsView(APIView):
+    """GET /api/discovery/advisors/?q=&expertise=&stage=&sector=&engagement=
+
+    Lists people who've opted into advisory/board/fractional availability,
+    ranked by verified gig count (OrgMembership rows with an advisor-family
+    role at a LIVE org) — never by bio keyword matching."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 20
+    MAX_LIMIT = 50
+
+    def get(self, request):
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        try:
+            offset = max(0, int(request.query_params.get("offset", 0)))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid offset."}, status=400)
+
+        profiles, gig_counts = find_advisors(request.user, request.query_params)
+        page = profiles[offset : offset + limit + 1]
+        has_more = len(page) > limit
+        page = page[:limit]
+
+        return Response(
+            {
+                "items": [
+                    {
+                        "id": advisor_profile.user_id,
+                        "name": advisor_profile.user.investorprofile.full_name,
+                        "headline": advisor_profile.user.investorprofile.headline,
+                        "handle": advisor_profile.user.investorprofile.handle,
+                        "is_verified": advisor_profile.user.investorprofile.is_verified,
+                        "profile_picture": (
+                            advisor_profile.user.investorprofile.profile_picture.url
+                            if advisor_profile.user.investorprofile.profile_picture
+                            else None
+                        ),
+                        "expertise": advisor_profile.expertise,
+                        "stages": advisor_profile.stages,
+                        "sectors": advisor_profile.sectors,
+                        "engagement_types": advisor_profile.engagement_types,
+                        "verified_gig_count": gig_counts.get(advisor_profile.user_id, 0),
+                    }
+                    for advisor_profile in page
                 ],
                 "next_offset": offset + limit if has_more else None,
             }

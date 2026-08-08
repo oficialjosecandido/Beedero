@@ -7,6 +7,7 @@ import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
 import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
 import type { FeedItem } from "@/app/(app)/feed/types";
 import { ProfileForm } from "@/components/ProfileForm";
+import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
@@ -93,6 +94,7 @@ export default async function DashboardPage({
   let profileStats: ProfileStats | null = null;
   let vitality: Vitality | null = null;
   let badgeEmbed: BadgeEmbed | null = null;
+  let advisorProfile: AdvisorProfile | null = null;
   let myPosts: InvestorPost[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let feedItems: FeedItem[] = [];
@@ -114,10 +116,11 @@ export default async function DashboardPage({
     feedItems = feedRes.items;
 
     if (me.investor_profile?.is_complete) {
-      [profileStats, vitality, badgeEmbed] = await Promise.all([
+      [profileStats, vitality, badgeEmbed, advisorProfile] = await Promise.all([
         safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
         safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
         safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
+        safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
       ]);
     }
   } catch (err) {
@@ -150,6 +153,7 @@ export default async function DashboardPage({
               profileStats={profileStats}
               vitality={vitality}
               badgeEmbed={badgeEmbed}
+              advisorProfile={advisorProfile}
               myPosts={myPosts}
               initialTab={initialTab}
             />

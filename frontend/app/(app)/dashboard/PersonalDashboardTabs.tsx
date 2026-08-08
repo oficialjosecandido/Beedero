@@ -12,6 +12,7 @@ import {
 } from "@/components/PersonalProfilePanels";
 import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ProfileForm } from "@/components/ProfileForm";
+import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
 
@@ -140,6 +141,7 @@ export function PersonalDashboardTabs({
   profileStats,
   vitality,
   badgeEmbed,
+  advisorProfile,
   myPosts: initialPosts,
   initialTab,
 }: {
@@ -147,6 +149,7 @@ export function PersonalDashboardTabs({
   profileStats: ProfileStats | null;
   vitality: Vitality | null;
   badgeEmbed: BadgeEmbed | null;
+  advisorProfile: AdvisorProfile | null;
   myPosts: InvestorPost[];
   initialTab?: PersonalTabId;
 }) {
@@ -259,6 +262,7 @@ export function PersonalDashboardTabs({
             <PersonBadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
           )}
           <ProfileForm profile={profile} />
+          <AdvisoryProfileForm profile={advisorProfile} />
         </div>
       )}
     </div>

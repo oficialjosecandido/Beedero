@@ -49,6 +49,9 @@ class OrgMembership(models.Model):
         OWNER = "owner"
         ADMIN = "admin"
         MEMBER = "member"
+        ADVISOR = "advisor", "Advisor"
+        BOARD = "board", "Board member"
+        FRACTIONAL = "fractional", "Fractional executive"
 
     org = models.ForeignKey(Organization, related_name="members", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

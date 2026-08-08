@@ -17,5 +17,6 @@ urlpatterns = [
     path("api/", include("notifications.urls")),
     path("api/", include("messaging.urls")),
     path("api/", include("connections.urls")),
+    path("api/", include("advisory.urls")),
     path("api/internal/run-job/", views.run_management_job),
 ]

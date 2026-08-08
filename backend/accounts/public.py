@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
+from advisory.models import AdvisorProfile
 from analytics.models import PersonProfileView
 from connections import services as connections_services
 from orgs.models import Activity
@@ -72,6 +73,17 @@ def public_person_profile(handle: str, viewer) -> dict:
         "attestations": attestations,
         "posts": posts,
     }
+
+    advisor_profile = AdvisorProfile.objects.filter(user_id=profile.user_id).first()
+    if advisor_profile:
+        payload["advisor"] = {
+            "is_available": advisor_profile.is_available,
+            "expertise": advisor_profile.expertise,
+            "stages": advisor_profile.stages,
+            "sectors": advisor_profile.sectors,
+            "engagement_types": advisor_profile.engagement_types,
+        }
+
     if viewer and viewer.is_authenticated and viewer.id != profile.user_id:
         payload["viewer_actions"] = {
             "can_message": connections_services.can_message_directly(viewer, profile.user),

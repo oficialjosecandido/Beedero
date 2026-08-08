@@ -36,4 +36,5 @@ urlpatterns = [
     path("recommendations/", views.RecommendationView.as_view()),
     path("discovery/", views.DiscoveryView.as_view()),
     path("discovery/people/", views.DiscoverPeopleView.as_view()),
+    path("discovery/advisors/", views.DiscoverAdvisorsView.as_view()),
 ]

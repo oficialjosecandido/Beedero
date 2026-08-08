@@ -92,6 +92,29 @@ def test_attestations_show_membership_when_opted_in(api, person):
 
 
 @pytest.mark.django_db
+def test_attestations_include_org_logo(api, person):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    org.logo = SimpleUploadedFile("logo.png", b"fake", content_type="image/png")
+    org.save(update_fields=["logo"])
+    OrgMembership.objects.create(org=org, user=person.user, role=OrgMembership.Role.OWNER)
+    res = api.get("/api/public/people/adalovelace/")
+    membership = next(a for a in res.json()["attestations"] if a["kind"] == "org_membership")
+    assert membership["org_name"] == "Acme"
+    assert membership["org_logo"] is not None
+
+
+@pytest.mark.django_db
+def test_attestations_show_advisor_role_label(api, person):
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    OrgMembership.objects.create(org=org, user=person.user, role=OrgMembership.Role.ADVISOR)
+    res = api.get("/api/public/people/adalovelace/")
+    membership = next(a for a in res.json()["attestations"] if a["kind"] == "org_membership")
+    assert membership["label"] == "Advisor at Acme"
+
+
+@pytest.mark.django_db
 def test_vitality_is_private_to_owner(api, person):
     api.force_authenticate(person.user)
     res = api.get("/api/investors/me/vitality/")
