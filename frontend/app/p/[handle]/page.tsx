@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PersonProfileActions } from "@/components/PersonProfileActions";
+import { PersonTimeline, type TimelineBand } from "@/components/PersonTimeline";
+import { PersonSkillsSection, type AggregatedSkill } from "@/components/PersonSkillsSection";
+import { PostsShowcase } from "@/components/PostsShowcase";
 import { ApiError, apiFetch, publicFetch } from "@/lib/api";
-import { formatDate } from "@/lib/format";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
 import { pageMetadata } from "@/lib/site-metadata";
@@ -36,6 +38,11 @@ type PublicPerson = {
     body: string;
     occurred_at: string;
   }[];
+  timeline: TimelineBand[];
+  skills?: {
+    free: string[];
+    aggregated: AggregatedSkill[];
+  };
   advisor?: {
     is_available: boolean;
     expertise: string[];
@@ -88,7 +95,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
     throw err;
   }
 
-  const { person, attestations, posts, advisor, viewer_actions } = data;
+  const { person, attestations, posts, timeline, skills, advisor, viewer_actions } = data;
 
   return (
     <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
@@ -183,6 +190,8 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
             </section>
           )}
 
+          <PersonTimeline bands={timeline} />
+
           {advisor?.is_available && (
             <section className="mt-8">
               <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
@@ -225,23 +234,9 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
             </section>
           )}
 
-          {posts.length > 0 && (
-            <section className="mt-8">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">Activity</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {posts.map((post) => (
-                  <li
-                    key={post.id}
-                    className="rounded-xl border border-beedero-border/70 px-4 py-3"
-                  >
-                    <p className="font-semibold text-zinc-900">{post.title}</p>
-                    {post.body && <p className="mt-1 text-sm text-zinc-600">{post.body}</p>}
-                    <p className="mt-1 text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {skills && <PersonSkillsSection free={skills.free} aggregated={skills.aggregated} />}
+
+          <PostsShowcase posts={posts} />
 
           <div className="mt-8 flex items-center gap-3 border-t border-beedero-border pt-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}

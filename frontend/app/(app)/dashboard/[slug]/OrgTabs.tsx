@@ -18,6 +18,7 @@ import {
   updateOrgProfileAction,
   upsertFieldAction,
 } from "../actions";
+import { confirmMembershipSkillAction } from "../membership-skills-actions";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
@@ -54,6 +55,7 @@ type Stats = {
   new_followers?: number;
   profile_views?: number;
 };
+type MembershipSkill = { id: number; skill: string; status: string; confirmed_at?: string | null };
 type Member = {
   id: number;
   email: string;
@@ -62,6 +64,7 @@ type Member = {
   handle?: string | null;
   role: string;
   title?: string;
+  skills?: MembershipSkill[];
 };
 type Invite = {
   id: number;
@@ -957,6 +960,39 @@ function TeamMemberAvatar({ name, profilePicture }: { name: string; profilePictu
   );
 }
 
+function MemberSkills({ slug, member, canManage }: { slug: string; member: Member; canManage: boolean }) {
+  const skills = member.skills ?? [];
+  if (skills.length === 0) return null;
+
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {skills.map((skill) => (
+        <span
+          key={skill.id}
+          className="inline-flex items-center gap-1.5 rounded-full border border-beedero-border bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600"
+        >
+          {skill.skill}
+          {skill.status === "org_confirmed" ? (
+            <span className="text-[10px] font-bold text-emerald-600">confirmed</span>
+          ) : canManage ? (
+            <form action={confirmMembershipSkillAction}>
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="member_id" value={member.id} />
+              <input type="hidden" name="skill_id" value={skill.id} />
+              <button
+                type="submit"
+                className="text-[10px] font-bold text-beedero-black underline underline-offset-2 hover:text-beedero-black/70"
+              >
+                Confirm
+              </button>
+            </form>
+          ) : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function TeamSection({ slug, members, canManage }: { slug: string; members: Member[]; canManage: boolean }) {
   return (
     <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -990,6 +1026,7 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
                 <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
                   {membershipAccessLabel(member.role)}
                 </p>
+                <MemberSkills slug={slug} member={member} canManage={canManage} />
               </div>
             </div>
             {canManage ? (

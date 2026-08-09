@@ -7,14 +7,13 @@ import { useActionToast } from "@/lib/use-action-toast";
 
 const POST_KIND_OPTIONS = [
   { value: "milestone", label: "Milestone" },
-  { value: "event", label: "Event" },
   { value: "update", label: "Update" },
 ];
 
 export function InvestorPostForm() {
   const [error, formAction, pending] = useActionState(createInvestorPostAction, null);
   const [kind, setKind] = useState(POST_KIND_OPTIONS[0].value);
-  const allowsPhoto = kind === "event" || kind === "update";
+  const allowsPhoto = kind === "update";
   useActionToast(error, pending, { successMessage: "Post published!" });
 
   return (

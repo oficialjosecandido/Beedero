@@ -10,11 +10,15 @@ import { useActionToast } from "@/lib/use-action-toast";
 
 type Visibility = Record<string, string>;
 type AttestationPrefs = Record<string, boolean>;
+type ProfileLink = { label: string; url: string };
 
 type Profile = {
   full_name?: string;
   headline?: string;
   bio?: string;
+  manifesto?: string;
+  links?: ProfileLink[];
+  skills?: string[];
   country?: string;
   profile_picture?: string | null;
   handle?: string | null;
@@ -28,11 +32,132 @@ type Profile = {
 };
 
 const VISIBILITY_SECTIONS = [
-  { key: "bio", label: "Bio", hint: "Your about text" },
+  { key: "bio", label: "Bio", hint: "Your about text, manifesto, and links" },
   { key: "country", label: "Country", hint: "Where you're based" },
+  { key: "skills", label: "Skills", hint: "Your skills cloud" },
   { key: "posts", label: "Activity posts", hint: "Updates and milestones" },
   { key: "attestations", label: "Platform facts", hint: "Memberships and stats" },
 ] as const;
+
+const MANIFESTO_MAX = 600;
+
+function ManifestoInput({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial);
+
+  return (
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+      Manifesto <span className="font-normal text-zinc-400">(optional)</span>
+      <textarea
+        name="manifesto"
+        rows={4}
+        maxLength={MANIFESTO_MAX}
+        placeholder="What you stand for — your longer-form statement."
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        className={`${fieldClass} min-h-[6rem] resize-y`}
+      />
+      <span className="self-end text-xs text-zinc-400">
+        {value.length}/{MANIFESTO_MAX}
+      </span>
+    </label>
+  );
+}
+
+let linkRowSeq = 0;
+
+function LinksInput({ initial }: { initial: ProfileLink[] }) {
+  const [rows, setRows] = useState(() =>
+    (initial.length ? initial : [{ label: "", url: "" }]).map((link) => ({
+      id: linkRowSeq++,
+      label: link.label,
+      url: link.url,
+    }))
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.map((row) => (
+        <div key={row.id} className="flex gap-2">
+          <input
+            name="link_label"
+            defaultValue={row.label}
+            placeholder="Label (e.g. Site)"
+            className={`${fieldClass} w-2/5`}
+          />
+          <input
+            name="link_url"
+            defaultValue={row.url}
+            placeholder="https://..."
+            className={fieldClass}
+          />
+          <button
+            type="button"
+            onClick={() => setRows((current) => current.filter((r) => r.id !== row.id))}
+            className="shrink-0 rounded-lg border border-beedero-border px-2.5 text-xs font-semibold text-zinc-500 hover:border-beedero-black hover:text-beedero-black"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => setRows((current) => [...current, { id: linkRowSeq++, label: "", url: "" }])}
+        className="self-start text-xs font-semibold text-beedero-black underline underline-offset-2"
+      >
+        + Add link
+      </button>
+    </div>
+  );
+}
+
+export function SkillsInput({ initial }: { initial: string[] }) {
+  const [skills, setSkills] = useState(initial);
+  const [draft, setDraft] = useState("");
+
+  function commitDraft() {
+    const value = draft.trim();
+    setDraft("");
+    if (!value) return;
+    setSkills((current) => (current.some((s) => s.toLowerCase() === value.toLowerCase()) ? current : [...current, value]));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {skills.map((skill) => <input key={skill} type="hidden" name="skills" value={skill} />)}
+      <div className="flex flex-wrap gap-1.5">
+        {skills.map((skill) => (
+          <span
+            key={skill}
+            className="inline-flex items-center gap-1.5 rounded-full border border-beedero-border bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700"
+          >
+            {skill}
+            <button
+              type="button"
+              onClick={() => setSkills((current) => current.filter((s) => s !== skill))}
+              className="text-zinc-400 hover:text-beedero-black"
+              aria-label={`Remove ${skill}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+      <input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === ",") {
+            event.preventDefault();
+            commitDraft();
+          }
+        }}
+        onBlur={commitDraft}
+        placeholder="Type a skill and press Enter"
+        className={fieldClass}
+      />
+    </div>
+  );
+}
 
 const VISIBILITY_OPTIONS = [
   { value: "public", label: "Public" },
@@ -179,6 +304,19 @@ export function ProfileForm({
                 className={`${fieldClass} min-h-[8rem] resize-y`}
               />
             </label>
+            <ManifestoInput initial={profile?.manifesto ?? ""} />
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium text-zinc-700">
+                Links <span className="font-normal text-zinc-400">(optional)</span>
+              </p>
+              <LinksInput initial={profile?.links ?? []} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium text-zinc-700">
+                Skills <span className="font-normal text-zinc-400">(optional)</span>
+              </p>
+              <SkillsInput initial={profile?.skills ?? []} />
+            </div>
             <div className="rounded-2xl border border-beedero-border bg-zinc-50/50 p-4">
               <p className="text-sm font-semibold text-zinc-800">Profile photo</p>
               <p className="mt-0.5 text-xs text-zinc-400">Optional — shown on your profile and in the sidebar.</p>

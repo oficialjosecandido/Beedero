@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { FaRegCalendarAlt, FaRegFileAlt, FaTrophy } from "react-icons/fa";
+import { FaRegFileAlt, FaTrophy } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 import { createInvestorPostAction } from "@/app/(app)/dashboard/actions";
@@ -11,13 +11,11 @@ import { useActionToast } from "@/lib/use-action-toast";
 
 const POST_KIND_OPTIONS = [
   { value: "milestone", label: "Milestone" },
-  { value: "event", label: "Event" },
   { value: "update", label: "Update" },
 ];
 
 const COMPOSER_ACTIONS: { value: string; label: string; icon: IconType; color: string }[] = [
   { value: "milestone", label: "Milestone", icon: FaTrophy, color: "text-amber-500" },
-  { value: "event", label: "Event", icon: FaRegCalendarAlt, color: "text-sky-600" },
   { value: "update", label: "Update", icon: FaRegFileAlt, color: "text-emerald-600" },
 ];
 
@@ -74,8 +72,7 @@ export function FeedComposer({
   const [error, formAction, pending] = useActionState(createInvestorPostAction, null);
   const [kind, setKind] = useState(POST_KIND_OPTIONS[0].value);
   const prevPending = useRef(false);
-  const allowsPhoto = kind === "event" || kind === "update";
-  const isEvent = kind === "event";
+  const allowsPhoto = kind === "update";
   useActionToast(error, pending, { successMessage: "Post published!" });
 
   function openWithKind(value: string) {
@@ -225,28 +222,6 @@ export function FeedComposer({
                   className="min-w-[12rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </div>
-              {isEvent && (
-                <div className="flex flex-wrap gap-2">
-                  <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-                    Start
-                    <input
-                      type="datetime-local"
-                      name="starts_at"
-                      required
-                      className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-                    End
-                    <input
-                      type="datetime-local"
-                      name="ends_at"
-                      required
-                      className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                    />
-                  </label>
-                </div>
-              )}
               <textarea
                 name="body"
                 placeholder="Say more…"

@@ -7,6 +7,7 @@ from rest_framework import serializers
 from .constants import ACTIVITY_KINDS, SectionKind
 from .models import (
     FundraiseRound,
+    MembershipSkill,
     Organization,
     OrgFollow,
     OrgInvite,
@@ -168,16 +169,45 @@ class FeedPostSerializer(serializers.Serializer):
         )
 
 
+class MembershipSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipSkill
+        fields = ["id", "skill", "status", "confirmed_at"]
+        read_only_fields = ["id", "status", "confirmed_at"]
+
+
 class OrgMembershipSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     full_name = serializers.SerializerMethodField()
     profile_picture = serializers.SerializerMethodField()
     handle = serializers.SerializerMethodField()
+    skills = MembershipSkillSerializer(source="skills_used", many=True, read_only=True)
 
     class Meta:
         model = OrgMembership
-        fields = ["id", "email", "full_name", "profile_picture", "handle", "role", "title"]
-        read_only_fields = ["id", "email", "full_name", "profile_picture", "handle", "role"]
+        fields = [
+            "id",
+            "email",
+            "full_name",
+            "profile_picture",
+            "handle",
+            "role",
+            "title",
+            "started_on",
+            "ended_on",
+            "skills",
+        ]
+        read_only_fields = [
+            "id",
+            "email",
+            "full_name",
+            "profile_picture",
+            "handle",
+            "role",
+            "started_on",
+            "ended_on",
+            "skills",
+        ]
 
     def get_full_name(self, obj):
         profile = getattr(obj.user, "investorprofile", None)

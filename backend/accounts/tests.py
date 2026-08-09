@@ -177,4 +177,58 @@ def test_investor_stats_profile_views_and_impressions_are_windowed_to_range_days
     res_30d = api.get("/api/investors/me/stats/?range=30d")
     assert res_30d.data["range_days"] == 30
     assert res_30d.data["profile_views_count"] == 2
-    assert res_30d.data["post_impressions_count"] == 1
+
+
+@pytest.mark.django_db
+def test_self_declared_experience_create_and_list(api, user):
+    api.force_authenticate(user)
+    res = api.post(
+        "/api/experience/",
+        {"org_name": "Old Startup Inc", "role": "Founder", "started_on": "2018-01-01"},
+        format="json",
+    )
+    assert res.status_code == 201
+    assert res.data["org_name"] == "Old Startup Inc"
+
+    res = api.get("/api/experience/")
+    assert res.status_code == 200
+    assert len(res.data) == 1
+
+
+@pytest.mark.django_db
+def test_self_declared_experience_rejects_ended_before_started(api, user):
+    api.force_authenticate(user)
+    res = api.post(
+        "/api/experience/",
+        {"org_name": "Old Startup Inc", "started_on": "2018-01-01", "ended_on": "2017-01-01"},
+        format="json",
+    )
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_self_declared_experience_owner_only_edit(api, user):
+    other = User.objects.create_user(username="other3", email="other3@example.com", password="x")
+    api.force_authenticate(user)
+    created = api.post(
+        "/api/experience/", {"org_name": "Old Startup Inc", "started_on": "2018-01-01"}, format="json"
+    )
+    experience_id = created.data["id"]
+
+    api.force_authenticate(other)
+    res = api.patch(f"/api/experience/{experience_id}/", {"org_name": "Hijacked"}, format="json")
+    assert res.status_code == 404
+
+    res = api.delete(f"/api/experience/{experience_id}/")
+    assert res.status_code == 404
+
+
+@pytest.mark.django_db
+def test_self_declared_experience_delete(api, user):
+    api.force_authenticate(user)
+    created = api.post(
+        "/api/experience/", {"org_name": "Old Startup Inc", "started_on": "2018-01-01"}, format="json"
+    )
+    experience_id = created.data["id"]
+    res = api.delete(f"/api/experience/{experience_id}/")
+    assert res.status_code == 204

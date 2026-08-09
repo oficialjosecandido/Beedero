@@ -146,10 +146,11 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   }
   body.set("headline", formData.get("headline") ?? "");
   body.set("bio", formData.get("bio") ?? "");
+  body.set("manifesto", formData.get("manifesto") ?? "");
   body.set("country", formData.get("country") ?? "");
 
   const visibility: Record<string, string> = {};
-  for (const key of ["bio", "country", "posts", "attestations"]) {
+  for (const key of ["bio", "country", "skills", "posts", "attestations"]) {
     const value = formData.get(`visibility_${key}`);
     if (value) visibility[key] = String(value);
   }
@@ -173,6 +174,16 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   if (stageFocus.length) body.set("stage_focus", JSON.stringify(stageFocus));
   if (sectorFocus.length) body.set("sector_focus", JSON.stringify(sectorFocus));
   if (geoFocus.length) body.set("geo_focus", JSON.stringify(geoFocus));
+
+  const linkLabels = formData.getAll("link_label").map((value) => String(value).trim());
+  const linkUrls = formData.getAll("link_url").map((value) => String(value).trim());
+  const links = linkLabels
+    .map((label, index) => ({ label, url: linkUrls[index] ?? "" }))
+    .filter((link) => link.label && link.url);
+  body.set("links", JSON.stringify(links));
+
+  const skills = parseList("skills");
+  body.set("skills", JSON.stringify(skills));
 
   const checkMin = formData.get("check_min");
   const checkMax = formData.get("check_max");
@@ -439,15 +450,8 @@ export async function createInvestorPostAction(_prevState: string | null, formDa
   body.set("kind", kind);
   body.set("title", String(formData.get("title")));
   body.set("body", String(formData.get("body") ?? ""));
-  if (kind === "event") {
-    const startsAt = formData.get("starts_at");
-    const endsAt = formData.get("ends_at");
-    body.set("occurred_at", new Date(String(startsAt)).toISOString());
-    body.set("ends_at", new Date(String(endsAt)).toISOString());
-  } else {
-    body.set("occurred_at", new Date().toISOString());
-  }
-  if (kind === "event" || kind === "update") {
+  body.set("occurred_at", new Date().toISOString());
+  if (kind === "update") {
     const image = formData.get("image");
     if (image instanceof File && image.size > 0) {
       body.set("image", image);

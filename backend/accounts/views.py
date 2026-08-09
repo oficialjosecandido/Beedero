@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
@@ -14,8 +15,13 @@ from social.services import reaction_counts_for
 
 from .badge import person_badge_embed_html
 from .handles import ensure_profile_handle
-from .models import InvestorProfile
-from .serializers import InvestorPostSerializer, InvestorProfileSerializer, MeSerializer
+from .models import InvestorProfile, SelfDeclaredExperience
+from .serializers import (
+    InvestorPostSerializer,
+    InvestorProfileSerializer,
+    MeSerializer,
+    SelfDeclaredExperienceSerializer,
+)
 from .vitality import person_vitality_state
 
 
@@ -195,3 +201,36 @@ class InvestorProfileView(APIView):
         ensure_profile_handle(profile)
         profile.refresh_from_db()
         return Response(InvestorProfileSerializer(profile).data)
+
+
+class SelfDeclaredExperienceListCreateView(APIView):
+    """A person's self-declared, unverified past affiliations — free-text
+    org name, shown as a dashed band on the timeline (accounts/timeline.py)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        experiences = SelfDeclaredExperience.objects.filter(user=request.user)
+        return Response(SelfDeclaredExperienceSerializer(experiences, many=True).data)
+
+    def post(self, request):
+        serializer = SelfDeclaredExperienceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=201)
+
+
+class SelfDeclaredExperienceDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, experience_id):
+        experience = get_object_or_404(SelfDeclaredExperience, id=experience_id, user=request.user)
+        serializer = SelfDeclaredExperienceSerializer(experience, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, experience_id):
+        experience = get_object_or_404(SelfDeclaredExperience, id=experience_id, user=request.user)
+        experience.delete()
+        return Response(status=204)

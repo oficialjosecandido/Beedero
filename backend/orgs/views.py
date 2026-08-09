@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import slugify
 from django.utils import timezone
 from rest_framework import permissions, serializers, status
@@ -22,6 +22,7 @@ from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
+from accounts.skills import normalize_skills
 from social.services import (
     reaction_counts_for,
     viewer_has_commented_for,
@@ -42,6 +43,7 @@ from .feed import activity_feed_items
 from .models import (
     Activity,
     FundraiseRound,
+    MembershipSkill,
     OrgField,
     OrgFollow,
     OrgInvite,
@@ -65,6 +67,7 @@ from .posting.services import (
 from .public import public_profile
 from .serializers import (
     FundraiseRoundSerializer,
+    MembershipSkillSerializer,
     OrgFieldWriteSerializer,
     OrgInviteSerializer,
     OrgMembershipSerializer,
@@ -506,6 +509,24 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             member.title = title
             updated_fields.append("title")
 
+        if "started_on" in request.data:
+            started_on = parse_date(str(request.data.get("started_on") or ""))
+            if not started_on:
+                return Response({"detail": "Invalid started_on date."}, status=400)
+            member.started_on = started_on
+            updated_fields.append("started_on")
+
+        if "ended_on" in request.data:
+            raw_ended_on = request.data.get("ended_on")
+            if raw_ended_on in (None, ""):
+                member.ended_on = None
+            else:
+                ended_on = parse_date(str(raw_ended_on))
+                if not ended_on:
+                    return Response({"detail": "Invalid ended_on date."}, status=400)
+                member.ended_on = ended_on
+            updated_fields.append("ended_on")
+
         role = request.data.get("role")
         if role is not None:
             if role not in OrgMembership.Role.values:
@@ -531,6 +552,68 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             return blocked
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+MEMBERSHIP_SKILLS_CAP = 10
+
+
+class MembershipSkillListCreateView(OrgLookupMixin, APIView):
+    """POST /api/orgs/<slug>/members/<id>/skills/ — the member declares a
+    skill they used at this org. Self-only: this is the person speaking for
+    themselves, not the org acting on them (confirming is a separate,
+    admin-only endpoint below)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug, member_id):
+        org = self.get_org()
+        member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        if member.user_id != request.user.id:
+            return Response({"detail": "You can only declare your own skills."}, status=403)
+
+        normalized = normalize_skills([request.data.get("skill", "")])
+        if not normalized:
+            return Response({"detail": "Invalid skill."}, status=400)
+        skill = normalized[0]
+
+        if member.skills_used.count() >= MEMBERSHIP_SKILLS_CAP:
+            return Response({"detail": "Skill limit reached for this membership."}, status=400)
+        if member.skills_used.filter(skill__iexact=skill).exists():
+            return Response({"detail": "Skill already declared."}, status=400)
+
+        membership_skill = MembershipSkill.objects.create(membership=member, skill=skill)
+        return Response(MembershipSkillSerializer(membership_skill).data, status=201)
+
+
+class MembershipSkillDetailView(OrgLookupMixin, APIView):
+    """DELETE .../skills/<skill_id>/ — retract a self-declared skill. Self-only."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, slug, member_id, skill_id):
+        org = self.get_org()
+        member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        if member.user_id != request.user.id:
+            return Response({"detail": "You can only remove your own skills."}, status=403)
+        skill = get_object_or_404(MembershipSkill, id=skill_id, membership=member)
+        skill.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MembershipSkillConfirmView(OrgLookupMixin, APIView):
+    """POST .../skills/<skill_id>/confirm/ — an org owner/admin vouches for a
+    declared skill, moving it to the org_confirmed provenance tier."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug, member_id, skill_id):
+        org = self.get_org()
+        member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        skill = get_object_or_404(MembershipSkill, id=skill_id, membership=member)
+        skill.status = MembershipSkill.Status.ORG_CONFIRMED
+        skill.confirmed_at = timezone.now()
+        skill.save(update_fields=["status", "confirmed_at"])
+        return Response(MembershipSkillSerializer(skill).data)
 
 
 class OrgInviteListCreateView(OrgLookupMixin, APIView):

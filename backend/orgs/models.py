@@ -1,4 +1,5 @@
 import secrets
+from datetime import date
 
 from django.conf import settings
 from django.db import models
@@ -57,9 +58,36 @@ class OrgMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     title = models.CharField(max_length=120, blank=True, default="")
+    # Relationship window shown on the person's timeline (accounts/timeline.py).
+    # Removing a member still hard-deletes (see delete()); setting ended_on is
+    # the way to mark an engagement concluded while keeping it in the timeline.
+    started_on = models.DateField(default=date.today)
+    ended_on = models.DateField(null=True, blank=True)
 
     class Meta:
         unique_together = ("org", "user")
+
+
+class MembershipSkill(models.Model):
+    """A skill the member declares they used in this affiliation — anchored
+    to a real OrgMembership, so it carries the relationship's own dates as
+    context even before an org admin confirms it (accounts/timeline.py §5)."""
+
+    membership = models.ForeignKey(OrgMembership, related_name="skills_used", on_delete=models.CASCADE)
+    skill = models.CharField(max_length=40)
+
+    class Status(models.TextChoices):
+        DECLARED = "declared"
+        ORG_CONFIRMED = "org_confirmed"
+
+    status = models.CharField(max_length=14, choices=Status.choices, default=Status.DECLARED)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["membership", "skill"], name="uniq_membership_skill"),
+        ]
 
 
 class OrgInvite(models.Model):

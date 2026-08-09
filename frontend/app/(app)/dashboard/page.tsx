@@ -8,6 +8,7 @@ import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
 import type { FeedItem } from "@/app/(app)/feed/types";
 import { ProfileForm } from "@/components/ProfileForm";
 import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
+import type { Experience } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
@@ -29,7 +30,9 @@ type InvestorProfile = {
   is_complete?: boolean;
   is_verified?: boolean;
 };
-type Me = { email: string; investor_profile: InvestorProfile | null };
+type MembershipSkill = { id: number; skill: string; status: string };
+type PersonMembership = { id: number; org: string; role: string; skills: MembershipSkill[] };
+type Me = { email: string; investor_profile: InvestorProfile | null; memberships: PersonMembership[] };
 type InvestorPost = {
   id: number;
   kind: string;
@@ -95,6 +98,7 @@ export default async function DashboardPage({
   let vitality: Vitality | null = null;
   let badgeEmbed: BadgeEmbed | null = null;
   let advisorProfile: AdvisorProfile | null = null;
+  let experiences: Experience[] = [];
   let myPosts: InvestorPost[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let feedItems: FeedItem[] = [];
@@ -116,11 +120,12 @@ export default async function DashboardPage({
     feedItems = feedRes.items;
 
     if (me.investor_profile?.is_complete) {
-      [profileStats, vitality, badgeEmbed, advisorProfile] = await Promise.all([
+      [profileStats, vitality, badgeEmbed, advisorProfile, experiences] = await Promise.all([
         safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
         safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
         safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
         safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
+        safeFetch(apiFetch<Experience[]>("/experience/"), [] as Experience[]),
       ]);
     }
   } catch (err) {
@@ -133,6 +138,10 @@ export default async function DashboardPage({
     .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
 
   const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, feedItems);
+  const memberships = me.memberships.map((m) => ({
+    ...m,
+    orgName: orgs.find((o) => o.slug === m.org)?.name ?? m.org,
+  }));
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
@@ -154,6 +163,8 @@ export default async function DashboardPage({
               vitality={vitality}
               badgeEmbed={badgeEmbed}
               advisorProfile={advisorProfile}
+              experiences={experiences}
+              memberships={memberships}
               myPosts={myPosts}
               initialTab={initialTab}
             />

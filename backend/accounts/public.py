@@ -12,6 +12,7 @@ from orgs.models import Activity
 
 from .attestations import platform_attestations
 from .models import InvestorProfile
+from .timeline import aggregate_anchored_skills, person_timeline
 from .visibility import PersonVisibilityResolver
 
 PROFILE_VIEW_DEDUPE_HOURS = 24
@@ -48,6 +49,10 @@ def public_person_profile(handle: str, viewer) -> dict:
     }
     if resolver.can_see("bio") and profile.bio:
         person["bio"] = profile.bio
+    if resolver.can_see("bio") and profile.manifesto:
+        person["manifesto"] = profile.manifesto
+    if resolver.can_see("bio") and profile.links:
+        person["links"] = profile.links
     if resolver.can_see("country") and profile.country:
         person["country"] = profile.country
 
@@ -72,7 +77,13 @@ def public_person_profile(handle: str, viewer) -> dict:
         "person": person,
         "attestations": attestations,
         "posts": posts,
+        "timeline": person_timeline(profile, viewer),
     }
+    if resolver.can_see("skills"):
+        payload["skills"] = {
+            "free": profile.skills,
+            "aggregated": aggregate_anchored_skills(profile),
+        }
 
     advisor_profile = AdvisorProfile.objects.filter(user_id=profile.user_id).first()
     if advisor_profile:
