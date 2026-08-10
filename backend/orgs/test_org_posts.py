@@ -1,4 +1,5 @@
 import pytest
+from datetime import timedelta
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -87,14 +88,16 @@ def test_second_post_same_lisbon_day_returns_429(api, org, founder):
 
 @pytest.mark.django_db
 def test_level_zero_can_post_event(api, org, founder):
+    starts_at = timezone.now() + timedelta(days=30)
+    ends_at = starts_at + timedelta(hours=2)
     api.force_authenticate(founder)
     res = api.post(
         f"/api/orgs/{org.slug}/posts/",
         {
             "kind": "event",
             "title": "Demo",
-            "starts_at": "2026-07-20T10:00:00Z",
-            "ends_at": "2026-07-20T12:00:00Z",
+            "starts_at": starts_at.isoformat(),
+            "ends_at": ends_at.isoformat(),
             "format": "online",
         },
         format="json",

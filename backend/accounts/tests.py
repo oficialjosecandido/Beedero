@@ -121,11 +121,13 @@ def test_investor_posts_include_engagement_metrics(api, user):
 
 @pytest.mark.django_db
 def test_investor_stats_returns_profile_kpis(api, user):
+    from social.models import Reaction
+
     follower = User.objects.create_user(
         username="follower@example.com", email="follower@example.com", password="pw"
     )
     UserFollow.objects.create(follower=follower, followed=user)
-    Activity.objects.create(
+    activity = Activity.objects.create(
         author=user,
         org=None,
         kind="update",
@@ -134,6 +136,13 @@ def test_investor_stats_returns_profile_kpis(api, user):
         occurred_at=timezone.now(),
         reaction_count=3,
     )
+    for i, kind in enumerate((Reaction.Kind.LIKE, Reaction.Kind.INSIGHT, Reaction.Kind.CONGRATS)):
+        reactor = User.objects.create_user(
+            username=f"reactor{i}@example.com",
+            email=f"reactor{i}@example.com",
+            password="pw",
+        )
+        Reaction.objects.create(activity=activity, user=reactor, kind=kind)
 
     api.force_authenticate(user)
     res = api.get("/api/investors/me/stats/")

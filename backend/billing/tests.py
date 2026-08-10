@@ -23,7 +23,10 @@ def _complete_org(org):
     """Fills every REFUND_REQUIREMENTS section so is_refund_eligible(org) is True."""
     org.logo = "org_logos/acme.png"
     org.save(update_fields=["logo"])
-    for kind in (SectionKind.ABOUT, SectionKind.PRODUCTS, SectionKind.MARKET_THESIS):
+    about_section = org.sections.get(kind=SectionKind.ABOUT)
+    for key in ("summary", "mission", "vision", "values"):
+        OrgField.objects.create(section=about_section, key=key, value="v")
+    for kind in (SectionKind.PRODUCTS, SectionKind.MARKET_THESIS):
         section = org.sections.get(kind=kind)
         OrgField.objects.create(section=section, key="k", value="v")
     user = User.objects.create_user(username="owner", email="owner@acme.com", password="x")

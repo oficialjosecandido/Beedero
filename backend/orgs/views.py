@@ -1097,20 +1097,30 @@ class FeedView(APIView):
 
         suggested_ids: set[int] = set()
         if cursor is None and len(activities) < 5:
-            existing_ids = {a.id for a in activities}
-            needed = 5 - len(activities)
-            fallback = (
-                Activity.objects.filter(
-                    org__isnull=False,
-                    org__status=Organization.Status.LIVE,
-                    visibility=Visibility.PUBLIC,
+            feed_total = len(
+                list(
+                    activity_feed_items(
+                        request.user, followed_org_ids, followed_user_ids, limit=5, cursor=None
+                    )
                 )
-                .exclude(id__in=existing_ids)
-                .select_related("org", "author", "author__investorprofile")
-                .order_by("-created_at", "-id")[:needed]
             )
-            suggested_ids = {a.id for a in fallback}
-            activities = list(activities) + list(fallback)
+            if feed_total < 5:
+                existing_ids = {a.id for a in activities}
+                needed = 5 - len(activities)
+                followed_org_set = set(followed_org_ids)
+                fallback = (
+                    Activity.objects.filter(
+                        org__isnull=False,
+                        org__status=Organization.Status.LIVE,
+                        visibility=Visibility.PUBLIC,
+                    )
+                    .exclude(id__in=existing_ids)
+                    .exclude(org_id__in=followed_org_set)
+                    .select_related("org", "author", "author__investorprofile")
+                    .order_by("-created_at", "-id")[:needed]
+                )
+                suggested_ids = {a.id for a in fallback}
+                activities = list(activities) + list(fallback)
 
         viewer_reactions = viewer_reactions_for(request.user, [a.id for a in activities])
         reaction_counts = reaction_counts_for([a.id for a in activities])
