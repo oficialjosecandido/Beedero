@@ -162,6 +162,7 @@ export function SkillsInput({ initial }: { initial: string[] }) {
 const VISIBILITY_OPTIONS = [
   { value: "public", label: "Public" },
   { value: "verified_investors", label: "Verified only" },
+  { value: "connections", label: "Connections" },
   { value: "private", label: "Private" },
 ] as const;
 

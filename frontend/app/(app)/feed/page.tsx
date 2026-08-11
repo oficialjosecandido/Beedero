@@ -35,6 +35,7 @@ type InvestorProfile = {
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
 type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
+type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
 
 export default async function FeedPage() {
   let items: FeedItem[];
@@ -46,12 +47,13 @@ export default async function FeedPage() {
   let trending: TrendingItem[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let stats: ProfileStats | null = null;
+  let network: NetworkCounts | null = null;
   let vitality: Vitality | null = null;
   let recommendations: { organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] } = {
     organizations: [],
   };
   try {
-    const [feed, meRes, orgsRes, posts, trendingRes, updatesRes, statsRes, recRes] = await Promise.all([
+    const [feed, meRes, orgsRes, posts, trendingRes, updatesRes, statsRes, recRes, networkRes] = await Promise.all([
       apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
@@ -62,6 +64,7 @@ export default async function FeedPage() {
       safeFetch(apiFetch<{ organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] }>("/recommendations/"), {
         organizations: [],
       }),
+      safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;
@@ -71,6 +74,7 @@ export default async function FeedPage() {
     recentOrgUpdates = updatesRes.items;
     stats = statsRes;
     recommendations = recRes;
+    network = networkRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
     if (!me.investor_profile?.is_complete) {
@@ -94,7 +98,7 @@ export default async function FeedPage() {
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
       <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
         <div className="order-1 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} />
+          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} network={network} />
         </div>
 
         <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">

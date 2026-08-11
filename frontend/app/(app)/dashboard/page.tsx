@@ -74,6 +74,7 @@ type BadgeEmbed = {
   badge_url: string;
   json_url: string;
 };
+type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
 
 const PERSONAL_TABS = ["kpis", "posts", "saved", "settings"] as const;
 
@@ -102,8 +103,9 @@ export default async function DashboardPage({
   let myPosts: InvestorPost[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let feedItems: FeedItem[] = [];
+  let network: NetworkCounts | null = null;
   try {
-    const [meRes, orgsRes, posts, updatesRes, feedRes] = await Promise.all([
+    const [meRes, orgsRes, posts, updatesRes, feedRes, networkRes] = await Promise.all([
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
@@ -112,12 +114,14 @@ export default async function DashboardPage({
         items: [],
         next_cursor: null,
       }),
+      safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
     ]);
     me = meRes;
     orgs = orgsRes;
     myPosts = posts;
     recentOrgUpdates = updatesRes.items;
     feedItems = feedRes.items;
+    network = networkRes;
 
     if (me.investor_profile?.is_complete) {
       [profileStats, vitality, badgeEmbed, advisorProfile, experiences] = await Promise.all([
@@ -147,7 +151,7 @@ export default async function DashboardPage({
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
       <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
         <div className="order-1 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} stats={profileStats} />
+          <ProfileColumn me={me} orgs={orgs} events={events} stats={profileStats} network={network} />
         </div>
 
         <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">

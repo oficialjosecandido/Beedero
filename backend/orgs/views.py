@@ -1279,6 +1279,11 @@ class FollowOrgView(APIView):
             check_follower_milestone(org)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def delete(self, request, slug):
+        org = get_object_or_404(Organization, slug=slug)
+        OrgFollow.objects.filter(org=org, user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class FollowUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -1292,6 +1297,11 @@ class FollowUserView(APIView):
             from notifications.services import notify_user_followed
 
             notify_user_followed(target, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def delete(self, request, user_id):
+        target = get_object_or_404(get_user_model(), id=user_id)
+        UserFollow.objects.filter(follower=request.user, followed=target).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

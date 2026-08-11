@@ -12,13 +12,13 @@ export async function AppShellLayout({
   children: React.ReactNode;
   showMessagesInSidebar?: boolean;
 }) {
-  const { me, orgs, events, stats, orgNews } = await loadAppShellData();
+  const { me, orgs, events, stats, orgNews, network } = await loadAppShellData();
 
   return (
     <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
       <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
         <div className="order-1 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} />
+          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} network={network} />
         </div>
 
         <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-none lg:gap-6">

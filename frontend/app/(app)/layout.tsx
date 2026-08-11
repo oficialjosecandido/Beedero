@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { MessagingShell } from "@/components/MessagingShell";
 import { MessageBell } from "@/components/MessageBell";
+import { NetworkBell } from "@/components/NetworkBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { logoutAction } from "@/lib/auth-actions";
+import { NetworkProvider } from "@/lib/network-context";
 import { NotificationsProvider } from "@/lib/notifications-context";
 import { noIndexMetadata } from "@/lib/site-metadata";
 
@@ -13,6 +15,7 @@ export const metadata = noIndexMetadata;
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationsProvider>
+    <NetworkProvider>
     <MessagingShell>
       <div className="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
         <header className="sticky top-0 z-20 w-full bg-beedero-yellow text-beedero-black">
@@ -25,6 +28,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="hidden items-center gap-2 md:flex">
                 <NotificationBell />
                 <MessageBell />
+                <NetworkBell />
                 <Link
                   href="/feed"
                   className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
@@ -36,6 +40,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
                 >
                   Discover
+                </Link>
+                <Link
+                  href="/network"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
+                >
+                  Rede
                 </Link>
                 <Link
                   href="/dashboard"
@@ -76,6 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="flex items-center gap-1 px-1 py-1">
                   <NotificationBell />
                   <MessageBell />
+                  <NetworkBell />
                 </div>
                 <Link
                   href="/feed"
@@ -88,6 +99,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
                 >
                   Discover
+                </Link>
+                <Link
+                  href="/network"
+                  className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
+                >
+                  Rede
                 </Link>
                 <Link
                   href="/dashboard"
@@ -127,6 +144,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </MessagingShell>
+    </NetworkProvider>
     </NotificationsProvider>
   );
 }

@@ -147,7 +147,44 @@ def test_public_profile_viewer_actions_for_unconnected_viewer(api, person):
     actions = res.json()["viewer_actions"]
     assert actions["can_message"] is False
     assert actions["connection_status"] == "none"
+    assert actions["is_following"] is False
     assert actions["user_id"] == person.user_id
+
+
+@pytest.mark.django_db
+def test_public_profile_hides_connections_level_bio_from_unconnected_viewer(api, person):
+    person.visibility = {"bio": "connections"}
+    person.bio = "Only for connections"
+    person.save(update_fields=["visibility", "bio"])
+    viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
+    api.force_authenticate(viewer)
+    res = api.get("/api/public/people/adalovelace/")
+    assert "bio" not in res.json()["person"]
+
+
+@pytest.mark.django_db
+def test_public_profile_hides_connections_level_bio_from_anonymous(api, person):
+    person.visibility = {"bio": "connections"}
+    person.bio = "Only for connections"
+    person.save(update_fields=["visibility", "bio"])
+    res = api.get("/api/public/people/adalovelace/")
+    assert "bio" not in res.json()["person"]
+
+
+@pytest.mark.django_db
+def test_public_profile_shows_connections_level_bio_to_connected_viewer(api, person):
+    from connections.models import Connection
+
+    person.visibility = {"bio": "connections"}
+    person.bio = "Only for connections"
+    person.save(update_fields=["visibility", "bio"])
+    viewer = User.objects.create_user(username="v", email="v@example.com", password="x")
+    first, second = sorted([viewer, person.user], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
+
+    api.force_authenticate(viewer)
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.json()["person"]["bio"] == "Only for connections"
 
 
 @pytest.mark.django_db

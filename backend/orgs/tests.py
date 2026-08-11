@@ -267,6 +267,60 @@ def test_org_create_auto_follows_owner(db):
 
 
 @pytest.mark.django_db
+def test_unfollow_org_removes_follow(db, org):
+    from rest_framework.test import APIClient
+
+    from orgs.models import OrgFollow
+
+    user = User.objects.create_user(username="follower", password="x")
+    OrgFollow.objects.create(user=user, org=org)
+    api = APIClient()
+    api.force_authenticate(user)
+    res = api.delete(f"/api/orgs/{org.slug}/follow/")
+    assert res.status_code == 204
+    assert not OrgFollow.objects.filter(user=user, org=org).exists()
+
+
+@pytest.mark.django_db
+def test_unfollow_org_is_idempotent_when_not_following(db, org):
+    from rest_framework.test import APIClient
+
+    user = User.objects.create_user(username="nonfollower", password="x")
+    api = APIClient()
+    api.force_authenticate(user)
+    res = api.delete(f"/api/orgs/{org.slug}/follow/")
+    assert res.status_code == 204
+
+
+@pytest.mark.django_db
+def test_unfollow_user_removes_follow(db):
+    from rest_framework.test import APIClient
+
+    from orgs.models import UserFollow
+
+    follower = User.objects.create_user(username="uf", password="x")
+    followed = User.objects.create_user(username="followed", password="x")
+    UserFollow.objects.create(follower=follower, followed=followed)
+    api = APIClient()
+    api.force_authenticate(follower)
+    res = api.delete(f"/api/users/{followed.id}/follow/")
+    assert res.status_code == 204
+    assert not UserFollow.objects.filter(follower=follower, followed=followed).exists()
+
+
+@pytest.mark.django_db
+def test_unfollow_user_is_idempotent_when_not_following(db):
+    from rest_framework.test import APIClient
+
+    follower = User.objects.create_user(username="uf2", password="x")
+    followed = User.objects.create_user(username="followed2", password="x")
+    api = APIClient()
+    api.force_authenticate(follower)
+    res = api.delete(f"/api/users/{followed.id}/follow/")
+    assert res.status_code == 204
+
+
+@pytest.mark.django_db
 def test_discovery_no_inference_leak(org, outsider, verified_investor):
     from orgs.discovery import discover
 

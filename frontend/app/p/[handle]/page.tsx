@@ -53,6 +53,7 @@ type PublicPerson = {
   viewer_actions?: {
     can_message: boolean;
     connection_status: "none" | "pending_sent" | "pending_received" | "connected";
+    is_following: boolean;
     user_id: number;
   };
 };
@@ -143,6 +144,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
               name={person.full_name}
               canMessage={viewer_actions.can_message}
               connectionStatus={viewer_actions.connection_status}
+              isFollowing={viewer_actions.is_following}
             />
           )}
 

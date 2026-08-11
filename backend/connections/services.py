@@ -10,6 +10,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -57,11 +58,28 @@ def daily_request_limit(user) -> int:
     return REQUEST_LIMITS[reputation_tier(user)]
 
 
+# Numeric form of reputation_tier() — lower is more credible. Shared so
+# every place that needs to rank/sort people by reputation (pending
+# request sorting, the connections list) uses the same ranking.
+_TIER_RANK = {"verified_investor": 0, "verified_identity": 1, "unverified": 2, "unverified_new": 3}
+
+
+def credibility_weight(user) -> int:
+    return _TIER_RANK[reputation_tier(user)]
+
+
 def are_connected(user_a, user_b) -> bool:
     if user_a.id == user_b.id:
         return False
     first, second = sorted([user_a, user_b], key=lambda u: u.id)
     return Connection.objects.filter(user_one=first, user_two=second).exists()
+
+
+def remove_connection(user, connection_id) -> None:
+    connection = Connection.objects.filter(pk=connection_id).first()
+    if connection is None or user.id not in (connection.user_one_id, connection.user_two_id):
+        raise Http404
+    connection.delete()
 
 
 def can_message_directly(sender, recipient) -> bool:

@@ -29,7 +29,7 @@ def _profile_picture(user):
         return None
 
 
-def _requester_summary(user) -> dict:
+def user_summary(user) -> dict:
     profile = _investor_profile(user)
     return {
         "id": user.id,
@@ -59,7 +59,7 @@ class SendOrgOutreachSerializer(serializers.Serializer):
 def connection_request_summary(req: ConnectionRequest) -> dict:
     return {
         "id": req.id,
-        "requester": _requester_summary(req.requester),
+        "requester": user_summary(req.requester),
         "note": req.note,
         "status": req.status,
         "created_at": req.created_at.isoformat(),
@@ -70,7 +70,7 @@ def org_connection_request_summary(req: OrgConnectionRequest) -> dict:
     return {
         "id": req.id,
         "org": {"id": req.org_id, "slug": req.org.slug, "name": req.org.name},
-        "requester": _requester_summary(req.requester),
+        "requester": user_summary(req.requester),
         "initiated_by": req.initiated_by,
         "note": req.note,
         "status": req.status,

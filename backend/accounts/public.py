@@ -8,7 +8,7 @@ from django.utils.timezone import now
 from advisory.models import AdvisorProfile
 from analytics.models import PersonProfileView
 from connections import services as connections_services
-from orgs.models import Activity
+from orgs.models import Activity, UserFollow
 
 from .attestations import platform_attestations
 from .models import InvestorProfile
@@ -99,6 +99,7 @@ def public_person_profile(handle: str, viewer) -> dict:
         payload["viewer_actions"] = {
             "can_message": connections_services.can_message_directly(viewer, profile.user),
             "connection_status": connections_services.connection_status(viewer, profile.user),
+            "is_following": UserFollow.objects.filter(follower=viewer, followed=profile.user).exists(),
             "user_id": profile.user_id,
         }
     return payload

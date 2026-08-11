@@ -19,9 +19,9 @@ from .services import (
     accept_org_request,
     accept_request,
     can_org_admin_accept,
+    credibility_weight,
     decline_org_request,
     decline_request,
-    reputation_tier,
     send_org_outreach,
     send_org_request,
     send_request,
@@ -29,12 +29,10 @@ from .services import (
 
 User = get_user_model()
 
-_TIER_RANK = {"verified_investor": 0, "verified_identity": 1, "unverified": 2, "unverified_new": 3}
-
 
 def _pending_sort_key(req):
     """Verified/high-tier requesters with a note surface first."""
-    return (0 if req.note else 1, _TIER_RANK[reputation_tier(req.requester)], -req.created_at.timestamp())
+    return (0 if req.note else 1, credibility_weight(req.requester), -req.created_at.timestamp())
 
 
 class ConnectionRequestCreateView(APIView):

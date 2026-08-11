@@ -25,6 +25,7 @@ type ProfileStats = {
   post_impressions_count: number;
   range_days: number;
 };
+type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
 
 export type AppShellData = {
   me: Me;
@@ -32,11 +33,12 @@ export type AppShellData = {
   events: { id: number | string; title: string; occurred_at: string; ends_at?: string | null }[];
   stats: ProfileStats | null;
   orgNews: RecentOrgUpdateItem[];
+  network: NetworkCounts | null;
 };
 
 export async function loadAppShellData(): Promise<AppShellData> {
   try {
-    const [me, orgs, posts, updatesRes, statsRes, feedRes] = await Promise.all([
+    const [me, orgs, posts, updatesRes, statsRes, feedRes, networkRes] = await Promise.all([
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
@@ -46,6 +48,7 @@ export async function loadAppShellData(): Promise<AppShellData> {
         items: [],
         next_cursor: null,
       }),
+      safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
     ]);
 
     const events = posts
@@ -63,6 +66,7 @@ export async function loadAppShellData(): Promise<AppShellData> {
       events,
       stats: statsRes,
       orgNews: resolveOrgNewsUpdates(updatesRes.items, feedRes.items),
+      network: networkRes,
     };
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");

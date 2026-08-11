@@ -19,6 +19,7 @@ type Me = { email: string; investor_profile: InvestorProfile | null };
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type CalendarEvent = { id: number | string; title: string; occurred_at: string; ends_at?: string | null };
 type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
+type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -57,11 +58,13 @@ function ProfileCard({
   me,
   orgs,
   stats,
+  network,
   embedded = false,
 }: {
   me: Me;
   orgs: Membership[];
   stats?: ProfileStats | null;
+  network?: NetworkCounts | null;
   embedded?: boolean;
 }) {
   const profile = me.investor_profile;
@@ -107,6 +110,19 @@ function ProfileCard({
               <p className="text-[11px] font-medium text-zinc-500">Post impressions</p>
             </div>
           </div>
+        )}
+
+        {network && (
+          <Link
+            href="/network"
+            className="mt-4 flex items-center justify-between rounded-2xl border border-beedero-border px-3 py-2.5 text-sm font-semibold text-beedero-black transition hover:border-beedero-black hover:bg-beedero-yellow/15"
+          >
+            <span>
+              Rede · {network.connections} conexões
+              {network.pending > 0 && ` · ${network.pending} pedidos`}
+            </span>
+            <span aria-hidden>→</span>
+          </Link>
         )}
 
         <div className="mt-5">
@@ -192,11 +208,13 @@ export function ProfileColumn({
   orgs,
   events,
   stats,
+  network,
 }: {
   me: Me;
   orgs: Membership[];
   events: CalendarEvent[];
   stats?: ProfileStats | null;
+  network?: NetworkCounts | null;
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const profile = me.investor_profile;
@@ -234,7 +252,7 @@ export function ProfileColumn({
         {mobileExpanded && (
           <div className="mt-3">
             <AppColumnSection label="Profile">
-              <ProfileCard me={me} orgs={orgs} stats={stats} embedded />
+              <ProfileCard me={me} orgs={orgs} stats={stats} network={network} embedded />
               <div className="border-t border-beedero-border/70 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
                 <SectionLabel>Calendar</SectionLabel>
                 <div className="mt-2.5">
