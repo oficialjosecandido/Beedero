@@ -142,20 +142,6 @@ def notify_org_followed(org, actor):
         )
 
 
-def notify_user_followed(target, actor):
-    if target.id == actor.id:
-        return
-    actor_name = _display_name(actor)
-    notify(
-        target,
-        kind=Notification.Kind.FOLLOWER,
-        aggregate_key=f"user_follow:{target.id}",
-        title="New follower",
-        body=f"{actor_name} started following you.",
-        link="/dashboard",
-    )
-
-
 def notify_interest_signal(org, actor, kind: str):
     owners = User.objects.filter(
         orgmembership__org=org,

@@ -15,9 +15,9 @@ export const dynamic = "force-dynamic";
 type Tab = "requests" | "connections" | "following";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "requests", label: "Pedidos" },
-  { key: "connections", label: "Conexões" },
-  { key: "following", label: "A seguir & Seguidores" },
+  { key: "requests", label: "Requests" },
+  { key: "connections", label: "Connections" },
+  { key: "following", label: "Following" },
 ];
 
 export default async function NetworkPage({
@@ -30,23 +30,18 @@ export default async function NetworkPage({
   let requests: ConnectionRequestItem[];
   let connections: ConnectionItem[];
   let following: FollowItem[];
-  let followers: FollowItem[];
   try {
-    [{ items: requests }, { items: connections }, { items: following }, { items: followers }] =
-      await Promise.all([
-        safeFetch(apiFetch<{ items: ConnectionRequestItem[] }>("/connections/requests/pending/"), {
-          items: [] as ConnectionRequestItem[],
-        }),
-        safeFetch(apiFetch<{ items: ConnectionItem[] }>("/network/connections/"), {
-          items: [] as ConnectionItem[],
-        }),
-        safeFetch(apiFetch<{ items: FollowItem[] }>("/network/following/"), {
-          items: [] as FollowItem[],
-        }),
-        safeFetch(apiFetch<{ items: FollowItem[] }>("/network/followers/"), {
-          items: [] as FollowItem[],
-        }),
-      ]);
+    [{ items: requests }, { items: connections }, { items: following }] = await Promise.all([
+      safeFetch(apiFetch<{ items: ConnectionRequestItem[] }>("/connections/requests/pending/"), {
+        items: [] as ConnectionRequestItem[],
+      }),
+      safeFetch(apiFetch<{ items: ConnectionItem[] }>("/network/connections/"), {
+        items: [] as ConnectionItem[],
+      }),
+      safeFetch(apiFetch<{ items: FollowItem[] }>("/network/following/"), {
+        items: [] as FollowItem[],
+      }),
+    ]);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
@@ -62,7 +57,7 @@ export default async function NetworkPage({
           : "connections";
 
   return (
-    <AppShellLayout label="Rede" showMessagesInSidebar={false}>
+    <AppShellLayout label="Network" showMessagesInSidebar={false}>
       <div className="flex flex-col gap-4">
         <nav className="flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
@@ -83,7 +78,7 @@ export default async function NetworkPage({
 
         {tab === "requests" && <ConnectionRequestsList items={requests} />}
         {tab === "connections" && <ConnectionsList items={connections} />}
-        {tab === "following" && <FollowingList following={following} followers={followers} />}
+        {tab === "following" && <FollowingList following={following} />}
       </div>
     </AppShellLayout>
   );

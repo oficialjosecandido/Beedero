@@ -135,19 +135,6 @@ class OrgFollow(models.Model):
         unique_together = ("org", "user")
 
 
-class UserFollow(models.Model):
-    follower = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="following_users", on_delete=models.CASCADE
-    )
-    followed = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="followers", on_delete=models.CASCADE
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ("follower", "followed")
-
-
 class OrgSection(models.Model):
     org = models.ForeignKey(Organization, related_name="sections", on_delete=models.CASCADE)
     kind = models.CharField(max_length=30, choices=SectionKind.choices)

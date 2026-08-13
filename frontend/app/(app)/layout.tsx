@@ -45,7 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href="/network"
                   className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
                 >
-                  Rede
+                  Network
                 </Link>
                 <Link
                   href="/dashboard"
@@ -104,7 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href="/network"
                   className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
                 >
-                  Rede
+                  Network
                 </Link>
                 <Link
                   href="/dashboard"

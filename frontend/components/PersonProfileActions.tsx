@@ -6,9 +6,7 @@ import { useState, useTransition } from "react";
 import { FaRegPaperPlane } from "react-icons/fa";
 
 import { sendConnectionRequestAction } from "@/app/(app)/connections/actions";
-import { followUserAction } from "@/app/(app)/dashboard/actions";
 import { startConversationAction } from "@/app/(app)/feed/actions";
-import { unfollowUserAction } from "@/app/(app)/network/actions";
 
 export type ConnectionStatus = "none" | "pending_sent" | "pending_received" | "connected";
 
@@ -17,45 +15,13 @@ type PersonProfileActionsProps = {
   name: string;
   canMessage: boolean;
   connectionStatus: ConnectionStatus;
-  isFollowing: boolean;
 };
-
-function FollowToggle({ userId, isFollowing }: { userId: number; isFollowing: boolean }) {
-  const [following, setFollowing] = useState(isFollowing);
-  const [isPending, startTransition] = useTransition();
-
-  function toggle() {
-    startTransition(async () => {
-      if (following) {
-        const result = await unfollowUserAction(userId);
-        if (!("error" in result)) setFollowing(false);
-      } else {
-        const formData = new FormData();
-        formData.set("user_id", String(userId));
-        await followUserAction(formData);
-        setFollowing(true);
-      }
-    });
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={isPending}
-      className="rounded-full border border-beedero-border px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
-    >
-      {isPending ? "…" : following ? "Following" : "Follow"}
-    </button>
-  );
-}
 
 export function PersonProfileActions({
   userId,
   name,
   canMessage,
   connectionStatus,
-  isFollowing,
 }: PersonProfileActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -96,7 +62,6 @@ export function PersonProfileActions({
           <FaRegPaperPlane className="text-sm" aria-hidden />
           {isPending ? "Opening…" : `Message ${name.split(" ")[0]}`}
         </button>
-        <FollowToggle userId={userId} isFollowing={isFollowing} />
       </div>
     );
   }
@@ -107,7 +72,6 @@ export function PersonProfileActions({
         <span className="inline-flex items-center gap-2 rounded-full border border-beedero-border px-5 py-2.5 text-sm font-semibold text-zinc-500">
           Request sent
         </span>
-        <FollowToggle userId={userId} isFollowing={isFollowing} />
       </div>
     );
   }
@@ -121,7 +85,6 @@ export function PersonProfileActions({
         >
           Respond to their request
         </Link>
-        <FollowToggle userId={userId} isFollowing={isFollowing} />
       </div>
     );
   }
@@ -166,7 +129,6 @@ export function PersonProfileActions({
             <FaRegPaperPlane className="text-sm" aria-hidden />
             Ask to connect
           </button>
-          <FollowToggle userId={userId} isFollowing={isFollowing} />
         </div>
       )}
     </div>

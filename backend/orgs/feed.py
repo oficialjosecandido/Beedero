@@ -6,8 +6,8 @@ from django.db.models import Q
 from .models import Activity, OrgMembership, Visibility
 
 
-def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, cursor=None):
-    """Activities from followed orgs, followed people, and the viewer's own
+def activity_feed_items(viewer, followed_org_ids, connected_user_ids, limit=50, cursor=None):
+    """Activities from followed orgs, connected people, and the viewer's own
     personal posts, newest first.
 
     Visibility is filtered in the same query (mirrors the `activity_visibility`
@@ -28,7 +28,7 @@ def activity_feed_items(viewer, followed_org_ids, followed_user_ids, limit=50, c
     visibility_filter = (
         Q(org_id__in=followed_org_ids)
         | Q(org_id__in=member_org_ids)
-        | Q(author_id__in=followed_user_ids, org__isnull=True)
+        | Q(author_id__in=connected_user_ids, org__isnull=True)
     )
     if viewer_id is not None:
         visibility_filter |= Q(author_id=viewer_id, org__isnull=True)

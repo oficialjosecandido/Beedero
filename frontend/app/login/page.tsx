@@ -59,11 +59,11 @@ export default async function LoginPage({
         </div>
         <p className="text-center text-xs text-zinc-500">
           <Link href="/termos" className="underline underline-offset-2 hover:text-beedero-black">
-            Termos
+            Terms
           </Link>{" "}
           ·{" "}
           <Link href="/privacidade" className="underline underline-offset-2 hover:text-beedero-black">
-            Privacidade
+            Privacy
           </Link>
         </p>
       </div>

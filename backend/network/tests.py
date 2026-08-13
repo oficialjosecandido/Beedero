@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from connections.models import Connection
-from orgs.models import OrgFollow, Organization, UserFollow
+from orgs.models import OrgFollow, Organization
 
 
 @pytest.fixture(autouse=True)
@@ -83,32 +83,17 @@ def test_remove_connection_as_non_party_returns_404(api, alice, bob, carol):
 
 
 @pytest.mark.django_db
-def test_following_list_merges_user_and_org_follows(api, alice, bob):
+def test_following_list_is_org_only(api, alice, bob):
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
-    UserFollow.objects.create(follower=alice, followed=bob)
     OrgFollow.objects.create(user=alice, org=org)
 
     api.force_authenticate(alice)
     res = api.get("/api/network/following/")
     assert res.status_code == 200
     items = res.json()["items"]
-    assert {item["type"] for item in items} == {"user", "org"}
-    assert len(items) == 2
-
-
-@pytest.mark.django_db
-def test_followers_list_is_user_only(api, alice, bob):
-    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
-    UserFollow.objects.create(follower=bob, followed=alice)
-    OrgFollow.objects.create(user=bob, org=org)
-
-    api.force_authenticate(alice)
-    res = api.get("/api/network/followers/")
-    assert res.status_code == 200
-    items = res.json()["items"]
     assert len(items) == 1
-    assert items[0]["type"] == "user"
-    assert items[0]["target"]["id"] == bob.id
+    assert items[0]["type"] == "org"
+    assert items[0]["id"] == org.slug
 
 
 @pytest.mark.django_db
@@ -117,10 +102,8 @@ def test_counts_match_direct_model_counts(api, alice, bob, carol):
 
     _connect(alice, bob)
     ConnectionRequest.objects.create(requester=carol, recipient=alice, note="hi")
-    UserFollow.objects.create(follower=alice, followed=bob)
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgFollow.objects.create(user=alice, org=org)
-    UserFollow.objects.create(follower=carol, followed=alice)
 
     api.force_authenticate(alice)
     res = api.get("/api/network/counts/")
@@ -128,6 +111,5 @@ def test_counts_match_direct_model_counts(api, alice, bob, carol):
     assert res.json() == {
         "connections": 1,
         "pending": 1,
-        "following": 2,
-        "followers": 1,
+        "following": 1,
     }

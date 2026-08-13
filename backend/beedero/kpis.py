@@ -70,8 +70,8 @@ def kpis_view(request):
     # campo de BD — filtra pelo campo real.
     users_email_ok = User.objects.filter(email_verified_at__isnull=False).count()
     investors_ready = User.objects.filter(investorprofile__is_verified=True).count()
-    # "Follows" aqui é só follow de organizações (OrgFollow) — segue-se
-    # utilizadores (UserFollow) à parte, não incluído por agora.
+    # "Follows" aqui é só follow de organizações (OrgFollow) — pessoas
+    # ligam-se por Connection, não incluído por agora.
     follows_new = _count_since(OrgFollow, "created_at", since)
 
     # ---------- CONFIANÇA ----------

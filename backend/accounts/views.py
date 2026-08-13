@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions
@@ -8,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from analytics.models import ActivityFeedImpression, PersonProfileView
-from orgs.models import Activity, UserFollow, Visibility
+from connections.models import Connection
+from orgs.models import Activity, Visibility
 from orgs.services import create_activity
 from social.models import Reaction
 from social.services import reaction_counts_for
@@ -118,9 +120,10 @@ class InvestorStatsView(APIView):
         days = _investor_stats_range_days(request)
         since = timezone.now() - timedelta(days=days)
 
-        followers_count = UserFollow.objects.filter(followed=user).count()
-        following_count = UserFollow.objects.filter(follower=user).count()
-        new_followers = UserFollow.objects.filter(followed=user, created_at__gte=since).count()
+        connections_count = Connection.objects.filter(Q(user_one=user) | Q(user_two=user)).count()
+        new_connections = Connection.objects.filter(
+            Q(user_one=user) | Q(user_two=user), created_at__gte=since
+        ).count()
 
         personal_posts = Activity.objects.filter(author=user, org__isnull=True)
         posts_count = personal_posts.filter(created_at__gte=since).count()
@@ -140,10 +143,9 @@ class InvestorStatsView(APIView):
 
         return Response(
             {
-                "followers_count": followers_count,
-                "following_count": following_count,
+                "connections_count": connections_count,
                 "range_days": days,
-                "new_followers": new_followers,
+                "new_connections": new_connections,
                 "posts_count": posts_count,
                 "reactions_received": reactions_received,
                 "post_impressions_count": post_impressions_count,

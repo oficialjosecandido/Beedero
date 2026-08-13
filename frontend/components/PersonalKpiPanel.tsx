@@ -8,7 +8,7 @@ import { AppColumnSection } from "@/components/AppColumnSection";
 
 export type PersonalKpiStats = {
   range_days: number;
-  new_followers: number;
+  new_connections: number;
   profile_views_count: number;
   posts_count: number;
   reactions_received: number;
@@ -56,9 +56,9 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
   const days = stats.range_days;
   return [
     {
-      key: "followers",
-      label: "New followers",
-      value: stats.new_followers,
+      key: "connections",
+      label: "New connections",
+      value: stats.new_connections,
       icon: FaUserPlus,
       highlight: true,
       delta: (value) => `+${value} in the last ${days} days`,
@@ -169,7 +169,7 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
 
   const metrics = stats ? buildMetrics(stats) : [];
   const audienceMetrics = metrics.filter((metric) =>
-    ["followers", "views", "impressions"].includes(metric.key)
+    ["connections", "views", "impressions"].includes(metric.key)
   );
   const contentMetrics = metrics.filter((metric) => ["posts", "reactions"].includes(metric.key));
 

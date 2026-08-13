@@ -75,6 +75,14 @@ def are_connected(user_a, user_b) -> bool:
     return Connection.objects.filter(user_one=first, user_two=second).exists()
 
 
+def connected_user_ids(user):
+    """The other party's id for every one of `user`'s connections. Used
+    wherever a "people I follow" signal used to live (feed inclusion,
+    recommendation exclusion) — people are connected with, not followed."""
+    connections = Connection.objects.filter(Q(user_one=user) | Q(user_two=user))
+    return [c.user_two_id if c.user_one_id == user.id else c.user_one_id for c in connections]
+
+
 def remove_connection(user, connection_id) -> None:
     connection = Connection.objects.filter(pk=connection_id).first()
     if connection is None or user.id not in (connection.user_one_id, connection.user_two_id):

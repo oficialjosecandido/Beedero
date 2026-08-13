@@ -19,7 +19,7 @@ type Me = { email: string; investor_profile: InvestorProfile | null };
 type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type CalendarEvent = { id: number | string; title: string; occurred_at: string; ends_at?: string | null };
 type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
-type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
+type NetworkCounts = { connections: number; pending: number; following: number };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -118,8 +118,8 @@ function ProfileCard({
             className="mt-4 flex items-center justify-between rounded-2xl border border-beedero-border px-3 py-2.5 text-sm font-semibold text-beedero-black transition hover:border-beedero-black hover:bg-beedero-yellow/15"
           >
             <span>
-              Rede · {network.connections} conexões
-              {network.pending > 0 && ` · ${network.pending} pedidos`}
+              Network · {network.connections} connection{network.connections === 1 ? "" : "s"}
+              {network.pending > 0 && ` · ${network.pending} request${network.pending === 1 ? "" : "s"}`}
             </span>
             <span aria-hidden>→</span>
           </Link>

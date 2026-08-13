@@ -16,7 +16,7 @@ type PersonSummary = {
   handle?: string | null;
   is_verified?: boolean;
   profile_picture?: string | null;
-  is_following?: boolean;
+  connection_status?: "none" | "pending_sent" | "pending_received" | "connected";
 };
 
 type AdvisorSummary = {

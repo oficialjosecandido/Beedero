@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
+export type NetworkCounts = { connections: number; pending: number; following: number };
 
-const EMPTY_COUNTS: NetworkCounts = { connections: 0, pending: 0, following: 0, followers: 0 };
+const EMPTY_COUNTS: NetworkCounts = { connections: 0, pending: 0, following: 0 };
 
 type NetworkContextValue = {
   counts: NetworkCounts;

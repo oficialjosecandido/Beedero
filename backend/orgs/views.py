@@ -37,6 +37,8 @@ from .completeness import (
     profile_strength_checklist,
 )
 from .constants import FUNDRAISE_KINDS, SectionKind
+from connections import services as connections_services
+
 from .discovery import discover, discover_active_this_week, discover_people
 from advisory.discovery import find_advisors
 from .feed import activity_feed_items
@@ -52,7 +54,6 @@ from .models import (
     OrgSection,
     OrgVisit,
     RestrictedAccessLog,
-    UserFollow,
     Visibility,
     VisibilityGrant,
 )
@@ -1079,13 +1080,11 @@ class FeedView(APIView):
                 return Response({"detail": "Invalid cursor."}, status=400)
 
         followed_org_ids = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
-        followed_user_ids = UserFollow.objects.filter(follower=request.user).values_list(
-            "followed_id", flat=True
-        )
+        connected_ids = connections_services.connected_user_ids(request.user)
 
         activities = list(
             activity_feed_items(
-                request.user, followed_org_ids, followed_user_ids, limit=limit + 1, cursor=cursor
+                request.user, followed_org_ids, connected_ids, limit=limit + 1, cursor=cursor
             )
         )
 
@@ -1100,7 +1099,7 @@ class FeedView(APIView):
             feed_total = len(
                 list(
                     activity_feed_items(
-                        request.user, followed_org_ids, followed_user_ids, limit=5, cursor=None
+                        request.user, followed_org_ids, connected_ids, limit=5, cursor=None
                     )
                 )
             )
@@ -1235,13 +1234,11 @@ class RecommendationView(APIView):
             .order_by("-is_verified", "name")[:6]
         )
 
-        followed_user_ids = UserFollow.objects.filter(follower=request.user).values_list(
-            "followed_id", flat=True
-        )
+        connected_ids = connections_services.connected_user_ids(request.user)
         people = (
             InvestorProfile.objects.exclude(full_name="")
             .exclude(user_id=request.user.id)
-            .exclude(user_id__in=followed_user_ids)
+            .exclude(user_id__in=connected_ids)
             .select_related("user")
             .order_by("-is_verified", "full_name")[:6]
         )
@@ -1282,26 +1279,6 @@ class FollowOrgView(APIView):
     def delete(self, request, slug):
         org = get_object_or_404(Organization, slug=slug)
         OrgFollow.objects.filter(org=org, user=request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class FollowUserView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, user_id):
-        if user_id == request.user.id:
-            return Response({"detail": "You cannot follow yourself."}, status=400)
-        target = get_object_or_404(get_user_model(), id=user_id)
-        _, created = UserFollow.objects.get_or_create(follower=request.user, followed=target)
-        if created:
-            from notifications.services import notify_user_followed
-
-            notify_user_followed(target, request.user)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def delete(self, request, user_id):
-        target = get_object_or_404(get_user_model(), id=user_id)
-        UserFollow.objects.filter(follower=request.user, followed=target).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -1367,13 +1344,6 @@ class DiscoverPeopleView(APIView):
         has_more = len(page) > limit
         page = page[:limit]
 
-        followed_ids = set(
-            UserFollow.objects.filter(
-                follower=request.user,
-                followed_id__in=[profile.user_id for profile in page],
-            ).values_list("followed_id", flat=True)
-        )
-
         return Response(
             {
                 "items": [
@@ -1384,7 +1354,9 @@ class DiscoverPeopleView(APIView):
                         "handle": profile.handle,
                         "is_verified": profile.is_verified,
                         "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
-                        "is_following": profile.user_id in followed_ids,
+                        "connection_status": connections_services.connection_status(
+                            request.user, profile.user
+                        ),
                     }
                     for profile in page
                 ],

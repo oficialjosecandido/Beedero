@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { followUserAction } from "@/app/(app)/dashboard/actions";
+import { sendConnectionRequestAction } from "@/app/(app)/connections/actions";
 import { formatAtHandle } from "@/lib/handles";
 
 import { loadMorePeopleDiscoveryAction } from "./actions";
+
+type ConnectionStatus = "none" | "pending_sent" | "pending_received" | "connected";
 
 type PersonSummary = {
   id: number;
@@ -15,26 +17,24 @@ type PersonSummary = {
   handle?: string | null;
   is_verified?: boolean;
   profile_picture?: string | null;
-  is_following?: boolean;
+  connection_status?: ConnectionStatus;
 };
 
 function PersonCard({ person }: { person: PersonSummary }) {
   const [pending, startTransition] = useTransition();
-  const [following, setFollowing] = useState(Boolean(person.is_following));
+  const [status, setStatus] = useState<ConnectionStatus>(person.connection_status ?? "none");
   const [error, setError] = useState<string | null>(null);
 
-  function follow() {
-    if (following) return;
+  function connect() {
+    if (status !== "none") return;
     startTransition(async () => {
       setError(null);
-      const formData = new FormData();
-      formData.set("user_id", String(person.id));
-      const result = await followUserAction(formData);
-      if (result) {
-        setError(result);
+      const result = await sendConnectionRequestAction(person.id, "");
+      if ("error" in result) {
+        setError(result.error);
         return;
       }
-      setFollowing(true);
+      setStatus("pending_sent");
     });
   }
 
@@ -75,18 +75,29 @@ function PersonCard({ person }: { person: PersonSummary }) {
         </div>
       </div>
       <div className="flex flex-col items-start gap-1 sm:items-end">
-        {following ? (
+        {status === "connected" ? (
           <span className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-semibold text-zinc-600">
-            Following
+            Connected
           </span>
+        ) : status === "pending_sent" ? (
+          <span className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-semibold text-zinc-600">
+            Request sent
+          </span>
+        ) : status === "pending_received" ? (
+          <Link
+            href="/network"
+            className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow"
+          >
+            Respond to request
+          </Link>
         ) : (
           <button
             type="button"
             disabled={pending}
-            onClick={follow}
+            onClick={connect}
             className="rounded-xl border border-beedero-border px-3 py-1.5 text-sm font-medium text-beedero-black hover:bg-beedero-yellow disabled:opacity-50"
           >
-            {pending ? "Following…" : "Follow"}
+            {pending ? "Connecting…" : "Connect"}
           </button>
         )}
         {error && <p className="text-xs text-red-600">{error}</p>}

@@ -22,7 +22,6 @@ urlpatterns = [
     path("orgs/<slug:slug>/feed/", views.FeedPostView.as_view()),
     path("orgs/<slug:slug>/feed/<int:activity_id>/", views.OrgActivityDetailView.as_view()),
     path("orgs/<slug:slug>/follow/", views.FollowOrgView.as_view()),
-    path("users/<int:user_id>/follow/", views.FollowUserView.as_view()),
     path("orgs/<slug:slug>/logo/", views.OrgLogoView.as_view()),
     path("orgs/<slug:slug>/stats/", views.OrgStatsView.as_view()),
     path("orgs/<slug:slug>/members/", views.OrgMembersView.as_view()),

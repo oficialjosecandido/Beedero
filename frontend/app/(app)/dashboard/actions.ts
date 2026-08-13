@@ -212,19 +212,6 @@ export async function followOrgAction(formData: FormData) {
   revalidatePath(`/org/${slug}`);
 }
 
-export async function followUserAction(formData: FormData) {
-  const userId = String(formData.get("user_id"));
-  try {
-    await apiFetch(`/users/${userId}/follow/`, { method: "POST" });
-  } catch {
-    return "Could not follow this person.";
-  }
-  revalidatePath("/dashboard");
-  revalidatePath("/feed");
-  revalidatePath("/discovery");
-  return null;
-}
-
 export async function upsertFieldAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const kind = String(formData.get("kind"));

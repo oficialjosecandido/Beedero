@@ -35,7 +35,7 @@ type InvestorProfile = {
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
 type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
-type NetworkCounts = { connections: number; pending: number; following: number; followers: number };
+type NetworkCounts = { connections: number; pending: number; following: number };
 
 export default async function FeedPage() {
   let items: FeedItem[];

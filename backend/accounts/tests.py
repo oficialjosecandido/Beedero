@@ -6,7 +6,8 @@ from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
 from analytics.models import ActivityFeedImpression, PersonProfileView
-from orgs.models import Activity, UserFollow
+from connections.models import Connection
+from orgs.models import Activity
 
 
 @pytest.fixture
@@ -123,10 +124,11 @@ def test_investor_posts_include_engagement_metrics(api, user):
 def test_investor_stats_returns_profile_kpis(api, user):
     from social.models import Reaction
 
-    follower = User.objects.create_user(
-        username="follower@example.com", email="follower@example.com", password="pw"
+    connected_user = User.objects.create_user(
+        username="connected@example.com", email="connected@example.com", password="pw"
     )
-    UserFollow.objects.create(follower=follower, followed=user)
+    first, second = sorted([connected_user, user], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
     activity = Activity.objects.create(
         author=user,
         org=None,
@@ -147,9 +149,8 @@ def test_investor_stats_returns_profile_kpis(api, user):
     api.force_authenticate(user)
     res = api.get("/api/investors/me/stats/")
     assert res.status_code == 200
-    assert res.data["followers_count"] == 1
-    assert res.data["following_count"] == 0
-    assert res.data["new_followers"] == 1
+    assert res.data["connections_count"] == 1
+    assert res.data["new_connections"] == 1
     assert res.data["posts_count"] == 1
     assert res.data["reactions_received"] == 3
     assert res.data["range_days"] == 7

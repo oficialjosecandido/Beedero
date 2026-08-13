@@ -147,7 +147,6 @@ def test_public_profile_viewer_actions_for_unconnected_viewer(api, person):
     actions = res.json()["viewer_actions"]
     assert actions["can_message"] is False
     assert actions["connection_status"] == "none"
-    assert actions["is_following"] is False
     assert actions["user_id"] == person.user_id
 
 

@@ -19,17 +19,12 @@ export type ConnectionItem = {
 };
 
 export type FollowItem = {
-  type: "user" | "org";
-  id: number | string;
+  type: "org";
+  id: string;
   target: {
-    id?: number;
-    name?: string;
-    handle?: string | null;
     slug?: string;
-    profile_picture?: string | null;
+    name?: string;
     logo?: string | null;
-    headline?: string;
-    reputation_tier?: string;
   };
   created_at: string;
 };
@@ -54,18 +49,6 @@ export async function removeConnectionAction(
     await apiFetch(`/network/connections/${connectionId}/`, { method: "DELETE" });
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not remove this connection.") };
-  }
-  revalidatePath("/network");
-  return { ok: true };
-}
-
-export async function unfollowUserAction(
-  userId: number
-): Promise<{ ok: true } | { error: string }> {
-  try {
-    await apiFetch(`/users/${userId}/follow/`, { method: "DELETE" });
-  } catch (err) {
-    return { error: actionErrorMessage(err, "Could not unfollow this person.") };
   }
   revalidatePath("/network");
   return { ok: true };

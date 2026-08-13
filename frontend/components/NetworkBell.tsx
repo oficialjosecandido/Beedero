@@ -16,7 +16,7 @@ export function NetworkBell() {
       className={`relative rounded-full p-2.5 hover:bg-beedero-black/10 ${
         active ? "bg-beedero-black/10 text-beedero-black" : "text-beedero-black/65 hover:text-beedero-black"
       }`}
-      aria-label={`Rede${counts.pending > 0 ? `, ${counts.pending} pedidos pendentes` : ""}`}
+      aria-label={`Network${counts.pending > 0 ? `, ${counts.pending} pending requests` : ""}`}
       aria-current={active ? "page" : undefined}
     >
       <svg

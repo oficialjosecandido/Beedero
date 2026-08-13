@@ -73,30 +73,23 @@ def test_discover_people_search_by_name(api, viewer):
     assert res.status_code == 200
     assert len(res.data["items"]) == 1
     assert res.data["items"][0]["name"] == "Ada Lovelace"
-    assert res.data["items"][0]["is_following"] is False
+    assert res.data["items"][0]["connection_status"] == "none"
 
 
 @pytest.mark.django_db
-def test_follow_user_and_discover_people_reflects_following(api, viewer):
-    from orgs.models import UserFollow
+def test_connect_with_user_and_discover_people_reflects_connection(api, viewer):
+    from connections.models import Connection
 
     target = User.objects.create_user(username="ada", email="ada@example.com", password="x")
     InvestorProfile.objects.create(user=target, full_name="Ada Lovelace", headline="Angel investor")
     api.force_authenticate(viewer)
 
-    follow_res = api.post(f"/api/users/{target.id}/follow/")
-    assert follow_res.status_code == 204
-    assert UserFollow.objects.filter(follower=viewer, followed=target).exists()
-
-    from notifications.models import Notification
-
-    notification = Notification.objects.get(user=target, kind=Notification.Kind.FOLLOWER)
-    assert notification.title == "New follower"
-    assert notification.link == "/dashboard"
+    first, second = sorted([viewer, target], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
 
     res = api.get("/api/discovery/people/?q=ada")
     assert res.status_code == 200
-    assert res.data["items"][0]["is_following"] is True
+    assert res.data["items"][0]["connection_status"] == "connected"
 
 
 @pytest.mark.django_db

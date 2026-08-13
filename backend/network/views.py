@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from connections.models import Connection, ConnectionRequest
 from connections.serializers import user_summary
 from connections.services import remove_connection
-from orgs.models import OrgFollow, UserFollow
+from orgs.models import OrgFollow
 
 
 def _org_summary(org):
@@ -61,56 +61,21 @@ class NetworkConnectionDetailView(APIView):
 
 
 class NetworkFollowingView(APIView):
-    """GET /api/network/following/ — the attention graph: people and orgs
-    the viewer follows, merged (UserFollow + OrgFollow are separate
-    tables, see orgs/models.py)."""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        items = []
-        for follow in UserFollow.objects.filter(follower=request.user).select_related(
-            "followed__investorprofile"
-        ):
-            items.append(
-                {
-                    "type": "user",
-                    "id": follow.followed_id,
-                    "target": user_summary(follow.followed),
-                    "created_at": follow.created_at,
-                }
-            )
-        for follow in OrgFollow.objects.filter(user=request.user).select_related("org"):
-            items.append(
-                {
-                    "type": "org",
-                    "id": follow.org.slug,
-                    "target": _org_summary(follow.org),
-                    "created_at": follow.created_at,
-                }
-            )
-        items.sort(key=lambda item: item["created_at"], reverse=True)
-        for item in items:
-            item["created_at"] = item["created_at"].isoformat()
-        return Response({"items": items})
-
-
-class NetworkFollowersView(APIView):
-    """GET /api/network/followers/ — people following the viewer as a
-    person. Org followers already surface on the org's own dashboard."""
+    """GET /api/network/following/ — organizations the viewer follows.
+    People are connected with, not followed — see NetworkConnectionsView."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         items = [
             {
-                "type": "user",
-                "id": follow.follower_id,
-                "target": user_summary(follow.follower),
+                "type": "org",
+                "id": follow.org.slug,
+                "target": _org_summary(follow.org),
                 "created_at": follow.created_at.isoformat(),
             }
-            for follow in UserFollow.objects.filter(followed=request.user)
-            .select_related("follower__investorprofile")
+            for follow in OrgFollow.objects.filter(user=request.user)
+            .select_related("org")
             .order_by("-created_at")
         ]
         return Response({"items": items})
@@ -129,8 +94,6 @@ class NetworkCountsView(APIView):
                 "pending": ConnectionRequest.objects.filter(
                     recipient=user, status=ConnectionRequest.Status.PENDING
                 ).count(),
-                "following": UserFollow.objects.filter(follower=user).count()
-                + OrgFollow.objects.filter(user=user).count(),
-                "followers": UserFollow.objects.filter(followed=user).count(),
+                "following": OrgFollow.objects.filter(user=user).count(),
             }
         )
