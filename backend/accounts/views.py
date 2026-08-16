@@ -1,9 +1,10 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +12,7 @@ from rest_framework.views import APIView
 from analytics.models import ActivityFeedImpression, PersonProfileView
 from connections.models import Connection
 from orgs.models import Activity, Visibility
-from orgs.services import create_activity
+from orgs.services import create_activity, sole_owner_orgs
 from social.models import Reaction
 from social.services import reaction_counts_for
 
@@ -32,6 +33,16 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+    def delete(self, request):
+        """Deletes the caller's account. Orgs the caller solely owns are
+        deleted with it; orgs with other owners just lose this membership
+        (cascades automatically via OrgMembership.user's on_delete=CASCADE)."""
+        user = request.user
+        with transaction.atomic():
+            sole_owner_orgs(user).delete()
+            user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 INVESTOR_POST_KIND_MAP = {"milestone": "milestones", "event": "events", "update": "update"}

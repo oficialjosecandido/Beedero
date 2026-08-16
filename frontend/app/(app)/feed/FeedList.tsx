@@ -183,9 +183,17 @@ export function FeedList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        No updates yet. Share an update above, follow people or organizations from Discover, or
-        publish from an organization you manage.
+      <div className="flex flex-col items-start gap-3 rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
+        <p>
+          No updates yet. Share an update above, or follow people and organizations to fill your
+          feed with their news.
+        </p>
+        <Link
+          href="/discovery"
+          className="rounded-xl border border-beedero-border px-4 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow"
+        >
+          Discover people and organizations
+        </Link>
       </div>
     );
   }

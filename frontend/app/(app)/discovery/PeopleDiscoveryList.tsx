@@ -137,7 +137,9 @@ export function PeopleDiscoveryList({
   if (items.length === 0) {
     return (
       <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        No people found. Try a different search.
+        {query.trim()
+          ? "No people found. Try a different search."
+          : "No one to show yet — invite people you know, or check back as more investors and founders join."}
       </div>
     );
   }

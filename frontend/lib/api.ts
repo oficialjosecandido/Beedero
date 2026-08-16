@@ -64,15 +64,21 @@ export class ApiNetworkError extends Error {
 
 export class BackendConfigError extends Error {}
 
+// The AbortController must stay armed through the body read, not just the
+// initial fetch() — a connection that returns headers and then stalls mid-
+// body would otherwise hang res.text()/res.json() forever, since clearing
+// the timeout as soon as fetch() resolves leaves the body read unprotected.
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit,
   timeoutMs: number
-) {
+): Promise<{ res: Response; text: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const res = await fetch(input, { ...init, signal: controller.signal });
+    const text = await res.text();
+    return { res, text };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiTimeoutError();
@@ -83,8 +89,7 @@ async function fetchWithTimeout(
   }
 }
 
-async function parse(res: Response) {
-  const text = await res.text();
+function parse(res: Response, text: string) {
   let body: unknown = null;
   if (text) {
     try {
@@ -103,12 +108,12 @@ async function parse(res: Response) {
 
 /** §7: public profile — cacheable, no auth. */
 export async function publicFetch<T = unknown>(path: string, revalidate = 300): Promise<T> {
-  const res = await fetchWithTimeout(
+  const { res, text } = await fetchWithTimeout(
     `${getBackendUrl()}${path}`,
     { next: { revalidate } },
     DEFAULT_API_TIMEOUT_MS
   );
-  return parse(res) as T;
+  return parse(res, text) as T;
 }
 
 function doFetch(path: string, options: { method?: string; body?: unknown }, token?: string) {
@@ -153,7 +158,7 @@ async function tryRefresh(): Promise<string | null> {
   });
 
   try {
-    const res = await fetchWithTimeout(
+    const { res, text } = await fetchWithTimeout(
       tokenUrl(config),
       {
         method: "POST",
@@ -166,7 +171,7 @@ async function tryRefresh(): Promise<string | null> {
       await clearSession();
       return null;
     }
-    const tokens: { access_token: string; refresh_token?: string } = await res.json();
+    const tokens: { access_token: string; refresh_token?: string } = JSON.parse(text);
     await setSession(tokens.access_token, tokens.refresh_token ?? refresh);
     return tokens.access_token;
   } catch {
@@ -181,13 +186,13 @@ export async function apiFetch<T = unknown>(
   options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
   const token = await getAccessToken();
-  let res = await doFetch(path, options, token);
+  let { res, text } = await doFetch(path, options, token);
   if (res.status === 401) {
     const refreshed = await tryRefresh();
     if (!refreshed) throw new ApiError(401, null);
-    res = await doFetch(path, options, refreshed); // retry exactly once
+    ({ res, text } = await doFetch(path, options, refreshed)); // retry exactly once
   }
-  return parse(res) as T;
+  return parse(res, text) as T;
 }
 
 /** Every Server Action re-renders the page it was invoked from to build its

@@ -13,6 +13,7 @@ import {
 import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
+import { DeleteAccountPanel } from "@/components/DeleteAccountPanel";
 import { ExperienceManager, type Experience } from "@/components/ExperienceManager";
 import {
   MembershipSkillsManager,
@@ -274,6 +275,7 @@ export function PersonalDashboardTabs({
           <ExperienceManager experiences={experiences} />
           <MembershipSkillsManager memberships={memberships} />
           <AdvisoryProfileForm profile={advisorProfile} />
+          <DeleteAccountPanel />
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from accounts.models import InvestorProfile, User
 from analytics.models import ActivityFeedImpression, PersonProfileView
 from connections.models import Connection
-from orgs.models import Activity
+from orgs.models import Activity, Organization, OrgMembership
 
 
 @pytest.fixture
@@ -242,3 +242,56 @@ def test_self_declared_experience_delete(api, user):
     experience_id = created.data["id"]
     res = api.delete(f"/api/experience/{experience_id}/")
     assert res.status_code == 204
+
+
+@pytest.mark.django_db
+def test_delete_account_removes_user(api, user):
+    api.force_authenticate(user)
+    res = api.delete("/api/auth/me/")
+    assert res.status_code == 204
+    assert not User.objects.filter(id=user.id).exists()
+
+
+@pytest.mark.django_db
+def test_delete_account_deletes_sole_owner_org(api, user):
+    org = Organization.objects.create(slug="solo-inc", name="Solo Inc")
+    OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.OWNER)
+
+    api.force_authenticate(user)
+    res = api.delete("/api/auth/me/")
+
+    assert res.status_code == 204
+    assert not Organization.objects.filter(id=org.id).exists()
+
+
+@pytest.mark.django_db
+def test_delete_account_preserves_org_with_other_owner(api, user):
+    other_owner = User.objects.create_user(username="co-owner", email="co-owner@example.com", password="x")
+    org = Organization.objects.create(slug="duo-inc", name="Duo Inc")
+    OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.OWNER)
+    OrgMembership.objects.create(org=org, user=other_owner, role=OrgMembership.Role.OWNER)
+    deleted_user_id = user.id
+
+    api.force_authenticate(user)
+    res = api.delete("/api/auth/me/")
+
+    assert res.status_code == 204
+    org.refresh_from_db()
+    assert OrgMembership.objects.filter(org=org, user=other_owner).exists()
+    assert not OrgMembership.objects.filter(org=org, user_id=deleted_user_id).exists()
+
+
+@pytest.mark.django_db
+def test_delete_account_removes_membership_when_not_sole_owner(api, user):
+    org = Organization.objects.create(slug="member-inc", name="Member Inc")
+    other_owner = User.objects.create_user(username="owner2", email="owner2@example.com", password="x")
+    OrgMembership.objects.create(org=org, user=other_owner, role=OrgMembership.Role.OWNER)
+    OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.MEMBER)
+    deleted_user_id = user.id
+
+    api.force_authenticate(user)
+    res = api.delete("/api/auth/me/")
+
+    assert res.status_code == 204
+    org.refresh_from_db()
+    assert not OrgMembership.objects.filter(org=org, user_id=deleted_user_id).exists()

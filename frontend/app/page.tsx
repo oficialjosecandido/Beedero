@@ -13,11 +13,11 @@ export const metadata = pageMetadata({
 const audiences = [
   {
     title: "Founders",
-    text: "Build a trusted profile once, then decide exactly what investors and partners can see.",
+    text: "Build one verified record of your company and reuse it wherever you need proof — a bank, a client, a tender, or an investor.",
   },
   {
     title: "Startups",
-    text: "Show traction, team, products, fundraising, and updates without losing control of sensitive data.",
+    text: "Show traction, team, products, fundraising, and updates without losing control of who sees the sensitive parts.",
   },
   {
     title: "Investors",
@@ -100,15 +100,16 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div>
             <p className="mb-5 inline-flex rounded-full border border-beedero-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
-              Founder-led discovery network
+              The verified record of your company
             </p>
             <h1 className="max-w-5xl text-6xl font-black uppercase leading-[0.82] tracking-[-0.08em] sm:text-8xl lg:text-[9.5rem]">
-              Build the company graph before everyone else sees it.
+              Proof your company is real, ready whenever you need it.
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-8 text-beedero-white/70 sm:text-xl">
-              Beedero connects founders, startups, investors, and researchers around
-              structured company profiles, controlled access, and a live feed of meaningful
-              updates.
+              Build a structured, verifiable profile once — then reuse it for a bank, a client, a
+              tender, or an investor. It&apos;s useful from day one, whether or not you&apos;re
+              raising, and it only gets more valuable as founders, investors, and researchers
+              connect around it.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Link

@@ -102,7 +102,9 @@ export function AdvisorsDiscoveryList({
   if (items.length === 0) {
     return (
       <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        No advisors found. Try a different search.
+        {query.trim()
+          ? "No advisors found. Try a different search."
+          : "No advisors to show yet — check back as more join Beedero."}
       </div>
     );
   }

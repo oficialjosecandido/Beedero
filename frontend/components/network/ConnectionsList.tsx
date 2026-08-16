@@ -134,9 +134,17 @@ export function ConnectionsList({ items }: { items: ConnectionItem[] }) {
         />
       </div>
       {filtered.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-zinc-500">
-          {visible.length === 0 ? "No connections yet." : "No connections match your search."}
-        </p>
+        <div className="flex flex-col items-center gap-3 px-5 py-10 text-center text-sm text-zinc-500">
+          <p>{visible.length === 0 ? "No connections yet." : "No connections match your search."}</p>
+          {visible.length === 0 && (
+            <Link
+              href="/discovery"
+              className="rounded-xl border border-beedero-border px-4 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow"
+            >
+              Find people to connect with
+            </Link>
+          )}
+        </div>
       ) : (
         <ul className="flex flex-col gap-4 p-5">
           {filtered.map((item) => (
