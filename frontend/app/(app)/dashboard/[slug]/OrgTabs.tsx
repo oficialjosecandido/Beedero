@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useActionState, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -1510,11 +1509,10 @@ export function OrgTabs({
   const [active, setActive] = useState<TabId>(
     suggestedTitle ? "activity" : (initialTab ?? "overview")
   );
-  const router = useRouter();
 
   function selectTab(tabId: TabId) {
     setActive(tabId);
-    router.replace(`/dashboard/${slug}?tab=${tabId}`, { scroll: false });
+    window.history.replaceState(null, "", `/dashboard/${slug}?tab=${tabId}`);
   }
 
   const aboutSection = sections.find((s) => s.kind === "about");

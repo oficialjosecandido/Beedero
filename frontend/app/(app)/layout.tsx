@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { MessagingShell } from "@/components/MessagingShell";
 import { MessageBell } from "@/components/MessageBell";
+import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvider";
 import { NetworkBell } from "@/components/NetworkBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <NotificationsProvider>
     <NetworkProvider>
     <MessagingShell>
+      <NavigationLoadingProvider>
       <div className="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
         <header className="sticky top-0 z-20 w-full bg-beedero-yellow text-beedero-black">
           <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
@@ -78,7 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </button>
               </form>
 
-              <details className="group relative md:hidden">
+              <details className="group relative md:hidden" data-mobile-nav>
               <summary className="list-none rounded-full border border-beedero-black/20 px-4 py-2 text-sm font-semibold text-beedero-black marker:hidden hover:bg-beedero-black/10">
                 Menu
               </summary>
@@ -143,6 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 flex-col bg-beedero-white pb-14 sm:pb-0">{children}</div>
         </div>
       </div>
+      </NavigationLoadingProvider>
     </MessagingShell>
     </NetworkProvider>
     </NotificationsProvider>

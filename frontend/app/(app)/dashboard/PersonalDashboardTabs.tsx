@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FaEye, FaGlassCheers, FaLightbulb, FaThumbsUp } from "react-icons/fa";
 import type { IconType } from "react-icons";
@@ -166,7 +165,6 @@ export function PersonalDashboardTabs({
   const [active, setActive] = useState<PersonalTabId>(initialTab ?? "kpis");
   const [prevInitialPosts, setPrevInitialPosts] = useState(initialPosts);
   const [myPosts, setMyPosts] = useState(initialPosts);
-  const router = useRouter();
 
   if (initialPosts !== prevInitialPosts) {
     setPrevInitialPosts(initialPosts);
@@ -193,7 +191,7 @@ export function PersonalDashboardTabs({
 
   function selectTab(tabId: PersonalTabId) {
     setActive(tabId);
-    router.replace(`/dashboard?tab=${tabId}`, { scroll: false });
+    window.history.replaceState(null, "", `/dashboard?tab=${tabId}`);
     if (tabId === "posts") {
       void refreshPosts();
     }

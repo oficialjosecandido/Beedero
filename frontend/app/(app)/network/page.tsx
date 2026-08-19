@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AppShellLayout } from "@/components/AppShellLayout";
-import { ConnectionRequestsList } from "@/components/ConnectionRequestsList";
-import { ConnectionsList } from "@/components/network/ConnectionsList";
-import { FollowingList } from "@/components/network/FollowingList";
+import { NetworkTabs } from "@/components/network/NetworkTabs";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import type { ConnectionRequestItem } from "../connections/actions";
@@ -13,12 +10,6 @@ import type { ConnectionItem, FollowItem } from "./actions";
 export const dynamic = "force-dynamic";
 
 type Tab = "requests" | "connections" | "following";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "requests", label: "Requests" },
-  { key: "connections", label: "Connections" },
-  { key: "following", label: "Following" },
-];
 
 export default async function NetworkPage({
   searchParams,
@@ -58,28 +49,12 @@ export default async function NetworkPage({
 
   return (
     <AppShellLayout label="Network" showMessagesInSidebar={false}>
-      <div className="flex flex-col gap-4">
-        <nav className="flex gap-2 overflow-x-auto">
-          {TABS.map((t) => (
-            <Link
-              key={t.key}
-              href={`/network?tab=${t.key}`}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${
-                tab === t.key
-                  ? "bg-beedero-black text-beedero-white"
-                  : "border border-beedero-border text-beedero-black/70 hover:bg-zinc-50"
-              }`}
-            >
-              {t.label}
-              {t.key === "requests" && requests.length > 0 && ` (${requests.length})`}
-            </Link>
-          ))}
-        </nav>
-
-        {tab === "requests" && <ConnectionRequestsList items={requests} />}
-        {tab === "connections" && <ConnectionsList items={connections} />}
-        {tab === "following" && <FollowingList following={following} />}
-      </div>
+      <NetworkTabs
+        initialTab={tab}
+        requests={requests}
+        connections={connections}
+        following={following}
+      />
     </AppShellLayout>
   );
 }
