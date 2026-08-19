@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DesktopAppNavLinks, MobileAppNavLinks } from "@/components/AppNavLinks";
 import { MessagingShell } from "@/components/MessagingShell";
 import { MessageBell } from "@/components/MessageBell";
 import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvider";
@@ -31,30 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <NotificationBell />
                 <MessageBell />
                 <NetworkBell />
-                <Link
-                  href="/feed"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
-                >
-                  Feed
-                </Link>
-                <Link
-                  href="/discovery"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
-                >
-                  Discover
-                </Link>
-                <Link
-                  href="/network"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
-                >
-                  Network
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-beedero-black/80 hover:bg-beedero-black/10 hover:text-beedero-black"
-                >
-                  Dashboard
-                </Link>
+                <DesktopAppNavLinks />
               </div>
               <ProfileSwitcher />
               <form action={logoutAction} className="hidden md:block">
@@ -90,30 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <MessageBell />
                   <NetworkBell />
                 </div>
-                <Link
-                  href="/feed"
-                  className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
-                >
-                  Feed
-                </Link>
-                <Link
-                  href="/discovery"
-                  className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
-                >
-                  Discover
-                </Link>
-                <Link
-                  href="/network"
-                  className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
-                >
-                  Network
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="rounded-xl px-3 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
-                >
-                  Dashboard
-                </Link>
+                <MobileAppNavLinks />
                 <form action={logoutAction}>
                   <button
                     type="submit"
