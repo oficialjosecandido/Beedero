@@ -17,6 +17,9 @@ export type TimelineBand = {
   milestones: TimelineMilestone[];
 };
 
+const skillPillClass =
+  "rounded-full border border-beedero-border bg-white px-2.5 py-0.5 text-xs font-medium text-zinc-700";
+
 function toTime(value: string) {
   return new Date(value).getTime();
 }
@@ -38,36 +41,49 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
   return (
     <section className="mt-8">
       <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">Timeline</h2>
-      <div className="mt-3 flex flex-col gap-4">
+      <div className="mt-4 flex flex-col gap-6">
         {bands.map((band, index) => {
           const start = toTime(band.started_on);
           const end = toTime(band.ended_on ?? today);
           const left = pct(start);
-          const width = `${Math.max(((end - start) / axisSpan) * 100, 1).toFixed(2)}%`;
+          const width = `${Math.max(((end - start) / axisSpan) * 100, 2).toFixed(2)}%`;
 
           return (
-            <div key={`${band.org_name}-${band.started_on}-${index}`}>
-              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                <p className="text-sm font-semibold text-zinc-800">
+            <article key={`${band.org_name}-${band.started_on}-${index}`}>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 text-sm leading-snug">
                   {band.org_slug ? (
-                    <Link href={`/o/${band.org_slug}`} className="hover:underline">
+                    <Link
+                      href={`/o/${band.org_slug}`}
+                      className="font-bold text-zinc-900 hover:underline"
+                    >
                       {band.org_name}
                     </Link>
                   ) : (
-                    band.org_name
+                    <span className="font-bold text-zinc-900">{band.org_name}</span>
                   )}
-                  {band.role && <span className="ml-1.5 font-normal text-zinc-500">· {band.role}</span>}
+                  {band.role && (
+                    <>
+                      <span className="mx-1.5 text-zinc-400">·</span>
+                      <span className="font-normal text-zinc-500">{band.role}</span>
+                    </>
+                  )}
                 </p>
-                <p className="shrink-0 text-xs text-zinc-400">
-                  {formatDate(band.started_on)} – {band.ended_on ? formatDate(band.ended_on) : "Present"}
+                <p className="shrink-0 text-xs tabular-nums text-zinc-400">
+                  {formatDate(band.started_on)} –{" "}
+                  {band.ended_on ? formatDate(band.ended_on) : "Present"}
                 </p>
               </div>
-              <div className="relative mt-1.5 h-2.5 w-full rounded-full bg-zinc-100">
+
+              <div
+                className="relative mt-2 h-3.5 w-full overflow-hidden rounded-full bg-zinc-200/80"
+                aria-hidden
+              >
                 <div
                   className={
                     band.verified
-                      ? "absolute h-full rounded-full bg-beedero-black"
-                      : "absolute h-full rounded-full border-2 border-dashed border-zinc-400 bg-zinc-200/50"
+                      ? "absolute inset-y-0 min-w-1 rounded-md bg-beedero-black"
+                      : "absolute inset-y-0 min-w-1 rounded-md border-2 border-dashed border-zinc-400 bg-white"
                   }
                   style={{ left, width }}
                   title={band.verified ? "Verified via Beedero" : "Self-declared"}
@@ -81,13 +97,11 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                   />
                 ))}
               </div>
+
               {band.skills.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {band.skills.map((skill) => (
-                    <span
-                      key={skill.skill}
-                      className="rounded-full bg-zinc-50 px-2 py-0.5 text-[11px] font-medium text-zinc-600 ring-1 ring-beedero-border/60"
-                    >
+                    <span key={skill.skill} className={skillPillClass}>
                       {skill.skill}
                       {skill.status === "org_confirmed" && (
                         <span className="ml-1 text-[10px] font-bold text-emerald-600">✓</span>
@@ -96,11 +110,11 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                   ))}
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
       </div>
-      <p className="mt-3 text-[11px] text-zinc-400">
+      <p className="mt-4 text-[11px] leading-relaxed text-zinc-400">
         Solid bars are verified via Beedero organizations. Dashed bars are self-declared.
       </p>
     </section>

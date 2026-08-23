@@ -3,11 +3,11 @@
 import { redirect } from "next/navigation";
 
 import { ApiError, apiFetch } from "./api";
-import { clearSession } from "./session";
 
 export async function logoutAction() {
-  await clearSession();
-  redirect("/");
+  // Route handler ends Entra SSO (with id_token_hint) so "Create account"
+  // afterwards is not silently SSO'd into the previous user.
+  redirect("/api/auth/logout");
 }
 
 export async function deleteAccountAction(_prevState: string | null, formData: FormData) {
@@ -20,6 +20,5 @@ export async function deleteAccountAction(_prevState: string | null, formData: F
     if (!(err instanceof ApiError)) throw err;
     return "Could not delete your account. Try again in a moment.";
   }
-  await clearSession();
-  redirect("/");
+  redirect("/api/auth/logout");
 }

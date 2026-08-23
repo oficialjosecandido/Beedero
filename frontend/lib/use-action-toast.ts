@@ -8,6 +8,8 @@ type Options = {
   successMessage?: string;
   /** For actions whose success case also returns a string — tells success from error. */
   isSuccess?: (message: string) => boolean;
+  /** Called once when the action completes successfully. */
+  onSuccess?: () => void;
 };
 
 /** Fires a toast once a useActionState submission completes (pending: true -> false). */
@@ -26,11 +28,13 @@ export function useActionToast(state: string | null, pending: boolean, options: 
     prevPending.current = pending;
     if (!justFinished) return;
 
-    const { successMessage, isSuccess } = optionsRef.current;
+    const { successMessage, isSuccess, onSuccess } = optionsRef.current;
     if (state === null) {
       if (successMessage) toast.success(successMessage);
+      onSuccess?.();
     } else if (isSuccess?.(state)) {
       toast.success(successMessage ?? state);
+      onSuccess?.();
     } else {
       toast.error(state);
     }

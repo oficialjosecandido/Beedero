@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { pageMetadata } from "@/lib/site-metadata";
 
@@ -9,7 +11,15 @@ export const metadata: Metadata = pageMetadata({
   path: "/register",
 });
 
-export default function RegisterPage() {
+const FORCE_SIGNUP_COOKIE = "beedero_force_signup";
+
+export default async function RegisterPage() {
+  const store = await cookies();
+  // After Entra logout, resume signup via a Route Handler (can clear the cookie).
+  if (store.get(FORCE_SIGNUP_COOKIE)?.value === "1") {
+    redirect("/api/auth/signup/continue");
+  }
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-beedero-white px-6 py-12 text-beedero-black">
       <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl border-2 border-beedero-border bg-beedero-white p-8 shadow-sm">
@@ -21,7 +31,7 @@ export default function RegisterPage() {
             Create account
           </h1>
         </div>
-        {/* Goes straight to Entra sign-up (prompt=create), not Entra logout. */}
+        {/* Ends Entra SSO first, then starts sign-up (prompt=create). */}
         <a
           href="/api/auth/signup"
           className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"

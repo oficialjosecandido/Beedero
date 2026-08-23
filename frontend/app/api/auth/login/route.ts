@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("redirect_uri", config.redirectUri);
   url.searchParams.set("response_mode", "query");
-  url.searchParams.set("scope", `openid offline_access ${config.scope}`);
+  url.searchParams.set("scope", `openid profile offline_access ${config.scope}`);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("state", state);
