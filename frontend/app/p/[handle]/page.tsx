@@ -8,6 +8,7 @@ import { PostsShowcase } from "@/components/PostsShowcase";
 import { ApiError, apiFetch, publicFetch } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
+import type { ResolvedMention } from "@/lib/richtext";
 import { pageMetadata } from "@/lib/site-metadata";
 import { getAccessToken } from "@/lib/session";
 import { engagementLabel, expertiseLabel } from "@/lib/advisory-options";
@@ -37,6 +38,7 @@ type PublicPerson = {
     title: string;
     body: string;
     occurred_at: string;
+    mentions?: ResolvedMention[];
   }[];
   timeline: TimelineBand[];
   skills?: {

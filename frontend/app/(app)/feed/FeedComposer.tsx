@@ -7,6 +7,7 @@ import { FaRegFileAlt, FaTrophy } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 import { createInvestorPostAction } from "@/app/(app)/dashboard/actions";
+import { MentionTextarea } from "@/components/MentionTextarea";
 import { useActionToast } from "@/lib/use-action-toast";
 
 const POST_KIND_OPTIONS = [
@@ -222,7 +223,7 @@ export function FeedComposer({
                   className="min-w-[12rem] flex-1 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </div>
-              <textarea
+              <MentionTextarea
                 name="body"
                 placeholder="Say more…"
                 rows={3}

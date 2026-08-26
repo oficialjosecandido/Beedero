@@ -10,6 +10,8 @@ from analytics.models import PersonProfileView
 from connections import services as connections_services
 from orgs.models import Activity
 
+from social.mentions import resolve_mentions
+
 from .attestations import platform_attestations
 from .models import InvestorProfile
 from .timeline import aggregate_anchored_skills, person_timeline
@@ -69,6 +71,7 @@ def public_person_profile(handle: str, viewer) -> dict:
                     "kind": activity.kind,
                     "title": activity.title,
                     "body": activity.body,
+                    "mentions": resolve_mentions(activity.body),
                     "occurred_at": activity.occurred_at.isoformat(),
                 }
             )

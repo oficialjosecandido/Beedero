@@ -19,6 +19,8 @@ import {
   type PersonMembershipWithSkills,
 } from "@/components/MembershipSkillsManager";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { RichText } from "@/components/RichText";
+import type { ResolvedMention } from "@/lib/richtext";
 import { SECTION_LABELS } from "@/lib/types";
 
 const TABS = [
@@ -44,6 +46,7 @@ type InvestorPost = {
   reaction_count?: number;
   reaction_counts?: { like: number; insight: number; congrats: number };
   feed_impression_count?: number;
+  mentions?: ResolvedMention[];
 };
 
 const REACTION_KINDS: { kind: keyof NonNullable<InvestorPost["reaction_counts"]>; icon: IconType; label: string }[] =
@@ -128,7 +131,11 @@ function MyPostCard({ post }: { post: InvestorPost }) {
         <img src={post.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
       )}
       <h3 className="text-lg font-extrabold text-zinc-900">{post.title || "Update"}</h3>
-      {post.body && <p className="text-sm leading-6 text-zinc-600">{post.body}</p>}
+      {post.body && (
+        <p className="text-sm leading-6 text-zinc-600">
+          <RichText body={post.body} mentions={post.mentions} />
+        </p>
+      )}
       {post.kind === "events" && post.occurred_at && post.ends_at ? (
         <p className="text-xs text-zinc-400">
           {formatDateTime(post.occurred_at)} – {formatDateTime(post.ends_at)}

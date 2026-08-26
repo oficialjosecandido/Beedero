@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from orgs.models import Activity, OrgMembership
+from orgs.visibility import activity_visible_to
 
 from .models import Notification, NotificationPreference
 
@@ -23,6 +24,7 @@ _ENGAGEMENT_KINDS = {
     Notification.Kind.INTEREST,
     Notification.Kind.PROFILE_VIEWS,
     Notification.Kind.PIPELINE,
+    Notification.Kind.MENTION,
 }
 
 
@@ -120,6 +122,65 @@ def notify_activity_comment(activity: Activity, actor, comment_count: int):
             title="New comment",
             body=body,
             link=_activity_link(activity),
+        )
+
+
+def notify_mention(mention, actor):
+    """Fired once per resolved Mention row (social/mentions.py). Per spec:
+    mentioning someone never grants access to restricted content, so this
+    only notifies a recipient who could already see the underlying post —
+    same activity_visible_to() check the comment/reaction feed uses."""
+    from messaging.services import is_blocked
+
+    container = mention.activity or mention.comment.activity
+    actor_name = _display_name(actor)
+    in_comment = mention.comment_id is not None
+
+    if mention.target_user_id:
+        recipient = mention.target_user
+        if recipient.id == actor.id:
+            return
+        if is_blocked(actor, recipient):
+            return
+        if not activity_visible_to(recipient, container):
+            return
+        notify(
+            recipient,
+            kind=Notification.Kind.MENTION,
+            aggregate_key=f"mention:{mention.id}",
+            title="You were mentioned",
+            body=(
+                f"{actor_name} mentioned you in a comment."
+                if in_comment
+                else f"{actor_name} mentioned you in a post."
+            ),
+            link=_activity_link(container),
+        )
+        return
+
+    org = mention.target_org
+    admins = User.objects.filter(
+        orgmembership__org=org,
+        orgmembership__role__in=[OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN],
+    ).distinct()
+    for admin in admins:
+        if admin.id == actor.id:
+            continue
+        if is_blocked(actor, admin):
+            continue
+        if not activity_visible_to(admin, container):
+            continue
+        notify(
+            admin,
+            kind=Notification.Kind.MENTION,
+            aggregate_key=f"mention:{mention.id}:{admin.id}",
+            title="Your org was mentioned",
+            body=(
+                f"{actor_name} mentioned {org.name} in a comment."
+                if in_comment
+                else f"{actor_name} mentioned {org.name} in a post."
+            ),
+            link=_activity_link(container),
         )
 
 

@@ -10,6 +10,8 @@ import { SECTION_LABELS } from "@/lib/types";
 import { loadMoreFeedAction } from "./actions";
 import { CommentThread } from "./CommentThread";
 import { EventParticipationBar } from "@/components/EventParticipationBar";
+import { LinkPreviewCard } from "@/components/LinkPreviewCard";
+import { RichText } from "@/components/RichText";
 import { ReactionBar } from "./ReactionBar";
 import type { FeedItem } from "./types";
 
@@ -85,7 +87,7 @@ function FeedCard({ item }: { item: FeedItem }) {
               !bodyExpanded && isLongBody ? "line-clamp-3" : ""
             }`}
           >
-            {item.value.body}
+            <RichText body={item.value.body} mentions={item.value.mentions} />
           </p>
           {isLongBody && (
             <button
@@ -96,6 +98,7 @@ function FeedCard({ item }: { item: FeedItem }) {
               {bodyExpanded ? "See less" : "…see more"}
             </button>
           )}
+          <LinkPreviewCard body={item.value.body} />
         </>
       )}
       {item.value.image && (

@@ -6,6 +6,8 @@ import { FaRegComment } from "react-icons/fa";
 
 import { formatDate } from "@/lib/format";
 import { useActionToast } from "@/lib/use-action-toast";
+import { MentionTextarea } from "@/components/MentionTextarea";
+import { RichText } from "@/components/RichText";
 
 import { loadCommentsAction, postCommentAction } from "./actions";
 import type { Comment } from "./types";
@@ -32,7 +34,9 @@ function CommentAuthor({ comment }: { comment: Comment }) {
         <span className="font-semibold text-beedero-black">{comment.author_name}</span>
         <span className="text-xs text-zinc-400">{formatDate(comment.created_at)}</span>
       </div>
-      <p className="mt-1 text-sm leading-6 text-zinc-700">{comment.body}</p>
+      <p className="mt-1 text-sm leading-6 text-zinc-700">
+        <RichText body={comment.body} mentions={comment.mentions} />
+      </p>
     </div>
   );
 
@@ -161,7 +165,7 @@ export function CommentThread({
         </p>
       ) : (
         <form action={formAction} className="mt-4 flex items-end gap-2">
-          <textarea
+          <MentionTextarea
             name="body"
             rows={2}
             maxLength={2000}

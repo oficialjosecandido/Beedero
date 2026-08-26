@@ -3,8 +3,17 @@
 import { useState } from "react";
 
 import { formatDate } from "@/lib/format";
+import { RichText } from "@/components/RichText";
+import type { ResolvedMention } from "@/lib/richtext";
 
-type Post = { id: number; kind: string; title: string; body: string; occurred_at: string };
+type Post = {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  occurred_at: string;
+  mentions?: ResolvedMention[];
+};
 
 const VISIBLE_COUNT = 3;
 
@@ -22,7 +31,11 @@ export function PostsShowcase({ posts }: { posts: Post[] }) {
         {visible.map((post) => (
           <li key={post.id} className="rounded-xl border border-beedero-border/70 px-4 py-3">
             <p className="font-semibold text-zinc-900">{post.title}</p>
-            {post.body && <p className="mt-1 text-sm text-zinc-600">{post.body}</p>}
+            {post.body && (
+              <p className="mt-1 text-sm text-zinc-600">
+                <RichText body={post.body} mentions={post.mentions} />
+              </p>
+            )}
             <p className="mt-1 text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
           </li>
         ))}

@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { OrgProfileActions } from "@/components/OrgProfileActions";
+import { RichText } from "@/components/RichText";
+import type { ResolvedMention } from "@/lib/richtext";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { OrgProfile as OrgProfileData, OrgTeamMember, SECTION_LABELS } from "@/lib/types";
@@ -29,11 +31,16 @@ function FieldValue({
       occurred_at?: string;
       ends_at?: string | null;
       image?: string;
+      mentions?: ResolvedMention[];
     };
     return (
       <div>
         <p className="font-medium">{post.title}</p>
-        {post.body && <p className="text-sm text-zinc-600">{post.body}</p>}
+        {post.body && (
+          <p className="text-sm text-zinc-600">
+            <RichText body={post.body} mentions={post.mentions} />
+          </p>
+        )}
         {post.image && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />

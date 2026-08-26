@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { postFeedAction } from "@/app/(app)/dashboard/actions";
+import { MentionTextarea } from "@/components/MentionTextarea";
 import { formatDateTime } from "@/lib/format";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -62,9 +63,22 @@ export function OrgPostComposer({
   const [kind, setKind] = useState<(typeof POST_KIND_OPTIONS)[number]["value"]>(
     suggestedTitle ? "milestone" : defaultKind
   );
+  const [bodyResetKey, setBodyResetKey] = useState(0);
+  const prevPending = useRef(false);
   useActionToast(error, pending, {
     successMessage: kind === "event" ? "Event created!" : "Update posted!",
   });
+
+  useEffect(() => {
+    const justFinished = prevPending.current && !pending;
+    prevPending.current = pending;
+    // MentionTextarea is controlled, so it doesn't participate in the native
+    // form-reset the other (uncontrolled) fields get for free on submit —
+    // remount it on a successful post so the composer clears the same way.
+    if (justFinished && error === null) {
+      setBodyResetKey((key) => key + 1);
+    }
+  }, [pending, error]);
 
   const lockedByKind = Object.fromEntries(
     postingStatus.locked_kinds.map((item) => [item.kind, item])
@@ -248,7 +262,8 @@ export function OrgPostComposer({
         </div>
       )}
 
-      <textarea
+      <MentionTextarea
+        key={bodyResetKey}
         name="body"
         placeholder={kind === "update" ? "Say more..." : "Description (optional)"}
         rows={3}

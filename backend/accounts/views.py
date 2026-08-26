@@ -13,6 +13,7 @@ from analytics.models import ActivityFeedImpression, PersonProfileView
 from connections.models import Connection
 from orgs.models import Activity, Visibility
 from orgs.services import create_activity, sole_owner_orgs
+from social.mentions import resolve_mentions
 from social.models import Reaction
 from social.services import reaction_counts_for
 
@@ -55,6 +56,7 @@ def _investor_activity_summary(activity, reaction_counts=None):
         "kind": activity.kind,
         "title": activity.title,
         "body": activity.body,
+        "mentions": resolve_mentions(activity.body),
         "image": activity.image.url if activity.image else None,
         "occurred_at": activity.occurred_at.isoformat(),
         "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,

@@ -130,6 +130,10 @@ def remove_reaction(activity: Activity, user) -> None:
 def create_comment(activity: Activity, author, body: str, parent: Comment | None = None) -> Comment:
     comment = Comment.objects.create(activity=activity, author=author, body=body, parent=parent)
     Activity.objects.filter(pk=activity.pk).update(comment_count=F("comment_count") + 1)
+    if body:
+        from .mentions import handle_mentions
+
+        handle_mentions(actor=author, body=body, comment=comment)
     return comment
 
 

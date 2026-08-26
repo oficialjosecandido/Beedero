@@ -3,11 +3,16 @@ from django.utils.timezone import now
 import pytest
 from rest_framework.test import APIClient
 
-from accounts.models import User
+from accounts.models import InvestorProfile, User
+from notifications.models import Notification
 from orgs.constants import SectionKind
 from orgs.models import Activity, OrgMembership, Organization, Visibility
+from orgs.services import create_activity
 
-from .models import Reaction
+from . import unfurl as unfurl_module
+from .mentions import MAX_MENTIONS_PER_BODY, parse_mention_markers
+from .models import LinkPreview, Mention, Reaction
+from .services import create_comment
 from .views import COMMENTS_PER_DAY, REACTIONS_PER_DAY
 
 
@@ -240,3 +245,192 @@ def test_restricted_activity_is_404_not_403_to_non_members(api, outsider, founde
         f"/api/activities/{restricted_activity.id}/reactions/", {"kind": "like"}, format="json"
     )
     assert member_reaction.status_code == 200
+
+
+# --- @-mentions ---
+
+
+@pytest.fixture
+def investor_with_handle(db):
+    user = User.objects.create_user(username="investor1", email="investor1@example.com", password="x")
+    InvestorProfile.objects.create(
+        user=user, full_name="Ana Investor", headline="VC", country="PT", handle="ana"
+    )
+    return user
+
+
+@pytest.mark.django_db
+def test_comment_mention_resolves_and_notifies_target_user(api, outsider, activity, investor_with_handle):
+    api.force_authenticate(outsider)
+    res = api.post(
+        f"/api/activities/{activity.id}/comments/",
+        {"body": "Great work @[user:ana]!"},
+        format="json",
+    )
+    assert res.status_code == 201
+    assert res.data["mentions"] == [
+        {"marker": "@[user:ana]", "type": "user", "handle": "ana", "name": "Ana Investor"}
+    ]
+    assert Notification.objects.filter(
+        user=investor_with_handle, kind=Notification.Kind.MENTION
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_self_mention_does_not_notify(api, investor_with_handle, activity):
+    api.force_authenticate(investor_with_handle)
+    res = api.post(
+        f"/api/activities/{activity.id}/comments/",
+        {"body": "I am @[user:ana]"},
+        format="json",
+    )
+    assert res.status_code == 201
+    assert not Notification.objects.filter(
+        user=investor_with_handle, kind=Notification.Kind.MENTION
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_mention_notification_skipped_when_recipient_cant_see_activity(
+    founder, restricted_activity, investor_with_handle
+):
+    """Mentioning someone never grants access — a mention notification only
+    fires if the recipient could already see the underlying post."""
+    create_comment(restricted_activity, founder, "hey @[user:ana]")
+
+    assert not Notification.objects.filter(
+        user=investor_with_handle, kind=Notification.Kind.MENTION
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_activity_mention_of_org_notifies_admins_but_not_actor(founder, org):
+    beta = Organization.objects.create(slug="beta", name="Beta Inc", status=Organization.Status.LIVE)
+    admin = User.objects.create_user(username="beta-admin", password="x")
+    OrgMembership.objects.create(org=beta, user=admin, role=OrgMembership.Role.ADMIN)
+    OrgMembership.objects.create(org=beta, user=founder, role=OrgMembership.Role.ADMIN)
+
+    create_activity(
+        author=founder,
+        kind="update",
+        title="Shoutout",
+        body="Big fan of @[org:beta]",
+        occurred_at=now(),
+        visibility=Visibility.PUBLIC,
+    )
+
+    assert Notification.objects.filter(user=admin, kind=Notification.Kind.MENTION).exists()
+    assert not Notification.objects.filter(user=founder, kind=Notification.Kind.MENTION).exists()
+
+
+@pytest.mark.django_db
+def test_mentions_are_capped_per_body():
+    handles = [f"cap{i}" for i in range(MAX_MENTIONS_PER_BODY + 2)]
+    body = " ".join(f"@[user:{h}]" for h in handles)
+
+    markers = parse_mention_markers(body)
+
+    assert len(markers) == MAX_MENTIONS_PER_BODY
+
+
+@pytest.mark.django_db
+def test_mention_search_returns_matching_users_and_orgs(api, outsider, investor_with_handle, org):
+    api.force_authenticate(outsider)
+
+    people = api.get("/api/mentions/search/?q=ana")
+    assert people.status_code == 200
+    assert any(u["handle"] == "ana" for u in people.data["users"])
+
+    orgs = api.get(f"/api/mentions/search/?q={org.name[:3]}")
+    assert any(o["slug"] == org.slug for o in orgs.data["orgs"])
+
+
+@pytest.mark.django_db
+def test_unresolved_marker_is_dropped_not_linked(api, outsider, activity):
+    api.force_authenticate(outsider)
+    res = api.post(
+        f"/api/activities/{activity.id}/comments/",
+        {"body": "cc @[user:nobody-with-this-handle]"},
+        format="json",
+    )
+    assert res.status_code == 201
+    assert res.data["mentions"] == []
+    assert not Mention.objects.exists()
+
+
+# --- link previews ---
+
+
+class _FakeResponse:
+    def __init__(self, json_data, status_code=200):
+        self._json_data = json_data
+        self.status_code = status_code
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError("http error")
+
+    def json(self):
+        return self._json_data
+
+
+@pytest.mark.django_db
+def test_link_preview_fetches_and_caches(api, outsider, monkeypatch):
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append(params["url"])
+        return _FakeResponse(
+            {
+                "status": "success",
+                "data": {
+                    "title": "Example",
+                    "description": "desc",
+                    "image": {"url": "https://img.example.com/x.png"},
+                    "publisher": "Example.com",
+                },
+            }
+        )
+
+    monkeypatch.setattr(unfurl_module.requests, "get", fake_get)
+    api.force_authenticate(outsider)
+
+    first = api.get("/api/links/preview/?url=https://example.com/article")
+    assert first.status_code == 200
+    assert first.data == {
+        "status": "ready",
+        "url": "https://example.com/article",
+        "title": "Example",
+        "description": "desc",
+        "image_url": "https://img.example.com/x.png",
+        "site_name": "Example.com",
+    }
+
+    second = api.get("/api/links/preview/?url=https://example.com/article")
+    assert second.status_code == 200
+    assert calls == ["https://example.com/article"]  # second call served from cache, no re-fetch
+    assert LinkPreview.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_link_preview_degrades_gracefully_on_fetch_failure(api, outsider, monkeypatch):
+    def fake_get(url, params=None, timeout=None):
+        raise RuntimeError("unreachable")
+
+    monkeypatch.setattr(unfurl_module.requests, "get", fake_get)
+    api.force_authenticate(outsider)
+
+    res = api.get("/api/links/preview/?url=https://down.example.com")
+
+    assert res.status_code == 200
+    assert res.data == {"status": "unavailable"}
+    assert LinkPreview.objects.get().status == LinkPreview.Status.FAILED
+
+
+@pytest.mark.django_db
+def test_link_preview_rejects_non_http_scheme(api, outsider):
+    api.force_authenticate(outsider)
+    res = api.get("/api/links/preview/?url=javascript:alert(1)")
+    assert res.status_code == 200
+    assert res.data == {"status": "unavailable"}
+    assert not LinkPreview.objects.exists()

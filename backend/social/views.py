@@ -11,6 +11,7 @@ from beedero.ratelimit import enforce_rate_limit
 from orgs.models import Activity
 from orgs.visibility import activity_visible_to
 
+from .mentions import search_mentionable
 from .models import Comment
 from .serializers import CommentCreateSerializer, ReactionSerializer, comment_summary
 from .services import (
@@ -23,9 +24,11 @@ from .services import (
     toggle_reaction,
     user_has_commented,
 )
+from .unfurl import get_or_fetch_preview
 
 REACTIONS_PER_DAY = 200
 COMMENTS_PER_DAY = 30
+LINK_PREVIEWS_PER_HOUR = 60
 
 
 class ActivityReactionView(APIView):
@@ -187,3 +190,43 @@ class UserAttendingEventsView(APIView):
         if exclude_org:
             activities = activities.exclude(org__slug=exclude_org)
         return Response([calendar_event_summary(a) for a in activities])
+
+
+class MentionSearchView(APIView):
+    """GET /api/mentions/search/?q= — backs the composer's @-autocomplete."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "")
+        return Response(search_mentionable(request.user, query))
+
+
+class LinkPreviewView(APIView):
+    """GET /api/links/preview/?url= — on-demand rich-link unfurl (spec §A2).
+    The frontend calls this per unique http(s) URL it detects in a post/
+    comment body; results are cached server-side by URL, so repeated posts
+    of the same link only ever hit the third-party unfurl service once."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        url = request.query_params.get("url", "").strip()
+        if not url:
+            return Response({"detail": "url is required."}, status=400)
+        enforce_rate_limit(
+            f"link_preview:{request.user.id}", limit=LINK_PREVIEWS_PER_HOUR, window_seconds=3600
+        )
+        preview = get_or_fetch_preview(url)
+        if preview is None or preview.status != preview.Status.READY:
+            return Response({"status": "unavailable"})
+        return Response(
+            {
+                "status": "ready",
+                "url": preview.url,
+                "title": preview.title,
+                "description": preview.description,
+                "image_url": preview.image_url,
+                "site_name": preview.site_name,
+            }
+        )

@@ -6,8 +6,15 @@ land in the same Activity row shape."""
 from .models import Activity, Organization, OrgMembership
 
 
-def create_activity(*, org=None, author=None, kind, title, body="", occurred_at, ends_at=None, image=None, visibility, payload=None):
-    return Activity.objects.create(
+def create_activity(
+    *, org=None, author=None, actor=None, kind, title, body="", occurred_at, ends_at=None, image=None, visibility, payload=None
+):
+    """`actor` is the person mentions are attributed to. For investor posts
+    it's the same as `author`; for org posts, `author` stays None (org
+    posts aren't attributed to an individual member) but `actor` is still
+    the member who submitted the post, so @-mentions in the body resolve
+    and notify correctly."""
+    activity = Activity.objects.create(
         org=org,
         author=author,
         kind=kind,
@@ -19,6 +26,12 @@ def create_activity(*, org=None, author=None, kind, title, body="", occurred_at,
         visibility=visibility,
         payload=payload or {},
     )
+    mention_actor = actor or author
+    if body and mention_actor is not None:
+        from social.mentions import handle_mentions
+
+        handle_mentions(actor=mention_actor, body=body, activity=activity)
+    return activity
 
 
 def sole_owner_orgs(user):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from .mentions import resolve_mentions
 from .models import Comment, Reaction
 
 
@@ -33,5 +34,6 @@ def comment_summary(comment: Comment) -> dict:
         "author_name": _author_display_name(comment.author),
         **_author_profile_fields(comment.author),
         "body": comment.body,
+        "mentions": resolve_mentions(comment.body),
         "created_at": comment.created_at.isoformat(),
     }

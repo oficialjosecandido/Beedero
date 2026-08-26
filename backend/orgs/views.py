@@ -23,6 +23,7 @@ from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
 from accounts.skills import normalize_skills
+from social.mentions import resolve_mentions
 from social.services import (
     reaction_counts_for,
     viewer_has_commented_for,
@@ -930,7 +931,7 @@ class FeedPostView(OrgLookupMixin, APIView):
         if kind == "milestone" and "category" not in data:
             data["category"] = "other"
 
-        activity = create_org_post(org, kind, data)
+        activity = create_org_post(org, kind, data, actor=request.user)
 
         from notifications.milestones import check_first_post_milestone
 
@@ -953,7 +954,7 @@ class OrgPostsView(OrgLookupMixin, APIView):
         kind = request.data.get("kind")
         # .copy(), not dict(...) — see FeedPostView.post for why.
         data = request.data.copy()
-        activity = create_org_post(org, kind, data)
+        activity = create_org_post(org, kind, data, actor=request.user)
 
         from notifications.milestones import check_first_post_milestone
 
@@ -1009,6 +1010,7 @@ def _activity_summary(
         "image": activity.image.url if activity.image else None,
         "occurred_at": activity.occurred_at.isoformat(),
         "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
+        "mentions": resolve_mentions(activity.body),
     }
     if activity.payload:
         value["payload"] = activity.payload

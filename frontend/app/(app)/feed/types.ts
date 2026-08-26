@@ -1,3 +1,5 @@
+import type { ResolvedMention } from "@/lib/richtext";
+
 export type FeedItem = {
   id: number;
   type: "org" | "person";
@@ -11,6 +13,7 @@ export type FeedItem = {
     occurred_at?: string;
     ends_at?: string | null;
     payload?: Record<string, unknown>;
+    mentions?: ResolvedMention[];
   };
   reaction_count: number;
   reaction_counts?: { like: number; insight: number; congrats: number };
@@ -30,6 +33,7 @@ export type Comment = {
   author_profile_picture?: string | null;
   body: string;
   created_at: string;
+  mentions?: ResolvedMention[];
 };
 
 export type ConversationSummary = {

@@ -7,6 +7,7 @@ from credibility.levels import credibility_level
 from orgs.constants import SectionKind
 from orgs.models import Activity, OrgSection
 from orgs.services import create_activity
+from social.mentions import resolve_mentions
 
 from .constants import ACTIVITY_TO_POST_KIND, POST_KIND_TO_ACTIVITY, PostKind
 from .freshness import freshness_label
@@ -41,7 +42,7 @@ def _section_for_kind(org, activity_kind: str) -> OrgSection:
     return OrgSection.objects.get(org=org, kind=activity_kind)
 
 
-def create_org_post(org, kind: str, data: dict) -> Activity:
+def create_org_post(org, kind: str, data: dict, actor=None) -> Activity:
     rule = posting_rule(org)
     if kind not in rule["kinds"]:
         locked = next((item for item in locked_kinds(org) if item["kind"] == kind), None)
@@ -64,6 +65,7 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
         title = validated.get("title") or validated["body"][:120]
         activity = create_activity(
             org=org,
+            actor=actor,
             kind=activity_kind,
             title=title,
             body=validated["body"],
@@ -84,6 +86,7 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
             payload["occurred_at"] = display_date.isoformat()
         activity = create_activity(
             org=org,
+            actor=actor,
             kind=activity_kind,
             title=validated["title"],
             body=validated.get("body", ""),
@@ -105,6 +108,7 @@ def create_org_post(org, kind: str, data: dict) -> Activity:
     }
     return create_activity(
         org=org,
+        actor=actor,
         kind=activity_kind,
         title=validated["title"],
         body=validated.get("body", ""),
@@ -159,6 +163,7 @@ def activity_post_summary(activity: Activity) -> dict:
     value = {
         "title": activity.title,
         "body": activity.body,
+        "mentions": resolve_mentions(activity.body),
         "image": activity.image.url if activity.image else None,
         "occurred_at": activity.occurred_at.isoformat(),
         "ends_at": activity.ends_at.isoformat() if activity.ends_at else None,
