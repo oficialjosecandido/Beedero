@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { startConversationAction, startOrgConversationAction } from "@/app/(app)/feed/actions";
 import type { ConversationSummary } from "@/app/(app)/feed/types";
+import { Skeleton, SkeletonAvatar } from "@/components/Skeleton";
 import { formatMessageTimestamp } from "@/lib/format";
 import { useMessaging, type InboxContext, type PersonSummary } from "@/lib/messaging-context";
 
@@ -241,7 +242,7 @@ export function MessagingInbox({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle"
             aria-hidden
           >
             <circle cx="11" cy="11" r="7" />
@@ -286,7 +287,7 @@ export function MessagingInbox({
         </button>
       </div>
 
-      {error && <p className="border-b border-zinc-200 px-4 py-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="border-b border-zinc-200 px-4 py-2 text-xs text-danger">{error}</p>}
       {showCompose && (
         <div className="max-h-44 overflow-y-auto border-b border-zinc-200 p-2">
           {filteredContacts.length === 0 ? (
@@ -317,7 +318,17 @@ export function MessagingInbox({
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="px-4 py-6 text-sm text-zinc-500">Loading…</p>
+          <div className="flex flex-col gap-4 px-3 py-3" aria-hidden="true">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <SkeletonAvatar className="size-10" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-2/5" />
+                  <Skeleton className="h-2.5 w-3/5" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filteredConversations.length === 0 ? (
           <p className="px-4 py-6 text-sm text-zinc-500">{emptyMessage}</p>
         ) : (

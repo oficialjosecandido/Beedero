@@ -170,7 +170,7 @@ export function MentionTextarea({
                 }`}
               >
                 <span className="truncate font-medium text-beedero-black">{option.name}</span>
-                <span className="shrink-0 text-xs text-zinc-400">
+                <span className="shrink-0 text-xs text-subtle">
                   @{option.type === "org" ? option.slug : option.handle}
                 </span>
               </button>

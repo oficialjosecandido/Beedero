@@ -59,7 +59,7 @@ function RequestCard({
       <div className="flex items-start gap-3">
         {item.requester.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <img loading="lazy"
             src={item.requester.profile_picture}
             alt=""
             className="size-11 shrink-0 rounded-full object-cover"
@@ -88,7 +88,7 @@ function RequestCard({
           {item.requester.headline && (
             <p className="text-sm text-zinc-600">{item.requester.headline}</p>
           )}
-          <p className="mt-1 text-xs text-zinc-400">{formatRelativeTime(item.created_at)}</p>
+          <p className="mt-1 text-xs text-subtle">{formatRelativeTime(item.created_at)}</p>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ function RequestCard({
         <p className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{item.note}</p>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex gap-3">
         <button

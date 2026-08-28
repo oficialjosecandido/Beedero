@@ -11,8 +11,8 @@ export function DeleteAccountPanel() {
   useActionToast(error, pending);
 
   return (
-    <section className="rounded-2xl border-2 border-red-200 bg-red-50/40 p-5">
-      <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-red-700">Danger zone</h2>
+    <section className="rounded-2xl border-2 border-red-200 bg-danger-surface/40 p-5">
+      <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-danger-strong">Danger zone</h2>
       <p className="mt-2 text-sm leading-6 text-zinc-600">
         Deleting your account removes your profile, posts, and connections. Any organization you
         solely own is deleted with it; organizations with other owners are unaffected. This cannot
@@ -23,14 +23,14 @@ export function DeleteAccountPanel() {
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="mt-4 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+          className="mt-4 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-danger-strong hover:bg-red-100"
         >
           Delete account
         </button>
       ) : (
         <form action={formAction} className="mt-4 flex flex-col gap-3 sm:max-w-sm">
           <label className="text-xs font-medium text-zinc-600">
-            Type <span className="font-bold text-red-700">DELETE</span> to confirm.
+            Type <span className="font-bold text-danger-strong">DELETE</span> to confirm.
             <input
               type="text"
               name="confirmation"
@@ -38,7 +38,7 @@ export function DeleteAccountPanel() {
               className="mt-1 w-full rounded-xl border border-red-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-red-500 focus:outline-none"
             />
           </label>
-          {error && <p className="text-xs text-red-700">{error}</p>}
+          {error && <p className="text-xs text-danger-strong">{error}</p>}
           <div className="flex gap-2">
             <button
               type="submit"

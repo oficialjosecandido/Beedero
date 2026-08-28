@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { geoLabel, sectorLabel, stageLabel } from "@/lib/org-filters";
 import type { OrgSummary } from "@/lib/types";
 
@@ -12,10 +14,10 @@ import { loadMoreDiscoveryAction } from "./actions";
 function OrgCard({ org }: { org: OrgSummary }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-beedero-border hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
-      <Link href={`/org/${org.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
+      <Link href={`/o/${org.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
         {org.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={org.logo} alt="" className="size-10 shrink-0 rounded-xl object-cover" />
+          <img src={org.logo} alt={`${org.name} logo`} className="size-10 shrink-0 rounded-xl object-cover" />
         ) : (
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-500">
             {org.name.charAt(0).toUpperCase()}
@@ -24,7 +26,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5">
             <p className="font-medium text-zinc-950">{org.name}</p>
-            <p className="text-xs text-zinc-400">@{org.slug}</p>
+            <p className="text-xs text-subtle">@{org.slug}</p>
           </div>
           {org.one_liner && <p className="text-xs text-zinc-600">{org.one_liner}</p>}
           <p className="text-xs text-zinc-500">
@@ -79,12 +81,14 @@ export function DiscoveryList({
   }
 
   if (items.length === 0) {
-    return (
-      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        {query.trim()
-          ? "No organizations found. Try a different search."
-          : "No organizations to show yet — check back as more join Beedero."}
-      </div>
+    return query.trim() ? (
+      <EmptyState title="No organizations found" description="Try a different search." />
+    ) : (
+      <EmptyState
+        title="No organizations to show yet"
+        description="Check back as more join Beedero — meanwhile, catch up on the feed."
+        action={{ href: "/feed", label: "Browse the feed" }}
+      />
     );
   }
 
@@ -98,12 +102,13 @@ export function DiscoveryList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto flex items-center gap-2 rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
+          {isPending && <LoadingSpinner className="size-4" label="" />}
           {isPending ? "Loading…" : "Load more"}
         </button>
       )}
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
     </div>
   );
 }

@@ -43,15 +43,15 @@ function FieldValue({
         )}
         {post.image && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />
+          <img loading="lazy" src={post.image} alt="" className="mt-2 max-h-72 w-full rounded-xl object-cover" />
         )}
         {sectionKind === "events" && post.occurred_at && post.ends_at ? (
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-subtle">
             {formatDateTime(post.occurred_at)} – {formatDateTime(post.ends_at)}
           </p>
         ) : (
           post.occurred_at && (
-            <p className="text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
+            <p className="text-xs text-subtle">{formatDate(post.occurred_at)}</p>
           )
         )}
       </div>
@@ -94,7 +94,7 @@ function TeamMemberAvatar({ name, profilePicture }: { name: string; profilePictu
   if (profilePicture) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={profilePicture} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+      <img loading="lazy" src={profilePicture} alt="" className="size-11 shrink-0 rounded-full object-cover" />
     );
   }
   return (
@@ -172,7 +172,7 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
         <div className="flex items-center gap-3">
           {data.org.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.org.logo} alt="" className="size-12 rounded-xl border border-beedero-border object-cover" />
+            <img src={data.org.logo} alt={`${data.org.name} logo`} className="size-12 rounded-xl border border-beedero-border object-cover" />
           ) : (
             <span className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-lg font-semibold text-zinc-500">
               {data.org.name.charAt(0).toUpperCase()}

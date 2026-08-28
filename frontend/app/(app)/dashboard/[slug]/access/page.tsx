@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { createGrantAction, deleteGrantAction } from "../../actions";
+import { createGrantAction } from "../../actions";
+import { EmptyState } from "@/components/EmptyState";
 import { ApiError, apiFetch } from "@/lib/api";
 import { SECTION_LABELS } from "@/lib/types";
+
+import { RevokeGrantButton } from "./RevokeGrantButton";
 
 type SectionField = { id: number; key: string; value: unknown; visibility: string };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
@@ -58,9 +61,11 @@ export default async function AccessPage({
 
         <section className="grid gap-3">
           {grants.length === 0 && (
-            <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
-              No active grants.
-            </p>
+            <EmptyState
+              title="No active grants"
+              description="Grant a person, org, or role access to a restricted section or field below."
+              action={{ href: "#grant-form", label: "Grant access" }}
+            />
           )}
           {grants.map((grant) => (
             <div
@@ -71,18 +76,13 @@ export default async function AccessPage({
                 {grant.principal_type}:{grant.principal_id} {"->"}{" "}
                 {grant.section ? `section #${grant.section}` : `field #${grant.field}`}
               </span>
-              <form action={deleteGrantAction}>
-                <input type="hidden" name="slug" value={slug} />
-                <input type="hidden" name="grant_id" value={grant.id} />
-                <button className="rounded-xl border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                  Revoke
-                </button>
-              </form>
+              <RevokeGrantButton slug={slug} grantId={grant.id} />
             </div>
           ))}
         </section>
 
         <form
+          id="grant-form"
           action={createGrantAction}
           className="grid gap-4 rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm md:grid-cols-2"
         >

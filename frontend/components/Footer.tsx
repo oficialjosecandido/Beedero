@@ -3,7 +3,7 @@ import Link from "next/link";
 import { COMPANY } from "@/lib/legal-content";
 
 const PRODUCT_LINKS = [
-  { href: "/discovery", label: "Discover" },
+  { href: "/startups", label: "Discover" },
   { href: "/pricing", label: "Pricing" },
   { href: "/", label: "How it works" },
 ] as const;

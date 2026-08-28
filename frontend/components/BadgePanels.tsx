@@ -76,7 +76,7 @@ export function BadgeEmbedPanel({
             Preview public profile
           </a>
           {badge.valid_until && badge.level > 0 && (
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-subtle">
               {badge.days_until_expiry != null && badge.days_until_expiry <= 30
                 ? `Expires in ${badge.days_until_expiry} days`
                 : `Valid until ${formatDate(badge.valid_until)}`}
@@ -171,7 +171,7 @@ export function VitalityChecklistPanel({
               <p className={item.done ? "text-zinc-500 line-through" : "font-medium text-zinc-800"}>
                 {item.label}
               </p>
-              {!item.done && <p className="text-xs text-zinc-400">{item.hint}</p>}
+              {!item.done && <p className="text-xs text-subtle">{item.hint}</p>}
             </div>
           </li>
         ))}

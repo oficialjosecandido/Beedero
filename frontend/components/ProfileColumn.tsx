@@ -42,7 +42,7 @@ function ProfileAvatar({
   if (profilePicture) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={profilePicture} alt="" className={`${sizeClass} shrink-0 rounded-full object-cover ${className}`} />
+      <img loading="lazy" src={profilePicture} alt="" className={`${sizeClass} shrink-0 rounded-full object-cover ${className}`} />
     );
   }
   return (
@@ -141,7 +141,7 @@ function ProfileCard({
                 >
                   {org.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={org.logo} alt="" className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border/60" />
+                    <img loading="lazy" src={org.logo} alt="" className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border/60" />
                   ) : (
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/30 text-xs font-bold text-beedero-black">
                       {org.name.charAt(0).toUpperCase()}
@@ -159,7 +159,7 @@ function ProfileCard({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-beedero-black"
+                    className="size-4 shrink-0 text-subtle transition group-hover:translate-x-0.5 group-hover:text-beedero-black"
                     aria-hidden
                   >
                     <path d="m9 18 6-6-6-6" />

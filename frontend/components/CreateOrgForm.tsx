@@ -130,7 +130,7 @@ export function CreateOrgForm() {
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4">
       {slug && (
         <>
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-subtle">
             <span>Step {step} of {TOTAL_STEPS}</span>
             <button type="button" onClick={finish} className="normal-case text-beedero-black hover:underline">
               Finish now
@@ -166,7 +166,7 @@ export function CreateOrgForm() {
             Only the name is required. Everything else is optional — add as much or as little as
             you like, and we&apos;ll show your profile strength as you go.
           </p>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
           <button
             type="button"
             onClick={handleCreate}
@@ -188,7 +188,7 @@ export function CreateOrgForm() {
             disabled={pending}
             className="text-xs text-zinc-700 file:mr-2 file:rounded-lg file:border-0 file:bg-beedero-yellow file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-beedero-black hover:file:bg-beedero-black hover:file:text-beedero-white"
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
           <button
             type="button"
             onClick={() => setStep(2)}
@@ -210,7 +210,7 @@ export function CreateOrgForm() {
             placeholder="Explain what the organization does in simple language."
             className={inputClass}
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -249,7 +249,7 @@ export function CreateOrgForm() {
             placeholder="Who is the target market and how big is the opportunity?"
             className={inputClass}
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
           <div className="flex items-center gap-3">
             <button
               type="button"

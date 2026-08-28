@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CREDIBILITY_LEVEL_LABELS } from "@/lib/credibility";
 import { formatDate } from "@/lib/format";
 import { ApiError, publicFetch } from "@/lib/api";
-import { pageMetadata } from "@/lib/site-metadata";
+import { missingPageMetadata, pageMetadata } from "@/lib/site-metadata";
 
 type VerifyData = {
   org: {
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       path: `/verify/${slug}`,
     });
   } catch {
-    return { title: "Verification" };
+    return missingPageMetadata("Verification");
   }
 }
 
@@ -100,7 +100,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ slug: s
               {badge.layers.map((layer) => (
                 <li key={layer.level} className="flex items-center gap-2 text-sm">
                   <span>{layer.verified ? "✅" : "⬜"}</span>
-                  <span className={layer.verified ? "font-semibold text-zinc-900" : "text-zinc-400"}>
+                  <span className={layer.verified ? "font-semibold text-zinc-900" : "text-subtle"}>
                     Level {layer.level} — {layer.label}
                   </span>
                 </li>

@@ -38,7 +38,7 @@ export default async function LoginPage({
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Log in</h1>
         </div>
         {errorMessage && (
-          <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</p>
+          <p className="rounded-2xl bg-danger-surface px-4 py-3 text-sm text-danger-strong">{errorMessage}</p>
         )}
         <a
           href={entraLoginHref}

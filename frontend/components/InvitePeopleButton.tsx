@@ -130,7 +130,7 @@ export function InvitePeopleButton({
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-beedero-black/5 hover:text-beedero-black"
+                  className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-beedero-black/5 hover:text-beedero-black"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
                     <path d="M18 6L6 18M6 6l12 12" />

@@ -30,7 +30,7 @@ function ContextAvatar({
     >
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" className="size-10 rounded-full object-cover" />
+        <img loading="lazy" src={image} alt="" className="size-10 rounded-full object-cover" />
       ) : (
         <span className="flex size-10 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600">
           {name.charAt(0).toUpperCase()}

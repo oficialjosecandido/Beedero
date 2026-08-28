@@ -53,7 +53,7 @@ function ConnectionRow({
       <div className="flex items-center gap-3">
         {item.user.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <img loading="lazy"
             src={item.user.profile_picture}
             alt=""
             className="size-11 shrink-0 rounded-full object-cover"
@@ -77,7 +77,7 @@ function ConnectionRow({
             </span>
           </div>
           {item.user.headline && <p className="text-sm text-zinc-600">{item.user.headline}</p>}
-          <p className="mt-1 text-xs text-zinc-400">Connected {formatRelativeTime(item.created_at)}</p>
+          <p className="mt-1 text-xs text-subtle">Connected {formatRelativeTime(item.created_at)}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -98,7 +98,7 @@ function ConnectionRow({
           </button>
         </div>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </li>
   );
 }

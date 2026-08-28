@@ -43,7 +43,7 @@ function MembershipCard({ membership }: { membership: PersonMembershipWithSkills
   return (
     <div className="rounded-2xl border border-beedero-border bg-zinc-50/50 p-4">
       <p className="text-sm font-semibold text-zinc-800">{membership.orgName}</p>
-      <p className="text-xs text-zinc-400">{membership.role}</p>
+      <p className="text-xs text-subtle">{membership.role}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {membership.skills.map((skill) => (
           <span
@@ -52,19 +52,23 @@ function MembershipCard({ membership }: { membership: PersonMembershipWithSkills
           >
             {skill.skill}
             {skill.status === "org_confirmed" && (
-              <span className="text-[10px] font-bold text-emerald-600">confirmed</span>
+              <span className="text-[10px] font-bold text-success">confirmed</span>
             )}
             <form action={retractMembershipSkillAction}>
               <input type="hidden" name="slug" value={membership.org} />
               <input type="hidden" name="member_id" value={membership.id} />
               <input type="hidden" name="skill_id" value={skill.id} />
-              <button type="submit" className="text-zinc-400 hover:text-beedero-black" aria-label={`Remove ${skill.skill}`}>
+              <button
+                type="submit"
+                className="-m-1.5 p-1.5 text-subtle hover:text-beedero-black"
+                aria-label={`Remove ${skill.skill}`}
+              >
                 ×
               </button>
             </form>
           </span>
         ))}
-        {membership.skills.length === 0 && <p className="text-xs text-zinc-400">No skills declared yet.</p>}
+        {membership.skills.length === 0 && <p className="text-xs text-subtle">No skills declared yet.</p>}
       </div>
       <div className="mt-2">
         <MembershipSkillRow slug={membership.org} memberId={membership.id} />

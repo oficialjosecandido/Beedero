@@ -48,7 +48,7 @@ export function SuggestedFollowsPanel({ organizations }: { organizations: Sugges
           >
             {org.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={org.logo} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+              <img loading="lazy" src={org.logo} alt="" className="size-10 shrink-0 rounded-full object-cover" />
             ) : (
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500">
                 {org.name.charAt(0).toUpperCase()}

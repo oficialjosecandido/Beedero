@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PersonProfileActions } from "@/components/PersonProfileActions";
+import { PersonProfileJsonLd } from "@/components/PersonProfileJsonLd";
 import { PersonTimeline, type TimelineBand } from "@/components/PersonTimeline";
 import { PersonSkillsSection, type AggregatedSkill } from "@/components/PersonSkillsSection";
 import { PostsShowcase } from "@/components/PostsShowcase";
@@ -9,7 +10,7 @@ import { ApiError, apiFetch, publicFetch } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
 import type { ResolvedMention } from "@/lib/richtext";
-import { pageMetadata } from "@/lib/site-metadata";
+import { missingPageMetadata, pageMetadata } from "@/lib/site-metadata";
 import { getAccessToken } from "@/lib/session";
 import { engagementLabel, expertiseLabel } from "@/lib/advisory-options";
 import { sectorLabel, stageLabel } from "@/lib/org-filters";
@@ -79,7 +80,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
         : undefined,
     });
   } catch {
-    return { title: "Profile" };
+    return missingPageMetadata("Profile");
   }
 }
 
@@ -100,7 +101,9 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
   const { person, attestations, posts, timeline, skills, advisor, viewer_actions } = data;
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
+    <>
+      <PersonProfileJsonLd person={person} />
+      <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
       <div className="w-full max-w-2xl">
         <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-8 shadow-sm">
           <div className="flex items-start gap-4">
@@ -108,7 +111,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={person.profile_picture}
-                alt=""
+                alt={`${person.full_name} profile photo`}
                 className="size-16 rounded-full object-cover"
               />
             ) : (
@@ -128,7 +131,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
               <p className="mt-1 text-sm font-semibold text-zinc-600">{formatAtHandle(person.handle)}</p>
               {person.headline && <p className="mt-1 text-sm text-zinc-600">{person.headline}</p>}
               {person.country && (
-                <p className="mt-1 text-xs text-zinc-400">
+                <p className="mt-1 text-xs text-subtle">
                   {COUNTRY_NAMES[person.country] ?? person.country}
                 </p>
               )}
@@ -162,9 +165,9 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                     {item.org_slug ? (
                       item.org_logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <img loading="lazy"
                           src={item.org_logo}
-                          alt=""
+                          alt={`${item.org_name ?? item.label} logo`}
                           className="size-10 shrink-0 rounded-xl border border-beedero-border/60 object-cover"
                         />
                       ) : (
@@ -253,5 +256,6 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
         </div>
       </div>
     </main>
+    </>
   );
 }

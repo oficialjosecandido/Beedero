@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { sendConnectionRequestAction } from "@/app/(app)/connections/actions";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { formatAtHandle } from "@/lib/handles";
 
 import { loadMorePeopleDiscoveryAction } from "./actions";
@@ -43,7 +45,7 @@ function PersonCard({ person }: { person: PersonSummary }) {
       <div className="flex items-center gap-3">
         {person.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <img loading="lazy"
             src={person.profile_picture}
             alt=""
             className="size-10 rounded-full object-cover"
@@ -100,7 +102,7 @@ function PersonCard({ person }: { person: PersonSummary }) {
             {pending ? "Connecting…" : "Connect"}
           </button>
         )}
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     </div>
   );
@@ -135,12 +137,14 @@ export function PeopleDiscoveryList({
   }
 
   if (items.length === 0) {
-    return (
-      <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        {query.trim()
-          ? "No people found. Try a different search."
-          : "No one to show yet — invite people you know, or check back as more investors and founders join."}
-      </div>
+    return query.trim() ? (
+      <EmptyState title="No people found" description="Try a different search." />
+    ) : (
+      <EmptyState
+        title="No one to show yet"
+        description="Check back as more investors and founders join — meanwhile, catch up on the feed."
+        action={{ href: "/feed", label: "Browse the feed" }}
+      />
     );
   }
 
@@ -154,12 +158,13 @@ export function PeopleDiscoveryList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto flex items-center gap-2 rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
+          {isPending && <LoadingSpinner className="size-4" label="" />}
           {isPending ? "Loading…" : "Load more"}
         </button>
       )}
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
     </div>
   );
 }

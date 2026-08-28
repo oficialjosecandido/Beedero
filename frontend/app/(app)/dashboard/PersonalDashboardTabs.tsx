@@ -13,6 +13,7 @@ import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKp
 import { ProfileForm } from "@/components/ProfileForm";
 import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import { DeleteAccountPanel } from "@/components/DeleteAccountPanel";
+import { EmptyState } from "@/components/EmptyState";
 import { ExperienceManager, type Experience } from "@/components/ExperienceManager";
 import {
   MembershipSkillsManager,
@@ -124,11 +125,11 @@ function MyPostCard({ post }: { post: InvestorPost }) {
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           {SECTION_LABELS[post.kind] ?? post.kind}
         </span>
-        <p className="text-xs text-zinc-400">Published {formatDate(post.created_at)}</p>
+        <p className="text-xs text-subtle">Published {formatDate(post.created_at)}</p>
       </div>
       {post.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={post.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
+        <img loading="lazy" src={post.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
       )}
       <h3 className="text-lg font-extrabold text-zinc-900">{post.title || "Update"}</h3>
       {post.body && (
@@ -137,11 +138,11 @@ function MyPostCard({ post }: { post: InvestorPost }) {
         </p>
       )}
       {post.kind === "events" && post.occurred_at && post.ends_at ? (
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-subtle">
           {formatDateTime(post.occurred_at)} – {formatDateTime(post.ends_at)}
         </p>
       ) : (
-        post.occurred_at && <p className="text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
+        post.occurred_at && <p className="text-xs text-subtle">{formatDate(post.occurred_at)}</p>
       )}
       <PostEngagementMetrics post={post} />
     </article>
@@ -267,7 +268,13 @@ export function PersonalDashboardTabs({
           <p className="mt-1 text-sm text-zinc-500">
             Posts you bookmark from the feed will show up here.
           </p>
-          <p className="mt-4 text-sm text-zinc-400">You haven&apos;t saved any posts yet.</p>
+          <div className="mt-4">
+            <EmptyState
+              title="You haven't saved any posts yet"
+              description="Bookmark a post from the feed to keep it handy here."
+              action={{ href: "/feed", label: "Browse the feed" }}
+            />
+          </div>
         </div>
       )}
 

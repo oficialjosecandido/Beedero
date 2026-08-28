@@ -1,8 +1,10 @@
 from django.urls import path
 
-from . import views
+from . import public_seo_views, views
 
 urlpatterns = [
+    path("public/sitemap/", public_seo_views.PublicSitemapView.as_view()),
+    path("public/discovery/", public_seo_views.PublicDiscoveryView.as_view()),
     path("public/orgs/<slug:slug>/", views.PublicOrgProfileView.as_view()),
     path("orgs/", views.OrgListCreateView.as_view()),
     path("orgs/<slug:slug>/", views.OrgProfileView.as_view()),

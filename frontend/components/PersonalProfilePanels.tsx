@@ -62,7 +62,7 @@ export function PersonBadgeEmbedPanel({
           >
             Preview public profile
           </a>
-          <p className="mt-1 text-xs text-zinc-400">As of {formatDate(badge.as_of)}</p>
+          <p className="mt-1 text-xs text-subtle">As of {formatDate(badge.as_of)}</p>
         </div>
       </div>
     </div>
@@ -135,7 +135,7 @@ export function ProfileStrengthPanel({
               <p className={item.done ? "text-zinc-500 line-through" : "font-medium text-zinc-800"}>
                 {LABELS[item.key] ?? item.key}
               </p>
-              {!item.done && <p className="text-xs text-zinc-400">{item.hint}</p>}
+              {!item.done && <p className="text-xs text-subtle">{item.hint}</p>}
             </div>
           </li>
         ))}

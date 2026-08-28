@@ -117,7 +117,7 @@ export function PersonProfileActions({
               Cancel
             </button>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3">

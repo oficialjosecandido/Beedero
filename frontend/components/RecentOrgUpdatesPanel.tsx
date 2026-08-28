@@ -57,7 +57,7 @@ export function RecentOrgUpdatesPanel({ items }: { items: RecentOrgUpdateItem[] 
                 >
                   {item.org.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <img loading="lazy"
                       src={item.org.logo}
                       alt=""
                       className="mt-0.5 size-9 shrink-0 rounded-sm object-cover"

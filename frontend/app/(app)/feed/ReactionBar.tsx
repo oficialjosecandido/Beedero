@@ -88,7 +88,7 @@ export function ReactionBar({
         );
       })}
       {count > 0 && (
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-subtle">
           {count} reaction{count === 1 ? "" : "s"}
         </span>
       )}

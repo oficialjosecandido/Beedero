@@ -163,7 +163,7 @@ export function OrgPostComposer({
             </select>
           </label>
           {!postingStatus.allowed_kinds.includes(kind) && lockedByKind[kind] && (
-            <p className="text-xs text-amber-800">
+            <p className="text-xs text-warning">
               {lockedByKind[kind].reason}{" "}
               <Link href={`/dashboard/${slug}?tab=credibility`} className="font-semibold underline">
                 View credibility ladder

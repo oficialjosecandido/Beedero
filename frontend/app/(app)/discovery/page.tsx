@@ -314,7 +314,7 @@ export default async function DiscoveryPage({
                     </option>
                   ))}
                 </select>
-                <span className="text-xs font-normal text-zinc-400">{GEO_FILTER_HELP}</span>
+                <span className="text-xs font-normal text-subtle">{GEO_FILTER_HELP}</span>
               </label>
               <label className="flex items-center gap-2 self-end rounded-xl border border-beedero-border px-3 py-2 text-sm font-medium text-zinc-700">
                 <input
@@ -361,7 +361,7 @@ export default async function DiscoveryPage({
                     <Link
                       key={org.slug}
                       href={`/org/${org.slug}`}
-                      className="rounded-2xl border-2 border-emerald-700/30 bg-emerald-50/60 px-4 py-3 shadow-sm transition hover:border-emerald-700"
+                      className="rounded-2xl border-2 border-success-strong/30 bg-success-surface/60 px-4 py-3 shadow-sm transition hover:border-success-strong"
                     >
                       <p className="font-semibold text-zinc-950">{org.name}</p>
                       {org.one_liner && <p className="mt-1 text-xs text-zinc-600">{org.one_liner}</p>}

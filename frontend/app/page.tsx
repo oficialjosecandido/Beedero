@@ -45,7 +45,7 @@ export default function Home() {
         </Link>
 
         <div className="hidden items-center gap-6 text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-white/70 sm:flex">
-          <Link href="/discovery" className="hover:text-beedero-white">
+          <Link href="/startups" className="hover:text-beedero-white">
             Discovery
           </Link>
           <Link href="/pricing" className="hover:text-beedero-white">
@@ -68,7 +68,7 @@ export default function Home() {
           </summary>
           <div className="absolute right-0 z-20 mt-3 flex w-48 flex-col rounded-2xl border border-beedero-white/10 bg-beedero-white p-2 text-beedero-black shadow-2xl">
             <Link
-              href="/discovery"
+              href="/startups"
               className="rounded-xl px-3 py-2 text-sm font-bold hover:bg-beedero-yellow"
             >
               Discovery
@@ -119,7 +119,7 @@ export default function Home() {
                 Create your profile
               </Link>
               <Link
-                href="/discovery"
+                href="/startups"
                 className="rounded-full border border-beedero-white/25 px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-white hover:border-beedero-white hover:bg-beedero-white hover:text-beedero-black"
               >
                 Explore startups

@@ -46,7 +46,7 @@ function ManifestoInput({ initial }: { initial: string }) {
 
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-      Manifesto <span className="font-normal text-zinc-400">(optional)</span>
+      Manifesto <span className="font-normal text-subtle">(optional)</span>
       <textarea
         name="manifesto"
         rows={4}
@@ -56,7 +56,7 @@ function ManifestoInput({ initial }: { initial: string }) {
         onChange={(event) => setValue(event.target.value)}
         className={`${fieldClass} min-h-[6rem] resize-y`}
       />
-      <span className="self-end text-xs text-zinc-400">
+      <span className="self-end text-xs text-subtle">
         {value.length}/{MANIFESTO_MAX}
       </span>
     </label>
@@ -134,7 +134,7 @@ export function SkillsInput({ initial }: { initial: string[] }) {
             <button
               type="button"
               onClick={() => setSkills((current) => current.filter((s) => s !== skill))}
-              className="text-zinc-400 hover:text-beedero-black"
+              className="text-subtle hover:text-beedero-black"
               aria-label={`Remove ${skill}`}
             >
               ×
@@ -263,7 +263,7 @@ export function ProfileForm({
                       {formatAtHandle(profile.handle)}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-subtle">
                     Your public ID is assigned from your name and cannot be changed.
                   </p>
                 </>
@@ -321,7 +321,7 @@ export function ProfileForm({
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-            Bio <span className="font-normal text-zinc-400">(optional)</span>
+            Bio <span className="font-normal text-subtle">(optional)</span>
             <textarea
               name="bio"
               rows={4}
@@ -333,13 +333,13 @@ export function ProfileForm({
           <ManifestoInput initial={profile?.manifesto ?? ""} />
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-medium text-zinc-700">
-              Links <span className="font-normal text-zinc-400">(optional)</span>
+              Links <span className="font-normal text-subtle">(optional)</span>
             </p>
             <LinksInput initial={profile?.links ?? []} />
           </div>
           <div className="flex flex-col gap-1.5">
             <p className="text-sm font-medium text-zinc-700">
-              Skills <span className="font-normal text-zinc-400">(optional)</span>
+              Skills <span className="font-normal text-subtle">(optional)</span>
             </p>
             <SkillsInput initial={profile?.skills ?? []} />
           </div>
@@ -457,7 +457,7 @@ export function ProfileForm({
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-zinc-800">{label}</span>
-                  <span className="block text-xs text-zinc-400">{hint}</span>
+                  <span className="block text-xs text-subtle">{hint}</span>
                 </span>
                 <select
                   name={`visibility_${key}`}
@@ -496,7 +496,7 @@ export function ProfileForm({
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-zinc-800">{label}</span>
-                  <span className="block text-xs text-zinc-400">{hint}</span>
+                  <span className="block text-xs text-subtle">{hint}</span>
                 </span>
               </label>
             ))}

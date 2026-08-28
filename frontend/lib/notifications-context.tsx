@@ -18,6 +18,7 @@ export type NotificationPreferences = { digest_email: boolean; inapp_engagement:
 type NotificationsContextValue = {
   unread: number;
   items: NotificationItem[];
+  loading: boolean;
   prefs: NotificationPreferences | null;
   refresh: () => Promise<void>;
   markAllRead: () => Promise<void>;
@@ -30,6 +31,11 @@ const NotificationsContext = createContext<NotificationsContextValue | null>(nul
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  // Starts true so consumers can distinguish "still fetching" from a real
+  // empty inbox — without this, NotificationsPanel briefly rendered "No
+  // notifications yet" for users who do have notifications, before the
+  // first poll resolved.
+  const [loading, setLoading] = useState(true);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
 
   const refresh = useCallback(async () => {
@@ -56,6 +62,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         setItems(data.items);
       } catch {
         // ignore polling errors
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -100,8 +108,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   );
 
   const value = useMemo(
-    () => ({ unread, items, prefs, refresh, markAllRead, loadPreferences, updatePreference }),
-    [unread, items, prefs, refresh, markAllRead, loadPreferences, updatePreference]
+    () => ({ unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference }),
+    [unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference]
   );
 
   return (

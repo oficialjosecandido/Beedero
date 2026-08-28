@@ -26,7 +26,7 @@ export function OrgLogoForm({
     // eslint-disable-next-line @next/next/no-img-element
     <img src={logo} alt="" className="size-full object-cover" />
   ) : (
-    <span className="text-xl font-semibold text-zinc-400">{name.charAt(0).toUpperCase()}</span>
+    <span className="text-xl font-semibold text-subtle">{name.charAt(0).toUpperCase()}</span>
   );
 
   if (!editable) {

@@ -244,7 +244,7 @@ function SectionFieldRow({ slug, kind, field }: { slug: string; kind: string; fi
         <input type="hidden" name="key" value={field.key} />
         <button
           disabled={deletePending}
-          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface disabled:opacity-50"
         >
           {deletePending ? "Removing..." : "Delete"}
         </button>
@@ -302,7 +302,7 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
         </span>
       </div>
       <div className="flex flex-col gap-2">
-        {section.fields.length === 0 && <p className="text-sm text-zinc-400">No fields yet.</p>}
+        {section.fields.length === 0 && <p className="text-sm text-subtle">No fields yet.</p>}
         {section.fields.map((field) => (
           <SectionFieldRow key={field.id} slug={slug} kind={section.kind} field={field} />
         ))}
@@ -354,7 +354,7 @@ function CuratedFieldForm({
           <button
             formAction={deleteAction}
             disabled={deletePending}
-            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface disabled:opacity-50"
           >
             {deletePending ? "Clearing..." : "Clear"}
           </button>
@@ -466,7 +466,7 @@ function CuratedLinkRow({
           <input type="hidden" name="key" value={linkKey} />
           <button
             disabled={deletePending}
-            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface disabled:opacity-50"
           >
             {deletePending ? "Clearing..." : "Clear"}
           </button>
@@ -507,7 +507,7 @@ function CustomLinkRow({ slug, field }: { slug: string; field: SectionField }) {
         <input type="hidden" name="key" value={field.key} />
         <button
           disabled={deletePending}
-          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface disabled:opacity-50"
         >
           {deletePending ? "Removing..." : "Delete"}
         </button>
@@ -576,7 +576,7 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-extrabold text-zinc-900">Other links</h3>
         <div className="mt-3 flex flex-col gap-2">
-          {customFields.length === 0 && <p className="text-sm text-zinc-400">No custom links yet.</p>}
+          {customFields.length === 0 && <p className="text-sm text-subtle">No custom links yet.</p>}
           {customFields.map((field) => (
             <CustomLinkRow key={field.id} slug={slug} field={field} />
           ))}
@@ -643,7 +643,7 @@ function OnboardingPanel({
         {onboarding.checklist.some(
           (item) => !item.done && PROFILE_SETUP_CHECKLIST_KEYS.has(item.key)
         ) && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 lg:col-span-full">
+          <div className="rounded-xl border border-amber-200 bg-warning-surface px-3 py-2.5 lg:col-span-full">
             <p className="text-xs font-bold uppercase tracking-wide text-amber-900">Still to do</p>
             <ul className="mt-1.5 flex flex-col gap-1">
               {onboarding.checklist
@@ -651,7 +651,7 @@ function OnboardingPanel({
                 .map((item) => (
                   <li key={item.key} className="text-sm font-medium text-amber-950">
                     {CHECKLIST_LABELS[item.key] ?? item.key}
-                    <span className="font-normal text-amber-800/80"> — {item.hint}</span>
+                    <span className="font-normal text-warning/80"> — {item.hint}</span>
                   </li>
                 ))}
             </ul>
@@ -661,13 +661,13 @@ function OnboardingPanel({
           {onboarding.checklist.map((item) => (
             <li key={item.key} className="flex items-start gap-2 text-sm">
               <span>{item.done ? "✅" : "⬜"}</span>
-              <span className={item.done ? "text-zinc-400 line-through" : "text-zinc-700"}>
+              <span className={item.done ? "text-subtle line-through" : "text-zinc-700"}>
                 {CHECKLIST_LABELS[item.key] ?? item.key}
               </span>
-              <span className="text-xs font-semibold text-zinc-400">+{item.weight}%</span>
-              {!item.done && <span className="text-xs text-zinc-400">— {item.hint}</span>}
+              <span className="text-xs font-semibold text-subtle">+{item.weight}%</span>
+              {!item.done && <span className="text-xs text-subtle">— {item.hint}</span>}
               {item.key === "activity" && item.done && (
-                <span className="text-xs text-zinc-400">— resets if you go quiet for a week</span>
+                <span className="text-xs text-subtle">— resets if you go quiet for a week</span>
               )}
             </li>
           ))}
@@ -694,7 +694,7 @@ function OnboardingPanel({
               Complete all required Profile fields before publishing. Market thesis is optional.
             </p>
           )}
-          <p className="mt-2 text-xs text-zinc-400">Publishing is free.</p>
+          <p className="mt-2 text-xs text-subtle">Publishing is free.</p>
         </form>
       ) : onboarding.status === "live" ? (
         <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
@@ -836,7 +836,7 @@ function PublicPageShare({ slug }: { slug: string }) {
 }
 
 function deltaTrendClass(value: number) {
-  return value > 0 ? "text-emerald-600" : "text-red-600";
+  return value > 0 ? "text-success" : "text-danger";
 }
 
 function OverviewTab({
@@ -869,7 +869,7 @@ function OverviewTab({
         <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
           <p className="text-sm font-medium text-zinc-500">Profile visitors</p>
           <p className="mt-2 text-3xl font-semibold text-zinc-900">{stats.visitors_count}</p>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="mt-1 text-xs text-subtle">
             Distinct people outside your organization who viewed this profile.
           </p>
           {typeof stats.profile_views === "number" && (
@@ -885,30 +885,42 @@ function OverviewTab({
 
 function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
   const value = activity.value;
+  const [error, formAction, pending] = useActionState(deleteActivityAction, null);
+  useActionToast(error, pending, { successMessage: "Post deleted." });
   return (
     <article className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           {SECTION_LABELS[activity.kind] ?? activity.kind}
         </span>
-        <form action={deleteActivityAction}>
+        <form
+          action={formAction}
+          onSubmit={(event) => {
+            if (!window.confirm("Delete this post? This cannot be undone.")) event.preventDefault();
+          }}
+        >
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="activity_id" value={activity.id} />
-          <button className="text-xs font-medium text-red-700 hover:underline">Delete</button>
+          <button
+            disabled={pending}
+            className="text-xs font-medium text-danger-strong hover:underline disabled:opacity-50"
+          >
+            {pending ? "Deleting…" : "Delete"}
+          </button>
         </form>
       </div>
       {value.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={value.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
+        <img loading="lazy" src={value.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
       )}
       <h3 className="text-lg font-extrabold text-zinc-900">{value.title ?? "Update"}</h3>
       {value.body && <p className="text-sm leading-6 text-zinc-600">{value.body}</p>}
       {activity.kind === "events" && value.occurred_at && value.ends_at ? (
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-subtle">
           {formatDateTime(value.occurred_at)} – {formatDateTime(value.ends_at)}
         </p>
       ) : (
-        value.occurred_at && <p className="text-xs text-zinc-400">{formatDate(value.occurred_at)}</p>
+        value.occurred_at && <p className="text-xs text-subtle">{formatDate(value.occurred_at)}</p>
       )}
     </article>
   );
@@ -949,7 +961,7 @@ function TeamMemberAvatar({ name, profilePicture }: { name: string; profilePictu
   if (profilePicture) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={profilePicture} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+      <img loading="lazy" src={profilePicture} alt="" className="size-9 shrink-0 rounded-full object-cover" />
     );
   }
   return (
@@ -972,7 +984,7 @@ function MemberSkills({ slug, member, canManage }: { slug: string; member: Membe
         >
           {skill.skill}
           {skill.status === "org_confirmed" ? (
-            <span className="text-[10px] font-bold text-emerald-600">confirmed</span>
+            <span className="text-[10px] font-bold text-success">confirmed</span>
           ) : canManage ? (
             <form action={confirmMembershipSkillAction}>
               <input type="hidden" name="slug" value={slug} />
@@ -1003,58 +1015,71 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
       </p>
       <div className="mt-3 flex flex-col gap-3">
         {members.map((member) => (
-          <div
-            key={member.id}
-            className="flex flex-col gap-2 rounded-xl border border-beedero-border bg-zinc-50/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex min-w-0 items-center gap-2.5">
-              <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
-              <div className="min-w-0">
-                {member.handle ? (
-                  <Link
-                    href={`/p/${member.handle}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="truncate font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2 hover:text-beedero-black/80"
-                  >
-                    {member.full_name}
-                  </Link>
-                ) : (
-                  <p className="truncate font-medium text-zinc-900">{member.full_name}</p>
-                )}
-                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
-                  {membershipAccessLabel(member.role)}
-                </p>
-                <MemberSkills slug={slug} member={member} canManage={canManage} />
-              </div>
-            </div>
-            {canManage ? (
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                <form action={updateMemberTitleAction} className="flex min-w-[12rem] flex-1 sm:flex-none">
-                  <input type="hidden" name="slug" value={slug} />
-                  <input type="hidden" name="member_id" value={member.id} />
-                  <input
-                    name="title"
-                    defaultValue={member.title ?? ""}
-                    placeholder="Role on the team"
-                    onBlur={(event) => event.currentTarget.form?.requestSubmit()}
-                    className="w-full rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                  />
-                </form>
-                <form action={removeMemberAction}>
-                  <input type="hidden" name="slug" value={slug} />
-                  <input type="hidden" name="member_id" value={member.id} />
-                  <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                    Remove
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <span className="text-sm text-zinc-600">{member.title || "Team member"}</span>
-            )}
-          </div>
+          <MemberRow key={member.id} slug={slug} member={member} canManage={canManage} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function MemberRow({ slug, member, canManage }: { slug: string; member: Member; canManage: boolean }) {
+  const [removeError, removeAction, removePending] = useActionState(removeMemberAction, null);
+  useActionToast(removeError, removePending, { successMessage: "Member removed." });
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-beedero-border bg-zinc-50/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
+        <div className="min-w-0">
+          {member.handle ? (
+            <Link
+              href={`/p/${member.handle}`}
+              target="_blank"
+              rel="noreferrer"
+              className="truncate font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2 hover:text-beedero-black/80"
+            >
+              {member.full_name}
+            </Link>
+          ) : (
+            <p className="truncate font-medium text-zinc-900">{member.full_name}</p>
+          )}
+          <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
+            {membershipAccessLabel(member.role)}
+          </p>
+          <MemberSkills slug={slug} member={member} canManage={canManage} />
+        </div>
+      </div>
+      {canManage ? (
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <form action={updateMemberTitleAction} className="flex min-w-[12rem] flex-1 sm:flex-none">
+            <input type="hidden" name="slug" value={slug} />
+            <input type="hidden" name="member_id" value={member.id} />
+            <input
+              name="title"
+              defaultValue={member.title ?? ""}
+              placeholder="Role on the team"
+              onBlur={(event) => event.currentTarget.form?.requestSubmit()}
+              className="w-full rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+            />
+          </form>
+          <form
+            action={removeAction}
+            onSubmit={(event) => {
+              if (!window.confirm(`Remove ${member.full_name} from the team?`)) event.preventDefault();
+            }}
+          >
+            <input type="hidden" name="slug" value={slug} />
+            <input type="hidden" name="member_id" value={member.id} />
+            <button
+              disabled={removePending}
+              className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface disabled:opacity-50"
+            >
+              {removePending ? "Removing…" : "Remove"}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <span className="text-sm text-zinc-600">{member.title || "Team member"}</span>
+      )}
     </div>
   );
 }
@@ -1065,7 +1090,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
       <h3 className="font-extrabold text-zinc-900">Invite links</h3>
       <p className="mt-1 text-sm text-zinc-500">Share a link to let someone join your team directly.</p>
       <div className="mt-3 flex flex-col gap-2">
-        {invites.length === 0 && <p className="text-sm text-zinc-400">No active invite links.</p>}
+        {invites.length === 0 && <p className="text-sm text-subtle">No active invite links.</p>}
         {invites.map((invite) => (
           <div
             key={invite.id}
@@ -1073,7 +1098,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
           >
             <div className="min-w-0">
               <p className="truncate font-mono text-xs text-zinc-600">/invite/{invite.token}</p>
-              <p className="text-xs text-zinc-400">{invite.role} · single use</p>
+              <p className="text-xs text-subtle">{invite.role} · single use</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -1086,7 +1111,7 @@ function InvitesSection({ slug, invites }: { slug: string; invites: Invite[] }) 
               <form action={revokeInviteAction}>
                 <input type="hidden" name="slug" value={slug} />
                 <input type="hidden" name="invite_id" value={invite.id} />
-                <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                <button className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-surface">
                   Revoke
                 </button>
               </form>
@@ -1184,7 +1209,7 @@ function FundraisingTab({
                   className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
                 />
               </label>
-              <button className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+              <button className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-danger-strong hover:bg-danger-surface">
                 Close round
               </button>
             </form>
@@ -1309,7 +1334,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
         <span>
           Stage{" "}
-          <span className="font-normal text-zinc-400">— how far along is your company?</span>
+          <span className="font-normal text-subtle">— how far along is your company?</span>
         </span>
         <select
           name="stage"
@@ -1350,7 +1375,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 sm:col-span-2">
         <span>
           {GEO_FIELD_LABEL}{" "}
-          <span className="font-normal text-zinc-400">— where your HQ and main team are</span>
+          <span className="font-normal text-subtle">— where your HQ and main team are</span>
         </span>
         <select
           name="geo"
@@ -1368,7 +1393,7 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
             </option>
           ))}
         </select>
-        <span className="font-normal leading-relaxed text-zinc-400">{GEO_FIELD_HELP}</span>
+        <span className="font-normal leading-relaxed text-subtle">{GEO_FIELD_HELP}</span>
       </label>
       {canManage && (
         <div className="flex items-center gap-3 sm:col-span-2">

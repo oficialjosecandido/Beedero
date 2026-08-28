@@ -33,7 +33,7 @@ function AvatarCircle({
   if (image) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={image} alt="" className={`${className} shrink-0 rounded-full object-cover`} />
+      <img loading="lazy" src={image} alt="" className={`${className} shrink-0 rounded-full object-cover`} />
     );
   }
   return (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/Skeleton";
 import { formatRelativeTime } from "@/lib/format";
 import { type NotificationItem, useNotifications } from "@/lib/notifications-context";
 
@@ -19,7 +20,7 @@ function notificationHref(item: NotificationItem): string {
 }
 
 export function NotificationsPanel() {
-  const { unread, items, prefs, refresh, markAllRead, loadPreferences, updatePreference } =
+  const { unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference } =
     useNotifications();
   const [showPrefs, setShowPrefs] = useState(false);
 
@@ -74,7 +75,14 @@ export function NotificationsPanel() {
       )}
 
       <div className="divide-y divide-beedero-border">
-        {items.length === 0 && (
+        {loading && items.length === 0 && (
+          <div className="flex flex-col gap-4 px-5 py-4" aria-hidden="true">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-3/5" />
+          </div>
+        )}
+        {!loading && items.length === 0 && (
           <p className="px-5 py-10 text-center text-sm text-zinc-500">No notifications yet.</p>
         )}
         {items.map((item) => (

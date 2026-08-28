@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { OrgProfile } from "@/components/OrgProfile";
 import { OrgProfileJsonLd } from "@/components/OrgProfileJsonLd";
 import { ApiError, apiFetch, publicFetch } from "@/lib/api";
-import { orgProfileMetadata } from "@/lib/site-metadata";
+import { missingPageMetadata, orgProfileMetadata } from "@/lib/site-metadata";
 import { getAccessToken } from "@/lib/session";
 import type { OrgProfile as OrgProfileData } from "@/lib/types";
 
@@ -18,7 +18,7 @@ export async function generateMetadata({
     const data = (await publicFetch(`/public/orgs/${slug}/`)) as OrgProfileData;
     return orgProfileMetadata(data.org);
   } catch {
-    return { title: "Organization" };
+    return missingPageMetadata("Organization");
   }
 }
 
@@ -43,9 +43,9 @@ export default async function PublicOrgPage({
   return (
     <>
       <OrgProfileJsonLd org={data.org} />
-      <div className="flex flex-1 justify-center px-6 py-16">
+      <main className="flex flex-1 justify-center px-6 py-16">
         <OrgProfile data={data} />
-      </div>
+      </main>
     </>
   );
 }

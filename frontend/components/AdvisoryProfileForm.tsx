@@ -81,7 +81,7 @@ export function AdvisoryProfileForm({ profile }: { profile?: AdvisorProfile | nu
             <span className="block text-sm font-semibold text-zinc-800">
               Open to advisory / board / fractional work
             </span>
-            <span className="block text-xs text-zinc-400">
+            <span className="block text-xs text-subtle">
               Shown in advisor discovery and on your public profile. Toggle off to hide.
             </span>
           </span>

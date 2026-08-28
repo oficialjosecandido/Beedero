@@ -232,13 +232,18 @@ export async function upsertFieldAction(_prevState: string | null, formData: For
   return null;
 }
 
-export async function deleteActivityAction(formData: FormData) {
+export async function deleteActivityAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const activityId = String(formData.get("activity_id"));
 
-  await apiFetch(`/orgs/${slug}/feed/${activityId}/`, { method: "DELETE" });
+  try {
+    await apiFetch(`/orgs/${slug}/feed/${activityId}/`, { method: "DELETE" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not delete this post.");
+  }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath("/feed");
+  return null;
 }
 
 export async function deleteFieldAction(_prevState: string | null, formData: FormData) {
@@ -424,11 +429,16 @@ export async function updateMemberRoleAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}`);
 }
 
-export async function removeMemberAction(formData: FormData) {
+export async function removeMemberAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const memberId = String(formData.get("member_id"));
-  await apiFetch(`/orgs/${slug}/members/${memberId}/`, { method: "DELETE" });
+  try {
+    await apiFetch(`/orgs/${slug}/members/${memberId}/`, { method: "DELETE" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not remove this member.");
+  }
   revalidatePath(`/dashboard/${slug}`);
+  return null;
 }
 
 export async function createInvestorPostAction(_prevState: string | null, formData: FormData) {
@@ -472,10 +482,15 @@ export async function createGrantAction(formData: FormData) {
   revalidatePath(`/dashboard/${slug}/access`);
 }
 
-export async function deleteGrantAction(formData: FormData) {
+export async function deleteGrantAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const grantId = String(formData.get("grant_id"));
-  await apiFetch(`/orgs/${slug}/grants/${grantId}/`, { method: "DELETE" });
+  try {
+    await apiFetch(`/orgs/${slug}/grants/${grantId}/`, { method: "DELETE" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not revoke this grant.");
+  }
   revalidatePath(`/dashboard/${slug}`);
   revalidatePath(`/dashboard/${slug}/access`);
+  return null;
 }

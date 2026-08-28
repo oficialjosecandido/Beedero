@@ -46,7 +46,7 @@ function ExperienceEditFields({ experience }: { experience: Experience }) {
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-        Role <span className="font-normal text-zinc-400">(optional)</span>
+        Role <span className="font-normal text-subtle">(optional)</span>
         <input
           name="role"
           defaultValue={experience.role ?? ""}
@@ -66,7 +66,7 @@ function ExperienceEditFields({ experience }: { experience: Experience }) {
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-          Ended <span className="font-normal text-zinc-400">(blank = ongoing)</span>
+          Ended <span className="font-normal text-subtle">(blank = ongoing)</span>
           <input
             type="date"
             name="ended_on"
@@ -77,7 +77,7 @@ function ExperienceEditFields({ experience }: { experience: Experience }) {
       </div>
       <div className="flex flex-col gap-1.5">
         <p className="text-sm font-medium text-zinc-700">
-          Skills <span className="font-normal text-zinc-400">(optional)</span>
+          Skills <span className="font-normal text-subtle">(optional)</span>
         </p>
         <SkillsInput initial={experience.skills ?? []} />
       </div>
@@ -92,6 +92,8 @@ function ExperienceCard({ experience }: { experience: Experience }) {
     successMessage: "Experience updated.",
     onSuccess: () => setEditing(false),
   });
+  const [deleteError, deleteAction, deletePending] = useActionState(deleteExperienceAction, null);
+  useActionToast(deleteError, deletePending, { successMessage: "Experience removed." });
 
   if (!editing) {
     return (
@@ -102,7 +104,7 @@ function ExperienceCard({ experience }: { experience: Experience }) {
             {experience.role && (
               <p className="mt-0.5 text-sm font-medium text-zinc-600">{experience.role}</p>
             )}
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-subtle">
               {formatPeriod(experience.started_on, experience.ended_on)}
             </p>
             {(experience.skills?.length ?? 0) > 0 && (
@@ -126,13 +128,20 @@ function ExperienceCard({ experience }: { experience: Experience }) {
             Edit
           </button>
         </div>
-        <form action={deleteExperienceAction} className="mt-4 border-t border-beedero-border/60 pt-3">
+        <form
+          action={deleteAction}
+          className="mt-4 border-t border-beedero-border/60 pt-3"
+          onSubmit={(event) => {
+            if (!window.confirm("Remove this experience? This cannot be undone.")) event.preventDefault();
+          }}
+        >
           <input type="hidden" name="experience_id" value={experience.id} />
           <button
             type="submit"
-            className="text-sm font-semibold text-red-600 hover:text-red-700 hover:underline"
+            disabled={deletePending}
+            className="text-sm font-semibold text-danger hover:text-danger-strong hover:underline disabled:opacity-50"
           >
-            Remove
+            {deletePending ? "Removing…" : "Remove"}
           </button>
         </form>
       </article>

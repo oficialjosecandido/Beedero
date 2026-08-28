@@ -17,7 +17,7 @@ const POST_KIND_OPTIONS = [
 
 const COMPOSER_ACTIONS: { value: string; label: string; icon: IconType; color: string }[] = [
   { value: "milestone", label: "Milestone", icon: FaTrophy, color: "text-amber-500" },
-  { value: "update", label: "Update", icon: FaRegFileAlt, color: "text-emerald-600" },
+  { value: "update", label: "Update", icon: FaRegFileAlt, color: "text-success" },
 ];
 
 type ChecklistItem = { key: string; done: boolean; hint: string; weight: number };
@@ -106,7 +106,7 @@ export function FeedComposer({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-beedero-black">Complete your profile to post</p>
             <p className="mt-0.5 text-sm text-zinc-500">{headline}</p>
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-subtle">
               An incomplete profile also won&apos;t show up in search or on your public page —
               other people can&apos;t find you until it&apos;s done.
             </p>
@@ -130,13 +130,13 @@ export function FeedComposer({
                 <li key={item.key} className="flex items-center justify-between gap-2 text-xs">
                   <span
                     className={`flex items-center gap-1.5 ${
-                      item.done ? "text-zinc-400 line-through" : "text-zinc-700"
+                      item.done ? "text-subtle line-through" : "text-zinc-700"
                     }`}
                   >
                     <span aria-hidden>{item.done ? "✅" : "⬜"}</span>
                     {item.hint}
                   </span>
-                  <span className="shrink-0 font-semibold text-zinc-400">+{item.weight}%</span>
+                  <span className="shrink-0 font-semibold text-subtle">+{item.weight}%</span>
                 </li>
               ))}
             </ul>

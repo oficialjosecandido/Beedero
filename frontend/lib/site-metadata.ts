@@ -126,3 +126,7 @@ export function orgProfileMetadata(org: {
 export const noIndexMetadata: Metadata = {
   robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
 };
+
+export function missingPageMetadata(title: string): Metadata {
+  return { title, ...noIndexMetadata };
+}

@@ -59,7 +59,7 @@ export function ParticipantAvatar({
   if (profilePicture) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={profilePicture} alt="" className={`${classes} shrink-0 rounded-full object-cover`} />
+      <img loading="lazy" src={profilePicture} alt="" className={`${classes} shrink-0 rounded-full object-cover`} />
     );
   }
   return (
@@ -215,7 +215,7 @@ export function ChatWindow({
           ))}
         </div>
       </div>
-      {error && <p className="px-3 text-xs text-red-600">{error}</p>}
+      {error && <p className="px-3 text-xs text-danger">{error}</p>}
       <form
         onSubmit={(event) => {
           event.preventDefault();

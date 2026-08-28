@@ -11,6 +11,7 @@ import { loadMoreFeedAction } from "./actions";
 import { CommentThread } from "./CommentThread";
 import { EventParticipationBar } from "@/components/EventParticipationBar";
 import { LinkPreviewCard } from "@/components/LinkPreviewCard";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { RichText } from "@/components/RichText";
 import { ReactionBar } from "./ReactionBar";
 import type { FeedItem } from "./types";
@@ -37,7 +38,7 @@ function FeedCard({ item }: { item: FeedItem }) {
 
   const avatar = pictureUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={pictureUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+    <img loading="lazy" src={pictureUrl} alt="" className="size-11 shrink-0 rounded-full object-cover" />
   ) : (
     <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500">
       {name.charAt(0).toUpperCase()}
@@ -57,7 +58,7 @@ function FeedCard({ item }: { item: FeedItem }) {
       {subtitle && atHandle && item.type === "person" && (
         <p className="truncate text-xs text-zinc-500">{subtitle}</p>
       )}
-      {dateLabel && <p className="text-xs text-zinc-400">{dateLabel}</p>}
+      {dateLabel && <p className="text-xs text-subtle">{dateLabel}</p>}
     </div>
   );
 
@@ -103,7 +104,7 @@ function FeedCard({ item }: { item: FeedItem }) {
       )}
       {item.value.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <img loading="lazy"
           src={item.value.image}
           alt=""
           className="mt-3 max-h-72 w-full rounded-xl object-cover"
@@ -222,12 +223,13 @@ export function FeedList({
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto flex items-center gap-2 rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
         >
+          {isPending && <LoadingSpinner className="size-4" label="" />}
           {isPending ? "Loading…" : "Load more"}
         </button>
       )}
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
     </div>
   );
 }

@@ -125,8 +125,8 @@ function useEventsByDay(events: CalendarEvent[]) {
 function eventRoleStyles(role: CalendarEvent["role"], compact = false) {
   if (role === "attending") {
     return compact
-      ? "border-2 border-emerald-700 bg-emerald-50 text-emerald-950"
-      : "border-2 border-emerald-700 bg-emerald-50 text-emerald-950";
+      ? "border-2 border-success-strong bg-success-surface text-emerald-950"
+      : "border-2 border-success-strong bg-success-surface text-emerald-950";
   }
   return compact
     ? "border border-beedero-black/10 bg-beedero-black text-beedero-yellow"
@@ -164,7 +164,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
     <article
       className={`rounded-2xl border-2 p-5 shadow-sm ${
         isAttending
-          ? "border-emerald-700 border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50 to-beedero-white"
+          ? "border-success-strong border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50 to-beedero-white"
           : "border-beedero-border border-l-4 border-l-beedero-black bg-gradient-to-br from-beedero-yellow/25 to-beedero-white"
       }`}
     >
@@ -229,8 +229,8 @@ function EventRoleFilterBar({
       label: "Participating",
       count: counts.attending,
       activeClass: "bg-emerald-700 text-white shadow-sm",
-      idleClass: "text-emerald-900/80 hover:bg-emerald-50",
-      dotClass: "border-2 border-emerald-700 bg-emerald-50",
+      idleClass: "text-emerald-900/80 hover:bg-success-surface",
+      dotClass: "border-2 border-success-strong bg-success-surface",
     },
   ];
 
@@ -479,7 +479,7 @@ function EmbeddedMonthCalendar({
         onMonth={goThisMonth}
       />
 
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-subtle">
         {WEEKDAY_SHORT.map((label) => (
           <span key={label}>{label}</span>
         ))}
@@ -505,7 +505,7 @@ function EmbeddedMonthCalendar({
                     ? "bg-beedero-yellow/30 font-bold text-beedero-black"
                     : hasEvents
                       ? "font-semibold text-beedero-black hover:bg-beedero-yellow/20"
-                      : "text-zinc-400 hover:bg-zinc-50"
+                      : "text-subtle hover:bg-zinc-50"
               }`}
             >
               {day.getDate()}
@@ -521,7 +521,7 @@ function EmbeddedMonthCalendar({
 
       {quickView && (
         <div className="mt-4 flex flex-col gap-2 border-t border-beedero-border pt-3">
-          {listedEvents.length === 0 && <p className="text-xs text-zinc-400">{listedEmptyMessage}</p>}
+          {listedEvents.length === 0 && <p className="text-xs text-subtle">{listedEmptyMessage}</p>}
           {listedEvents.map((event) => (
             <div key={event.id}>
               <div className="flex items-center gap-2">
@@ -545,7 +545,7 @@ function EmbeddedMonthCalendar({
       )}
 
       {events.length === 0 && (
-        <p className="mt-4 text-xs text-zinc-400">No events yet. Create one from the calendar tab.</p>
+        <p className="mt-4 text-xs text-subtle">No events yet. Create one from the calendar tab.</p>
       )}
     </>
   );
@@ -646,7 +646,7 @@ function FullCalendar({
               Organized by you
             </span>
             <span className="flex items-center gap-2">
-              <span className="size-3 rounded border-2 border-emerald-700 bg-emerald-50" />
+              <span className="size-3 rounded border-2 border-success-strong bg-success-surface" />
               You&apos;re participating
             </span>
           </div>

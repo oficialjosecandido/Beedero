@@ -34,12 +34,12 @@ type MetricDef = {
 };
 
 function deltaTrendClass(value: number) {
-  return value > 0 ? "text-emerald-600" : "text-red-600";
+  return value > 0 ? "text-success" : "text-danger";
 }
 
 function valueClass(value: number, highlight: boolean) {
   if (!highlight) return "text-zinc-900";
-  return value > 0 ? "text-emerald-600" : "text-red-600";
+  return value > 0 ? "text-success" : "text-danger";
 }
 
 async function loadStats(range: RangeId): Promise<PersonalKpiStats | null> {
@@ -119,9 +119,9 @@ function KpiMetricCard({ metric, rangeDays }: { metric: MetricDef; rangeDays: nu
           {metric.delta(metric.value, rangeDays)}
         </p>
       ) : (
-        <p className="mt-1 text-xs font-medium text-zinc-400">In the last {rangeDays} days</p>
+        <p className="mt-1 text-xs font-medium text-subtle">In the last {rangeDays} days</p>
       )}
-      {metric.hint && <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{metric.hint}</p>}
+      {metric.hint && <p className="mt-1.5 text-xs leading-relaxed text-subtle">{metric.hint}</p>}
     </article>
   );
 }
@@ -209,7 +209,7 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
       {stats && (
         <div className={`mt-5 flex flex-col gap-5 ${loading ? "opacity-60" : ""}`}>
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
               Audience
             </p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -220,7 +220,7 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
               Content
             </p>
             <div className="grid gap-4 sm:grid-cols-2">

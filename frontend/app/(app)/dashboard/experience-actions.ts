@@ -76,8 +76,13 @@ export async function updateExperienceAction(_prevState: string | null, formData
   return null;
 }
 
-export async function deleteExperienceAction(formData: FormData) {
+export async function deleteExperienceAction(_prevState: string | null, formData: FormData) {
   const id = String(formData.get("experience_id"));
-  await apiFetch(`/experience/${id}/`, { method: "DELETE" });
+  try {
+    await apiFetch(`/experience/${id}/`, { method: "DELETE" });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not remove this experience.");
+  }
   revalidatePath("/dashboard");
+  return null;
 }

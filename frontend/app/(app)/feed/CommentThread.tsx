@@ -16,7 +16,7 @@ function CommentAvatar({ name, pictureUrl }: { name: string; pictureUrl?: string
   if (pictureUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={pictureUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+      <img loading="lazy" src={pictureUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" />
     );
   }
   return (
@@ -32,7 +32,7 @@ function CommentAuthor({ comment }: { comment: Comment }) {
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className="font-semibold text-beedero-black">{comment.author_name}</span>
-        <span className="text-xs text-zinc-400">{formatDate(comment.created_at)}</span>
+        <span className="text-xs text-subtle">{formatDate(comment.created_at)}</span>
       </div>
       <p className="mt-1 text-sm leading-6 text-zinc-700">
         <RichText body={comment.body} mentions={comment.mentions} />

@@ -114,7 +114,7 @@ function renderBlock(block: string, key: string): React.ReactNode {
     return (
       <blockquote
         key={key}
-        className="my-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-medium leading-6 text-amber-900"
+        className="my-6 rounded-2xl border border-amber-300 bg-warning-surface px-5 py-4 text-sm font-medium leading-6 text-amber-900"
       >
         {inlineNodes(text, key)}
       </blockquote>
@@ -212,7 +212,7 @@ export function LegalDocument({
       </nav>
       <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-12 sm:px-8">
         {draft && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+          <div className="rounded-2xl border border-amber-300 bg-warning-surface px-5 py-4 text-sm font-semibold text-amber-900">
             Draft pending legal review.
           </div>
         )}

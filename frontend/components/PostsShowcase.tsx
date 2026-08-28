@@ -36,7 +36,7 @@ export function PostsShowcase({ posts }: { posts: Post[] }) {
                 <RichText body={post.body} mentions={post.mentions} />
               </p>
             )}
-            <p className="mt-1 text-xs text-zinc-400">{formatDate(post.occurred_at)}</p>
+            <p className="mt-1 text-xs text-subtle">{formatDate(post.occurred_at)}</p>
           </li>
         ))}
       </ul>

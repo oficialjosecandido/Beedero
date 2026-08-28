@@ -64,12 +64,12 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                   )}
                   {band.role && (
                     <>
-                      <span className="mx-1.5 text-zinc-400">·</span>
+                      <span className="mx-1.5 text-subtle">·</span>
                       <span className="font-normal text-zinc-500">{band.role}</span>
                     </>
                   )}
                 </p>
-                <p className="shrink-0 text-xs tabular-nums text-zinc-400">
+                <p className="shrink-0 text-xs tabular-nums text-subtle">
                   {formatDate(band.started_on)} –{" "}
                   {band.ended_on ? formatDate(band.ended_on) : "Present"}
                 </p>
@@ -104,7 +104,7 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                     <span key={skill.skill} className={skillPillClass}>
                       {skill.skill}
                       {skill.status === "org_confirmed" && (
-                        <span className="ml-1 text-[10px] font-bold text-emerald-600">✓</span>
+                        <span className="ml-1 text-[10px] font-bold text-success">✓</span>
                       )}
                     </span>
                   ))}
@@ -114,7 +114,7 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
           );
         })}
       </div>
-      <p className="mt-4 text-[11px] leading-relaxed text-zinc-400">
+      <p className="mt-4 text-[11px] leading-relaxed text-subtle">
         Solid bars are verified via Beedero organizations. Dashed bars are self-declared.
       </p>
     </section>

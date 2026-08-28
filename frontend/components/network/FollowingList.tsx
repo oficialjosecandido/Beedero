@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { unfollowOrgAction, type FollowItem } from "@/app/(app)/network/actions";
+import { EmptyState } from "@/components/EmptyState";
 import { formatRelativeTime } from "@/lib/format";
 
 function FollowRow({ item, onRemoved }: { item: FollowItem; onRemoved: (id: string) => void }) {
@@ -26,7 +27,7 @@ function FollowRow({ item, onRemoved }: { item: FollowItem; onRemoved: (id: stri
     <li className="flex items-center gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm">
       {item.target.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.target.logo} alt="" className="size-11 shrink-0 rounded-full object-cover" />
+        <img loading="lazy" src={item.target.logo} alt="" className="size-11 shrink-0 rounded-full object-cover" />
       ) : (
         <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/30 text-lg font-extrabold text-beedero-black">
           {name.charAt(0)}
@@ -36,7 +37,7 @@ function FollowRow({ item, onRemoved }: { item: FollowItem; onRemoved: (id: stri
         <Link href={`/org/${item.target.slug}`} className="font-bold text-beedero-black hover:underline">
           {name}
         </Link>
-        <p className="mt-1 text-xs text-zinc-400">Since {formatRelativeTime(item.created_at)}</p>
+        <p className="mt-1 text-xs text-subtle">Since {formatRelativeTime(item.created_at)}</p>
       </div>
       <button
         type="button"
@@ -46,7 +47,7 @@ function FollowRow({ item, onRemoved }: { item: FollowItem; onRemoved: (id: stri
       >
         {isPending ? "…" : "Unfollow"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </li>
   );
 }
@@ -70,9 +71,13 @@ export function FollowingList({ following }: { following: FollowItem[] }) {
           <h2 className="text-lg font-extrabold text-beedero-black">Following</h2>
         </div>
         {visibleFollowing.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-zinc-500">
-            You&apos;re not following any organizations yet.
-          </p>
+          <div className="p-5">
+            <EmptyState
+              title="You're not following any organizations yet"
+              description="Follow organizations to fill your feed with their updates."
+              action={{ href: "/discovery", label: "Discover organizations" }}
+            />
+          </div>
         ) : (
           <ul className="flex flex-col gap-4 p-5">
             {visibleFollowing.map((item) => (

@@ -51,7 +51,7 @@ export function RichText({
     const marker = `@[${mentionKind}:${mentionId}]`;
     const resolved = mentionByMarker.get(marker);
     if (resolved) {
-      const href = resolved.type === "org" ? `/org/${resolved.slug}` : `/p/${resolved.handle}`;
+      const href = resolved.type === "org" ? `/o/${resolved.slug}` : `/p/${resolved.handle}`;
       nodes.push(
         <Link key={key++} href={href} className="font-semibold text-beedero-black hover:underline">
           @{resolved.name}

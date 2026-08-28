@@ -52,14 +52,14 @@ export function LinkPreviewCard({ body }: { body?: string | null }) {
     >
       {state.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <img loading="lazy"
           src={state.image_url}
           alt=""
           className="h-24 w-24 shrink-0 object-cover"
         />
       )}
       <div className="min-w-0 flex-1 py-2 pr-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-subtle">
           {state.site_name || "External link"}
         </p>
         {state.title && (
