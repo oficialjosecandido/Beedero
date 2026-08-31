@@ -218,6 +218,53 @@ def test_public_profile_hides_viewer_actions_for_anonymous(api, person):
 
 
 @pytest.mark.django_db
+def test_public_profile_shows_verified_credential_with_exact_facts(api, person):
+    from credibility.credential_services import approve_credential, submit_credential
+
+    credential = submit_credential(
+        person.user, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345"
+    )
+    approve_credential(credential, reviewer=person.user)
+
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["credentials"] == [
+        {
+            "title": "Psychotherapist",
+            "issuer": "Ordem dos Psicólogos",
+            "identifier": "12345",
+            "verified_at": credential.verified_at.date().isoformat(),
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_public_profile_omits_pending_credential(api, person):
+    from credibility.credential_services import submit_credential
+
+    submit_credential(person.user, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+
+    res = api.get("/api/public/people/adalovelace/")
+    assert "credentials" not in res.json()
+
+
+@pytest.mark.django_db
+def test_public_profile_hides_private_credentials(api, person):
+    from credibility.credential_services import approve_credential, submit_credential
+
+    credential = submit_credential(
+        person.user, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345"
+    )
+    approve_credential(credential, reviewer=person.user)
+    person.visibility = {"credentials": "private"}
+    person.save(update_fields=["visibility"])
+
+    res = api.get("/api/public/people/adalovelace/")
+    assert "credentials" not in res.json()
+
+
+@pytest.mark.django_db
 def test_handle_is_assigned_from_full_name(api, db):
     user = User.objects.create_user(username="julio", email="julio@example.com", password="x")
     api.force_authenticate(user)

@@ -9,8 +9,9 @@ from accounts.models import User
 from orgs.constants import SectionKind
 from orgs.models import Organization, OrgMembership
 
+from .credential_services import approve_credential, reject_credential, submit_credential, verified_credentials_payload
 from .levels import credibility_level
-from .models import Verification, VerificationType
+from .models import ProfessionalCredential, Verification, VerificationType
 from .nif import nif_is_valid
 from .services import approve_verification, reject_verification, submit_verification
 
@@ -279,6 +280,115 @@ class TestTractionConnectStub:
         api.post(f"/api/orgs/{org.slug}/traction/connect/")
         api.post(f"/api/orgs/{org.slug}/traction/connect/")
         assert Verification.objects.filter(org=org, type=VerificationType.STRIPE_TRACTION).count() == 1
+
+
+@pytest.mark.django_db
+class TestProfessionalCredential:
+    def test_submit_creates_pending_row(self, outsider):
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        assert c.status == ProfessionalCredential.Status.PENDING
+        assert c.title == "Psychotherapist"
+
+    def test_resubmission_reuses_pending_row(self, outsider):
+        first = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        second = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        assert first.id == second.id
+        assert ProfessionalCredential.objects.filter(user=outsider).count() == 1
+
+    def test_new_submission_after_rejection_starts_fresh_row(self, outsider):
+        first = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        reject_credential(first, reviewer=outsider, reason="bad doc")
+        second = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        assert second.id != first.id
+        assert ProfessionalCredential.objects.filter(user=outsider).count() == 2
+
+    def test_approve_sets_verified(self, outsider):
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        approve_credential(c, reviewer=outsider)
+        c.refresh_from_db()
+        assert c.status == ProfessionalCredential.Status.VERIFIED
+        assert c.verified_at is not None
+
+    def test_approve_is_idempotent(self, outsider):
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        approve_credential(c, reviewer=outsider)
+        first_verified_at = c.verified_at
+        approve_credential(c, reviewer=outsider)
+        c.refresh_from_db()
+        assert c.verified_at == first_verified_at
+
+    def test_reject_sets_reason(self, outsider):
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        reject_credential(c, reviewer=outsider, reason="doc unreadable")
+        c.refresh_from_db()
+        assert c.status == ProfessionalCredential.Status.REJECTED
+        assert c.rejection_reason == "doc unreadable"
+
+    def test_verified_credentials_payload_states_exact_facts(self, outsider):
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        approve_credential(c, reviewer=outsider)
+        payload = verified_credentials_payload(outsider)
+        assert payload == [
+            {
+                "title": "Psychotherapist",
+                "issuer": "Ordem dos Psicólogos",
+                "identifier": "12345",
+                "verified_at": c.verified_at.date().isoformat(),
+            }
+        ]
+
+    def test_pending_credential_not_in_payload(self, outsider):
+        submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        assert verified_credentials_payload(outsider) == []
+
+    def test_same_verified_issuer_identifier_cannot_verify_for_two_users(self, outsider, owner):
+        ProfessionalCredential.objects.create(
+            user=outsider,
+            title="Psychotherapist",
+            issuer="Ordem dos Psicólogos",
+            identifier="12345",
+            status=ProfessionalCredential.Status.VERIFIED,
+        )
+        with pytest.raises(Exception):
+            ProfessionalCredential.objects.create(
+                user=owner,
+                title="Psychotherapist",
+                issuer="Ordem dos Psicólogos",
+                identifier="12345",
+                status=ProfessionalCredential.Status.VERIFIED,
+            )
+
+
+@pytest.mark.django_db
+class TestProfessionalCredentialViews:
+    def test_authenticated_user_can_submit(self, api, outsider):
+        api.force_authenticate(outsider)
+        res = api.post(
+            "/api/credentials/",
+            {"title": "Psychotherapist", "issuer": "Ordem dos Psicólogos", "identifier": "12345"},
+        )
+        assert res.status_code == 201
+        assert ProfessionalCredential.objects.filter(user=outsider).exists()
+
+    def test_anonymous_cannot_submit(self, api):
+        res = api.post(
+            "/api/credentials/",
+            {"title": "Psychotherapist", "issuer": "Ordem dos Psicólogos", "identifier": "12345"},
+        )
+        assert res.status_code == 401
+
+    def test_missing_fields_rejected(self, api, outsider):
+        api.force_authenticate(outsider)
+        res = api.post("/api/credentials/", {"title": "Psychotherapist"})
+        assert res.status_code == 400
+
+    def test_mine_lists_all_statuses(self, api, outsider):
+        submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        api.force_authenticate(outsider)
+        res = api.get("/api/credentials/mine/")
+        assert res.status_code == 200
+        assert len(res.data) == 1
+        assert res.data[0]["status"] == "pending"
 
 
 @pytest.mark.django_db

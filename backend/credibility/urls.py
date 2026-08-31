@@ -1,8 +1,10 @@
 from django.urls import path
 
-from . import public_views, views
+from . import credential_views, public_views, views
 
 urlpatterns = [
+    path("credentials/", credential_views.ProfessionalCredentialSubmitView.as_view()),
+    path("credentials/mine/", credential_views.ProfessionalCredentialMineView.as_view()),
     path("orgs/<slug:slug>/credibility/", views.CredibilityView.as_view()),
     path("orgs/<slug:slug>/verifications/", views.VerificationSubmitView.as_view()),
     path(

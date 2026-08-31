@@ -19,6 +19,10 @@ import {
   MembershipSkillsManager,
   type PersonMembershipWithSkills,
 } from "@/components/MembershipSkillsManager";
+import {
+  ProfessionalCredentialsPanel,
+  type PersonCredential,
+} from "@/components/ProfessionalCredentialsPanel";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { RichText } from "@/components/RichText";
 import type { ResolvedMention } from "@/lib/richtext";
@@ -157,6 +161,7 @@ export function PersonalDashboardTabs({
   advisorProfile,
   experiences,
   memberships,
+  myCredentials,
   myPosts: initialPosts,
   initialTab,
 }: {
@@ -167,6 +172,7 @@ export function PersonalDashboardTabs({
   advisorProfile: AdvisorProfile | null;
   experiences: Experience[];
   memberships: PersonMembershipWithSkills[];
+  myCredentials: PersonCredential[];
   myPosts: InvestorPost[];
   initialTab?: PersonalTabId;
 }) {
@@ -286,6 +292,7 @@ export function PersonalDashboardTabs({
           <ProfileForm profile={profile} />
           <ExperienceManager experiences={experiences} />
           <MembershipSkillsManager memberships={memberships} />
+          <ProfessionalCredentialsPanel credentials={myCredentials} />
           <AdvisoryProfileForm profile={advisorProfile} />
           <DeleteAccountPanel />
         </div>

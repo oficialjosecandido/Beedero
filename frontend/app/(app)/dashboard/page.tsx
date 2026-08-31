@@ -10,6 +10,7 @@ import { ProfileForm } from "@/components/ProfileForm";
 import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import type { Experience } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
+import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 
 import {
@@ -104,8 +105,9 @@ export default async function DashboardPage({
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let feedItems: FeedItem[] = [];
   let network: NetworkCounts | null = null;
+  let myCredentials: PersonCredential[] = [];
   try {
-    const [meRes, orgsRes, posts, updatesRes, feedRes, networkRes] = await Promise.all([
+    const [meRes, orgsRes, posts, updatesRes, feedRes, networkRes, credentialsRes] = await Promise.all([
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
@@ -115,6 +117,7 @@ export default async function DashboardPage({
         next_cursor: null,
       }),
       safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
+      safeFetch(apiFetch<PersonCredential[]>("/credentials/mine/"), [] as PersonCredential[]),
     ]);
     me = meRes;
     orgs = orgsRes;
@@ -122,6 +125,7 @@ export default async function DashboardPage({
     recentOrgUpdates = updatesRes.items;
     feedItems = feedRes.items;
     network = networkRes;
+    myCredentials = credentialsRes;
 
     if (me.investor_profile?.is_complete) {
       [profileStats, vitality, badgeEmbed, advisorProfile, experiences] = await Promise.all([
@@ -169,6 +173,7 @@ export default async function DashboardPage({
               advisorProfile={advisorProfile}
               experiences={experiences}
               memberships={memberships}
+              myCredentials={myCredentials}
               myPosts={myPosts}
               initialTab={initialTab}
             />

@@ -80,3 +80,65 @@ class Verification(models.Model):
 
     def __str__(self):
         return f"{self.org.slug} {self.type} ({self.status})"
+
+
+class ProfessionalCredential(models.Model):
+    """Professional credential for non-startup professionals & micro-businesses
+    (e.g. a psychotherapist's licence confirmed with a professional order) —
+    a credibility layer, not a new product (doc "Credibilidade para
+    Profissionais & Negócios não-startup"). A deliberate sibling to
+    `Verification` rather than a change to it: `Verification.org` is a
+    non-nullable FK to `Organization`, and credentials here are person-scoped.
+
+    Badge/UI copy built from this must always state exactly what was
+    verified (issuer, identifier, verified date) — never vague trust
+    language like "trusted professional".
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending"
+        VERIFIED = "verified"
+        REJECTED = "rejected"
+        EXPIRED = "expired"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="professional_credentials", on_delete=models.CASCADE
+    )
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+
+    title = models.CharField(max_length=120)  # e.g. "Psychotherapist"
+    issuer = models.CharField(max_length=200)  # e.g. "Ordem dos Psicólogos"
+    identifier = models.CharField(max_length=100)  # e.g. licence/cédula number
+
+    # Same private-blob-reference convention as Verification.document_refs —
+    # the document itself never touches this row.
+    document_refs = models.JSONField(default=list, blank=True)
+
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="credential_reviews",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "status"])]
+        constraints = [
+            # Anti-abuse, same shape as Verification's NIF constraint: the
+            # same licence number at the same issuer can't be the verified
+            # credential of more than one user.
+            models.UniqueConstraint(
+                fields=["issuer", "identifier"],
+                condition=Q(status="verified"),
+                name="uniq_verified_credential_per_issuer_identifier",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} {self.title} ({self.status})"

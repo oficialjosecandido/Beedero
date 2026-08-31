@@ -45,6 +45,26 @@ def upload_private_document(file, *, org_slug: str) -> str:
     return blob_name
 
 
+def upload_private_credential_document(file, *, user_id: int) -> str:
+    """Same validation/container as `upload_private_document`, separate
+    function (not a shared signature) so the org-scoped call sites here
+    stay untouched — person-scoped credentials live under their own blob
+    prefix instead of an org slug."""
+    if file.size > MAX_DOCUMENT_SIZE_BYTES:
+        raise ValidationError("File must be 10MB or smaller.")
+    if getattr(file, "content_type", None) != ALLOWED_CONTENT_TYPE:
+        raise ValidationError("Only PDF files are accepted.")
+
+    blob_name = f"credentials/{user_id}/{uuid.uuid4().hex}.pdf"
+    container = _blob_service_client().get_container_client(settings.AZURE_DOCS_PRIVATE_CONTAINER)
+    container.upload_blob(
+        blob_name,
+        file.read(),
+        content_settings=ContentSettings(content_type=ALLOWED_CONTENT_TYPE),
+    )
+    return blob_name
+
+
 def private_doc_url(blob_name: str, minutes: int = 10) -> str:
     sas = generate_blob_sas(
         account_name=settings.AZURE_ACCOUNT_NAME,

@@ -88,6 +88,13 @@ def public_person_profile(handle: str, viewer) -> dict:
             "aggregated": aggregate_anchored_skills(profile),
         }
 
+    if resolver.can_see("credentials"):
+        from credibility.credential_services import verified_credentials_payload
+
+        credentials = verified_credentials_payload(profile.user)
+        if credentials:
+            payload["credentials"] = credentials
+
     advisor_profile = AdvisorProfile.objects.filter(user_id=profile.user_id).first()
     if advisor_profile:
         payload["advisor"] = {

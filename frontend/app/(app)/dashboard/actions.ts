@@ -150,7 +150,7 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   body.set("country", formData.get("country") ?? "");
 
   const visibility: Record<string, string> = {};
-  for (const key of ["bio", "country", "skills", "posts", "attestations"]) {
+  for (const key of ["bio", "country", "skills", "posts", "attestations", "credentials"]) {
     const value = formData.get(`visibility_${key}`);
     if (value) visibility[key] = String(value);
   }
@@ -300,6 +300,16 @@ export async function submitVerificationAction(_prevState: string | null, formDa
     return firstErrorMessage(err, "Could not submit for verification.");
   }
   revalidatePath(`/dashboard/${slug}`);
+  return null;
+}
+
+export async function submitCredentialAction(_prevState: string | null, formData: FormData) {
+  try {
+    await apiFetch("/credentials/", { method: "POST", body: formData });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not submit credential.");
+  }
+  revalidatePath("/dashboard");
   return null;
 }
 

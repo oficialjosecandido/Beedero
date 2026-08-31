@@ -37,6 +37,7 @@ const VISIBILITY_SECTIONS = [
   { key: "skills", label: "Skills", hint: "Your skills cloud" },
   { key: "posts", label: "Activity posts", hint: "Updates and milestones" },
   { key: "attestations", label: "Platform facts", hint: "Memberships and stats" },
+  { key: "credentials", label: "Credentials", hint: "Your verified professional credentials" },
 ] as const;
 
 const MANIFESTO_MAX = 600;

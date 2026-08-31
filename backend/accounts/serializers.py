@@ -8,7 +8,7 @@ from .skills import normalize_skills
 from .visibility import ALL_LEVELS
 
 User = get_user_model()
-VISIBILITY_SECTIONS = {"bio", "country", "memberships", "posts", "attestations", "skills"}
+VISIBILITY_SECTIONS = {"bio", "country", "memberships", "posts", "attestations", "skills", "credentials"}
 MAX_LINKS = 10
 
 

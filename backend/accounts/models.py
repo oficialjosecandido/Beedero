@@ -47,6 +47,7 @@ class InvestorProfile(models.Model):
         "posts": "public",
         "attestations": "public",
         "skills": "public",
+        "credentials": "public",
     }
     DEFAULT_ATTESTATION_PREFS = {
         "show_verified_badge": True,

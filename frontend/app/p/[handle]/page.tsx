@@ -8,6 +8,7 @@ import { PersonSkillsSection, type AggregatedSkill } from "@/components/PersonSk
 import { PostsShowcase } from "@/components/PostsShowcase";
 import { ApiError, apiFetch, publicFetch } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
+import { formatDate } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import type { ResolvedMention } from "@/lib/richtext";
 import { missingPageMetadata, pageMetadata } from "@/lib/site-metadata";
@@ -46,6 +47,12 @@ type PublicPerson = {
     free: string[];
     aggregated: AggregatedSkill[];
   };
+  credentials?: {
+    title: string;
+    issuer: string;
+    identifier: string;
+    verified_at: string | null;
+  }[];
   advisor?: {
     is_available: boolean;
     expertise: string[];
@@ -98,7 +105,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
     throw err;
   }
 
-  const { person, attestations, posts, timeline, skills, advisor, viewer_actions } = data;
+  const { person, attestations, posts, timeline, skills, advisor, credentials, viewer_actions } = data;
 
   return (
     <>
@@ -189,6 +196,28 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                       )}
                       <p className="text-xs text-zinc-500">{item.detail}</p>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {credentials && credentials.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
+                Professional credentials
+              </h2>
+              <ul className="mt-3 flex flex-col gap-2">
+                {credentials.map((credential) => (
+                  <li
+                    key={`${credential.issuer}-${credential.identifier}`}
+                    className="rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3"
+                  >
+                    <p className="font-semibold text-beedero-black">{credential.title}</p>
+                    <p className="text-xs text-zinc-500">
+                      {credential.identifier} confirmed with {credential.issuer}
+                      {credential.verified_at ? ` on ${formatDate(credential.verified_at)}` : ""}
+                    </p>
                   </li>
                 ))}
               </ul>
