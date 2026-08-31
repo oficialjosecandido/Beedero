@@ -49,11 +49,11 @@ export default async function RegisterPage() {
         </p>
         <p className="text-center text-xs text-zinc-500">
           By creating an account you agree to our{" "}
-          <Link href="/termos" className="underline underline-offset-2 hover:text-beedero-black">
+          <Link href="/terms" className="underline underline-offset-2 hover:text-beedero-black">
             Terms
           </Link>{" "}
           and{" "}
-          <Link href="/privacidade" className="underline underline-offset-2 hover:text-beedero-black">
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-beedero-black">
             Privacy Policy
           </Link>
           .

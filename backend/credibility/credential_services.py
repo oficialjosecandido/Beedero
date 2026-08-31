@@ -3,7 +3,6 @@ Sibling to services.py's Verification flow, kept separate since credentials
 are person-scoped rather than org-scoped (see models.ProfessionalCredential).
 """
 
-from django.conf import settings
 from django.utils import timezone
 from notifications.models import Notification
 from notifications.services import notify

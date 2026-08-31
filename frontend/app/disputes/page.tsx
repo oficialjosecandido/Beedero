@@ -6,10 +6,10 @@ import { pageMetadata } from "@/lib/site-metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Dispute Resolution",
   description: "Alternative consumer dispute resolution and Complaints Book.",
-  path: "/litigios",
+  path: "/disputes",
 });
 
-export default function LitigiosPage() {
+export default function DisputesPage() {
   return (
     <LegalPageShell title="Alternative Consumer Dispute Resolution">
       <p>

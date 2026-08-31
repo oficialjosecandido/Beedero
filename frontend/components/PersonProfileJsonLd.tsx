@@ -12,12 +12,14 @@ export function PersonProfileJsonLd({ person }: { person: PersonJsonLdInput }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
+    url: `${SITE_URL}/p/${person.handle}`,
     mainEntity: {
       "@type": "Person",
       name: person.full_name,
       url: `${SITE_URL}/p/${person.handle}`,
       ...(person.headline ? { jobTitle: person.headline } : {}),
       ...(person.profile_picture ? { image: person.profile_picture } : {}),
+      ...(person.country ? { address: { "@type": "Country", name: person.country } } : {}),
     },
   };
 

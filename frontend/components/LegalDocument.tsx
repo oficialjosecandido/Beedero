@@ -202,10 +202,10 @@ export function LegalDocument({
           Beedero
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-black/60">
-          <Link href="/privacidade" className="hover:text-beedero-black">
+          <Link href="/privacy" className="hover:text-beedero-black">
             Privacy
           </Link>
-          <Link href="/termos" className="hover:text-beedero-black">
+          <Link href="/terms" className="hover:text-beedero-black">
             Terms
           </Link>
         </div>

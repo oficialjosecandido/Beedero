@@ -7,10 +7,10 @@ import { pageMetadata } from "@/lib/site-metadata";
 export const metadata: Metadata = pageMetadata({
   title: "About Beedero",
   description: "Information about Beedero and the company's legal identification.",
-  path: "/sobre",
+  path: "/about",
 });
 
-export default function SobrePage() {
+export default function AboutPage() {
   return (
     <LegalPageShell title="About Beedero">
       <p>
@@ -45,10 +45,7 @@ export default function SobrePage() {
         </li>
       </ul>
 
-      <p className="text-xs text-zinc-500">
-        Last updated: {LEGAL_ENTITY.lastUpdated}. In case of discrepancy between language
-        versions, the Portuguese version prevails.
-      </p>
+      <p className="text-xs text-zinc-500">Last updated: {LEGAL_ENTITY.lastUpdated}.</p>
     </LegalPageShell>
   );
 }

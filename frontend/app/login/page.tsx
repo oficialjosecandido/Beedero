@@ -58,11 +58,11 @@ export default async function LoginPage({
           </p>
         </div>
         <p className="text-center text-xs text-zinc-500">
-          <Link href="/termos" className="underline underline-offset-2 hover:text-beedero-black">
+          <Link href="/terms" className="underline underline-offset-2 hover:text-beedero-black">
             Terms
           </Link>{" "}
           ·{" "}
-          <Link href="/privacidade" className="underline underline-offset-2 hover:text-beedero-black">
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-beedero-black">
             Privacy
           </Link>
         </p>

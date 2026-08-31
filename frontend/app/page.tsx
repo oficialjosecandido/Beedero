@@ -8,6 +8,15 @@ export const metadata = pageMetadata({
   description:
     "Build structured startup profiles, control what investors see, and follow meaningful company updates on Beedero.",
   path: "/",
+  keywords: [
+    "startup marketplace",
+    "startup profiles",
+    "founders",
+    "investors",
+    "verified startups",
+    "fundraising",
+    "startup discovery",
+  ],
 });
 
 const audiences = [

@@ -13,8 +13,6 @@ from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django.contrib.auth import get_user_model
-
 from accounts.models import InvestorProfile
 from analytics.models import InterestSignal, ProfileView
 from analytics.services import record_feed_impressions

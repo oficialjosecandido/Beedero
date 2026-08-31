@@ -9,15 +9,15 @@ const PRODUCT_LINKS = [
 ] as const;
 
 const LEGAL_LINKS = [
-  { href: "/privacidade", label: "Privacy Policy" },
-  { href: "/termos", label: "Terms & Conditions" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms & Conditions" },
   { href: "/cookies", label: "Cookie Policy" },
-  { href: "/litigios", label: "Dispute Resolution" },
-  { href: "/sobre", label: "Legal Information" },
+  { href: "/disputes", label: "Dispute Resolution" },
+  { href: "/about", label: "Legal Information" },
 ] as const;
 
 const COMPANY_LINKS = [
-  { href: "/sobre", label: "About" },
+  { href: "/about", label: "About" },
   { href: `mailto:${COMPANY.contactEmail}`, label: "Contact", external: false },
   {
     href: "https://www.livroreclamacoes.pt/inicio",

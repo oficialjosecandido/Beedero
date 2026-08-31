@@ -11,7 +11,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import type { ResolvedMention } from "@/lib/richtext";
-import { missingPageMetadata, pageMetadata } from "@/lib/site-metadata";
+import { missingPageMetadata, personProfileMetadata } from "@/lib/site-metadata";
 import { getAccessToken } from "@/lib/session";
 import { engagementLabel, expertiseLabel } from "@/lib/advisory-options";
 import { sectorLabel, stageLabel } from "@/lib/org-filters";
@@ -73,19 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   const { handle } = await params;
   try {
     const data = (await publicFetch(`/public/people/${handle}/`)) as PublicPerson;
-    const { person } = data;
-    const title = person.full_name;
-    const description =
-      person.headline?.trim() ||
-      `${person.full_name}'s verified startup profile on Beedero.`;
-    return pageMetadata({
-      title,
-      description,
-      path: `/p/${handle}`,
-      image: person.profile_picture
-        ? { url: person.profile_picture, alt: `${person.full_name} profile photo` }
-        : undefined,
-    });
+    return personProfileMetadata(data.person);
   } catch {
     return missingPageMetadata("Profile");
   }

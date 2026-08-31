@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { VerifyProfileJsonLd } from "@/components/VerifyProfileJsonLd";
 import { CREDIBILITY_LEVEL_LABELS } from "@/lib/credibility";
 import { formatDate } from "@/lib/format";
 import { ApiError, publicFetch } from "@/lib/api";
-import { missingPageMetadata, pageMetadata } from "@/lib/site-metadata";
+import { missingPageMetadata, verifyPageMetadata } from "@/lib/site-metadata";
 
 type VerifyData = {
   org: {
@@ -27,11 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   try {
     const data = (await publicFetch(`/public/verify/${slug}/`)) as VerifyData;
-    return pageMetadata({
-      title: `${data.org.name} — Beedero verification`,
-      description: `Verify ${data.org.name}'s credibility status on Beedero.`,
-      path: `/verify/${slug}`,
-    });
+    return verifyPageMetadata(data.org);
   } catch {
     return missingPageMetadata("Verification");
   }
@@ -58,13 +55,15 @@ export default async function VerifyPage({ params }: { params: Promise<{ slug: s
   const { org, badge } = data;
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
+    <>
+      <VerifyProfileJsonLd org={org} badge={badge} />
+      <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
       <div className="w-full max-w-xl">
         <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-8 shadow-sm">
           <div className="flex items-start gap-4">
             {org.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={org.logo} alt="" className="size-14 rounded-2xl object-cover" />
+              <img src={org.logo} alt={`${org.name} logo`} className="size-14 rounded-2xl object-cover" />
             ) : (
               <span className="flex size-14 items-center justify-center rounded-2xl bg-beedero-yellow/30 text-xl font-extrabold text-beedero-black">
                 {org.name.charAt(0)}
@@ -129,5 +128,6 @@ export default async function VerifyPage({ params }: { params: Promise<{ slug: s
         </div>
       </div>
     </main>
+    </>
   );
 }

@@ -8,7 +8,7 @@ export function OrgProfileJsonLd({ org }: { org: OrgSummary }) {
     name: org.name,
     url: `${SITE_URL}/o/${org.slug}`,
     ...(org.one_liner ? { description: org.one_liner } : {}),
-    ...(org.logo ? { logo: org.logo } : {}),
+    ...(org.logo ? { logo: org.logo, image: org.logo } : {}),
     ...(org.sector ? { industry: org.sector } : {}),
   };
 

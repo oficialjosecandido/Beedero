@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
         destination: "/o/:slug",
         permanent: true,
       },
+      { source: "/sobre", destination: "/about", permanent: true },
+      { source: "/litigios", destination: "/disputes", permanent: true },
+      { source: "/termos", destination: "/terms", permanent: true },
+      { source: "/privacidade", destination: "/privacy", permanent: true },
     ];
   },
 };

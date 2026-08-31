@@ -16,11 +16,9 @@ export default function robots(): MetadataRoute.Robots {
           "/pricing",
           "/terms",
           "/privacy",
-          "/termos",
-          "/privacidade",
           "/cookies",
-          "/litigios",
-          "/sobre",
+          "/disputes",
+          "/about",
           "/register",
         ],
         disallow: [
