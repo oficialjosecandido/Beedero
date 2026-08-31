@@ -1,10 +1,10 @@
 export const LEGAL_ENTITY = {
-  companyName: "Poetic Clouds",
-  legalName: "Poetic Clouds",
+  companyName: "Poetic Clouds, Unipessoal Lda",
+  legalName: "Poetic Clouds, Unipessoal Lda",
   address: "Rua da Fontainha 7, 2640-019 Santo Isidoro",
   registryLocation: "Conservatória do Registo Comercial de Lisboa",
   nif: "517988615",
-  shareCapital: "—",
+  shareCapital: "100,00 €",
   privacyEmail: "privacy@beedero.com",
   contactEmail: "hello@beedero.com",
   lastUpdated: "31 August 2026",

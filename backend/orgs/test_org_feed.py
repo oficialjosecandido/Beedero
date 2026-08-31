@@ -1,5 +1,7 @@
 import pytest
+from datetime import timedelta
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
@@ -84,14 +86,16 @@ def test_org_feed_allows_event_without_profile_field_gate(api, org, founder):
             payload={},
         )
     api.force_authenticate(founder)
+    starts_at = timezone.now() + timedelta(days=30)
+    ends_at = starts_at + timedelta(hours=2)
     res = api.post(
         f"/api/orgs/{org.slug}/feed/",
         {
             "kind": "events",
             "title": "Demo day",
             "body": "Join us",
-            "starts_at": "2026-08-18T10:00:00Z",
-            "ends_at": "2026-08-18T12:00:00Z",
+            "starts_at": starts_at.isoformat(),
+            "ends_at": ends_at.isoformat(),
             "format": "online",
         },
         format="json",

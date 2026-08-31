@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
   title: "Create account",
-  description: "Join Beedero as a founder, startup, or investor. Build structured profiles and discover verified opportunities.",
+  description: "Join Beedero — then connect to your startup or start investing. Build structured profiles and discover verified opportunities.",
   path: "/register",
 });
 

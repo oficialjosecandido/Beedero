@@ -948,7 +948,9 @@ function ActivityTab({
         suggestedBody={suggestedBody}
       />
       {activities.length === 0 && (
-        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">No posts yet.</p>
+        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
+          No posts yet. Share an update above to show investors you&apos;re active.
+        </p>
       )}
       {activities.map((activity) => (
         <PostCard key={activity.id} slug={slug} activity={activity} />
@@ -1254,7 +1256,11 @@ function FundraisingTab({
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
         <h3 className="font-extrabold text-zinc-900">Round history</h3>
         {roundHistory.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">No rounds opened yet.</p>
+          <p className="mt-2 text-sm text-zinc-500">
+            {isFundraising
+              ? "No closed rounds yet."
+              : "No rounds opened yet. Use the form above when you're ready to raise."}
+          </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
