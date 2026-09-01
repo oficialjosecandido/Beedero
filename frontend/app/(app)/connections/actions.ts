@@ -47,6 +47,7 @@ export async function sendConnectionRequestAction(
     return { error: actionErrorMessage(err, "Could not send the connection request.") };
   }
   revalidatePath("/connections");
+  revalidatePath("/network");
   return { ok: true };
 }
 
@@ -59,6 +60,7 @@ export async function acceptConnectionRequestAction(
       conversation: { id: number } | null;
     }>(`/connections/requests/${requestId}/accept/`, { method: "POST" });
     revalidatePath("/connections");
+    revalidatePath("/network");
     revalidatePath("/feed");
     return { conversationId: result.conversation?.id ?? null };
   } catch (err) {
@@ -90,5 +92,6 @@ export async function declineConnectionRequestAction(
     return { error: actionErrorMessage(err, "Could not decline this request.") };
   }
   revalidatePath("/connections");
+  revalidatePath("/network");
   return { ok: true };
 }

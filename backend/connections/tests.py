@@ -106,11 +106,13 @@ def test_accept_request_with_note_creates_connection_and_opens_conversation(alic
 
 
 @pytest.mark.django_db
-def test_accept_request_without_note_creates_connection_but_no_conversation(alice, bob):
+def test_accept_request_without_note_creates_connection_and_empty_conversation(alice, bob):
     req = send_request(alice, bob)
     connection, conversation = accept_request(req, bob)
     assert connection is not None
-    assert conversation is None
+    assert conversation is not None
+    assert Conversation.objects.filter(pk=conversation.pk).exists()
+    assert conversation.messages.count() == 0
 
 
 @pytest.mark.django_db

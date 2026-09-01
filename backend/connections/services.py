@@ -168,9 +168,9 @@ def send_request(requester, recipient, note="") -> ConnectionRequest:
 
 @transaction.atomic
 def accept_request(req: ConnectionRequest, by):
-    """Returns (connection, conversation) — conversation is None unless the
-    request carried a note, in which case it's opened with the note as the
-    first message."""
+    """Returns (connection, conversation). A direct-message thread is always
+    opened on accept; if the request carried a note, it becomes the first
+    message."""
     if req.status != ConnectionRequest.Status.PENDING:
         raise ValidationError("This request is no longer pending.")
     if by.id != req.recipient_id:
@@ -183,9 +183,8 @@ def accept_request(req: ConnectionRequest, by):
     first, second = sorted([req.requester, req.recipient], key=lambda u: u.id)
     connection, _ = Connection.objects.get_or_create(user_one=first, user_two=second)
 
-    conversation = None
+    conversation = get_or_create_conversation(req.requester, req.recipient)
     if req.note:
-        conversation = get_or_create_conversation(req.requester, req.recipient)
         send_message(conversation, req.requester, req.note)
 
     notify(

@@ -22,17 +22,16 @@ export default async function NetworkPage({
   let connections: ConnectionItem[];
   let following: FollowItem[];
   try {
-    [{ items: requests }, { items: connections }, { items: following }] = await Promise.all([
+    [{ items: requests }, connections, { items: following }] = await Promise.all([
       safeFetch(apiFetch<{ items: ConnectionRequestItem[] }>("/connections/requests/pending/"), {
         items: [] as ConnectionRequestItem[],
       }),
-      safeFetch(apiFetch<{ items: ConnectionItem[] }>("/network/connections/"), {
-        items: [] as ConnectionItem[],
-      }),
+      apiFetch<{ items: ConnectionItem[] }>("/network/connections/"),
       safeFetch(apiFetch<{ items: FollowItem[] }>("/network/following/"), {
         items: [] as FollowItem[],
       }),
     ]);
+    connections = connections.items;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;

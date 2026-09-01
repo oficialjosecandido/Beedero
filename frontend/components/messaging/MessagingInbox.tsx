@@ -74,8 +74,14 @@ export function MessagingInbox({
   const [loading, setLoading] = useState(true);
 
   const refreshConversations = useCallback(async () => {
-    const items = await loadConversations(inboxContext);
+    const [items, contactItems] = await Promise.all([
+      loadConversations(inboxContext),
+      inboxContext.type === "personal" ? loadContacts() : Promise.resolve([] as PersonSummary[]),
+    ]);
     setConversations(items);
+    if (inboxContext.type === "personal") {
+      setContacts(contactItems);
+    }
     await refreshUnreadTotal();
   }, [inboxContext, refreshUnreadTotal]);
 
@@ -83,9 +89,15 @@ export function MessagingInbox({
     let cancelled = false;
 
     async function poll() {
-      const items = await loadConversations(inboxContext);
+      const [items, contactItems] = await Promise.all([
+        loadConversations(inboxContext),
+        inboxContext.type === "personal" ? loadContacts() : Promise.resolve([] as PersonSummary[]),
+      ]);
       if (cancelled) return;
       setConversations(items);
+      if (inboxContext.type === "personal") {
+        setContacts(contactItems);
+      }
       await refreshUnreadTotal();
       setLoading(false);
     }
@@ -97,10 +109,6 @@ export function MessagingInbox({
       window.clearInterval(timer);
     };
   }, [inboxContext, refreshUnreadTotal]);
-
-  useEffect(() => {
-    void loadContacts().then(setContacts);
-  }, []);
 
   useEffect(() => {
     const chatParam = searchParams.get("chat");
@@ -169,6 +177,10 @@ export function MessagingInbox({
   }
 
   const query = search.trim().toLowerCase();
+  const conversationParticipantIds = new Set(
+    conversations.map((conversation) => conversation.other_participant.id)
+  );
+
   const filteredConversations = conversations.filter((conversation) => {
     if (inboxTab === "unread" && conversation.unread_count === 0) return false;
     if (!query) return true;
@@ -179,16 +191,26 @@ export function MessagingInbox({
     person.name.toLowerCase().includes(query)
   );
 
+  const contactsWithoutConversation =
+    inboxContext.type === "personal" && inboxTab === "all"
+      ? filteredContacts.filter((person) => !conversationParticipantIds.has(person.id))
+      : [];
+
   const unreadInList = conversations.filter((c) => c.unread_count > 0).length;
+  const hasInboxResults = filteredConversations.length > 0 || contactsWithoutConversation.length > 0;
 
   const emptyMessage =
     inboxContext.type === "org"
       ? inboxTab === "unread"
         ? `No unread messages for ${inboxContext.name}.`
         : `No messages yet for ${inboxContext.name}. Use ✏️ to reach someone on behalf of the organization.`
-      : inboxTab === "unread"
-        ? "No unread messages."
-        : "You don't have any conversations yet.";
+      : query
+        ? "No matches in your connections."
+        : inboxTab === "unread"
+          ? "No unread messages."
+          : contacts.length === 0
+            ? "You don't have any conversations yet. Connect with people to start messaging."
+            : "You don't have any conversations yet. Pick a connection below or use ✏️ to start a chat.";
 
   if (!expanded) return null;
 
@@ -251,7 +273,7 @@ export function MessagingInbox({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search messages"
+            placeholder="Search connections"
             className="w-full rounded-md border border-zinc-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-beedero-black"
           />
         </div>
@@ -292,7 +314,9 @@ export function MessagingInbox({
         <div className="max-h-44 overflow-y-auto border-b border-zinc-200 p-2">
           {filteredContacts.length === 0 ? (
             <p className="px-2 py-3 text-sm text-zinc-500">
-              Follow people on Discover to message them.
+              {query
+                ? "No connections match your search."
+                : "Connect with people on the Network page to message them."}
             </p>
           ) : (
             filteredContacts.map((person) => (
@@ -329,55 +353,76 @@ export function MessagingInbox({
               </div>
             ))}
           </div>
-        ) : filteredConversations.length === 0 ? (
+        ) : !hasInboxResults ? (
           <p className="px-4 py-6 text-sm text-zinc-500">{emptyMessage}</p>
         ) : (
-          filteredConversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              type="button"
-              onClick={() => openConversation(conversation)}
-              className={`flex w-full items-start gap-3 border-b border-zinc-100 px-3 py-3 text-left hover:bg-zinc-50 ${
-                conversation.unread_count > 0 ? "bg-beedero-yellow/10" : ""
-              } ${selectedConversationId === conversation.id ? "bg-zinc-100" : ""}`}
-            >
-              <ParticipantAvatar
-                name={conversation.other_participant.name}
-                profilePicture={conversation.other_participant.profile_picture}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-baseline justify-between gap-2">
-                  <span
-                    className={`truncate text-sm ${
-                      conversation.unread_count > 0
-                        ? "font-bold text-beedero-black"
-                        : "font-semibold text-beedero-black"
-                    }`}
-                  >
-                    {conversation.other_participant.name}
-                  </span>
-                  {conversation.last_message_at && (
-                    <span className="shrink-0 text-[11px] text-zinc-500">
-                      {formatMessageTimestamp(conversation.last_message_at)}
+          <>
+            {filteredConversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                type="button"
+                onClick={() => openConversation(conversation)}
+                className={`flex w-full items-start gap-3 border-b border-zinc-100 px-3 py-3 text-left hover:bg-zinc-50 ${
+                  conversation.unread_count > 0 ? "bg-beedero-yellow/10" : ""
+                } ${selectedConversationId === conversation.id ? "bg-zinc-100" : ""}`}
+              >
+                <ParticipantAvatar
+                  name={conversation.other_participant.name}
+                  profilePicture={conversation.other_participant.profile_picture}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span
+                      className={`truncate text-sm ${
+                        conversation.unread_count > 0
+                          ? "font-bold text-beedero-black"
+                          : "font-semibold text-beedero-black"
+                      }`}
+                    >
+                      {conversation.other_participant.name}
                     </span>
+                    {conversation.last_message_at && (
+                      <span className="shrink-0 text-[11px] text-zinc-500">
+                        {formatMessageTimestamp(conversation.last_message_at)}
+                      </span>
+                    )}
+                  </span>
+                  {conversation.last_message ? (
+                    <span
+                      className={`mt-0.5 block truncate text-xs ${
+                        conversation.unread_count > 0 ? "font-medium text-zinc-700" : "text-zinc-500"
+                      }`}
+                    >
+                      {conversation.last_message.is_mine ? "You: " : ""}
+                      {conversation.last_message.body}
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 block truncate text-xs text-zinc-500">No messages yet</span>
                   )}
                 </span>
-                {conversation.last_message && (
-                  <span
-                    className={`mt-0.5 block truncate text-xs ${
-                      conversation.unread_count > 0 ? "font-medium text-zinc-700" : "text-zinc-500"
-                    }`}
-                  >
-                    {conversation.last_message.is_mine ? "You: " : ""}
-                    {conversation.last_message.body}
-                  </span>
+                {conversation.unread_count > 0 && (
+                  <span className="mt-1 flex size-2 shrink-0 rounded-full bg-beedero-black" aria-hidden />
                 )}
-              </span>
-              {conversation.unread_count > 0 && (
-                <span className="mt-1 flex size-2 shrink-0 rounded-full bg-beedero-black" aria-hidden />
-              )}
-            </button>
-          ))
+              </button>
+            ))}
+            {contactsWithoutConversation.map((person) => (
+              <button
+                key={`contact-${person.id}`}
+                type="button"
+                disabled={isPending}
+                onClick={() => openConversationWith(person.id)}
+                className="flex w-full items-start gap-3 border-b border-zinc-100 px-3 py-3 text-left hover:bg-zinc-50 disabled:opacity-50"
+              >
+                <ParticipantAvatar name={person.name} profilePicture={person.profile_picture} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-beedero-black">{person.name}</span>
+                  <span className="mt-0.5 block truncate text-xs text-zinc-500">
+                    {person.headline || "Start conversation"}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </>
         )}
       </div>
     </div>

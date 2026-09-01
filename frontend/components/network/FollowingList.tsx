@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { unfollowOrgAction, type FollowItem } from "@/app/(app)/network/actions";
 import { EmptyState } from "@/components/EmptyState";
@@ -53,10 +53,15 @@ function FollowRow({ item, onRemoved }: { item: FollowItem; onRemoved: (id: stri
 }
 
 export function FollowingList({ following }: { following: FollowItem[] }) {
-  const [visibleFollowing, setVisibleFollowing] = useState(following);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+
+  const visibleFollowing = useMemo(
+    () => following.filter((item) => !removedIds.includes(item.id)),
+    [following, removedIds]
+  );
 
   function remove(id: string) {
-    setVisibleFollowing((current) => current.filter((item) => item.id !== id));
+    setRemovedIds((current) => [...current, id]);
   }
 
   return (

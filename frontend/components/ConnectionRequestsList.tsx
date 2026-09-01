@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import {
   acceptConnectionRequestAction,
@@ -37,6 +37,7 @@ function RequestCard({
         return;
       }
       onResolved(item.id);
+      router.refresh();
       if (result.conversationId) {
         router.push(`/feed?chat=${result.conversationId}`);
       }
@@ -121,10 +122,15 @@ function RequestCard({
 }
 
 export function ConnectionRequestsList({ items }: { items: ConnectionRequestItem[] }) {
-  const [visible, setVisible] = useState(items);
+  const [resolvedIds, setResolvedIds] = useState<number[]>([]);
+
+  const visible = useMemo(
+    () => items.filter((item) => !resolvedIds.includes(item.id)),
+    [items, resolvedIds]
+  );
 
   function remove(id: number) {
-    setVisible((current) => current.filter((item) => item.id !== id));
+    setResolvedIds((current) => [...current, id]);
   }
 
   return (

@@ -20,6 +20,8 @@ from .serializers import (
     MessageSendSerializer,
     ReportConversationSerializer,
     StartConversationSerializer,
+    _display_name,
+    _profile_picture,
     blocked_user_summary,
     conversation_summary,
     message_summary,
@@ -74,9 +76,9 @@ class MessageContactsView(APIView):
             items.append(
                 {
                     "id": user.id,
-                    "name": (profile.full_name if profile and profile.full_name else None) or user.email,
+                    "name": _display_name(user),
                     "headline": profile.headline if profile else "",
-                    "profile_picture": profile.profile_picture.url if profile and profile.profile_picture else None,
+                    "profile_picture": _profile_picture(user),
                 }
             )
         items.sort(key=lambda item: item["name"].casefold())

@@ -5,8 +5,8 @@ from django.db import models
 class ConnectionRequest(models.Model):
     """First contact between two people — always a request with an optional
     note, never an open conversation. Accepting one creates the Connection
-    and (if a note was included) opens the conversation with the note as
-    the first message; see connections.services.accept_request."""
+    and opens a direct-message thread (with the note as the first message
+    when one was included); see connections.services.accept_request."""
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

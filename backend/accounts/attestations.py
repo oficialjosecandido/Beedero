@@ -4,6 +4,15 @@ from credibility.levels import credibility_level
 from orgs.models import Activity, Organization, OrgMembership
 
 
+def _org_logo_url(org) -> str | None:
+    if not org.logo:
+        return None
+    try:
+        return org.logo.url
+    except ValueError:
+        return None
+
+
 def platform_attestations(profile) -> list[dict]:
     prefs = profile.merged_attestation_prefs()
     items: list[dict] = []
@@ -35,7 +44,7 @@ def platform_attestations(profile) -> list[dict]:
                     "detail": f"Org credibility level {level}" if level else "Organization member",
                     "org_slug": org.slug,
                     "org_name": org.name,
-                    "org_logo": org.logo.url if org.logo else None,
+                    "org_logo": _org_logo_url(org),
                 }
             )
 

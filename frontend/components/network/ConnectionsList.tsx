@@ -104,11 +104,16 @@ function ConnectionRow({
 }
 
 export function ConnectionsList({ items }: { items: ConnectionItem[] }) {
-  const [visible, setVisible] = useState(items);
+  const [removedIds, setRemovedIds] = useState<number[]>([]);
   const [q, setQ] = useState("");
 
+  const visible = useMemo(
+    () => items.filter((item) => !removedIds.includes(item.connection_id)),
+    [items, removedIds]
+  );
+
   function remove(connectionId: number) {
-    setVisible((current) => current.filter((item) => item.connection_id !== connectionId));
+    setRemovedIds((current) => [...current, connectionId]);
   }
 
   const filtered = useMemo(() => {
