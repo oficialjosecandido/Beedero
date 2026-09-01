@@ -25,8 +25,8 @@ export function PostsShowcase({ posts }: { posts: Post[] }) {
   const hiddenCount = posts.length - VISIBLE_COUNT;
 
   return (
-    <section className="mt-8">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">Activity</h2>
+    <section className="mt-8 border-t border-zinc-100 pt-8">
+      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Activity</h2>
       <ul className="mt-3 flex flex-col gap-3">
         {visible.map((post) => (
           <li key={post.id} className="rounded-xl border border-beedero-border/70 px-4 py-3">

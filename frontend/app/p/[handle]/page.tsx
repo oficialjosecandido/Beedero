@@ -99,58 +99,69 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
     <>
       <PersonProfileJsonLd person={person} />
       <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
-      <div className="w-full max-w-2xl">
-        <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-8 shadow-sm">
-          <div className="flex items-start gap-4">
-            {person.profile_picture ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={person.profile_picture}
-                alt={`${person.full_name} profile photo`}
-                className="size-16 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex size-16 items-center justify-center rounded-full bg-beedero-yellow/30 text-2xl font-extrabold text-beedero-black">
-                {person.full_name.charAt(0)}
-              </span>
-            )}
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold text-zinc-900">{person.full_name}</h1>
-                {person.is_verified && (
-                  <span className="rounded-full bg-beedero-yellow px-2.5 py-0.5 text-xs font-bold text-beedero-black">
-                    Verified
-                  </span>
+        <div className="w-full max-w-2xl">
+          <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm sm:p-8">
+            <header className="flex items-start gap-5">
+              {person.profile_picture ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={person.profile_picture}
+                  alt={`${person.full_name} profile photo`}
+                  className="size-20 shrink-0 rounded-full object-cover ring-2 ring-beedero-border/50"
+                />
+              ) : (
+                <span className="flex size-20 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/35 text-3xl font-extrabold text-beedero-black ring-2 ring-beedero-border/50">
+                  {person.full_name.charAt(0)}
+                </span>
+              )}
+              <div className="min-w-0 pt-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 sm:text-[1.65rem]">
+                    {person.full_name}
+                  </h1>
+                  {person.is_verified && (
+                    <span className="rounded-full bg-beedero-yellow px-2.5 py-0.5 text-xs font-bold text-beedero-black">
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">{formatAtHandle(person.handle)}</p>
+                {person.headline && (
+                  <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">{person.headline}</p>
+                )}
+                {person.country && (
+                  <p className="mt-1 text-xs text-zinc-400">
+                    {COUNTRY_NAMES[person.country] ?? person.country}
+                  </p>
                 )}
               </div>
-              <p className="mt-1 text-sm font-semibold text-zinc-600">{formatAtHandle(person.handle)}</p>
-              {person.headline && <p className="mt-1 text-sm text-zinc-600">{person.headline}</p>}
-              {person.country && (
-                <p className="mt-1 text-xs text-subtle">
-                  {COUNTRY_NAMES[person.country] ?? person.country}
-                </p>
+            </header>
+
+            <section className="mt-6">
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Intro</h2>
+              {person.bio ? (
+                <p className="mt-2 text-sm leading-7 text-zinc-700">{person.bio}</p>
+              ) : (
+                <p className="mt-2 text-sm text-zinc-400">No intro</p>
               )}
-            </div>
-          </div>
+            </section>
 
-          {person.bio && (
-            <p className="mt-6 text-sm leading-7 text-zinc-700">{person.bio}</p>
-          )}
+            {viewer_actions && (
+              <div className="mt-6">
+                <PersonProfileActions
+                  userId={viewer_actions.user_id}
+                  name={person.full_name}
+                  canMessage={viewer_actions.can_message}
+                  connectionStatus={viewer_actions.connection_status}
+                />
+              </div>
+            )}
 
-          {viewer_actions && (
-            <PersonProfileActions
-              userId={viewer_actions.user_id}
-              name={person.full_name}
-              canMessage={viewer_actions.can_message}
-              connectionStatus={viewer_actions.connection_status}
-            />
-          )}
-
-          {attestations.length > 0 && (
-            <section className="mt-8">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
-                Platform-attested
-              </h2>
+            {attestations.length > 0 && (
+              <section className="mt-8 border-t border-zinc-100 pt-8">
+                <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
+                  Platform-attested
+                </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {attestations.map((item) => (
                   <li
@@ -191,8 +202,8 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
           )}
 
           {credentials && credentials.length > 0 && (
-            <section className="mt-8">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
+            <section className="mt-8 border-t border-zinc-100 pt-8">
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
                 Professional credentials
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
@@ -215,8 +226,8 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
           <PersonTimeline bands={timeline} />
 
           {advisor?.is_available && (
-            <section className="mt-8">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">
+            <section className="mt-8 border-t border-zinc-100 pt-8">
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
                 Advisory &amp; board
               </h2>
               <div className="mt-3 rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3">
@@ -260,12 +271,19 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
 
           <PostsShowcase posts={posts} />
 
-          <div className="mt-8 flex items-center gap-3 border-t border-beedero-border pt-6">
+          <div className="mt-10 flex flex-col gap-4 border-t-2 border-beedero-border/30 pt-8 sm:flex-row sm:items-center sm:justify-between">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/pbadge/${handle}.svg`} alt="" className="h-10 w-auto" />
-            <p className="text-xs text-zinc-500">
+            <img
+              src={`/pbadge/${handle}.svg`}
+              alt={`${person.full_name} on Beedero`}
+              className="h-11 w-auto"
+            />
+            <p className="text-sm text-zinc-500">
               Profile on{" "}
-              <Link href="/" className="font-semibold text-beedero-black underline">
+              <Link
+                href="/"
+                className="font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2"
+              >
                 Beedero
               </Link>
             </p>
