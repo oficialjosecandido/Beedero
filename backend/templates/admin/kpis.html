@@ -80,4 +80,17 @@
     {% endfor %}
   </table>
 {% endif %}
+
+{% if geo_breakdown %}
+  <div class="kpi-section">Geografia (declarada, orgs live)</div>
+  <table class="kpi">
+    <tr><th>Geografia</th><th>Orgs</th></tr>
+    {% for g in geo_breakdown %}
+      <tr>
+        <td>{{ g.geo }}</td>
+        <td>{{ g.n }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
 {% endblock %}
