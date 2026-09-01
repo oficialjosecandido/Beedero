@@ -41,6 +41,7 @@ from .services import (
     mark_org_conversation_read,
     send_message,
     send_org_message,
+    total_unread_count,
     unblock_user,
 )
 
@@ -83,6 +84,15 @@ class MessageContactsView(APIView):
             )
         items.sort(key=lambda item: item["name"].casefold())
         return Response({"items": items})
+
+
+class MessageUnreadCountView(APIView):
+    """GET /api/messaging/unread-count/ — lightweight badge counter."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"unread_count": total_unread_count(request.user)})
 
 
 class ConversationListCreateView(APIView):

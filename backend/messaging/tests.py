@@ -116,6 +116,19 @@ def test_send_and_read_marks_unread_messages_read(api, alice, bob):
 
 
 @pytest.mark.django_db
+def test_unread_count_endpoint(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hey bob"}, format="json")
+
+    api.force_authenticate(bob)
+    assert api.get("/api/messaging/unread-count/").data["unread_count"] == 1
+
+    api.get(f"/api/conversations/{conversation.id}/messages/")
+    assert api.get("/api/messaging/unread-count/").data["unread_count"] == 0
+
+
+@pytest.mark.django_db
 def test_conversation_list_includes_last_message_preview(api, alice, bob):
     conversation = get_or_create_conversation(alice, bob)
     api.force_authenticate(alice)

@@ -60,6 +60,7 @@ function FooterNav({
             ) : (
               <Link
                 href={link.href}
+                prefetch={false}
                 className="text-sm font-medium text-beedero-black/80 transition-colors hover:text-beedero-black"
               >
                 {link.label}

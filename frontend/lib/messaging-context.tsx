@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import type { ConversationSummary } from "@/app/(app)/feed/types";
+import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export type PersonSummary = {
   id: number;
@@ -59,36 +59,17 @@ type MessagingContextValue = {
 
 const MessagingContext = createContext<MessagingContextValue | null>(null);
 
-async function loadConversationUnread(url: string): Promise<number> {
+const UNREAD_POLL_MS = 60_000;
+
+async function fetchUnreadTotal(): Promise<number> {
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch("/api/messaging/unread-count", { cache: "no-store" });
     if (!res.ok) return 0;
-    const data = (await res.json()) as { items: ConversationSummary[] };
-    return data.items.reduce((sum, item) => sum + item.unread_count, 0);
+    const data = (await res.json()) as { unread_count: number };
+    return data.unread_count;
   } catch {
     return 0;
   }
-}
-
-async function fetchTotalUnread(): Promise<number> {
-  let total = await loadConversationUnread("/api/messaging/conversations");
-
-  try {
-    const switcherRes = await fetch("/api/profile-switcher", { cache: "no-store" });
-    if (switcherRes.ok) {
-      const data = (await switcherRes.json()) as { orgs: OrgMembership[] };
-      const orgTotals = await Promise.all(
-        data.orgs.map((org) =>
-          loadConversationUnread(`/api/orgs/${org.slug}/messaging/conversations`)
-        )
-      );
-      total += orgTotals.reduce((sum, count) => sum + count, 0);
-    }
-  } catch {
-    // ignore org inbox errors
-  }
-
-  return total;
 }
 
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
@@ -99,25 +80,14 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   const [unreadTotal, setUnreadTotal] = useState(0);
 
   const refreshUnreadTotal = useCallback(async () => {
-    setUnreadTotal(await fetchTotalUnread());
+    setUnreadTotal(await fetchUnreadTotal());
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const syncUnread = () => {
-      void fetchTotalUnread().then((total) => {
-        if (!cancelled) setUnreadTotal(total);
-      });
-    };
-
-    syncUnread();
-    const timer = window.setInterval(syncUnread, 20_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
+  const syncUnread = useCallback(async () => {
+    setUnreadTotal(await fetchUnreadTotal());
   }, []);
+
+  useVisiblePolling({ onPoll: syncUnread, intervalMs: UNREAD_POLL_MS });
 
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_MQ);

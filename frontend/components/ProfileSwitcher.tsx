@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { fetchProfileSwitcher } from "@/lib/profile-switcher-client";
+
 type InvestorProfile = {
   full_name?: string;
   profile_picture?: string | null;
@@ -63,13 +65,9 @@ export function ProfileSwitcher() {
     let cancelled = false;
 
     async function load() {
-      try {
-        const res = await fetch("/api/profile-switcher", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        setData((await res.json()) as { me: Me; orgs: OrgMembership[] });
-      } catch {
-        // ignore load errors
-      }
+      const data = await fetchProfileSwitcher();
+      if (!data || cancelled) return;
+      setData(data);
     }
 
     void load();

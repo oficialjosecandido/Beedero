@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+
+import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export type NotificationItem = {
   id: number;
@@ -47,33 +49,25 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       setItems(data.items);
     } catch {
       // ignore polling errors
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function poll() {
-      try {
-        const res = await fetch("/api/notifications", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { unread_count: number; items: NotificationItem[] };
-        setUnread(data.unread_count);
-        setItems(data.items);
-      } catch {
-        // ignore polling errors
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const pollUnread = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications/unread-count", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { unread_count: number };
+      setUnread(data.unread_count);
+    } catch {
+      // ignore polling errors
+    } finally {
+      setLoading(false);
     }
-
-    void poll();
-    const timer = window.setInterval(() => void poll(), 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
   }, []);
+
+  useVisiblePolling({ onPoll: pollUnread, intervalMs: 60_000 });
 
   const markAllRead = useCallback(async () => {
     await fetch("/api/notifications", { method: "POST", body: JSON.stringify({}) });

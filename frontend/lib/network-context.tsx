@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+
+import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export type NetworkCounts = { connections: number; pending: number; following: number };
 
@@ -26,26 +28,17 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function poll() {
-      try {
-        const res = await fetch("/api/network/counts", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        setCounts((await res.json()) as NetworkCounts);
-      } catch {
-        // ignore polling errors
-      }
+  const pollCounts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/network/counts", { cache: "no-store" });
+      if (!res.ok) return;
+      setCounts((await res.json()) as NetworkCounts);
+    } catch {
+      // ignore polling errors
     }
-
-    void poll();
-    const timer = window.setInterval(() => void poll(), 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
   }, []);
+
+  useVisiblePolling({ onPoll: pollCounts, intervalMs: 120_000 });
 
   const value = useMemo(() => ({ counts, refresh }), [counts, refresh]);
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { InboxContext, OrgMembership } from "@/lib/messaging-context";
 import { useMessaging } from "@/lib/messaging-context";
+import { fetchProfileSwitcher } from "@/lib/profile-switcher-client";
 
 function ContextAvatar({
   name,
@@ -50,20 +51,12 @@ export function MessagingInboxSwitcher() {
     let cancelled = false;
 
     async function load() {
-      try {
-        const res = await fetch("/api/profile-switcher", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as {
-          me: { email: string; investor_profile: { full_name?: string; profile_picture?: string | null } | null };
-          orgs: OrgMembership[];
-        };
-        const profile = data.me.investor_profile;
-        setPersonalName(profile?.full_name || data.me.email);
-        setPersonalImage(profile?.profile_picture ?? null);
-        setOrgs(data.orgs);
-      } catch {
-        // ignore
-      }
+      const data = await fetchProfileSwitcher();
+      if (!data || cancelled) return;
+      const profile = data.me.investor_profile;
+      setPersonalName(profile?.full_name || data.me.email);
+      setPersonalImage(profile?.profile_picture ?? null);
+      setOrgs(data.orgs);
     }
 
     void load();

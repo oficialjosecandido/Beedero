@@ -8,6 +8,7 @@ import type { ConversationSummary } from "@/app/(app)/feed/types";
 import { Skeleton, SkeletonAvatar } from "@/components/Skeleton";
 import { formatMessageTimestamp } from "@/lib/format";
 import { useMessaging, type InboxContext, type PersonSummary } from "@/lib/messaging-context";
+import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 import { MessagingInboxSwitcher } from "./MessagingInboxSwitcher";
 import { ParticipantAvatar } from "./messaging-shared";
@@ -85,30 +86,20 @@ export function MessagingInbox({
     await refreshUnreadTotal();
   }, [inboxContext, refreshUnreadTotal]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function poll() {
-      const [items, contactItems] = await Promise.all([
-        loadConversations(inboxContext),
-        inboxContext.type === "personal" ? loadContacts() : Promise.resolve([] as PersonSummary[]),
-      ]);
-      if (cancelled) return;
-      setConversations(items);
-      if (inboxContext.type === "personal") {
-        setContacts(contactItems);
-      }
-      await refreshUnreadTotal();
-      setLoading(false);
+  const pollInbox = useCallback(async () => {
+    const [items, contactItems] = await Promise.all([
+      loadConversations(inboxContext),
+      inboxContext.type === "personal" ? loadContacts() : Promise.resolve([] as PersonSummary[]),
+    ]);
+    setConversations(items);
+    if (inboxContext.type === "personal") {
+      setContacts(contactItems);
     }
-
-    void poll();
-    const timer = window.setInterval(() => void poll(), 20_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
+    await refreshUnreadTotal();
+    setLoading(false);
   }, [inboxContext, refreshUnreadTotal]);
+
+  useVisiblePolling({ onPoll: pollInbox, intervalMs: 45_000 });
 
   useEffect(() => {
     const chatParam = searchParams.get("chat");

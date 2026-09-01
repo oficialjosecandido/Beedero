@@ -6,7 +6,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from django.db.models import Q
+from django.db.models import F, Q
 
 from orgs.models import OrgMembership
 
@@ -118,3 +118,31 @@ def mark_org_conversation_read(conversation: OrgConversation, viewer) -> None:
             read_at__isnull=True,
             sender=conversation.external_user,
         ).update(read_at=timezone.now())
+
+
+def total_unread_count(viewer) -> int:
+    """Unread DMs for the badge — personal inbox plus org threads where the
+    viewer is the external party or an org member reviewing inbound contact."""
+    personal = (
+        Message.objects.filter(read_at__isnull=True)
+        .exclude(sender_id=viewer.id)
+        .filter(
+            Q(conversation__participant_one_id=viewer.id)
+            | Q(conversation__participant_two_id=viewer.id)
+        )
+        .count()
+    )
+    external_org = (
+        OrgMessage.objects.filter(
+            read_at__isnull=True,
+            org_conversation__external_user_id=viewer.id,
+        )
+        .exclude(sender_id=viewer.id)
+        .count()
+    )
+    member_org = OrgMessage.objects.filter(
+        read_at__isnull=True,
+        org_conversation__org__members__user_id=viewer.id,
+        sender_id=F("org_conversation__external_user_id"),
+    ).count()
+    return personal + external_org + member_org

@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("contacts/", views.MessageContactsView.as_view()),
+    path("messaging/unread-count/", views.MessageUnreadCountView.as_view()),
     path("conversations/", views.ConversationListCreateView.as_view()),
     path("conversations/<int:conversation_id>/messages/", views.ConversationMessageListCreateView.as_view()),
     path("conversations/<int:conversation_id>/report/", views.ConversationReportView.as_view()),

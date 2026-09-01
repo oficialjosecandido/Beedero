@@ -1,17 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 
 import { sendMessageAction, sendOrgMessageAction } from "@/app/(app)/feed/actions";
 import type { MessageItem } from "@/app/(app)/feed/types";
 import type { InboxContext } from "@/lib/messaging-context";
 import { chatKey, useMessaging, type PersonSummary } from "@/lib/messaging-context";
-
-type MeProfile = {
-  full_name?: string;
-  profile_picture?: string | null;
-};
+import { fetchProfileSwitcher } from "@/lib/profile-switcher-client";
+import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export async function loadMessages(
   conversationId: number,
@@ -32,18 +29,13 @@ export async function loadMessages(
 }
 
 export async function loadMe(): Promise<{ name: string; profile_picture?: string | null } | null> {
-  try {
-    const res = await fetch("/api/profile-switcher", { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { me: { email: string; investor_profile: MeProfile | null } };
-    const profile = data.me.investor_profile;
-    return {
-      name: profile?.full_name || data.me.email,
-      profile_picture: profile?.profile_picture,
-    };
-  } catch {
-    return null;
-  }
+  const data = await fetchProfileSwitcher();
+  if (!data) return null;
+  const profile = data.me.investor_profile;
+  return {
+    name: profile?.full_name || data.me.email,
+    profile_picture: profile?.profile_picture,
+  };
 }
 
 export function ParticipantAvatar({
@@ -96,23 +88,17 @@ export function ChatWindow({
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    if (minimized) return;
-    let cancelled = false;
+  const refreshMessages = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    const items = await loadMessages(conversationId, inboxContext);
+    if (items && requestId === requestIdRef.current) setMessages(items);
+  }, [conversationId, inboxContext]);
 
-    async function refresh() {
-      const requestId = ++requestIdRef.current;
-      const items = await loadMessages(conversationId, inboxContext);
-      if (!cancelled && items && requestId === requestIdRef.current) setMessages(items);
-    }
-
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 8_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [conversationId, inboxContext, minimized]);
+  useVisiblePolling({
+    onPoll: refreshMessages,
+    intervalMs: 15_000,
+    enabled: !minimized,
+  });
 
   function sendMessage() {
     const body = draft.trim();
