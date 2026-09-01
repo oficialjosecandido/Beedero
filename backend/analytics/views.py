@@ -2,14 +2,16 @@ import csv
 import io
 
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, serializers
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from beedero.ratelimit import enforce_rate_limit
 from orgs.models import Organization
 from orgs.serializers import _org_summary
 
 from .models import PipelineEntry
+from .site_traffic import _client_ip, record_site_pageview
 
 
 class PipelineEntrySerializer(serializers.ModelSerializer):
@@ -124,3 +126,21 @@ class PipelineExportView(APIView):
             content_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": 'attachment; filename="beedero-pipeline.csv"'},
         )
+
+
+class SitePageViewSerializer(serializers.Serializer):
+    path = serializers.CharField(max_length=300)
+
+
+class SitePageViewCreateView(APIView):
+    """POST /api/analytics/pageview/ — first-party pageview beacon."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        enforce_rate_limit(f"site-pv:{_client_ip(request)}", limit=180, window_seconds=3600)
+        serializer = SitePageViewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        record_site_pageview(request, serializer.validated_data["path"])
+        return Response(status=status.HTTP_204_NO_CONTENT)

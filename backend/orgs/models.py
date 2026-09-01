@@ -251,6 +251,8 @@ class Activity(models.Model):
     source_investor_post_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     class Meta:
+        verbose_name = "Post"
+        verbose_name_plural = "Posts"
         constraints = [
             models.CheckConstraint(
                 check=models.Q(org__isnull=False) | models.Q(author__isnull=False),

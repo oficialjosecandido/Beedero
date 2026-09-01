@@ -156,6 +156,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Media (user uploads, e.g. profile pictures) — always Azure Blob Storage,
 # in every environment. No local-disk fallback.

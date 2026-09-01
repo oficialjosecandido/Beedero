@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/Footer";
+import { SitePageViewBeacon } from "@/components/SitePageViewBeacon";
 import { siteMetadata } from "@/lib/site-metadata";
 import "./globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({
       className={`${clashGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full w-full flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
+        <SitePageViewBeacon />
         {children}
         <Footer />
         <Toaster position="bottom-right" richColors closeButton />

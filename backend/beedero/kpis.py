@@ -48,14 +48,36 @@ def _count_since(model, date_field, since, **filters):
     return model.objects.filter(**{f"{date_field}__gte": since}, **filters).count()
 
 
-def _card(label, value, section, delta=None):
+def _card(label, value, section, delta=None, *, highlight=False):
     return {
         "label": label,
         "value": value,
         "section": section,
         "delta": delta,
         "has_delta": delta is not None,
+        "highlight": highlight,
     }
+
+
+KPI_SECTIONS = [
+    ("Hoje", "Daily pulse — activity since midnight (Lisbon time)."),
+    ("Rede", "Network size, growth, and pending actions."),
+    ("Confiança", "Verification queue and expiry risk."),
+    ("Liquidez", "Profile views, interest signals, and deals."),
+    ("Atividade", "Content and engagement."),
+    ("Saúde operacional", "Background jobs and data freshness."),
+]
+
+
+def _group_cards(cards):
+    grouped = {name: [] for name, _ in KPI_SECTIONS}
+    for card in cards:
+        grouped.setdefault(card["section"], []).append(card)
+    return [
+        {"name": name, "description": description, "cards": grouped[name]}
+        for name, description in KPI_SECTIONS
+        if grouped.get(name)
+    ]
 
 
 @kpi_admin_required
@@ -151,11 +173,11 @@ def kpis_view(request):
 
     cards = [
         # -- Hoje --
-        _card("Novos utilizadores hoje", new_users_today, "Hoje"),
-        _card("Novas orgs hoje", new_orgs_today, "Hoje"),
-        _card("Posts hoje", posts_today, "Hoje"),
-        _card("Logins hoje", logins_today, "Hoje"),
-        _card("Novas conexões hoje", new_connections_today, "Hoje"),
+        _card("Novos utilizadores", new_users_today, "Hoje", highlight=True),
+        _card("Novas orgs", new_orgs_today, "Hoje", highlight=True),
+        _card("Posts", posts_today, "Hoje", highlight=True),
+        _card("Logins", logins_today, "Hoje", highlight=True),
+        _card("Novas conexões", new_connections_today, "Hoje", highlight=True),
         # -- Rede --
         _card("Orgs live", orgs_live, "Rede", orgs_new),
         _card("Orgs em draft", orgs_draft, "Rede"),
@@ -188,6 +210,7 @@ def kpis_view(request):
         else None,
     ]
     cards = [c for c in cards if c is not None and c["value"] is not None]
+    card_sections = _group_cards(cards)
 
     # ---------- Escada de credibilidade (com barra proporcional) ----------
     max_level = max(level_counts.values()) or 1
@@ -228,6 +251,7 @@ def kpis_view(request):
             "title": "KPIs Beedero",
             "window_days": WINDOW_DAYS,
             "cards": cards,
+            "card_sections": card_sections,
             "levels": levels,
             "funnel": funnel,
             "top_orgs": top_orgs,

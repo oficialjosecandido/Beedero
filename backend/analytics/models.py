@@ -122,6 +122,8 @@ class PipelineEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = "Pipeline entry"
+        verbose_name_plural = "Pipeline entries"
         constraints = [
             models.UniqueConstraint(fields=["investor", "org"], name="uniq_pipeline_entry"),
         ]
@@ -130,3 +132,29 @@ class PipelineEntry(models.Model):
 
     def __str__(self):
         return f"pipeline:{self.investor_id}:{self.org_id} ({self.stage})"
+
+
+class SitePageView(models.Model):
+    """First-party marketing/app page views — pseudonymous visitor hash only."""
+
+    path = models.CharField(max_length=300)
+    visitor_hash = models.CharField(max_length=32, db_index=True)
+    is_authenticated = models.BooleanField(default=False)
+    viewed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["path", "-viewed_at"])]
+
+
+class DailySiteStats(models.Model):
+    """Nightly rollup of site traffic for long-term reporting."""
+
+    date = models.DateField(unique=True)
+    page_views = models.PositiveIntegerField(default=0)
+    unique_visitors = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"site:{self.date} ({self.unique_visitors} visitors)"

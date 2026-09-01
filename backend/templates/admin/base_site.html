@@ -1,41 +1,33 @@
 {% extends "admin/base.html" %}
+{% load static %}
 
-{% block title %}{{ title }} | Beedero admin{% endblock %}
+{% block title %}{{ title }} | Beedero Admin{% endblock %}
 
-{% block branding %}
-<h1 id="site-name">
-  <a href="{% url 'admin:index' %}">Beedero · administração</a>
-</h1>
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/beedero-admin.css' %}">
 {% endblock %}
 
-{% block usertools %}
-{{ block.super }}
-<style>
-  /* Barra de atalhos internos, por baixo do header do admin */
-  #beedero-nav {
-    background: #1f2430;
-    padding: 8px 40px;
-    font-size: 13px;
-    display: flex;
-    gap: 18px;
-    align-items: center;
-  }
-  #beedero-nav a { color: #f0a93b; text-decoration: none; font-weight: 600; }
-  #beedero-nav a:hover { text-decoration: underline; }
-  #beedero-nav .sep { color: #555; }
-</style>
+{% block branding %}
+<div id="branding">
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+      <span class="beedero-mark">Beedero</span>
+      <span class="beedero-sub">Admin</span>
+    </a>
+  </h1>
+</div>
 {% endblock %}
 
 {% block nav-global %}
-<div id="beedero-nav">
-  <a href="{% url 'admin-kpis' %}">📊 KPIs</a>
-  <span class="sep">·</span>
-  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">
-    🛡 Verificações pendentes
-  </a>
-  <span class="sep">·</span>
-  <a href="{% url 'admin:orgs_organization_changelist' %}">🏢 Organizações</a>
-  <span class="sep">·</span>
-  <a href="{% url 'admin:accounts_user_changelist' %}">👤 Utilizadores</a>
-</div>
+<nav id="beedero-admin-nav" aria-label="Admin shortcuts">
+  <a href="{% url 'admin-kpis' %}">KPIs</a>
+  <a href="{% url 'admin:orgs_activity_changelist' %}">Posts</a>
+  <a href="{% url 'admin-site-analytics' %}">Site analytics</a>
+  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">Pending verifications</a>
+  <a href="{% url 'admin:orgs_organization_changelist' %}">Organizations</a>
+  <a href="{% url 'admin:accounts_user_changelist' %}">Users</a>
+  <a href="{% url 'admin:connections_connectionrequest_changelist' %}">Connection requests</a>
+  <a href="{% url 'admin:messaging_messagereport_changelist' %}">Message reports</a>
+</nav>
 {% endblock %}

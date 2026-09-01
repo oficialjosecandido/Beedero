@@ -1,0 +1,136 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Site analytics · Beedero Admin{% endblock %}
+{% block bodyclass %}dashboard beedero-kpi-page beedero-site-analytics-page{% endblock %}
+
+{% block nav-global %}
+<nav id="beedero-admin-nav" aria-label="Admin shortcuts">
+  <a href="{% url 'admin-kpis' %}">KPIs</a>
+  <a href="{% url 'admin-site-analytics' %}" class="is-active">Site analytics</a>
+  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">Pending verifications</a>
+  <a href="{% url 'admin:orgs_organization_changelist' %}">Organizations</a>
+  <a href="{% url 'admin:accounts_user_changelist' %}">Users</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="beedero-kpi-page-shell">
+  <header class="beedero-kpi-header">
+    <div>
+      <p class="beedero-kpi-eyebrow">Traffic</p>
+      <h1>Site analytics</h1>
+      <p class="beedero-kpi-muted">
+        Unique visitors and page views · Lisbon time · generated {{ generated_at|date:"d/m/Y H:i" }} (UTC)
+      </p>
+    </div>
+    {% if latest_rollup %}
+      <div class="beedero-kpi-header-meta">
+        <span class="beedero-kpi-pill">Last rollup: {{ latest_rollup|date:"d/m/Y" }}</span>
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="beedero-kpi-block beedero-kpi-block--today">
+    <div class="beedero-kpi-block-head">
+      <h2>Visitors</h2>
+      <p>Distinct pseudonymous visitors in each period (same browser counts once per day).</p>
+    </div>
+    <div class="beedero-kpi-grid beedero-kpi-grid--today">
+      <article class="beedero-kpi-card beedero-kpi-card--highlight">
+        <div class="label">Today</div>
+        <div class="value">{{ summary.day.unique_visitors }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 7 days</div>
+        <div class="value">{{ summary.week.unique_visitors }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 30 days</div>
+        <div class="value">{{ summary.month.unique_visitors }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 365 days</div>
+        <div class="value">{{ summary.year.unique_visitors }}</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="beedero-kpi-block">
+    <div class="beedero-kpi-block-head">
+      <h2>Page views</h2>
+      <p>Total navigations recorded by the site beacon.</p>
+    </div>
+    <div class="beedero-kpi-grid">
+      <article class="beedero-kpi-card beedero-kpi-card--highlight">
+        <div class="label">Today</div>
+        <div class="value">{{ summary.day.page_views }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 7 days</div>
+        <div class="value">{{ summary.week.page_views }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 30 days</div>
+        <div class="value">{{ summary.month.page_views }}</div>
+      </article>
+      <article class="beedero-kpi-card">
+        <div class="label">Last 365 days</div>
+        <div class="value">{{ summary.year.page_views }}</div>
+      </article>
+    </div>
+  </section>
+
+  <div class="beedero-kpi-panels">
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Daily trend (30 days)</h2>
+        <p>Visitors per day.</p>
+      </div>
+      <table class="beedero-kpi-table">
+        <thead>
+          <tr><th>Date</th><th>Visitors</th><th>Views</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in series %}
+            <tr>
+              <td>{{ row.label }}</td>
+              <td>{{ row.unique_visitors }}</td>
+              <td>{{ row.page_views }}</td>
+              <td class="beedero-kpi-bar-cell">
+                <span class="beedero-bar" style="width: {{ row.bar_width }}px"></span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Top pages (30 days)</h2>
+        <p>Most visited paths.</p>
+      </div>
+      {% if top_paths %}
+        <table class="beedero-kpi-table">
+          <thead>
+            <tr><th>Path</th><th>Views</th></tr>
+          </thead>
+          <tbody>
+            {% for row in top_paths %}
+              <tr>
+                <td><code>{{ row.path }}</code></td>
+                <td>{{ row.views }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="beedero-kpi-muted">No page views recorded yet. Traffic appears here after visitors browse the site.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <p class="beedero-kpi-muted">
+  First-party analytics only — no third-party trackers. Visitor identity is a daily pseudonymous hash (IP + browser), not stored raw.
+  </p>
+</div>
+{% endblock %}

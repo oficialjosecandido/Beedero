@@ -31,6 +31,7 @@ def run_management_job(request):
         "prune_profile_views": ("prune_profile_views", []),
         "sentry_test": ("sentry_test", []),
         "compute_daily_org_stats": ("compute_daily_org_stats", []),
+        "compute_daily_site_stats": ("compute_daily_site_stats", []),
         "check_milestones": ("check_milestones", []),
         "send_weekly_digest": ("send_weekly_digest", []),
         "send_investor_alerts": ("send_investor_alerts", []),

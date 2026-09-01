@@ -1,96 +1,148 @@
 {% extends "admin/base_site.html" %}
-{% block title %}KPIs · Beedero{% endblock %}
+{% block title %}KPIs · Beedero Admin{% endblock %}
+{% block bodyclass %}dashboard beedero-kpi-page{% endblock %}
 
-{% block extrastyle %}
-{{ block.super }}
-<style>
-  .kpi-section { margin: 26px 0 10px; font-size: 12px; text-transform: uppercase;
-                 letter-spacing: .08em; color: #666; font-weight: 700; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-              gap: 12px; }
-  .kpi-card { border: 1px solid #e2e2e2; border-radius: 8px; padding: 14px 16px;
-              background: #fff; }
-  .kpi-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
-  .kpi-card .value { font-size: 28px; font-weight: 700; line-height: 1.1; }
-  .kpi-card .delta { font-size: 12px; margin-top: 5px; color: #1a7f37; }
-  .kpi-card .delta.zero { color: #999; }
-  table.kpi { border-collapse: collapse; width: 100%; max-width: 640px; margin-top: 6px; }
-  table.kpi th, table.kpi td { text-align: left; padding: 7px 10px;
-                               border-bottom: 1px solid #eee; font-size: 13px; }
-  .bar { background: #f0a93b; height: 10px; border-radius: 3px; display: inline-block;
-         vertical-align: middle; min-width: 2px; }
-  .muted { color: #888; font-size: 12px; }
-</style>
+{% block nav-global %}
+<nav id="beedero-admin-nav" aria-label="Admin shortcuts">
+  <a href="{% url 'admin-kpis' %}" class="is-active">KPIs</a>
+  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">Pending verifications</a>
+  <a href="{% url 'admin:orgs_organization_changelist' %}">Organizations</a>
+  <a href="{% url 'admin:accounts_user_changelist' %}">Users</a>
+  <a href="{% url 'admin:connections_connectionrequest_changelist' %}">Connection requests</a>
+  <a href="{% url 'admin:messaging_messagereport_changelist' %}">Message reports</a>
+</nav>
 {% endblock %}
 
 {% block content %}
-<p class="muted">
-  Janela: últimos {{ window_days }} dias · gerado em {{ generated_at|date:"d/m/Y H:i" }}
-</p>
+<div class="beedero-kpi-page-shell">
+  <header class="beedero-kpi-header">
+    <div>
+      <p class="beedero-kpi-eyebrow">Internal dashboard</p>
+      <h1>KPIs</h1>
+      <p class="beedero-kpi-muted">
+        Rolling window: last {{ window_days }} days · generated {{ generated_at|date:"d/m/Y H:i" }} (UTC)
+      </p>
+    </div>
+    <div class="beedero-kpi-header-meta">
+      <span class="beedero-kpi-pill">{{ card_sections|length }} sections</span>
+      <span class="beedero-kpi-pill">{{ cards|length }} metrics</span>
+    </div>
+  </header>
 
-<div class="kpi-section">Métricas</div>
-<div class="kpi-grid">
-  {% for card in cards %}
-    <div class="kpi-card">
-      <div class="label">{{ card.label }} <span class="muted">· {{ card.section }}</span></div>
-      <div class="value">{{ card.value }}</div>
-      {% if card.has_delta %}
-        <div class="delta {% if not card.delta %}zero{% endif %}">
-          {% if card.delta %}+{{ card.delta }} em {{ window_days }}d{% else %}sem novos{% endif %}
-        </div>
+  {% for section in card_sections %}
+    <section class="beedero-kpi-block{% if section.name == 'Hoje' %} beedero-kpi-block--today{% endif %}">
+      <div class="beedero-kpi-block-head">
+        <h2>{{ section.name }}</h2>
+        <p>{{ section.description }}</p>
+      </div>
+      <div class="beedero-kpi-grid{% if section.name == 'Hoje' %} beedero-kpi-grid--today{% endif %}">
+        {% for card in section.cards %}
+          <article class="beedero-kpi-card{% if card.highlight %} beedero-kpi-card--highlight{% endif %}">
+            <div class="label">{{ card.label }}</div>
+            <div class="value">{{ card.value }}</div>
+            {% if card.has_delta %}
+              <div class="delta {% if not card.delta %}zero{% endif %}">
+                {% if card.delta %}+{{ card.delta }} in {{ window_days }}d{% else %}no change{% endif %}
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <div class="beedero-kpi-panels">
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Credibility ladder</h2>
+        <p>Live organizations by credibility level.</p>
+      </div>
+      <table class="beedero-kpi-table">
+        <thead>
+          <tr><th>Level</th><th>Orgs</th><th>Share</th></tr>
+        </thead>
+        <tbody>
+          {% for row in levels %}
+            <tr>
+              <td>Level {{ row.level }}</td>
+              <td>{{ row.count }}</td>
+              <td class="beedero-kpi-bar-cell">
+                <span class="beedero-bar" style="width: {{ row.width }}px"></span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Onboarding funnel</h2>
+        <p>Where people drop off between steps.</p>
+      </div>
+      <table class="beedero-kpi-table">
+        <thead>
+          <tr><th>Step</th><th>Total</th><th>% of previous</th></tr>
+        </thead>
+        <tbody>
+          {% for step in funnel %}
+            <tr>
+              <td>{{ step.label }}</td>
+              <td>{{ step.count }}</td>
+              <td>{% if step.pct %}{{ step.pct }}%{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  {% if top_orgs or geo_breakdown %}
+    <div class="beedero-kpi-panels">
+      {% if top_orgs %}
+        <section class="beedero-kpi-panel">
+          <div class="beedero-kpi-block-head">
+            <h2>Top orgs by views</h2>
+            <p>Most viewed profiles in the last {{ window_days }} days.</p>
+          </div>
+          <table class="beedero-kpi-table">
+            <thead>
+              <tr><th>Org</th><th>Views</th></tr>
+            </thead>
+            <tbody>
+              {% for o in top_orgs %}
+                <tr>
+                  <td><a href="/o/{{ o.slug }}" target="_blank" rel="noopener noreferrer">{{ o.name }}</a></td>
+                  <td>{{ o.views }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+      {% endif %}
+
+      {% if geo_breakdown %}
+        <section class="beedero-kpi-panel">
+          <div class="beedero-kpi-block-head">
+            <h2>Geography</h2>
+            <p>Declared geography for live organizations.</p>
+          </div>
+          <table class="beedero-kpi-table">
+            <thead>
+              <tr><th>Geography</th><th>Orgs</th></tr>
+            </thead>
+            <tbody>
+              {% for g in geo_breakdown %}
+                <tr>
+                  <td>{{ g.geo }}</td>
+                  <td>{{ g.n }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
       {% endif %}
     </div>
-  {% endfor %}
+  {% endif %}
 </div>
-
-<div class="kpi-section">Escada de credibilidade (orgs live)</div>
-<table class="kpi">
-  <tr><th>Nível</th><th>Orgs</th><th></th></tr>
-  {% for row in levels %}
-    <tr>
-      <td>Nível {{ row.level }}</td>
-      <td>{{ row.count }}</td>
-      <td><span class="bar" style="width: {{ row.width }}px"></span></td>
-    </tr>
-  {% endfor %}
-</table>
-
-<div class="kpi-section">Funil de onboarding</div>
-<table class="kpi">
-  <tr><th>Passo</th><th>Total</th><th>% do anterior</th></tr>
-  {% for step in funnel %}
-    <tr>
-      <td>{{ step.label }}</td>
-      <td>{{ step.count }}</td>
-      <td>{% if step.pct %}{{ step.pct }}%{% else %}—{% endif %}</td>
-    </tr>
-  {% endfor %}
-</table>
-<p class="muted">A maior queda percentual entre passos é onde as pessoas encalham.</p>
-
-{% if top_orgs %}
-  <div class="kpi-section">Top orgs por views ({{ window_days }}d)</div>
-  <table class="kpi">
-    <tr><th>Org</th><th>Views</th></tr>
-    {% for o in top_orgs %}
-      <tr>
-        <td><a href="/o/{{ o.slug }}" target="_blank">{{ o.name }}</a></td>
-        <td>{{ o.views }}</td>
-      </tr>
-    {% endfor %}
-  </table>
-{% endif %}
-
-{% if geo_breakdown %}
-  <div class="kpi-section">Geografia (declarada, orgs live)</div>
-  <table class="kpi">
-    <tr><th>Geografia</th><th>Orgs</th></tr>
-    {% for g in geo_breakdown %}
-      <tr>
-        <td>{{ g.geo }}</td>
-        <td>{{ g.n }}</td>
-      </tr>
-    {% endfor %}
-  </table>
-{% endif %}
 {% endblock %}

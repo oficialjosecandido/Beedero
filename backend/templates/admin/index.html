@@ -1,0 +1,95 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="beedero-admin-dashboard">
+  <div class="beedero-hero">
+    <div>
+      <h1>{% trans "Operations dashboard" %}</h1>
+      <p>{% trans "Shortcuts to the areas you check most often." %}</p>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="beedero-section-title">{% trans "Quick actions" %}</h2>
+    <div class="beedero-quick-grid">
+      <a class="beedero-quick-card" href="{% url 'admin-kpis' %}">
+        <strong>{% trans "KPIs" %}</strong>
+        <span>{% trans "Growth, funnel, and credibility ladder." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:orgs_activity_changelist' %}">
+        <strong>{% trans "Posts" %}</strong>
+        <span>{% trans "Org updates and personal feed posts." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin-site-analytics' %}">
+        <strong>{% trans "Site analytics" %}</strong>
+        <span>{% trans "Visitors and page views by day, week, month, and year." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">
+        <strong>{% trans "Pending verifications" %}</strong>
+        <span>{% trans "Review documents waiting for approval." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:orgs_organization_changelist' %}">
+        <strong>{% trans "Organizations" %}</strong>
+        <span>{% trans "Browse startups, verification, and fundraising flags." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:accounts_user_changelist' %}">
+        <strong>{% trans "Users" %}</strong>
+        <span>{% trans "Accounts, staff access, and login emails." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:connections_connectionrequest_changelist' %}">
+        <strong>{% trans "Connection requests" %}</strong>
+        <span>{% trans "Inspect pending and accepted network requests." %}</span>
+      </a>
+      <a class="beedero-quick-card" href="{% url 'admin:messaging_messagereport_changelist' %}">
+        <strong>{% trans "Message reports" %}</strong>
+        <span>{% trans "Abuse and unsolicited contact flags." %}</span>
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="beedero-section-title">{% trans "All modules" %}</h2>
+    <div class="beedero-app-grid">
+      {% if app_list %}
+        {% for app in app_list %}
+          <div class="app-{{ app.app_label }} module">
+            <table>
+              <caption>
+                <a href="{{ app.app_url }}" class="section" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                  {{ app.name }}
+                </a>
+              </caption>
+              {% for model in app.models %}
+                <tr class="model-{{ model.object_name|lower }}">
+                  {% if model.admin_url %}
+                    <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                  {% else %}
+                    <th scope="row">{{ model.name }}</th>
+                  {% endif %}
+                  {% if model.add_url %}
+                    <td><a href="{{ model.add_url }}" class="addlink">{% trans "Add" %}</a></td>
+                  {% else %}
+                    <td></td>
+                  {% endif %}
+                  {% if model.admin_url %}
+                    {% if model.view_only %}
+                      <td><a href="{{ model.admin_url }}" class="viewlink">{% trans "View" %}</a></td>
+                    {% else %}
+                      <td><a href="{{ model.admin_url }}" class="changelink">{% trans "Change" %}</a></td>
+                    {% endif %}
+                  {% else %}
+                    <td></td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>{% trans "You don't have permission to view or edit anything." %}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
