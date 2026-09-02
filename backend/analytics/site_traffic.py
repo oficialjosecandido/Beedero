@@ -16,7 +16,6 @@ TRACKED_PATH_PREFIXES = (
     "/disputes",
     "/feed",
     "/login",
-    "/pricing",
     "/privacy",
     "/register",
     "/startups",

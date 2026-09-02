@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -15,11 +13,11 @@ def api():
 
 @pytest.mark.django_db
 def test_record_site_pageview_creates_row(rf):
-    request = rf.post("/api/analytics/pageview/", {"path": "/pricing"}, REMOTE_ADDR="1.2.3.4")
+    request = rf.post("/api/analytics/pageview/", {"path": "/terms"}, REMOTE_ADDR="1.2.3.4")
     request.META["HTTP_USER_AGENT"] = "pytest"
 
-    assert record_site_pageview(request, "/pricing") is True
-    assert SitePageView.objects.filter(path="/pricing").count() == 1
+    assert record_site_pageview(request, "/terms") is True
+    assert SitePageView.objects.filter(path="/terms").count() == 1
 
 
 @pytest.mark.django_db
@@ -44,7 +42,7 @@ def test_site_traffic_summary_counts_unique_visitors(rf):
     request.META["HTTP_USER_AGENT"] = "pytest-agent"
 
     record_site_pageview(request, "/")
-    record_site_pageview(request, "/pricing")
+    record_site_pageview(request, "/about")
 
     request_b = rf.get("/", REMOTE_ADDR="2.2.2.2")
     request_b.META["HTTP_USER_AGENT"] = "pytest-agent"

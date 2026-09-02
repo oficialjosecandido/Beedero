@@ -3,6 +3,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Profile/ logo uploads go through Server Actions (multipart). Default 1MB
+  // rejects most phone photos before our action runs.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
+  },
   async redirects() {
     return [
       {
@@ -14,6 +21,7 @@ const nextConfig: NextConfig = {
       { source: "/litigios", destination: "/disputes", permanent: true },
       { source: "/termos", destination: "/terms", permanent: true },
       { source: "/privacidade", destination: "/privacy", permanent: true },
+      { source: "/pricing", destination: "/", permanent: false },
     ];
   },
 };

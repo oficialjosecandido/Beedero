@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, ApiNetworkError, ApiTimeoutError } from "@/lib/api";
 
 type ChecklistItem = { key: string; done: boolean; hint: string };
 type WizardProgress = { completeness: number; checklist: ChecklistItem[] };
@@ -140,9 +140,12 @@ export async function activateOrgAction(_prevState: string | null, formData: For
 
 export async function updateProfileAction(_prevState: string | null, formData: FormData) {
   const body = new FormData();
-  const fullName = formData.get("full_name");
-  if (fullName !== null && String(fullName).trim()) {
-    body.set("full_name", String(fullName).trim());
+  const nameLocked = formData.get("name_locked") === "1";
+  if (!nameLocked) {
+    const fullName = formData.get("full_name");
+    if (fullName !== null && String(fullName).trim()) {
+      body.set("full_name", String(fullName).trim());
+    }
   }
   body.set("headline", formData.get("headline") ?? "");
   body.set("bio", formData.get("bio") ?? "");
@@ -197,8 +200,8 @@ export async function updateProfileAction(_prevState: string | null, formData: F
 
   try {
     await apiFetch("/investors/me/", { method: "PUT", body });
-  } catch {
-    return "Could not save your profile.";
+  } catch (err) {
+    return profileErrorMessage(err, "Could not save your profile.");
   }
   revalidatePath("/dashboard");
   return null;
@@ -331,6 +334,19 @@ function firstErrorMessage(err: unknown, fallback: string): string {
   const first = Array.isArray(detail) ? detail[0] : detail ?? (body && Object.values(body)[0]);
   const value = Array.isArray(first) ? first[0] : first;
   return typeof value === "string" ? value : fallback;
+}
+
+function profileErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiTimeoutError) {
+    return "The upload timed out — try a smaller photo or try again.";
+  }
+  if (err instanceof ApiNetworkError) {
+    return err.message;
+  }
+  if (err instanceof ApiError) {
+    return firstErrorMessage(err, fallback);
+  }
+  return fallback;
 }
 
 export async function postFeedAction(_prevState: string | null, formData: FormData) {

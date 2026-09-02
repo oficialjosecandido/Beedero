@@ -13,7 +13,6 @@ function staticEntries(lastModified: Date): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, lastModified, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/startups`, lastModified, changeFrequency: "daily", priority: 0.95 },
-    { url: `${SITE_URL}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/register`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/cookies`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/disputes`, lastModified, changeFrequency: "yearly", priority: 0.2 },

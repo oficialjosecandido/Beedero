@@ -42,7 +42,7 @@ Without prejudice to other rules: using the platform for unlawful purposes; publ
 
 ## 7. Paid plans
 
-The core of the platform is free. Additional analytics features ("Founder Pro") may be subscribed to for a fee, renewing {monthly}, cancellable at any time with effect at the end of the paid period. Prices and conditions on the pricing page.
+The platform is currently free to use. If paid plans are introduced in the future, we will update these Terms and notify users before any charges apply.
 
 [LEGAL REVIEW: right of withdrawal (14 days) in distance contracts with consumers — assess applicability to founders/companies (B2B vs B2C) and the wording of consent to immediate performance.]
 

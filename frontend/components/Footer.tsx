@@ -4,7 +4,6 @@ import { COMPANY } from "@/lib/legal-content";
 
 const PRODUCT_LINKS = [
   { href: "/startups", label: "Discover" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/", label: "How it works" },
 ] as const;
 

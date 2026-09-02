@@ -258,6 +258,7 @@ export function ProfileForm({
             <div className="min-w-0 flex-1">
               {nameLocked ? (
                 <>
+                  <input type="hidden" name="name_locked" value="1" />
                   <p className="text-lg font-extrabold text-zinc-900">{profile?.full_name}</p>
                   {profile?.handle && (
                     <p className="mt-0.5 text-sm font-semibold text-zinc-600">
@@ -271,7 +272,13 @@ export function ProfileForm({
               ) : (
                 <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
                   Full name
-                  <input name="full_name" required placeholder="Your full name" className={fieldClass} />
+                  <input
+                    name="full_name"
+                    required
+                    placeholder="Your full name"
+                    defaultValue={profile?.full_name ?? ""}
+                    className={fieldClass}
+                  />
                 </label>
               )}
               <div className="mt-3">

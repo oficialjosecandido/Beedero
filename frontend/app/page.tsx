@@ -57,9 +57,6 @@ export default function Home() {
           <Link href="/startups" className="hover:text-beedero-white">
             Discovery
           </Link>
-          <Link href="/pricing" className="hover:text-beedero-white">
-            Pricing
-          </Link>
           <Link href="/login" className="hover:text-beedero-white">
             Login
           </Link>
@@ -81,12 +78,6 @@ export default function Home() {
               className="rounded-xl px-3 py-2 text-sm font-bold hover:bg-beedero-yellow"
             >
               Discovery
-            </Link>
-            <Link
-              href="/pricing"
-              className="rounded-xl px-3 py-2 text-sm font-bold hover:bg-beedero-yellow"
-            >
-              Pricing
             </Link>
             <Link
               href="/login"

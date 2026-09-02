@@ -37,6 +37,7 @@ export async function GET() {
   const logoutUrl = new URL(endSessionUrl(config));
   logoutUrl.searchParams.set("client_id", config.webClientId);
   logoutUrl.searchParams.set("post_logout_redirect_uri", `${postLogoutRedirectUri()}/register`);
+  logoutUrl.searchParams.set("ui_locales", "en");
   if (idToken) {
     logoutUrl.searchParams.set("id_token_hint", idToken);
   }

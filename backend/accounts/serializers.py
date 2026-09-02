@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from orgs.posting.imaging import PostImageValidationMixin
+from orgs.posting.imaging import PostImageValidationMixin, process_logo_image
 
 from .models import InvestorPost, InvestorProfile, SelfDeclaredExperience
 from .skills import normalize_skills
@@ -87,6 +87,24 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             if key not in allowed:
                 raise serializers.ValidationError(f"Unknown attestation preference: {key}")
         return value
+
+    def validate_profile_picture(self, value):
+        return process_logo_image(value) if value else value
+
+    def update(self, instance, validated_data):
+        if "visibility" in validated_data:
+            validated_data["visibility"] = {
+                **InvestorProfile.DEFAULT_VISIBILITY,
+                **(instance.visibility or {}),
+                **validated_data["visibility"],
+            }
+        if "attestation_prefs" in validated_data:
+            validated_data["attestation_prefs"] = {
+                **InvestorProfile.DEFAULT_ATTESTATION_PREFS,
+                **(instance.attestation_prefs or {}),
+                **validated_data["attestation_prefs"],
+            }
+        return super().update(instance, validated_data)
 
 
 class InvestorPostSerializer(PostImageValidationMixin, serializers.Serializer):

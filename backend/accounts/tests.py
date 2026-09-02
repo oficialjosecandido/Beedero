@@ -42,6 +42,50 @@ def test_investor_profile_get_creates_then_put_updates(api, user):
 
 
 @pytest.mark.django_db
+def test_investor_profile_multipart_put_with_json_fields(api, user):
+    """Regression: updateProfileAction sends JSON fields as strings in multipart."""
+    import io
+    import json
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    api.force_authenticate(user)
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), color="blue").save(buf, format="PNG")
+    upload = SimpleUploadedFile("avatar.png", buf.getvalue(), content_type="image/png")
+    visibility = json.dumps(
+        {
+            "bio": "public",
+            "country": "public",
+            "skills": "public",
+            "posts": "public",
+            "attestations": "public",
+            "credentials": "public",
+        }
+    )
+    attestation_prefs = json.dumps({"show_memberships": True, "show_posts_count": True})
+    res = api.put(
+        "/api/investors/me/",
+        {
+            "full_name": "Ayvan Krishnan",
+            "headline": "Founder of Rebottle",
+            "country": "US",
+            "visibility": visibility,
+            "attestation_prefs": attestation_prefs,
+            "links": "[]",
+            "skills": "[]",
+            "profile_picture": upload,
+        },
+        format="multipart",
+    )
+    assert res.status_code == 200
+    assert res.data["full_name"] == "Ayvan Krishnan"
+    assert res.data["headline"] == "Founder of Rebottle"
+    assert res.data["profile_picture"]
+
+
+@pytest.mark.django_db
 def test_investor_profile_verification_fields_are_read_only(api, user):
     api.force_authenticate(user)
     res = api.put("/api/investors/me/", {"is_verified": True}, format="json")
