@@ -1,0 +1,138 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Newsletter · Beedero Admin{% endblock %}
+{% block bodyclass %}dashboard beedero-kpi-page beedero-newsletter-page{% endblock %}
+
+{% block nav-global %}
+<nav id="beedero-admin-nav" aria-label="Admin shortcuts">
+  <a href="{% url 'admin-kpis' %}">KPIs</a>
+  <a href="{% url 'admin-site-analytics' %}">Site analytics</a>
+  <a href="{% url 'admin-newsletter' %}" class="is-active">Newsletter</a>
+  <a href="{% url 'admin:credibility_verification_changelist' %}?status__exact=pending">Pending verifications</a>
+  <a href="{% url 'admin:orgs_organization_changelist' %}">Organizations</a>
+  <a href="{% url 'admin:accounts_user_changelist' %}">Users</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="beedero-kpi-page-shell">
+  <header class="beedero-kpi-header">
+    <div>
+      <p class="beedero-kpi-eyebrow">Internal dashboard</p>
+      <h1>Newsletter</h1>
+      <p class="beedero-kpi-muted">Compõe um email em HTML e envia-o para utilizadores registados e/ou a lista de interessados.</p>
+    </div>
+  </header>
+
+  {% if messages %}
+    <ul class="messagelist">
+      {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <section class="beedero-kpi-panel">
+    <div class="beedero-kpi-block-head">
+      <h2>Compor email</h2>
+      <p>O conteúdo é HTML puro — o que escreveres aqui é exatamente o que é enviado.</p>
+    </div>
+
+    <form id="newsletter-compose-form" method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <label for="id_subject">Assunto</label>
+        <input type="text" id="id_subject" name="subject" required>
+      </div>
+      <div class="form-row">
+        <label for="id_html_content">Conteúdo (HTML)</label>
+        <textarea id="id_html_content" name="html_content" class="beedero-newsletter-html" required></textarea>
+      </div>
+      <div class="form-row">
+        <label>Público</label>
+        <div class="beedero-newsletter-audience">
+          <label><input type="radio" name="audience" value="users" checked> Todos os utilizadores ({{ users_count }})</label>
+          <label><input type="radio" name="audience" value="recipients"> Todos os interessados ({{ recipients_count }})</label>
+          <label><input type="radio" name="audience" value="both"> Ambos</label>
+        </div>
+      </div>
+      <div class="beedero-newsletter-actions submit-row">
+        <button type="submit" formaction="{% url 'admin-newsletter-send-test' %}" class="button">
+          Enviar teste para {{ test_email }}
+        </button>
+        <button
+          type="submit"
+          formaction="{% url 'admin-newsletter-send' %}"
+          class="default"
+          onclick="return confirm('Enviar este email agora? Esta ação não pode ser desfeita.');"
+        >
+          Enviar agora
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <div class="beedero-kpi-panels">
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Interessados</h2>
+        <p>Lista de emails adicional, independente dos utilizadores registados.</p>
+      </div>
+
+      <form method="post" action="{% url 'admin-newsletter-recipients-add' %}" class="beedero-newsletter-add-form">
+        {% csrf_token %}
+        <label for="id_emails">Adicionar emails (um por linha)</label>
+        <textarea id="id_emails" name="emails" class="beedero-newsletter-emails" placeholder="nome@exemplo.com"></textarea>
+        <button type="submit" class="button">Adicionar</button>
+      </form>
+
+      <table class="beedero-kpi-table">
+        <thead>
+          <tr><th>Email</th><th>Adicionado em</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for recipient in recipients %}
+            <tr>
+              <td>{{ recipient.email }}</td>
+              <td>{{ recipient.created_at|date:"d/m/Y H:i" }}</td>
+              <td>
+                <form method="post" action="{% url 'admin-newsletter-recipient-delete' recipient.pk %}" onsubmit="return confirm('Remover {{ recipient.email }}?');">
+                  {% csrf_token %}
+                  <button type="submit" class="button">Remover</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">Ainda sem interessados adicionados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="beedero-kpi-panel">
+      <div class="beedero-kpi-block-head">
+        <h2>Histórico de envios</h2>
+        <p>Últimas 20 campanhas enviadas.</p>
+      </div>
+      <table class="beedero-kpi-table">
+        <thead>
+          <tr><th>Assunto</th><th>Público</th><th>Enviados</th><th>Falhas</th><th>Por</th><th>Quando</th></tr>
+        </thead>
+        <tbody>
+          {% for send in history %}
+            <tr>
+              <td>{{ send.subject }}</td>
+              <td>{{ send.get_audience_display }}</td>
+              <td>{{ send.recipient_count }}</td>
+              <td>{{ send.failed_count }}</td>
+              <td>{{ send.sent_by.email|default:"—" }}</td>
+              <td>{{ send.sent_at|date:"d/m/Y H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Ainda sem envios.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
+{% endblock %}

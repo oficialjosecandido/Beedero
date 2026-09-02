@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     "connections",
     "network",
     "advisory",
+    "newsletter",
 ]
 
 MIDDLEWARE = [

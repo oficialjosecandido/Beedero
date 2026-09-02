@@ -31,7 +31,7 @@ export default async function RegisterPage() {
             Create account
           </h1>
         </div>
-        {/* Ends Entra SSO first, then starts sign-up (prompt=create). */}
+        {/* Opens Entra signup (prompt=create). Logs out first only if already signed in. */}
         <a
           href="/api/auth/signup"
           className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"

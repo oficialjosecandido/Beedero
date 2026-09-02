@@ -704,3 +704,39 @@ body.beedero-kpi-page #content {
     padding-inline: 16px;
   }
 }
+
+.beedero-newsletter-html {
+  width: 100%;
+  min-height: 320px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.beedero-newsletter-emails {
+  width: 100%;
+  min-height: 100px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  margin-block: 8px;
+}
+
+.beedero-newsletter-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.beedero-newsletter-audience label {
+  font-weight: 400;
+}
+
+.beedero-newsletter-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.beedero-newsletter-add-form {
+  margin-bottom: 16px;
+}

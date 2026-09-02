@@ -21,7 +21,14 @@ function postLogoutRedirectUri() {
   return process.env.ENTRA_POST_LOGOUT_REDIRECT_URI?.replace(/\/$/, "") || SITE_URL;
 }
 
-/** Ends Entra SSO (when possible) then resumes signup with prompt=create. */
+/**
+ * Starts signup (Entra prompt=create).
+ *
+ * If the browser already has a Beedero session, clear Entra SSO first so
+ * "Create account" is not silently auto-logged into the existing user.
+ * Without a local session, skip logout — otherwise Entra shows a confusing
+ * "select an account to sign out" page (often in the browser language).
+ */
 export async function GET() {
   const config = getEntraConfig();
   if (!config) {
@@ -29,6 +36,12 @@ export async function GET() {
   }
 
   const idToken = await getIdToken();
+
+  if (!idToken) {
+    await clearSession();
+    return NextResponse.redirect(new URL("/api/auth/login?screen=signup", SITE_URL));
+  }
+
   await clearSession();
 
   const store = await cookies();
@@ -38,9 +51,7 @@ export async function GET() {
   logoutUrl.searchParams.set("client_id", config.webClientId);
   logoutUrl.searchParams.set("post_logout_redirect_uri", `${postLogoutRedirectUri()}/register`);
   logoutUrl.searchParams.set("ui_locales", "en");
-  if (idToken) {
-    logoutUrl.searchParams.set("id_token_hint", idToken);
-  }
+  logoutUrl.searchParams.set("id_token_hint", idToken);
 
   return NextResponse.redirect(logoutUrl);
 }
