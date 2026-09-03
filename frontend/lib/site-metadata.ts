@@ -17,7 +17,7 @@ export const OG_IMAGE = {
 export const SITE_ICONS = {
   icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
   shortcut: "/favicon.svg",
-  apple: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
 };
 
 type OgImageInput = { url: string; width?: number; height?: number; alt: string };
@@ -97,6 +97,11 @@ export const siteMetadata: Metadata = {
   applicationName: SITE_NAME,
   category: "business",
   icons: SITE_ICONS,
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
   keywords: [
     "startup profiles",
     "startup discovery",

@@ -20,8 +20,17 @@ function notificationHref(item: NotificationItem): string {
 }
 
 export function NotificationsPanel() {
-  const { unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference } =
-    useNotifications();
+  const {
+    unread,
+    items,
+    loading,
+    prefs,
+    refresh,
+    markAllRead,
+    loadPreferences,
+    updatePreference,
+    setPushEnabled,
+  } = useNotifications();
   const [showPrefs, setShowPrefs] = useState(false);
 
   useEffect(() => {
@@ -70,6 +79,14 @@ export function NotificationsPanel() {
               onChange={(e) => updatePreference("digest_email", e.target.checked)}
             />
             Weekly digest email
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={prefs?.push_enabled ?? false}
+              onChange={(e) => setPushEnabled(e.target.checked)}
+            />
+            Push notifications on this device
           </label>
         </div>
       )}

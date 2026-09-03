@@ -7,6 +7,7 @@ from orgs.models import Activity, OrgMembership
 from orgs.visibility import activity_visible_to
 
 from .models import Notification, NotificationPreference
+from .push import send_push
 
 User = get_user_model()
 
@@ -46,6 +47,11 @@ def _wants_engagement_notifications(user) -> bool:
     return pref is None or pref.inapp_engagement
 
 
+def _wants_push_notifications(user) -> bool:
+    pref = NotificationPreference.objects.filter(user=user).first()
+    return pref is None or pref.push_enabled
+
+
 def notify(
     user,
     *,
@@ -77,7 +83,7 @@ def notify(
         existing.save(update_fields=["title", "body", "link", "updated_at"])
         return existing
 
-    return Notification.objects.create(
+    created = Notification.objects.create(
         user=user,
         kind=kind,
         aggregate_key=aggregate_key,
@@ -85,6 +91,9 @@ def notify(
         body=body,
         link=link,
     )
+    if _wants_push_notifications(user):
+        send_push(user, title=title, body=body, link=link)
+    return created
 
 
 def notify_activity_reaction(activity: Activity, actor, reaction_count: int):
@@ -283,7 +292,7 @@ def notify_milestone(
         user=user, kind=Notification.Kind.MILESTONE, aggregate_key=aggregate_key
     ).exists():
         return None
-    return Notification.objects.create(
+    created = Notification.objects.create(
         user=user,
         kind=Notification.Kind.MILESTONE,
         aggregate_key=aggregate_key,
@@ -292,6 +301,9 @@ def notify_milestone(
         link=link,
         payload={"suggestion_title": suggestion_title, "suggestion_body": suggestion_body},
     )
+    if _wants_push_notifications(user):
+        send_push(user, title=title, body=body, link=link)
+    return created
 
 
 def _display_name(user) -> str:

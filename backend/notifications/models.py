@@ -49,9 +49,29 @@ class NotificationPreference(models.Model):
     )
     digest_email = models.BooleanField(default=True)
     inapp_engagement = models.BooleanField(default=True)
+    push_enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return f"prefs for {self.user_id}"
+
+
+class PushSubscription(models.Model):
+    """One row per registered device/browser FCM token. A user may have
+    several (phone + laptop); tokens are removed on 404/invalid responses
+    from FCM, not just on explicit opt-out."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="push_subscriptions", on_delete=models.CASCADE
+    )
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user"])]
+
+    def __str__(self):
+        return f"push token for {self.user_id}"
 
 
 class DigestSend(models.Model):

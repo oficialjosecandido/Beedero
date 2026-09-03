@@ -204,6 +204,11 @@ EMAIL_BACKEND = "beedero.email_backend.AzureCommunicationEmailBackend"
 
 NEW_USER_NOTIFY_EMAIL = os.environ.get("NEW_USER_NOTIFY_EMAIL", "josevcandido@gmail.com")
 
+# Web push (FCM) — unlike email above, this is a progressive enhancement,
+# not core infra: with no service account configured, notifications/push.py
+# silently no-ops instead of failing boot.
+FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # App Service termina TLS na edge e reencaminha em HTTP; sem isto o Django

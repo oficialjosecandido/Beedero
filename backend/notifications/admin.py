@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import DigestSend, Notification, NotificationPreference
+from .models import DigestSend, Notification, NotificationPreference, PushSubscription
 
 
 @admin.register(Notification)
@@ -12,8 +12,14 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationPreference)
 class NotificationPreferenceAdmin(admin.ModelAdmin):
-    list_display = ["user", "digest_email", "inapp_engagement"]
+    list_display = ["user", "digest_email", "inapp_engagement", "push_enabled"]
     search_fields = ["user__email"]
+
+
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ["user", "created_at", "last_seen_at"]
+    search_fields = ["user__email", "token"]
 
 
 @admin.register(DigestSend)

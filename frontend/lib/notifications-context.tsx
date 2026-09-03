@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
+import { requestPushToken } from "@/lib/push";
 import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export type NotificationItem = {
@@ -15,7 +16,11 @@ export type NotificationItem = {
   payload?: { suggestion_title?: string; suggestion_body?: string };
 };
 
-export type NotificationPreferences = { digest_email: boolean; inapp_engagement: boolean };
+export type NotificationPreferences = {
+  digest_email: boolean;
+  inapp_engagement: boolean;
+  push_enabled: boolean;
+};
 
 type NotificationsContextValue = {
   unread: number;
@@ -26,6 +31,7 @@ type NotificationsContextValue = {
   markAllRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreference: (field: keyof NotificationPreferences, value: boolean) => Promise<void>;
+  setPushEnabled: (value: boolean) => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
@@ -101,9 +107,44 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     []
   );
 
+  const setPushEnabled = useCallback(
+    async (value: boolean) => {
+      if (value) {
+        const token = await requestPushToken();
+        if (!token) return;
+        try {
+          await fetch("/api/notifications/push-token", {
+            method: "POST",
+            body: JSON.stringify({ token }),
+          });
+        } catch {
+          return;
+        }
+      } else {
+        try {
+          await fetch("/api/notifications/push-token", { method: "DELETE", body: JSON.stringify({}) });
+        } catch {
+          // ignore — preference is still turned off below regardless
+        }
+      }
+      await updatePreference("push_enabled", value);
+    },
+    [updatePreference]
+  );
+
   const value = useMemo(
-    () => ({ unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference }),
-    [unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference]
+    () => ({
+      unread,
+      items,
+      loading,
+      prefs,
+      refresh,
+      markAllRead,
+      loadPreferences,
+      updatePreference,
+      setPushEnabled,
+    }),
+    [unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference, setPushEnabled]
   );
 
   return (

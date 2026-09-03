@@ -7,6 +7,7 @@ urlpatterns = [
     path("notifications/unread-count/", views.NotificationUnreadCountView.as_view()),
     path("notifications/mark-read/", views.NotificationMarkReadView.as_view()),
     path("notifications/preferences/", views.NotificationPreferenceView.as_view()),
+    path("notifications/push-token/", views.PushTokenView.as_view()),
     path("notifications/digest/unsubscribe/", views.DigestUnsubscribeView.as_view()),
     path("notifications/digest/pixel.gif", views.DigestPixelView.as_view()),
 ]

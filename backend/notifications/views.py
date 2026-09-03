@@ -5,7 +5,7 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import DigestSend, Notification, NotificationPreference
+from .models import DigestSend, Notification, NotificationPreference, PushSubscription
 
 # 1x1 transparent GIF, served by the open-tracking pixel.
 _TRANSPARENT_GIF = (
@@ -72,18 +72,53 @@ class NotificationPreferenceView(APIView):
 
     def get(self, request):
         pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
-        return Response({"digest_email": pref.digest_email, "inapp_engagement": pref.inapp_engagement})
+        return Response(
+            {
+                "digest_email": pref.digest_email,
+                "inapp_engagement": pref.inapp_engagement,
+                "push_enabled": pref.push_enabled,
+            }
+        )
 
     def patch(self, request):
         pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
         fields = []
-        for field in ("digest_email", "inapp_engagement"):
+        for field in ("digest_email", "inapp_engagement", "push_enabled"):
             if field in request.data:
                 setattr(pref, field, bool(request.data[field]))
                 fields.append(field)
         if fields:
             pref.save(update_fields=fields)
-        return Response({"digest_email": pref.digest_email, "inapp_engagement": pref.inapp_engagement})
+        return Response(
+            {
+                "digest_email": pref.digest_email,
+                "inapp_engagement": pref.inapp_engagement,
+                "push_enabled": pref.push_enabled,
+            }
+        )
+
+
+class PushTokenView(APIView):
+    """Registers/unregisters this browser's FCM token against the current
+    user. Upsert on POST (a token can only ever belong to one user — e.g.
+    a shared device re-registering under a different account moves it)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token = (request.data.get("token") or "").strip()
+        if not token:
+            return Response({"detail": "token is required."}, status=400)
+        PushSubscription.objects.update_or_create(token=token, defaults={"user": request.user})
+        return Response({"detail": "registered"}, status=201)
+
+    def delete(self, request):
+        token = (request.data.get("token") or "").strip()
+        if token:
+            PushSubscription.objects.filter(user=request.user, token=token).delete()
+        else:
+            PushSubscription.objects.filter(user=request.user).delete()
+        return Response(status=204)
 
 
 def digest_unsubscribe_token(user_id: int) -> str:
