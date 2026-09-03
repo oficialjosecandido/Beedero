@@ -17,6 +17,7 @@ class Notification(models.Model):
         CONNECTION_REQUEST = "connection_request"
         CONNECTION_ACCEPTED = "connection_accepted"
         MENTION = "mention"
+        BROADCAST = "broadcast"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE
@@ -72,6 +73,39 @@ class PushSubscription(models.Model):
 
     def __str__(self):
         return f"push token for {self.user_id}"
+
+
+class NotificationBroadcast(models.Model):
+    """Admin-triggered notification. Saving a new one immediately sends the
+    underlying Notification (and push, per each recipient's preference) —
+    this model doubles as the send trigger and the audit log of what was
+    sent, to whom, and by whom. Never re-sent on edit (see admin.py)."""
+
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    link = models.CharField(max_length=300, blank=True, default="")
+    target_all = models.BooleanField(
+        default=True,
+        verbose_name="Send to all users",
+        help_text="If checked, ignores the user selection below and sends to every active user.",
+    )
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="received_broadcasts",
+        help_text="Only used when 'Send to all users' is unchecked.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
 
 
 class DigestSend(models.Model):
