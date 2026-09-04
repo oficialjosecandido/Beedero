@@ -185,7 +185,11 @@ def accept_request(req: ConnectionRequest, by):
 
     conversation = get_or_create_conversation(req.requester, req.recipient)
     if req.note:
-        send_message(conversation, req.requester, req.note)
+        # notify_recipient=False: `by` (the recipient) already read this note
+        # as part of the pending request they're accepting right now — the
+        # CONNECTION_ACCEPTED notification below is the only one req.requester
+        # needs, and a "new message" notification to `by` would be redundant.
+        send_message(conversation, req.requester, req.note, notify_recipient=False)
 
     notify(
         req.requester,

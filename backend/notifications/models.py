@@ -18,6 +18,7 @@ class Notification(models.Model):
         CONNECTION_ACCEPTED = "connection_accepted"
         MENTION = "mention"
         BROADCAST = "broadcast"
+        MESSAGE = "message"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE

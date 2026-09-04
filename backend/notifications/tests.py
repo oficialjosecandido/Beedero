@@ -235,11 +235,11 @@ def test_preferences_get_defaults_and_patch(api, owner):
 
     res = api.get("/api/notifications/preferences/")
     assert res.status_code == 200
-    assert res.data == {"digest_email": True, "inapp_engagement": True}
+    assert res.data == {"digest_email": True, "inapp_engagement": True, "push_enabled": True}
 
     res = api.patch("/api/notifications/preferences/", {"inapp_engagement": False}, format="json")
     assert res.status_code == 200
-    assert res.data == {"digest_email": True, "inapp_engagement": False}
+    assert res.data == {"digest_email": True, "inapp_engagement": False, "push_enabled": True}
     assert NotificationPreference.objects.get(user=owner).inapp_engagement is False
 
 

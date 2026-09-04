@@ -8,12 +8,37 @@ from django.utils import timezone
 
 from django.db.models import F, Q
 
+from notifications.models import Notification
+from notifications.services import notify
 from orgs.models import OrgMembership
 
 from .models import Conversation, Message, MessageReport, OrgConversation, OrgMessage, UserBlock
+from .serializers import _display_name
 
 
 BLOCKED_DETAIL = "You can't contact this user."
+
+MESSAGE_PREVIEW_LENGTH = 140
+
+
+def _notify_new_message(message: Message) -> None:
+    conversation = message.conversation
+    recipient = (
+        conversation.participant_two
+        if conversation.participant_one_id == message.sender_id
+        else conversation.participant_one
+    )
+    preview = message.body
+    if len(preview) > MESSAGE_PREVIEW_LENGTH:
+        preview = preview[:MESSAGE_PREVIEW_LENGTH].rstrip() + "…"
+    notify(
+        recipient,
+        kind=Notification.Kind.MESSAGE,
+        aggregate_key=f"message:{conversation.id}",
+        title="New message",
+        body=f"{_display_name(message.sender)}: {preview}",
+        link="/messages",
+    )
 
 
 def is_blocked(user_a, user_b) -> bool:
@@ -69,9 +94,11 @@ def get_visible_conversation_or_404(viewer, conversation_id: int) -> Conversatio
 
 
 @transaction.atomic
-def send_message(conversation: Conversation, sender, body: str) -> Message:
+def send_message(conversation: Conversation, sender, body: str, *, notify_recipient: bool = True) -> Message:
     message = Message.objects.create(conversation=conversation, sender=sender, body=body)
     Conversation.objects.filter(pk=conversation.pk).update(last_message_at=message.created_at)
+    if notify_recipient:
+        _notify_new_message(message)
     return message
 
 

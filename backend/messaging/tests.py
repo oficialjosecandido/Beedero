@@ -180,12 +180,27 @@ def test_new_conversation_rate_limit(api, alice):
 
 
 @pytest.mark.django_db
-def test_sending_a_message_does_not_notify_the_recipient(api, alice, bob):
+def test_sending_a_message_notifies_the_recipient(api, alice, bob):
     conversation = get_or_create_conversation(alice, bob)
     api.force_authenticate(alice)
 
     api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "hi"}, format="json")
-    assert not Notification.objects.filter(user=bob).exists()
+    notification = Notification.objects.filter(user=bob, kind=Notification.Kind.MESSAGE).first()
+    assert notification is not None
+    assert "hi" in notification.body
+
+
+@pytest.mark.django_db
+def test_repeated_messages_update_the_same_notification_within_the_aggregation_window(api, alice, bob):
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "first"}, format="json")
+    api.post(f"/api/conversations/{conversation.id}/messages/", {"body": "second"}, format="json")
+
+    notifications = Notification.objects.filter(user=bob, kind=Notification.Kind.MESSAGE)
+    assert notifications.count() == 1
+    assert "second" in notifications.first().body
 
 
 @pytest.fixture

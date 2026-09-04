@@ -19,9 +19,18 @@ from .services import (
 
 @pytest.fixture(autouse=True)
 def _clear_ratelimit_cache():
-    cache.clear()
+    # RuntimeError guard: tests built on db_app_role_connection (which needs
+    # transactional_db, not db) don't unblock DB access until later in fixture
+    # setup than this autouse fixture runs — nothing to clear for those anyway.
+    try:
+        cache.clear()
+    except RuntimeError:
+        pass
     yield
-    cache.clear()
+    try:
+        cache.clear()
+    except RuntimeError:
+        pass
 
 
 @pytest.fixture
@@ -218,3 +227,36 @@ def test_accept_org_request_service_creates_conversation(org, alice, bob):
     assert conversation is not None
     req.refresh_from_db()
     assert req.status == OrgConnectionRequest.Status.ACCEPTED
+
+
+def test_connection_row_invisible_without_viewer_id_set(db_app_role_connection):
+    """Root cause of the "shows Ask to connect for an already-connected pair"
+    bug on public profiles: connections_connection has FORCE ROW LEVEL
+    SECURITY (docs/rls_postgres.sql's connection_participants policy), so a
+    query issued without beedero.viewer_id set returns zero rows even for an
+    actually connected pair. PublicPersonProfileView is exempt from
+    RLSViewerMiddleware (perf win for the public response body) but still
+    reads connection_status()/can_message_directly() under the hood, so it
+    needed its own scoped SET LOCAL — added in accounts/public_views.py.
+
+    Can't reuse the alice/bob fixtures here (they depend on `db`, which is
+    mutually exclusive with the `transactional_db` this fixture needs — see
+    the equivalent orgs/tests.py::test_rls_policy_actually_enforced)."""
+    one = User.objects.create_user(username="rls-conn-one", email="rls-conn-one@example.com", password="x")
+    two = User.objects.create_user(username="rls-conn-two", email="rls-conn-two@example.com", password="x")
+    first, second = sorted([one, two], key=lambda u: u.id)
+    Connection.objects.create(user_one=first, user_two=second)
+
+    with db_app_role_connection.cursor() as c:
+        c.execute(
+            "SELECT count(*) FROM connections_connection WHERE user_one_id = %s AND user_two_id = %s",
+            [first.id, second.id],
+        )
+        assert c.fetchone()[0] == 0
+
+        c.execute("SELECT set_config('beedero.viewer_id', %s, false)", [str(first.id)])
+        c.execute(
+            "SELECT count(*) FROM connections_connection WHERE user_one_id = %s AND user_two_id = %s",
+            [first.id, second.id],
+        )
+        assert c.fetchone()[0] == 1
