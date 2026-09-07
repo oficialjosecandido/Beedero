@@ -97,6 +97,7 @@ export const config = {
     "/dashboard/:path*",
     "/org/:path*",
     "/discovery/:path*",
+    "/jobs/:path*",
     "/feed/:path*",
     "/invite/:path*",
     "/network/:path*",

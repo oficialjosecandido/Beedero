@@ -51,9 +51,11 @@ export async function GET(request: NextRequest) {
   if (screen === "signup") {
     url.searchParams.set("prompt", "create");
     url.searchParams.set("screen_hint", "signup");
-  } else {
-    url.searchParams.set("prompt", "login");
   }
+  // No `prompt` for the default sign-in path: let Entra use its own SSO
+  // session silently when one exists (logout/route.ts already ends that
+  // SSO session on explicit sign-out), instead of forcing credentials
+  // re-entry on every visit.
 
   return NextResponse.redirect(url);
 }

@@ -6,6 +6,7 @@ import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatAtHandle } from "@/lib/handles";
+import type { JobSummary } from "@/lib/types";
 
 type SectionField = {
   id: number;
@@ -134,7 +135,7 @@ const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
   fee: null,
 });
 
-const ORG_TABS = ["overview", "calendar", "activity", "profile", "fundraising", "share"] as const;
+const ORG_TABS = ["overview", "calendar", "activity", "profile", "jobs", "fundraising", "share"] as const;
 type OrgTabId = (typeof ORG_TABS)[number];
 
 function parseOrgTab(tab?: string): OrgTabId | undefined {
@@ -197,7 +198,7 @@ export default async function DashboardOrgPage({
   )?.role;
   const myRole = membershipRole ?? listedRole ?? "member";
   const canManage = myRole === "owner" || myRole === "admin";
-  const [invites, badgeEmbed, vitality] = await Promise.all([
+  const [invites, badgeEmbed, vitality, jobs] = await Promise.all([
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/invites/`) as Promise<Invite[]>, [])
       : Promise.resolve([] as Invite[]),
@@ -207,6 +208,12 @@ export default async function DashboardOrgPage({
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/vitality/`) as Promise<Vitality>, null)
       : Promise.resolve(null),
+    canManage
+      ? safeFetch(
+          apiFetch(`/orgs/${slug}/jobs/`) as Promise<{ items: JobSummary[] }>,
+          { items: [] as JobSummary[] }
+        )
+      : Promise.resolve({ items: [] as JobSummary[] }),
   ]);
 
   const postingStatusData = postingStatus;
@@ -285,6 +292,7 @@ export default async function DashboardOrgPage({
               onboarding={onboardingData}
               badgeEmbed={badgeEmbed}
               vitality={vitality}
+              jobs={jobs.items}
               suggestedTitle={suggestedTitle}
               suggestedBody={suggestedBody}
               initialTab={initialTab}

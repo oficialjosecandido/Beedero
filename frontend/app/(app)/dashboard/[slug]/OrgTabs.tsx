@@ -21,9 +21,11 @@ import { confirmMembershipSkillAction } from "../membership-skills-actions";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
+import { JobsTab } from "@/components/jobs/JobsTab";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site-metadata";
+import type { JobSummary } from "@/lib/types";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -198,6 +200,7 @@ const TABS = [
   { id: "calendar", label: "View calendar" },
   { id: "activity", label: "Activity" },
   { id: "profile", label: "Profile" },
+  { id: "jobs", label: "Jobs" },
   { id: "fundraising", label: "Fundraising" },
   { id: "share", label: "Share" },
 ] as const;
@@ -1514,6 +1517,7 @@ export function OrgTabs({
   onboarding,
   badgeEmbed,
   vitality,
+  jobs,
   suggestedTitle,
   suggestedBody,
   initialTab,
@@ -1533,6 +1537,7 @@ export function OrgTabs({
   onboarding: Onboarding;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
+  jobs: JobSummary[];
   suggestedTitle?: string;
   suggestedBody?: string;
   initialTab?: TabId;
@@ -1624,6 +1629,8 @@ export function OrgTabs({
           />
         </div>
       )}
+
+      {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canManage} />}
 
       {active === "fundraising" && (
         <FundraisingTab

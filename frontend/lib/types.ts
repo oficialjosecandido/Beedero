@@ -49,6 +49,45 @@ export type OrgProfile = {
   };
 };
 
+export type JobCompensation = { kind: string; detail: string };
+
+export type JobSummary = {
+  id: number;
+  org: OrgSummary;
+  title: string;
+  description: string;
+  role_area: string;
+  engagement_type: string;
+  location_type: string;
+  location_city: string;
+  salary_text: string;
+  skills: string[];
+  compensation: JobCompensation[];
+  status: "draft" | "open" | "closed";
+  created_at: string;
+  expires_at: string | null;
+  renewal_count: number;
+};
+
+export type ApplicantSummary = {
+  id: number;
+  name: string;
+  headline?: string;
+  handle?: string | null;
+  is_verified?: boolean;
+  profile_picture?: string | null;
+};
+
+export type ApplicationSummary = {
+  id: number;
+  job_id: number;
+  applicant: ApplicantSummary;
+  note: string;
+  external_link: string;
+  status: "applied" | "viewed" | "interested" | "declined" | "hired";
+  created_at: string;
+};
+
 export const SECTION_LABELS: Record<string, string> = {
   about: "About",
   team: "Team",

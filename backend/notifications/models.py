@@ -19,6 +19,9 @@ class Notification(models.Model):
         MENTION = "mention"
         BROADCAST = "broadcast"
         MESSAGE = "message"
+        JOB_APPLICATION = "job_application"
+        APPLICATION_INTEREST = "application_interest"
+        JOB_EXPIRING = "job_expiring"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE
@@ -51,7 +54,13 @@ class NotificationPreference(models.Model):
     )
     digest_email = models.BooleanField(default=True)
     inapp_engagement = models.BooleanField(default=True)
-    push_enabled = models.BooleanField(default=True)
+    # False by default: unlike the other two prefs, this one can't actually
+    # do anything until the user grants browser notification permission and
+    # a PushSubscription is registered (see lib/push.ts's requestPushToken).
+    # Defaulting True made the toggle render pre-checked with no subscription
+    # behind it, so users never clicked it and never got the permission
+    # prompt at all.
+    push_enabled = models.BooleanField(default=False)
 
     def __str__(self):
         return f"prefs for {self.user_id}"

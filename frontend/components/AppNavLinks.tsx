@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaHome, FaSearch } from "react-icons/fa";
+import { FaBriefcase, FaHome, FaSearch } from "react-icons/fa";
 
 function navLinkClass(active: boolean, mobile = false) {
   if (mobile) {
@@ -23,10 +23,15 @@ function DiscoverIcon({ className = "size-5" }: { className?: string }) {
   return <FaSearch className={className} aria-hidden />;
 }
 
+function JobsIcon({ className = "size-5" }: { className?: string }) {
+  return <FaBriefcase className={className} aria-hidden />;
+}
+
 export function DesktopAppNavLinks() {
   const pathname = usePathname();
   const feedActive = pathname.startsWith("/feed");
   const discoverActive = pathname.startsWith("/discovery");
+  const jobsActive = pathname.startsWith("/jobs");
   const dashboardActive = pathname.startsWith("/dashboard");
 
   return (
@@ -48,6 +53,14 @@ export function DesktopAppNavLinks() {
         <DiscoverIcon />
       </Link>
       <Link
+        href="/jobs"
+        className={navLinkClass(jobsActive)}
+        aria-label="Jobs"
+        aria-current={jobsActive ? "page" : undefined}
+      >
+        <JobsIcon />
+      </Link>
+      <Link
         href="/dashboard"
         className={`rounded-full px-4 py-2 text-sm font-semibold hover:bg-beedero-black/10 ${
           dashboardActive
@@ -66,6 +79,7 @@ export function MobileAppNavLinks() {
   const pathname = usePathname();
   const feedActive = pathname.startsWith("/feed");
   const discoverActive = pathname.startsWith("/discovery");
+  const jobsActive = pathname.startsWith("/jobs");
   const dashboardActive = pathname.startsWith("/dashboard");
 
   return (
@@ -87,6 +101,15 @@ export function MobileAppNavLinks() {
       >
         <DiscoverIcon />
         <span>Discover</span>
+      </Link>
+      <Link
+        href="/jobs"
+        className={navLinkClass(jobsActive, true)}
+        aria-label="Jobs"
+        aria-current={jobsActive ? "page" : undefined}
+      >
+        <JobsIcon />
+        <span>Jobs</span>
       </Link>
       <Link
         href="/dashboard"
