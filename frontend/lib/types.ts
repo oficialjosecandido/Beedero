@@ -88,6 +88,31 @@ export type ApplicationSummary = {
   created_at: string;
 };
 
+export type AffiliationPerson = {
+  id: number;
+  name: string;
+  headline?: string;
+  handle?: string | null;
+  is_verified?: boolean;
+  profile_picture?: string | null;
+};
+
+export type AffiliationSummary = {
+  id: number;
+  org: OrgSummary;
+  person: AffiliationPerson;
+  role: "founder" | "employee" | "contractor" | "volunteer" | "advisor";
+  title: string;
+  started_on: string;
+  ended_on: string | null;
+  skills: string[];
+  status: "self_declared" | "pending" | "verified" | "disputed";
+  verified_via: "org" | "registry" | null;
+  verified_at: string | null;
+  is_org_added: boolean;
+  created_at: string;
+};
+
 export const SECTION_LABELS: Record<string, string> = {
   about: "About",
   team: "Team",

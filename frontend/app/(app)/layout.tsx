@@ -97,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </header>
         <div className="flex flex-1 flex-col">
-          <div className="flex flex-1 flex-col bg-beedero-white pb-14 sm:pb-0">{children}</div>
+          <div className="flex flex-1 flex-col bg-beedero-white pb-20 lg:pb-0">{children}</div>
         </div>
       </div>
       </NavigationLoadingProvider>

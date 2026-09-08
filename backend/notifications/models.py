@@ -22,6 +22,8 @@ class Notification(models.Model):
         JOB_APPLICATION = "job_application"
         APPLICATION_INTEREST = "application_interest"
         JOB_EXPIRING = "job_expiring"
+        AFFILIATION_REQUEST = "affiliation_request"
+        AFFILIATION_UPDATE = "affiliation_update"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE

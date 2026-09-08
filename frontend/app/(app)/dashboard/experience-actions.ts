@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { apiFetch, ApiError } from "@/lib/api";
 
+import { createAffiliationAction } from "./affiliation-actions";
+
 function firstErrorMessage(err: unknown, fallback: string): string {
   if (!(err instanceof ApiError)) throw err;
   const body = err.body as Record<string, string[] | string> | null;
@@ -46,6 +48,17 @@ export async function createExperienceAction(_prevState: string | null, formData
   }
   revalidatePath("/dashboard");
   return null;
+}
+
+// Unified "Add experience" submit target: a real Beedero org was explicitly
+// picked from the autocomplete (org_slug present) -> a verifiable Affiliation;
+// otherwise plain free text -> a SelfDeclaredExperience, exactly as before.
+export async function createExperienceOrAffiliationAction(_prevState: string | null, formData: FormData) {
+  const orgSlug = String(formData.get("org_slug") ?? "").trim();
+  if (orgSlug) {
+    return createAffiliationAction(_prevState, formData);
+  }
+  return createExperienceAction(_prevState, formData);
 }
 
 export async function updateExperienceAction(_prevState: string | null, formData: FormData) {

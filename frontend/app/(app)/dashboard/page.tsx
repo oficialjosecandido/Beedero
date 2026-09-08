@@ -12,6 +12,7 @@ import type { Experience } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
+import type { AffiliationSummary } from "@/lib/types";
 
 import {
   PersonalDashboardTabs,
@@ -101,6 +102,7 @@ export default async function DashboardPage({
   let badgeEmbed: BadgeEmbed | null = null;
   let advisorProfile: AdvisorProfile | null = null;
   let experiences: Experience[] = [];
+  let affiliations: AffiliationSummary[] = [];
   let myPosts: InvestorPost[] = [];
   let recentOrgUpdates: RecentOrgUpdateItem[] = [];
   let feedItems: FeedItem[] = [];
@@ -128,13 +130,16 @@ export default async function DashboardPage({
     myCredentials = credentialsRes;
 
     if (me.investor_profile?.is_complete) {
-      [profileStats, vitality, badgeEmbed, advisorProfile, experiences] = await Promise.all([
+      let affiliationsRes: { items: AffiliationSummary[] };
+      [profileStats, vitality, badgeEmbed, advisorProfile, experiences, affiliationsRes] = await Promise.all([
         safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
         safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
         safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
         safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
         safeFetch(apiFetch<Experience[]>("/experience/"), [] as Experience[]),
+        safeFetch(apiFetch<{ items: AffiliationSummary[] }>("/affiliations/mine/"), { items: [] }),
       ]);
+      affiliations = affiliationsRes.items;
     }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
@@ -152,13 +157,13 @@ export default async function DashboardPage({
   }));
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="grid w-full max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
-        <div className="order-1 lg:order-none">
+    <main className="flex min-w-0 flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
+      <div className="grid w-full min-w-0 max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
+        <div className="order-1 min-w-0 lg:order-none">
           <ProfileColumn me={me} orgs={orgs} events={events} stats={profileStats} network={network} />
         </div>
 
-        <div className="order-2 flex flex-col gap-4 lg:order-none lg:gap-6">
+        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-none lg:gap-6">
           <AppColumnHeader label="Dashboard" />
 
           {!profileComplete ? (
@@ -172,6 +177,7 @@ export default async function DashboardPage({
               badgeEmbed={badgeEmbed}
               advisorProfile={advisorProfile}
               experiences={experiences}
+              affiliations={affiliations}
               memberships={memberships}
               myCredentials={myCredentials}
               myPosts={myPosts}
@@ -180,7 +186,7 @@ export default async function DashboardPage({
           )}
         </div>
 
-        <div className="order-3 lg:order-none">
+        <div className="order-3 min-w-0 lg:order-none">
           <AppRightColumn updates={orgNews} />
         </div>
       </div>

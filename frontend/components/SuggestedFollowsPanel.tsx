@@ -19,17 +19,25 @@ type SuggestedOrg = {
 export function SuggestedFollowsPanel({ organizations }: { organizations: SuggestedOrg[] }) {
   const router = useRouter();
   const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  const [errorSlug, setErrorSlug] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   if (organizations.length === 0) return null;
 
   function follow(slug: string) {
     setPendingSlug(slug);
+    setErrorSlug(null);
     startTransition(async () => {
       const formData = new FormData();
       formData.set("slug", slug);
-      await followOrgAction(formData);
+      const result = await followOrgAction(formData);
       setPendingSlug(null);
+      if ("error" in result) {
+        setErrorSlug(slug);
+        setError(result.error);
+        return;
+      }
       router.refresh();
     });
   }
@@ -62,6 +70,9 @@ export function SuggestedFollowsPanel({ organizations }: { organizations: Sugges
                 {formatAtHandle(org.slug)}
                 {org.one_liner ? ` · ${org.one_liner}` : ""}
               </p>
+              {errorSlug === org.slug && error && (
+                <p className="mt-0.5 text-xs text-danger">{error}</p>
+              )}
             </div>
             <button
               type="button"

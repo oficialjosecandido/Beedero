@@ -7,6 +7,7 @@ urlpatterns = [
     path("public/discovery/", public_seo_views.PublicDiscoveryView.as_view()),
     path("public/orgs/<slug:slug>/", views.PublicOrgProfileView.as_view()),
     path("orgs/", views.OrgListCreateView.as_view()),
+    path("orgs/search/", views.OrgSearchView.as_view()),
     path("orgs/<slug:slug>/", views.OrgProfileView.as_view()),
     path("orgs/<slug:slug>/onboarding/", views.OrgOnboardingView.as_view()),
     path("orgs/<slug:slug>/activate/", views.OrgActivateView.as_view()),

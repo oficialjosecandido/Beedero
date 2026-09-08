@@ -77,6 +77,29 @@ def person_timeline(profile, viewer) -> list[dict]:
             }
         )
 
+    from affiliations.models import Affiliation
+
+    affiliations = (
+        profile.user.affiliations.filter(org__status=Organization.Status.LIVE)
+        .exclude(status=Affiliation.Status.DISPUTED)
+        .select_related("org")
+    )
+    for affiliation in affiliations:
+        bands.append(
+            {
+                "org_name": affiliation.org.name,
+                "org_slug": affiliation.org.slug,
+                "role": affiliation.get_role_display(),
+                "title": affiliation.title,
+                "started_on": affiliation.started_on.isoformat(),
+                "ended_on": affiliation.ended_on.isoformat() if affiliation.ended_on else None,
+                "verified": affiliation.status == Affiliation.Status.VERIFIED,
+                "verified_via": affiliation.verified_via or None,
+                "skills": [{"skill": skill, "status": "declared"} for skill in affiliation.skills],
+                "milestones": _milestones_within(profile, affiliation.started_on, affiliation.ended_on),
+            }
+        )
+
     bands.sort(key=lambda b: (b["started_on"], b["ended_on"] or "9999-12-31"), reverse=True)
     return bands
 

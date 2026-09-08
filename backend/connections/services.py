@@ -5,10 +5,11 @@ and opens the conversation with the note as the first message. Mirrors
 messaging/services.py's plain-function, @transaction.atomic-on-writes
 convention."""
 
+import logging
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import Http404
 from django.utils import timezone
@@ -27,6 +28,8 @@ from notifications.services import notify
 from orgs.models import OrgMembership
 
 from .models import Connection, ConnectionRequest, OrgConnectionRequest
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -154,7 +157,20 @@ def send_request(requester, recipient, note="") -> ConnectionRequest:
         f"connection-request:{requester.id}", limit=daily_request_limit(requester), window_seconds=86400
     )
 
-    request = ConnectionRequest.objects.create(requester=requester, recipient=recipient, note=note)
+    # The existence check above is check-then-create, so two concurrent
+    # requests between the same pair can both pass it before either commits.
+    # The nested atomic() gives the INSERT its own savepoint (mirrors
+    # orgs/views.py::OrgListCreateView.post) so a uniq_pending_connection_request
+    # collision only unwinds this insert instead of poisoning the request's
+    # outer transaction.
+    try:
+        with transaction.atomic():
+            request = ConnectionRequest.objects.create(requester=requester, recipient=recipient, note=note)
+    except IntegrityError:
+        logger.warning(
+            "Duplicate connection request race: requester=%s recipient=%s", requester.id, recipient.id
+        )
+        raise ValidationError({"recipient_id": "There's already a pending request between you."}) from None
     notify(
         recipient,
         kind=Notification.Kind.CONNECTION_REQUEST,
@@ -233,13 +249,20 @@ def send_org_request(requester, org, note="") -> OrgConnectionRequest:
         f"org-connection-request:{requester.id}", limit=daily_request_limit(requester), window_seconds=86400
     )
 
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=requester,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=requester,
-        note=note,
-    )
+    try:
+        with transaction.atomic():
+            req = OrgConnectionRequest.objects.create(
+                org=org,
+                requester=requester,
+                initiated_by=OrgConnectionRequest.InitiatedBy.USER,
+                created_by=requester,
+                note=note,
+            )
+    except IntegrityError:
+        logger.warning(
+            "Duplicate org connection request race: requester=%s org=%s", requester.id, org.id
+        )
+        raise ValidationError({"org": "There's already a pending request."}) from None
     admins = User.objects.filter(
         orgmembership__org=org, orgmembership__role__in=[OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN]
     ).distinct()
@@ -266,13 +289,20 @@ def send_org_outreach(org, admin, recipient, note="") -> OrgConnectionRequest:
     if existing is not None:
         raise ValidationError({"recipient_id": "There's already a pending request."})
 
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=recipient,
-        initiated_by=OrgConnectionRequest.InitiatedBy.ORG,
-        created_by=admin,
-        note=note,
-    )
+    try:
+        with transaction.atomic():
+            req = OrgConnectionRequest.objects.create(
+                org=org,
+                requester=recipient,
+                initiated_by=OrgConnectionRequest.InitiatedBy.ORG,
+                created_by=admin,
+                note=note,
+            )
+    except IntegrityError:
+        logger.warning(
+            "Duplicate org outreach race: org=%s recipient=%s", org.id, recipient.id
+        )
+        raise ValidationError({"recipient_id": "There's already a pending request."}) from None
     notify(
         recipient,
         kind=Notification.Kind.CONNECTION_REQUEST,

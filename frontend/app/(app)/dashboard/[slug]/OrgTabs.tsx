@@ -22,10 +22,11 @@ import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
 import { JobsTab } from "@/components/jobs/JobsTab";
+import { AffiliationsTab } from "@/components/affiliations/AffiliationsTab";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site-metadata";
-import type { JobSummary } from "@/lib/types";
+import type { AffiliationSummary, JobSummary } from "@/lib/types";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -200,6 +201,7 @@ const TABS = [
   { id: "calendar", label: "View calendar" },
   { id: "activity", label: "Activity" },
   { id: "profile", label: "Profile" },
+  { id: "affiliations", label: "Affiliations" },
   { id: "jobs", label: "Jobs" },
   { id: "fundraising", label: "Fundraising" },
   { id: "share", label: "Share" },
@@ -1518,6 +1520,7 @@ export function OrgTabs({
   badgeEmbed,
   vitality,
   jobs,
+  affiliations,
   suggestedTitle,
   suggestedBody,
   initialTab,
@@ -1538,6 +1541,7 @@ export function OrgTabs({
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
   jobs: JobSummary[];
+  affiliations: AffiliationSummary[];
   suggestedTitle?: string;
   suggestedBody?: string;
   initialTab?: TabId;
@@ -1558,22 +1562,24 @@ export function OrgTabs({
   const linksSection = sections.find((s) => s.kind === "links");
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex gap-1 overflow-x-auto rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => selectTab(tab.id)}
-            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-              active === tab.id
-                ? "bg-beedero-black text-beedero-yellow"
-                : "text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="-mx-1 min-w-0 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max min-w-full gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => selectTab(tab.id)}
+              className={`shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
+                active === tab.id
+                  ? "bg-beedero-black text-beedero-yellow"
+                  : "text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {active === "overview" && (
@@ -1628,6 +1634,10 @@ export function OrgTabs({
             canManage={canManage}
           />
         </div>
+      )}
+
+      {active === "affiliations" && (
+        <AffiliationsTab slug={slug} affiliations={affiliations} canManage={canManage} />
       )}
 
       {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canManage} />}

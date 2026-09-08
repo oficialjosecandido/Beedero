@@ -16,9 +16,9 @@ export type PersonalKpiStats = {
 };
 
 const RANGE_OPTIONS = [
-  { id: "7d", label: "Last 7 days" },
-  { id: "30d", label: "Last 30 days" },
-  { id: "90d", label: "Last 90 days" },
+  { id: "7d", label: "Last 7 days", shortLabel: "7d" },
+  { id: "30d", label: "Last 30 days", shortLabel: "30d" },
+  { id: "90d", label: "Last 90 days", shortLabel: "90d" },
 ] as const;
 
 type RangeId = (typeof RANGE_OPTIONS)[number]["id"];
@@ -102,7 +102,7 @@ function KpiMetricCard({ metric, rangeDays }: { metric: MetricDef; rangeDays: nu
   const Icon = metric.icon;
 
   return (
-    <article className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+    <article className="min-w-0 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-beedero-yellow/35 ring-1 ring-beedero-yellow/60">
           <Icon className="text-sm text-beedero-black" aria-hidden />
@@ -115,7 +115,7 @@ function KpiMetricCard({ metric, rangeDays }: { metric: MetricDef; rangeDays: nu
         {metric.value}
       </p>
       {metric.delta ? (
-        <p className={`mt-1 text-xs font-semibold ${deltaTrendClass(metric.value)}`}>
+        <p className={`mt-1 break-words text-xs font-semibold ${deltaTrendClass(metric.value)}`}>
           {metric.delta(metric.value, rangeDays)}
         </p>
       ) : (
@@ -174,25 +174,26 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
   const contentMetrics = metrics.filter((metric) => ["posts", "reactions"].includes(metric.key));
 
   return (
-    <AppColumnSection label="Your KPIs" bodyClassName="p-5 sm:p-6">
-      <div className="flex flex-col gap-4 border-b border-beedero-border pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <AppColumnSection label="Your KPIs" className="min-w-0" bodyClassName="min-w-0 p-4 sm:p-6">
+      <div className="flex min-w-0 flex-col gap-4 border-b border-beedero-border pb-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-md text-sm leading-6 text-zinc-600">
           Activity on your personal profile in the selected period.
         </p>
-        <div className="flex shrink-0 flex-wrap gap-1 rounded-2xl border border-beedero-border bg-zinc-50 p-1">
+        <div className="grid w-full min-w-0 shrink-0 grid-cols-3 gap-1 rounded-2xl border border-beedero-border bg-zinc-50 p-1 sm:w-auto sm:flex sm:flex-wrap">
           {RANGE_OPTIONS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => selectRange(option.id)}
               disabled={loading}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+              className={`min-w-0 rounded-xl px-2 py-1.5 text-center text-xs font-semibold transition-colors disabled:opacity-60 sm:px-3 ${
                 range === option.id
                   ? "bg-beedero-black text-beedero-yellow"
                   : "text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
               }`}
             >
-              {option.label}
+              <span className="sm:hidden">{option.shortLabel}</span>
+              <span className="hidden sm:inline">{option.label}</span>
             </button>
           ))}
         </div>
@@ -207,23 +208,23 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
       )}
 
       {stats && (
-        <div className={`mt-5 flex flex-col gap-5 ${loading ? "opacity-60" : ""}`}>
-          <div>
+        <div className={`mt-5 flex min-w-0 flex-col gap-5 ${loading ? "opacity-60" : ""}`}>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
               Audience
             </p>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
               {audienceMetrics.map((metric) => (
                 <KpiMetricCard key={metric.key} metric={metric} rangeDays={stats.range_days} />
               ))}
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
               Content
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
               {contentMetrics.map((metric) => (
                 <KpiMetricCard key={metric.key} metric={metric} rangeDays={stats.range_days} />
               ))}

@@ -1419,3 +1419,28 @@ class DiscoverAdvisorsView(APIView):
                 "next_offset": offset + limit if has_more else None,
             }
         )
+
+
+class OrgSearchView(APIView):
+    """GET /api/orgs/search/?q=&limit=8 — powers the affiliation-declare
+    form's org autocomplete. Only ever suggests LIVE orgs: a draft org isn't
+    real enough to affiliate with yet (see affiliations/services.py)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    DEFAULT_LIMIT = 8
+    MAX_LIMIT = 20
+
+    def get(self, request):
+        query = (request.query_params.get("q") or "").strip()
+        try:
+            limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=400)
+        limit = max(1, min(limit, self.MAX_LIMIT))
+
+        if not query:
+            return Response({"items": []})
+
+        orgs = Organization.objects.filter(status=Organization.Status.LIVE, name__icontains=query)[:limit]
+        return Response({"items": [_org_summary(org) for org in orgs]})

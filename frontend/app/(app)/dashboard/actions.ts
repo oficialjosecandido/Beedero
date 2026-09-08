@@ -207,12 +207,19 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   return null;
 }
 
-export async function followOrgAction(formData: FormData) {
+export async function followOrgAction(
+  formData: FormData
+): Promise<{ ok: true } | { error: string }> {
   const slug = String(formData.get("slug"));
-  await apiFetch(`/orgs/${slug}/follow/`, { method: "POST" });
+  try {
+    await apiFetch(`/orgs/${slug}/follow/`, { method: "POST" });
+  } catch (err) {
+    return { error: firstErrorMessage(err, "Could not follow this organization.") };
+  }
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   revalidatePath(`/org/${slug}`);
+  return { ok: true };
 }
 
 export async function upsertFieldAction(_prevState: string | null, formData: FormData) {

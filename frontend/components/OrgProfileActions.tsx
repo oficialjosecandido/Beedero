@@ -38,7 +38,11 @@ export function OrgProfileActions({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("slug", slug);
-      await followOrgAction(formData);
+      const result = await followOrgAction(formData);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
       setFollowing(true);
       router.refresh();
     });
@@ -70,14 +74,17 @@ export function OrgProfileActions({
       </button>
       <div className="flex flex-wrap items-center gap-3">
         {showFollow ? (
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={follow}
-            className="rounded-full border-2 border-beedero-black bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow disabled:opacity-50"
-          >
-            {isPending ? "Following…" : "Follow"}
-          </button>
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={follow}
+              className="rounded-full border-2 border-beedero-black bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow disabled:opacity-50"
+            >
+              {isPending ? "Following…" : "Follow"}
+            </button>
+            {error && <p className="text-sm text-danger">{error}</p>}
+          </div>
         ) : !isMember && following ? (
           <span className="rounded-full border border-beedero-border px-4 py-2 text-sm font-semibold text-zinc-600">
             Following

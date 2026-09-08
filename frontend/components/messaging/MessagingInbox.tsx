@@ -95,9 +95,11 @@ export function MessagingInbox({
     if (inboxContext.type === "personal") {
       setContacts(contactItems);
     }
-    await refreshUnreadTotal();
+    // Unread badge total already has its own 60s poll in MessagingProvider
+    // (fetchUnreadTotal) — refreshing it again here on every 45s inbox poll
+    // just doubles that endpoint's traffic across every mounted inbox.
     setLoading(false);
-  }, [inboxContext, refreshUnreadTotal]);
+  }, [inboxContext]);
 
   useVisiblePolling({ onPoll: pollInbox, intervalMs: 45_000 });
 

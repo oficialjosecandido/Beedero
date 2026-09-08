@@ -26,13 +26,13 @@ import {
 import { formatDate, formatDateTime } from "@/lib/format";
 import { RichText } from "@/components/RichText";
 import type { ResolvedMention } from "@/lib/richtext";
-import { SECTION_LABELS } from "@/lib/types";
+import { SECTION_LABELS, type AffiliationSummary } from "@/lib/types";
 
 const TABS = [
-  { id: "kpis", label: "KPIs" },
-  { id: "posts", label: "My Posts" },
-  { id: "saved", label: "Saved Posts" },
-  { id: "settings", label: "Profile Settings" },
+  { id: "kpis", label: "KPIs", shortLabel: "KPIs" },
+  { id: "posts", label: "My Posts", shortLabel: "Posts" },
+  { id: "saved", label: "Saved Posts", shortLabel: "Saved" },
+  { id: "settings", label: "Profile Settings", shortLabel: "Settings" },
 ] as const;
 
 export type PersonalTabId = (typeof TABS)[number]["id"];
@@ -160,6 +160,7 @@ export function PersonalDashboardTabs({
   badgeEmbed,
   advisorProfile,
   experiences,
+  affiliations,
   memberships,
   myCredentials,
   myPosts: initialPosts,
@@ -171,6 +172,7 @@ export function PersonalDashboardTabs({
   badgeEmbed: BadgeEmbed | null;
   advisorProfile: AdvisorProfile | null;
   experiences: Experience[];
+  affiliations: AffiliationSummary[];
   memberships: PersonMembershipWithSkills[];
   myCredentials: PersonCredential[];
   myPosts: InvestorPost[];
@@ -212,20 +214,21 @@ export function PersonalDashboardTabs({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex gap-1 overflow-x-auto rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="grid min-w-0 grid-cols-4 gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => selectTab(tab.id)}
-            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+            className={`min-w-0 truncate rounded-xl px-2 py-2 text-center text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
               active === tab.id
                 ? "bg-beedero-black text-beedero-yellow"
                 : "text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
             }`}
           >
-            {tab.label}
+            <span className="sm:hidden">{tab.shortLabel}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -290,7 +293,7 @@ export function PersonalDashboardTabs({
             <PersonBadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
           )}
           <ProfileForm profile={profile} />
-          <ExperienceManager experiences={experiences} />
+          <ExperienceManager experiences={experiences} affiliations={affiliations} />
           <MembershipSkillsManager memberships={memberships} />
           <ProfessionalCredentialsPanel credentials={myCredentials} />
           <AdvisoryProfileForm profile={advisorProfile} />

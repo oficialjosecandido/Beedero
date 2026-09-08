@@ -1,5 +1,8 @@
+from unittest import mock
+
 from django.core.cache import cache
 import pytest
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from accounts.models import User
@@ -13,6 +16,7 @@ from .services import (
     accept_request,
     can_message_directly,
     decline_request,
+    send_org_request,
     send_request,
 )
 
@@ -88,6 +92,37 @@ def test_send_request_rejects_when_already_connected(alice, bob):
     Connection.objects.create(user_one=first, user_two=second)
     with pytest.raises(Exception):
         send_request(alice, bob)
+
+
+@pytest.mark.django_db
+def test_send_request_converts_db_race_to_clean_validation_error(alice, bob):
+    """Two concurrent requests can both pass the check-then-create's SELECT
+    before either commits; the DB constraint still catches the second
+    INSERT, and send_request must convert that IntegrityError into the same
+    ValidationError the pre-check raises, not let it surface as a 500."""
+    ConnectionRequest.objects.create(requester=alice, recipient=bob)
+    with mock.patch("connections.services.ConnectionRequest.objects.filter") as mock_filter:
+        mock_filter.return_value.first.return_value = None
+        with pytest.raises(ValidationError, match="already a pending request"):
+            send_request(alice, bob, note="race")
+
+
+@pytest.mark.django_db
+def test_send_org_request_converts_db_race_to_clean_validation_error(org, bob):
+    OrgConnectionRequest.objects.create(
+        org=org,
+        requester=bob,
+        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
+        created_by=bob,
+    )
+    with mock.patch("connections.services.OrgConnectionRequest.objects.filter") as mock_filter:
+        # Also backs can_message_org_directly()'s .exists() check earlier in
+        # send_org_request — must report False so that check still passes
+        # through to the duplicate-pending check being raced here.
+        mock_filter.return_value.first.return_value = None
+        mock_filter.return_value.exists.return_value = False
+        with pytest.raises(ValidationError, match="already a pending request"):
+            send_org_request(bob, org, note="race")
 
 
 @pytest.mark.django_db

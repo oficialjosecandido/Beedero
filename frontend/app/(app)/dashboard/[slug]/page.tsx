@@ -6,7 +6,7 @@ import { OrgLogoForm } from "./OrgLogoForm";
 import { OrgTabs } from "./OrgTabs";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatAtHandle } from "@/lib/handles";
-import type { JobSummary } from "@/lib/types";
+import type { AffiliationSummary, JobSummary } from "@/lib/types";
 
 type SectionField = {
   id: number;
@@ -135,7 +135,16 @@ const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
   fee: null,
 });
 
-const ORG_TABS = ["overview", "calendar", "activity", "profile", "jobs", "fundraising", "share"] as const;
+const ORG_TABS = [
+  "overview",
+  "calendar",
+  "activity",
+  "profile",
+  "affiliations",
+  "jobs",
+  "fundraising",
+  "share",
+] as const;
 type OrgTabId = (typeof ORG_TABS)[number];
 
 function parseOrgTab(tab?: string): OrgTabId | undefined {
@@ -198,7 +207,7 @@ export default async function DashboardOrgPage({
   )?.role;
   const myRole = membershipRole ?? listedRole ?? "member";
   const canManage = myRole === "owner" || myRole === "admin";
-  const [invites, badgeEmbed, vitality, jobs] = await Promise.all([
+  const [invites, badgeEmbed, vitality, jobs, affiliations] = await Promise.all([
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/invites/`) as Promise<Invite[]>, [])
       : Promise.resolve([] as Invite[]),
@@ -214,6 +223,12 @@ export default async function DashboardOrgPage({
           { items: [] as JobSummary[] }
         )
       : Promise.resolve({ items: [] as JobSummary[] }),
+    canManage
+      ? safeFetch(
+          apiFetch(`/orgs/${slug}/affiliations/`) as Promise<{ items: AffiliationSummary[] }>,
+          { items: [] as AffiliationSummary[] }
+        )
+      : Promise.resolve({ items: [] as AffiliationSummary[] }),
   ]);
 
   const postingStatusData = postingStatus;
@@ -240,8 +255,8 @@ export default async function DashboardOrgPage({
   const events = [...createdEvents, ...participatingEvents];
 
   return (
-    <main className="flex flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="flex w-full max-w-7xl flex-col gap-6 lg:gap-8">
+    <main className="flex min-w-0 flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
+      <div className="flex w-full min-w-0 max-w-7xl flex-col gap-6 lg:gap-8">
         <header className="flex flex-col gap-4 rounded-3xl border border-beedero-border bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <OrgLogoForm slug={slug} logo={profile.org.logo} name={profile.org.name} editable={canManage} />
@@ -269,12 +284,12 @@ export default async function DashboardOrgPage({
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
-          <div className="order-2 lg:order-none">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+          <div className="order-2 min-w-0 lg:order-none">
             <OrgDashboardSidebar events={createdEvents} />
           </div>
 
-          <div className="order-1 lg:order-none">
+          <div className="order-1 min-w-0 lg:order-none">
             <OrgTabs
               key={`${slug}-${initialTab ?? "overview"}`}
               slug={slug}
@@ -293,6 +308,7 @@ export default async function DashboardOrgPage({
               badgeEmbed={badgeEmbed}
               vitality={vitality}
               jobs={jobs.items}
+              affiliations={affiliations.items}
               suggestedTitle={suggestedTitle}
               suggestedBody={suggestedBody}
               initialTab={initialTab}
