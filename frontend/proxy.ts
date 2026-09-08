@@ -63,7 +63,8 @@ async function refreshEntraSession(refresh: string) {
   response.cookies.set(ACCESS_COOKIE, tokens.access_token, { ...cookieOptions, maxAge: 60 * 30 });
   response.cookies.set(REFRESH_COOKIE, tokens.refresh_token ?? refresh, {
     ...cookieOptions,
-    maxAge: 60 * 60 * 24 * 7,
+    // Keep in sync with lib/session.ts's setSession() — same sliding 90-day window.
+    maxAge: 60 * 60 * 24 * 90,
   });
   return response;
 }

@@ -28,9 +28,13 @@ export async function setSession(access: string, refresh: string, idToken?: stri
   const store = await cookies();
   try {
     store.set(ACCESS_COOKIE, access, { ...cookieOptions, maxAge: 60 * 30 });
-    store.set(REFRESH_COOKIE, refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+    // 90 days, sliding: renewed on every refresh (see proxy.ts and the
+    // /api/auth/refresh route) so an active user never actually hits this
+    // ceiling. Matches Entra's default refresh-token max inactive lifetime —
+    // our cookie shouldn't be the thing forcing re-login before Entra would.
+    store.set(REFRESH_COOKIE, refresh, { ...cookieOptions, maxAge: 60 * 60 * 24 * 90 });
     if (idToken) {
-      store.set(ID_TOKEN_COOKIE, idToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
+      store.set(ID_TOKEN_COOKIE, idToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 90 });
     }
   } catch (err) {
     if (!isReadonlyCookiesError(err)) throw err;

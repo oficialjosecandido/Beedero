@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { listJobApplicationsAction, setApplicationStatusAction } from "@/app/(app)/dashboard/job-actions";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { formatDate } from "@/lib/format";
+import { formatAtHandle } from "@/lib/handles";
 import type { ApplicationSummary } from "@/lib/types";
 
 const STATUS_ACTIONS = [
@@ -14,6 +15,24 @@ const STATUS_ACTIONS = [
   { value: "declined", label: "Decline" },
   { value: "hired", label: "Mark hired" },
 ];
+
+function ApplicantAvatar({
+  name,
+  profilePicture,
+}: {
+  name: string;
+  profilePicture?: string | null;
+}) {
+  if (profilePicture) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={profilePicture} alt="" className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border" />;
+  }
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500 ring-1 ring-beedero-border">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 function ApplicationRow({
   slug,
@@ -26,6 +45,8 @@ function ApplicationRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { applicant } = application;
+  const profileHref = applicant.handle ? `/p/${applicant.handle}` : null;
 
   function handleStatus(status: string) {
     startTransition(async () => {
@@ -39,15 +60,29 @@ function ApplicationRow({
     });
   }
 
+  const identity = (
+    <>
+      <ApplicantAvatar name={applicant.name} profilePicture={applicant.profile_picture} />
+      <div className="min-w-0">
+        <p className="font-medium text-zinc-950">{applicant.name}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-zinc-500">
+          {applicant.handle && <span>{formatAtHandle(applicant.handle)}</span>}
+          {applicant.headline && <span>{applicant.headline}</span>}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-beedero-border p-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <p className="font-medium text-zinc-950">{application.applicant.name}</p>
-          {application.applicant.headline && (
-            <p className="text-xs text-zinc-500">{application.applicant.headline}</p>
-          )}
-        </div>
+        {profileHref ? (
+          <Link href={profileHref} className="flex min-w-0 items-center gap-2.5 hover:opacity-90">
+            {identity}
+          </Link>
+        ) : (
+          <div className="flex min-w-0 items-center gap-2.5">{identity}</div>
+        )}
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600">
           {application.status}
         </span>
@@ -62,6 +97,11 @@ function ApplicationRow({
         >
           External link
         </a>
+      )}
+      {profileHref && (
+        <Link href={profileHref} className="text-xs font-semibold text-beedero-black underline">
+          View public profile
+        </Link>
       )}
       <p className="text-xs text-zinc-400">Applied {formatDate(application.created_at)}</p>
 

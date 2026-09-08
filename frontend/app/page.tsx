@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { WebsiteJsonLd } from "@/components/WebsiteJsonLd";
+import { getAccessToken, getRefreshToken } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata = pageMetadata({
@@ -44,7 +45,12 @@ const metrics = [
   ["1", "source of truth per startup "],
 ];
 
-export default function Home() {
+export default async function Home() {
+  // Reading cookies() here (via getAccessToken/getRefreshToken) opts this
+  // page into per-request dynamic rendering — needed since the nav CTA
+  // depends on the visitor's session rather than being the same for everyone.
+  const authed = Boolean((await getAccessToken()) || (await getRefreshToken()));
+
   return (
     <main className="min-h-screen bg-beedero-black text-beedero-white">
       <WebsiteJsonLd />
@@ -57,15 +63,26 @@ export default function Home() {
           <Link href="/startups" className="hover:text-beedero-white">
             Discovery
           </Link>
-          <Link href="/login" className="hover:text-beedero-white">
-            Login
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-full bg-beedero-yellow px-5 py-2 text-beedero-black hover:bg-beedero-white"
-          >
-            Join
-          </Link>
+          {authed ? (
+            <Link
+              href="/feed"
+              className="rounded-full bg-beedero-yellow px-5 py-2 text-beedero-black hover:bg-beedero-white"
+            >
+              Enter Beedero
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="hover:text-beedero-white">
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full bg-beedero-yellow px-5 py-2 text-beedero-black hover:bg-beedero-white"
+              >
+                Join
+              </Link>
+            </>
+          )}
         </div>
 
         <details className="group relative sm:hidden">
@@ -79,18 +96,29 @@ export default function Home() {
             >
               Discovery
             </Link>
-            <Link
-              href="/login"
-              className="rounded-xl px-3 py-2 text-sm font-bold hover:bg-beedero-yellow"
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-black hover:bg-beedero-black hover:text-beedero-white"
-            >
-              Join
-            </Link>
+            {authed ? (
+              <Link
+                href="/feed"
+                className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-black hover:bg-beedero-black hover:text-beedero-white"
+              >
+                Enter Beedero
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-xl px-3 py-2 text-sm font-bold hover:bg-beedero-yellow"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-xl bg-beedero-yellow px-3 py-2 text-sm font-black hover:bg-beedero-black hover:text-beedero-white"
+                >
+                  Join
+                </Link>
+              </>
+            )}
           </div>
         </details>
       </nav>
@@ -112,12 +140,21 @@ export default function Home() {
               connect around it.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/register"
-                className="rounded-full bg-beedero-yellow px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-white"
-              >
-                Create your profile
-              </Link>
+              {authed ? (
+                <Link
+                  href="/feed"
+                  className="rounded-full bg-beedero-yellow px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-white"
+                >
+                  Enter Beedero
+                </Link>
+              ) : (
+                <Link
+                  href="/register"
+                  className="rounded-full bg-beedero-yellow px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-white"
+                >
+                  Create your profile
+                </Link>
+              )}
               <Link
                 href="/startups"
                 className="rounded-full border border-beedero-white/25 px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-white hover:border-beedero-white hover:bg-beedero-white hover:text-beedero-black"
@@ -194,12 +231,21 @@ export default function Home() {
                 Claim your place in the startup discovery layer.
               </h2>
             </div>
-            <Link
-              href="/register"
-              className="rounded-full bg-beedero-white px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-yellow"
-            >
-              Join Beedero
-            </Link>
+            {authed ? (
+              <Link
+                href="/feed"
+                className="rounded-full bg-beedero-white px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-yellow"
+              >
+                Enter Beedero
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="rounded-full bg-beedero-white px-8 py-4 text-center text-sm font-black uppercase tracking-[-0.02em] text-beedero-black hover:bg-beedero-yellow"
+              >
+                Join Beedero
+              </Link>
+            )}
           </div>
         </div>
       </section>

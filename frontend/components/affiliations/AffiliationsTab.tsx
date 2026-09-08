@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 
 import {
   addTeamMemberAction,
@@ -8,13 +8,151 @@ import {
   disputeAffiliationAction,
 } from "@/app/(app)/dashboard/affiliation-actions";
 import { EmptyState } from "@/components/EmptyState";
-import { affiliationStatusLabel, ROLE_TYPE_OPTIONS, roleTypeLabel } from "@/lib/affiliation-options";
+import { affiliationStatusLabel, roleTypeLabel } from "@/lib/affiliation-options";
 import { formatDate } from "@/lib/format";
+import { formatAtHandle } from "@/lib/handles";
 import type { AffiliationSummary } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
 const fieldClass =
   "w-full rounded-xl border border-beedero-border bg-white px-3 py-2.5 text-sm text-beedero-black outline-none transition-colors focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
+
+type PersonMatch = {
+  handle: string;
+  name: string;
+  avatar?: string | null;
+};
+
+function normalizeUsername(value: string) {
+  return value.trim().replace(/^@+/, "").toLowerCase();
+}
+
+function PersonAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
+  if (avatar) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={avatar} alt="" className="size-10 shrink-0 rounded-full object-cover ring-1 ring-beedero-border" />;
+  }
+  return (
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500 ring-1 ring-beedero-border">
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function UsernameField() {
+  const [query, setQuery] = useState("");
+  const [matches, setMatches] = useState<PersonMatch[]>([]);
+  const [selected, setSelected] = useState<PersonMatch | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const normalized = normalizeUsername(query);
+    if (normalized.length < 2) {
+      setMatches([]);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/mentions/search?q=${encodeURIComponent(normalized)}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      })
+        .then((res) => (res.ok ? (res.json() as Promise<{ users?: PersonMatch[] }>) : null))
+        .then((data) => {
+          const users = data?.users ?? [];
+          setMatches(users);
+          const exact = users.find((user) => user.handle.toLowerCase() === normalized) ?? null;
+          setSelected((current) => {
+            if (current && current.handle.toLowerCase() === normalized) return current;
+            return exact;
+          });
+          setMenuOpen(true);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, 220);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  function selectPerson(person: PersonMatch) {
+    setSelected(person);
+    setQuery(person.handle);
+    setMenuOpen(false);
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+      <label htmlFor="team-member-username">Username</label>
+      <div className="relative">
+        <input
+          id="team-member-username"
+          name="handle"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setSelected(null);
+            setMenuOpen(true);
+          }}
+          onFocus={() => setMenuOpen(true)}
+          onBlur={() => window.setTimeout(() => setMenuOpen(false), 150)}
+          placeholder="e.g. josevcandido"
+          required
+          autoComplete="off"
+          className={fieldClass}
+        />
+        {menuOpen && normalizeUsername(query).length >= 2 && (
+          <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-beedero-border bg-white shadow-lg">
+            {loading && <p className="px-3 py-2 text-xs text-zinc-500">Searching…</p>}
+            {!loading && matches.length === 0 && (
+              <p className="px-3 py-2 text-xs text-zinc-500">No people found with that username.</p>
+            )}
+            {!loading &&
+              matches.map((person) => (
+                <button
+                  key={person.handle}
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectPerson(person)}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-beedero-yellow/20"
+                >
+                  <PersonAvatar name={person.name} avatar={person.avatar} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-zinc-900">{person.name}</span>
+                    <span className="block truncate text-xs text-zinc-500">
+                      {formatAtHandle(person.handle)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+          </div>
+        )}
+      </div>
+      <span className="text-xs font-normal text-subtle">
+        Type their Beedero username to confirm you have the right person.
+      </span>
+      {selected && (
+        <div className="mt-1 flex items-center gap-3 rounded-xl border border-beedero-border bg-white px-3 py-2.5">
+          <PersonAvatar name={selected.name} avatar={selected.avatar} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-zinc-900">{selected.name}</p>
+            <p className="truncate text-xs text-zinc-500">{formatAtHandle(selected.handle)}</p>
+          </div>
+          <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+            Matched
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_STYLES: Record<AffiliationSummary["status"], string> = {
   self_declared: "bg-zinc-200 text-zinc-600",
@@ -28,6 +166,12 @@ function statusText(affiliation: AffiliationSummary) {
     return affiliation.verified_via === "registry" ? "Verified via registry" : "Verified by company";
   }
   return affiliationStatusLabel(affiliation.status);
+}
+
+function affiliationRoleLabel(affiliation: AffiliationSummary) {
+  const title = affiliation.title?.trim();
+  if (title) return title;
+  return roleTypeLabel(affiliation.role);
 }
 
 function PendingRow({
@@ -63,8 +207,7 @@ function PendingRow({
         <div>
           <p className="font-medium text-zinc-950">{affiliation.person.name}</p>
           <p className="text-xs text-zinc-500">
-            {roleTypeLabel(affiliation.role)}
-            {affiliation.title ? ` · ${affiliation.title}` : ""}
+            {affiliationRoleLabel(affiliation)}
           </p>
         </div>
         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600">
@@ -100,8 +243,7 @@ function TeamRow({ affiliation }: { affiliation: AffiliationSummary }) {
       <div>
         <p className="font-medium text-zinc-950">{affiliation.person.name}</p>
         <p className="text-xs text-zinc-500">
-          {roleTypeLabel(affiliation.role)}
-          {affiliation.title ? ` · ${affiliation.title}` : ""} · Since {formatDate(affiliation.started_on)}
+          {affiliationRoleLabel(affiliation)} · Since {formatDate(affiliation.started_on)}
         </p>
       </div>
       <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_STYLES[affiliation.status]}`}>
@@ -147,34 +289,28 @@ function AddTeamMemberForm({ slug }: { slug: string }) {
           Cancel
         </button>
       </div>
-      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-        Handle
-        <input name="handle" placeholder="their-handle" required className={fieldClass} />
-      </label>
+      <UsernameField />
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
         Role
-        <select name="role" required defaultValue="" className={fieldClass}>
-          <option value="" disabled>
-            Select a role
-          </option>
-          {ROLE_TYPE_OPTIONS.filter((option) => option.value !== "founder").map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <input
+          name="title"
+          required
+          maxLength={100}
+          placeholder="e.g. Senior Engineer"
+          className={fieldClass}
+        />
+        <span className="text-xs font-normal text-subtle">Free text, max 100 characters.</span>
       </label>
-      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-        Title <span className="font-normal text-subtle">(optional)</span>
-        <input name="title" placeholder="e.g. Senior Engineer" className={fieldClass} />
-      </label>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-          Started
+          <span className="min-h-10">Started</span>
           <input type="date" name="started_on" required className={fieldClass} />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-          Ended <span className="font-normal text-subtle">(blank = ongoing)</span>
+          <span className="min-h-10">
+            Ended{" "}
+            <span className="font-normal text-subtle">(blank = ongoing)</span>
+          </span>
           <input type="date" name="ended_on" className={fieldClass} />
         </label>
       </div>

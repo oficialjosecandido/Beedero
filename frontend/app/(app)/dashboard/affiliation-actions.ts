@@ -120,13 +120,15 @@ export async function disputeAffiliationAction(
 
 export async function addTeamMemberAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
-  const handle = String(formData.get("handle") ?? "").trim();
-  const role = String(formData.get("role") ?? "");
+  const handle = String(formData.get("handle") ?? "")
+    .trim()
+    .replace(/^@+/, "");
+  const title = String(formData.get("title") ?? "").trim().slice(0, 100);
   const startedOn = String(formData.get("started_on") ?? "");
   const endedOn = String(formData.get("ended_on") ?? "");
 
-  if (!handle || !role || !startedOn) {
-    return "Handle, role, and start date are required.";
+  if (!handle || !title || !startedOn) {
+    return "Username, role, and start date are required.";
   }
 
   try {
@@ -134,8 +136,9 @@ export async function addTeamMemberAction(_prevState: string | null, formData: F
       method: "POST",
       body: {
         handle,
-        role,
-        title: String(formData.get("title") ?? "").trim(),
+        // Categorical type required by the API; free-text role is stored as title.
+        role: "employee",
+        title,
         started_on: startedOn,
         ended_on: endedOn || null,
       },
