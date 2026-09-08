@@ -6,19 +6,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from messaging.models import Conversation, OrgConversation, UserBlock
+from messaging.models import Conversation, UserBlock
 from notifications.models import Notification
-from orgs.models import Organization, OrgMembership
 
-from .models import Connection, ConnectionRequest, OrgConnectionRequest
-from .services import (
-    accept_org_request,
-    accept_request,
-    can_message_directly,
-    decline_request,
-    send_org_request,
-    send_request,
-)
+from .models import Connection, ConnectionRequest
+from .services import accept_request, can_message_directly, decline_request, send_request
 
 
 @pytest.fixture(autouse=True)
@@ -55,13 +47,6 @@ def bob(db):
 @pytest.fixture
 def carol(db):
     return User.objects.create_user(username="carol", email="carol@example.com", password="x")
-
-
-@pytest.fixture
-def org(db, alice):
-    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
-    OrgMembership.objects.create(org=org, user=alice, role=OrgMembership.Role.OWNER)
-    return org
 
 
 @pytest.mark.django_db
@@ -105,24 +90,6 @@ def test_send_request_converts_db_race_to_clean_validation_error(alice, bob):
         mock_filter.return_value.first.return_value = None
         with pytest.raises(ValidationError, match="already a pending request"):
             send_request(alice, bob, note="race")
-
-
-@pytest.mark.django_db
-def test_send_org_request_converts_db_race_to_clean_validation_error(org, bob):
-    OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-    )
-    with mock.patch("connections.services.OrgConnectionRequest.objects.filter") as mock_filter:
-        # Also backs can_message_org_directly()'s .exists() check earlier in
-        # send_org_request — must report False so that check still passes
-        # through to the duplicate-pending check being raced here.
-        mock_filter.return_value.first.return_value = None
-        mock_filter.return_value.exists.return_value = False
-        with pytest.raises(ValidationError, match="already a pending request"):
-            send_org_request(bob, org, note="race")
 
 
 @pytest.mark.django_db
@@ -198,70 +165,6 @@ def test_non_participant_gets_404_on_accept(api, alice, bob, carol):
     api.force_authenticate(carol)
     res = api.post(f"/api/connections/requests/{req.id}/accept/")
     assert res.status_code == 404
-
-
-@pytest.mark.django_db
-def test_org_accept_requires_admin_role(api, org, bob):
-    """The requester themself is a valid caller (view-level check passes),
-    but accept_org_request still refuses since a USER-initiated request
-    needs an org admin, not the requester, to accept."""
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-        note="Hi Acme",
-    )
-    api.force_authenticate(bob)
-    res = api.post(f"/api/orgs/{org.slug}/connections/requests/{req.id}/accept/")
-    assert res.status_code == 403
-
-
-@pytest.mark.django_db
-def test_org_accept_404s_for_unrelated_user(api, org, bob, carol):
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-        note="Hi Acme",
-    )
-    api.force_authenticate(carol)
-    res = api.post(f"/api/orgs/{org.slug}/connections/requests/{req.id}/accept/")
-    assert res.status_code == 404
-
-
-@pytest.mark.django_db
-def test_org_admin_can_accept_org_request(api, org, alice, bob):
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-        note="Hi Acme",
-    )
-    api.force_authenticate(alice)
-    res = api.post(f"/api/orgs/{org.slug}/connections/requests/{req.id}/accept/")
-    assert res.status_code == 200
-    assert res.data["conversation"]["id"] is not None
-    conversation = OrgConversation.objects.get(pk=res.data["conversation"]["id"])
-    first_message = conversation.messages.order_by("created_at").first()
-    assert first_message.body == "Hi Acme"
-
-
-@pytest.mark.django_db
-def test_accept_org_request_service_creates_conversation(org, alice, bob):
-    req = OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-        note="Hi Acme",
-    )
-    conversation = accept_org_request(req, alice)
-    assert conversation is not None
-    req.refresh_from_db()
-    assert req.status == OrgConnectionRequest.Status.ACCEPTED
 
 
 def test_connection_row_invisible_without_viewer_id_set(db_app_role_connection):

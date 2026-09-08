@@ -68,21 +68,6 @@ export async function acceptConnectionRequestAction(
   }
 }
 
-export async function sendOrgConnectionRequestAction(
-  slug: string,
-  note: string
-): Promise<{ ok: true } | { error: string }> {
-  try {
-    await apiFetch(`/orgs/${slug}/connections/requests/`, {
-      method: "POST",
-      body: { note },
-    });
-  } catch (err) {
-    return { error: actionErrorMessage(err, "Could not send the connection request.") };
-  }
-  return { ok: true };
-}
-
 export async function declineConnectionRequestAction(
   requestId: number
 ): Promise<{ ok: true } | { error: string }> {

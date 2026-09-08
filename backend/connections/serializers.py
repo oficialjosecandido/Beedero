@@ -3,7 +3,7 @@ from rest_framework import serializers
 from accounts.attestations import platform_attestations
 from accounts.models import InvestorProfile
 
-from .models import ConnectionRequest, OrgConnectionRequest
+from .models import ConnectionRequest
 from .services import reputation_tier
 
 
@@ -47,31 +47,10 @@ class SendConnectionRequestSerializer(serializers.Serializer):
     note = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
 
 
-class SendOrgConnectionRequestSerializer(serializers.Serializer):
-    note = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
-
-
-class SendOrgOutreachSerializer(serializers.Serializer):
-    recipient_id = serializers.IntegerField()
-    note = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
-
-
 def connection_request_summary(req: ConnectionRequest) -> dict:
     return {
         "id": req.id,
         "requester": user_summary(req.requester),
-        "note": req.note,
-        "status": req.status,
-        "created_at": req.created_at.isoformat(),
-    }
-
-
-def org_connection_request_summary(req: OrgConnectionRequest) -> dict:
-    return {
-        "id": req.id,
-        "org": {"id": req.org_id, "slug": req.org.slug, "name": req.org.name},
-        "requester": user_summary(req.requester),
-        "initiated_by": req.initiated_by,
         "note": req.note,
         "status": req.status,
         "created_at": req.created_at.isoformat(),

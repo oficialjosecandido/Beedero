@@ -11,7 +11,7 @@ from accounts.models import InvestorProfile
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from connections.models import Connection
-from connections.services import can_message_directly, can_message_org_directly
+from connections.services import can_message_directly
 from orgs.permissions import OrgLookupMixin
 
 from .models import Conversation, Message, OrgConversation, OrgMessage, UserBlock
@@ -32,7 +32,6 @@ from .services import (
     block_user,
     create_report,
     get_or_create_conversation,
-    get_or_create_org_conversation,
     get_visible_conversation_or_404,
     get_visible_org_conversation_or_404,
     is_blocked,
@@ -224,7 +223,10 @@ class ConversationMessageListCreateView(APIView):
 
 
 class OrgConversationListCreateView(OrgLookupMixin, APIView):
-    """GET/POST /api/orgs/<slug>/conversations/ — org inbox for members."""
+    """GET /api/orgs/<slug>/conversations/ — org inbox for members. No
+    POST: an org conversation is only ever opened as a side effect of a
+    job application going INTERESTED (jobs/services.py::set_application_status);
+    there is no self-serve way to start one unsolicited."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -256,43 +258,6 @@ class OrgConversationListCreateView(OrgLookupMixin, APIView):
                 ]
             }
         )
-
-    def post(self, request, slug):
-        org = self.get_org()
-        viewer = request.user
-
-        if is_org_member(org, viewer):
-            serializer = StartConversationSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            target_id = serializer.validated_data["user_id"]
-            if target_id == viewer.id:
-                return Response({"detail": "You can't message yourself."}, status=400)
-            target = get_object_or_404(User, pk=target_id)
-            if not can_message_org_directly(target, org):
-                raise PermissionDenied(CONTACT_GATE_DETAIL)
-
-            enforce_rate_limit(
-                f"start-org-conversation:{viewer.id}:{org.id}",
-                limit=CONVERSATIONS_PER_DAY,
-                window_seconds=86400,
-            )
-            conversation = get_or_create_org_conversation(org, target)
-        else:
-            if not can_message_org_directly(viewer, org):
-                raise PermissionDenied(CONTACT_GATE_DETAIL)
-            enforce_rate_limit(
-                f"start-org-conversation-external:{viewer.id}:{org.id}",
-                limit=CONVERSATIONS_PER_DAY,
-                window_seconds=86400,
-            )
-            conversation = get_or_create_org_conversation(org, viewer)
-
-        conversation = (
-            OrgConversation.objects.filter(pk=conversation.pk)
-            .select_related("external_user__investorprofile")
-            .get()
-        )
-        return Response(org_conversation_summary(conversation, viewer, 0), status=201)
 
 
 class OrgConversationMessageListCreateView(OrgLookupMixin, APIView):

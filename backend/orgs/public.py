@@ -17,8 +17,6 @@ from .team import serialize_team_members
 def public_profile(slug: str, viewer=None) -> dict:
     from credibility.levels import credibility_level
 
-    from connections import services as connections_services
-
     from .posting.freshness import freshness_label
     from .posting.services import upcoming_events
 
@@ -55,10 +53,5 @@ def public_profile(slug: str, viewer=None) -> dict:
         is_member = OrgMembership.objects.filter(org=org, user=viewer).exists()
         payload["viewer_is_member"] = is_member
         payload["viewer_is_following"] = OrgFollow.objects.filter(org=org, user=viewer).exists()
-        if not is_member:
-            payload["viewer_actions"] = {
-                "can_message": connections_services.can_message_org_directly(viewer, org),
-                "connection_status": connections_services.org_connection_status(viewer, org),
-            }
 
     return payload

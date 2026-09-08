@@ -43,10 +43,6 @@ export type OrgProfile = {
   upcoming_events?: UpcomingEvent[];
   viewer_is_following?: boolean;
   viewer_is_member?: boolean;
-  viewer_actions?: {
-    can_message: boolean;
-    connection_status: "none" | "pending_sent" | "connected";
-  };
 };
 
 export type JobCompensation = { kind: string; detail: string };

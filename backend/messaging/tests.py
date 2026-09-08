@@ -3,7 +3,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from connections.models import Connection, OrgConnectionRequest
+from connections.models import Connection
 from notifications.models import Notification
 from orgs.models import OrgMembership, Organization
 
@@ -233,26 +233,6 @@ def test_org_conversation_list_and_reply(api, alice, bob, org):
 
     listing_after = api.get(f"/api/orgs/{org.slug}/conversations/")
     assert listing_after.data["items"][0]["unread_count"] == 0
-
-
-@pytest.mark.django_db
-def test_external_user_can_start_org_conversation(api, alice, bob, org):
-    OrgConnectionRequest.objects.create(
-        org=org,
-        requester=bob,
-        initiated_by=OrgConnectionRequest.InitiatedBy.USER,
-        created_by=bob,
-        status=OrgConnectionRequest.Status.ACCEPTED,
-    )
-    api.force_authenticate(bob)
-    res = api.post(f"/api/orgs/{org.slug}/conversations/", {}, format="json")
-    assert res.status_code == 201
-
-    api.force_authenticate(alice)
-    listing = api.get(f"/api/orgs/{org.slug}/conversations/")
-    assert listing.status_code == 200
-    assert len(listing.data["items"]) == 1
-    assert listing.data["items"][0]["other_participant"]["id"] == bob.id
 
 
 @pytest.mark.django_db
