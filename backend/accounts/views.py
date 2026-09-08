@@ -249,3 +249,41 @@ class SelfDeclaredExperienceDetailView(APIView):
         experience = get_object_or_404(SelfDeclaredExperience, id=experience_id, user=request.user)
         experience.delete()
         return Response(status=204)
+
+
+class PeopleSearchView(APIView):
+    """GET /api/people/search/?q= — people lookup for adding team members.
+
+    Unlike mentions search, this includes the current user and matches
+    names/handles ignoring case and accents (Júlio == julio).
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from beedero.text_search import fold_text, searchable_key
+
+        query = fold_text(request.query_params.get("q", ""))
+        if len(query) < 2:
+            return Response({"users": []})
+
+        people = (
+            InvestorProfile.objects.exclude(handle__isnull=True)
+            .exclude(handle="")
+            .annotate(name_key=searchable_key("full_name"), handle_key=searchable_key("handle"))
+            .filter(Q(name_key__contains=query) | Q(handle_key__contains=query))
+            .select_related("user")[:8]
+        )
+        return Response(
+            {
+                "users": [
+                    {
+                        "handle": p.handle,
+                        "name": p.full_name or p.user.email,
+                        "avatar": p.profile_picture.url if p.profile_picture else None,
+                    }
+                    for p in people
+                ]
+            }
+        )
+

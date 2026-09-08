@@ -60,6 +60,7 @@ def notify(
     title: str,
     body: str,
     link: str = "",
+    payload: dict | None = None,
 ):
     if user is None:
         return
@@ -80,7 +81,11 @@ def notify(
         existing.title = title
         existing.body = body
         existing.link = link or existing.link
-        existing.save(update_fields=["title", "body", "link", "updated_at"])
+        update_fields = ["title", "body", "link", "updated_at"]
+        if payload is not None:
+            existing.payload = payload
+            update_fields.append("payload")
+        existing.save(update_fields=update_fields)
         return existing
 
     created = Notification.objects.create(
@@ -90,6 +95,7 @@ def notify(
         title=title,
         body=body,
         link=link,
+        payload=payload or {},
     )
     if _wants_push_notifications(user):
         send_push(user, title=title, body=body, link=link)

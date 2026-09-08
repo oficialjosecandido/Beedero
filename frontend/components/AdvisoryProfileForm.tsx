@@ -82,7 +82,7 @@ export function AdvisoryProfileForm({ profile }: { profile?: AdvisorProfile | nu
               Open to advisory / board / fractional work
             </span>
             <span className="block text-xs text-subtle">
-              Shown in advisor discovery and on your public profile. Toggle off to hide.
+              Shown on your public profile. Toggle off to hide.
             </span>
           </span>
         </label>

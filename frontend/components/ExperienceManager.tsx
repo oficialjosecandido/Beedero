@@ -1,13 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
+import {
+  acceptAffiliationAction,
+  withdrawAffiliationAction,
+  withdrawAffiliationByIdAction,
+} from "@/app/(app)/dashboard/affiliation-actions";
 import {
   createExperienceOrAffiliationAction,
   deleteExperienceAction,
   updateExperienceAction,
 } from "@/app/(app)/dashboard/experience-actions";
-import { withdrawAffiliationAction } from "@/app/(app)/dashboard/affiliation-actions";
 import { affiliationStatusLabel, ROLE_TYPE_OPTIONS, roleTypeLabel } from "@/lib/affiliation-options";
 import type { AffiliationSummary, OrgSummary } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -194,9 +199,38 @@ function affiliationStatusText(affiliation: AffiliationSummary) {
 }
 
 function AffiliationCard({ affiliation }: { affiliation: AffiliationSummary }) {
+  const router = useRouter();
   const [error, deleteAction, pending] = useActionState(withdrawAffiliationAction, null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   useActionToast(error, pending, { successMessage: "Affiliation withdrawn." });
   const canWithdraw = affiliation.status !== "verified";
+  const canAccept = affiliation.status === "pending" && affiliation.is_org_added;
+
+  function accept() {
+    startTransition(async () => {
+      const result = await acceptAffiliationAction(affiliation.id);
+      if ("error" in result) {
+        setActionError(result.error);
+        return;
+      }
+      setActionError(null);
+      router.refresh();
+    });
+  }
+
+  function withdrawById() {
+    if (!window.confirm("Withdraw this affiliation? This cannot be undone.")) return;
+    startTransition(async () => {
+      const result = await withdrawAffiliationByIdAction(affiliation.id);
+      if ("error" in result) {
+        setActionError(result.error);
+        return;
+      }
+      setActionError(null);
+      router.refresh();
+    });
+  }
 
   return (
     <article className="rounded-2xl border border-beedero-border bg-white p-5 shadow-sm">
@@ -229,23 +263,46 @@ function AffiliationCard({ affiliation }: { affiliation: AffiliationSummary }) {
           </div>
         )}
       </div>
-      {canWithdraw && (
-        <form
-          action={deleteAction}
-          className="mt-4 border-t border-beedero-border/60 pt-3"
-          onSubmit={(event) => {
-            if (!window.confirm("Withdraw this affiliation? This cannot be undone.")) event.preventDefault();
-          }}
-        >
-          <input type="hidden" name="affiliation_id" value={affiliation.id} />
-          <button
-            type="submit"
-            disabled={pending}
-            className="text-sm font-semibold text-danger hover:text-danger-strong hover:underline disabled:opacity-50"
-          >
-            {pending ? "Withdrawing…" : "Withdraw"}
-          </button>
-        </form>
+      {(canAccept || canWithdraw) && (
+        <div className="mt-4 flex flex-col gap-2 border-t border-beedero-border/60 pt-3">
+          {canAccept ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={accept}
+                className="rounded-full bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+              >
+                {isPending ? "…" : "Accept"}
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={withdrawById}
+                className="rounded-full border border-beedero-border px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                Withdraw
+              </button>
+            </div>
+          ) : (
+            <form
+              action={deleteAction}
+              onSubmit={(event) => {
+                if (!window.confirm("Withdraw this affiliation? This cannot be undone.")) event.preventDefault();
+              }}
+            >
+              <input type="hidden" name="affiliation_id" value={affiliation.id} />
+              <button
+                type="submit"
+                disabled={pending}
+                className="text-sm font-semibold text-danger hover:text-danger-strong hover:underline disabled:opacity-50"
+              >
+                {pending ? "Withdrawing…" : "Withdraw"}
+              </button>
+            </form>
+          )}
+          {actionError && <p className="text-xs text-danger">{actionError}</p>}
+        </div>
       )}
     </article>
   );

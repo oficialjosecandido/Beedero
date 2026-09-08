@@ -18,6 +18,21 @@ DIGEST_UNSUB_SALT = "notifications.digest.unsubscribe"
 DIGEST_PIXEL_SALT = "notifications.digest.pixel"
 
 
+def _serialize_notification_payload(n: Notification) -> dict:
+    payload = dict(n.payload or {})
+    if n.kind == Notification.Kind.AFFILIATION_REQUEST:
+        if "affiliation_id" not in payload and n.aggregate_key.startswith("affiliation_request:"):
+            try:
+                payload["affiliation_id"] = int(n.aggregate_key.split(":", 1)[1])
+            except ValueError:
+                pass
+        # Invitee (org-added) notifications point at the personal dashboard;
+        # admin-facing ones link to /dashboard/<slug>.
+        if "can_accept" not in payload:
+            payload["can_accept"] = n.link in ("", "/dashboard")
+    return payload
+
+
 class NotificationListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -34,7 +49,7 @@ class NotificationListView(APIView):
                         "title": n.title,
                         "body": n.body,
                         "link": n.link,
-                        "payload": n.payload,
+                        "payload": _serialize_notification_payload(n),
                         "read": n.read_at is not None,
                         "created_at": n.created_at.isoformat(),
                         "updated_at": n.updated_at.isoformat(),

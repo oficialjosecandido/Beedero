@@ -139,21 +139,26 @@ def handle_mentions(*, actor, body: str, activity=None, comment=None) -> None:
 def search_mentionable(viewer, query: str, limit: int = 8) -> dict:
     """Backs GET /api/mentions/search/?q= — combined person + org results
     for the composer's @-autocomplete dropdown."""
-    query = (query or "").strip()
+    from beedero.text_search import fold_text, searchable_key
+
+    query = fold_text(query or "")
     if not query:
         return {"users": [], "orgs": []}
 
     people = (
         InvestorProfile.objects.exclude(handle__isnull=True)
         .exclude(handle="")
-        .filter(Q(full_name__icontains=query) | Q(handle__icontains=query))
+        .annotate(name_key=searchable_key("full_name"), handle_key=searchable_key("handle"))
+        .filter(Q(name_key__contains=query) | Q(handle_key__contains=query))
         .select_related("user")
     )
     if viewer is not None and viewer.is_authenticated:
         people = people.exclude(user_id=viewer.id)
 
-    orgs = Organization.objects.filter(status=Organization.Status.LIVE).filter(
-        Q(name__icontains=query) | Q(slug__icontains=query)
+    orgs = (
+        Organization.objects.filter(status=Organization.Status.LIVE)
+        .annotate(name_key=searchable_key("name"), slug_key=searchable_key("slug"))
+        .filter(Q(name_key__contains=query) | Q(slug_key__contains=query))
     )
 
     return {

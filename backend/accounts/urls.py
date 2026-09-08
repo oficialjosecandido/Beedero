@@ -11,6 +11,7 @@ urlpatterns = [
     path("investors/me/badge-embed/", views.InvestorBadgeEmbedView.as_view()),
     path("experience/", views.SelfDeclaredExperienceListCreateView.as_view()),
     path("experience/<int:experience_id>/", views.SelfDeclaredExperienceDetailView.as_view()),
+    path("people/search/", views.PeopleSearchView.as_view()),
     path("public/people/<slug:handle>/", public_views.PublicPersonProfileView.as_view()),
     path("public/pbadge/<slug:handle>/svg/", public_views.PublicPersonBadgeSvgView.as_view()),
     path("public/pbadge/<slug:handle>/json/", public_views.PublicPersonBadgeJsonView.as_view()),

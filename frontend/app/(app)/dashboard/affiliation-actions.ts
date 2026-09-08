@@ -92,6 +92,18 @@ export async function acceptAffiliationAction(
   return { ok: true };
 }
 
+export async function withdrawAffiliationByIdAction(
+  affiliationId: number
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await apiFetch(`/affiliations/${affiliationId}/`, { method: "DELETE" });
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not withdraw this affiliation.") };
+  }
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function confirmAffiliationAction(
   slug: string,
   affiliationId: number

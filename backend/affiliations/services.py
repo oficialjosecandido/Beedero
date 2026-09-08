@@ -27,6 +27,13 @@ def org_admins(org):
     ).distinct()
 
 
+def _mark_affiliation_request_read(affiliation: Affiliation) -> None:
+    Notification.objects.filter(
+        aggregate_key=f"affiliation_request:{affiliation.id}",
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
+
+
 def _display_name(user) -> str:
     profile = getattr(user, "investorprofile", None)
     if profile and profile.full_name:
@@ -64,14 +71,16 @@ def declare_affiliation(
 
     if role != RoleType.FOUNDER:
         person_name = _display_name(user)
+        role_label = title or affiliation.get_role_display()
         for admin in org_admins(org):
             notify(
                 admin,
                 kind=Notification.Kind.AFFILIATION_REQUEST,
                 aggregate_key=f"affiliation_request:{affiliation.id}",
                 title="Affiliation request",
-                body=f"{person_name} declared a {affiliation.get_role_display()} affiliation with {org.name}.",
+                body=f"{person_name} declared a {role_label} affiliation with {org.name}.",
                 link=f"/dashboard/{org.slug}",
+                payload={"affiliation_id": affiliation.id, "can_accept": False},
             )
     return affiliation
 
@@ -97,13 +106,15 @@ def org_add_affiliation(
         status=Affiliation.Status.PENDING,
         created_by=admin_user,
     )
+    role_label = title or affiliation.get_role_display()
     notify(
         target_user,
         kind=Notification.Kind.AFFILIATION_REQUEST,
         aggregate_key=f"affiliation_request:{affiliation.id}",
         title="Affiliation request",
-        body=f"{org.name} added you as {affiliation.get_role_display()}.",
+        body=f"{org.name} added you as {role_label}.",
         link="/dashboard",
+        payload={"affiliation_id": affiliation.id, "can_accept": True},
     )
     return affiliation
 
@@ -161,6 +172,7 @@ def accept_affiliation(affiliation: Affiliation, by_user) -> Affiliation:
     affiliation.verified_via = Affiliation.VerifiedVia.ORG
     affiliation.verified_at = timezone.now()
     affiliation.save(update_fields=["status", "verified_via", "verified_at"])
+    _mark_affiliation_request_read(affiliation)
     return affiliation
 
 
@@ -170,7 +182,13 @@ def withdraw_affiliation(affiliation: Affiliation, by_user) -> None:
         raise PermissionDenied("This affiliation doesn't belong to you.")
     if affiliation.status == Affiliation.Status.VERIFIED:
         raise ValidationError({"status": "A verified affiliation can't be withdrawn."})
+    affiliation_id = affiliation.id
     affiliation.delete()
+    Notification.objects.filter(
+        user=by_user,
+        aggregate_key=f"affiliation_request:{affiliation_id}",
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
 
 
 @transaction.atomic

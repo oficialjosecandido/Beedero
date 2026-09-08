@@ -24,7 +24,12 @@ type PersonMatch = {
 };
 
 function normalizeUsername(value: string) {
-  return value.trim().replace(/^@+/, "").toLowerCase();
+  return value
+    .trim()
+    .replace(/^@+/, "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
 }
 
 function PersonAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
@@ -57,7 +62,7 @@ function UsernameField() {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setLoading(true);
-      fetch(`/api/mentions/search?q=${encodeURIComponent(normalized)}`, {
+      fetch(`/api/people/search?q=${encodeURIComponent(normalized)}`, {
         signal: controller.signal,
         cache: "no-store",
       })

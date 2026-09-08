@@ -13,7 +13,12 @@ export type NotificationItem = {
   link: string;
   read: boolean;
   updated_at: string;
-  payload?: { suggestion_title?: string; suggestion_body?: string };
+  payload?: {
+    suggestion_title?: string;
+    suggestion_body?: string;
+    affiliation_id?: number;
+    can_accept?: boolean;
+  };
 };
 
 export type NotificationPreferences = {
