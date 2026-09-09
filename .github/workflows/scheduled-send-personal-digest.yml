@@ -1,0 +1,19 @@
+name: Weekly send personal digest
+
+on:
+  schedule:
+    - cron: "30 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run send_personal_digest
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: send_personal_digest"

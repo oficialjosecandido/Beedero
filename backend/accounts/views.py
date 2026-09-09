@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from analytics.models import ActivityFeedImpression, PersonProfileView
+from billing.entitlements import has_entitlement
 from connections.models import Connection
 from orgs.models import Activity, Visibility
 from orgs.services import create_activity, sole_owner_orgs
@@ -79,6 +80,17 @@ def _investor_activity_summaries(activities):
 def _investor_display_name(user):
     profile = getattr(user, "investorprofile", None)
     return (profile.full_name if profile and profile.full_name else None) or user.email
+
+
+def _public_investor_name(user):
+    """Like `_investor_display_name`, but for passive-analytics contexts
+    (profile views) where the investor never chose to publish anything —
+    falling back to their email would leak contact info they never agreed
+    to hand over. Falls back to a generic label instead."""
+    if user is None:
+        return None
+    profile = getattr(user, "investorprofile", None)
+    return (profile.full_name if profile and profile.full_name else None) or "Investor"
 
 
 class InvestorPostListCreateView(APIView):
@@ -153,6 +165,16 @@ class InvestorStatsView(APIView):
             activity__in=personal_posts, viewed_at__gte=since
         ).count()
         profile_views_count = PersonProfileView.objects.filter(subject=user, viewed_at__gte=since).count()
+        # Live query, not a frozen flag at view-write time (see PersonInsightView) —
+        # always reflects current investor-verification status.
+        verified_investor_views_count = (
+            PersonProfileView.objects.filter(
+                subject=user, viewed_at__gte=since, viewer__investorprofile__is_verified=True
+            )
+            .values("viewer")
+            .distinct()
+            .count()
+        )
 
         return Response(
             {
@@ -163,6 +185,38 @@ class InvestorStatsView(APIView):
                 "reactions_received": reactions_received,
                 "post_impressions_count": post_impressions_count,
                 "profile_views_count": profile_views_count,
+                "verified_investor_views_count": verified_investor_views_count,
+            }
+        )
+
+
+class PersonInsightView(APIView):
+    """GET /api/investors/me/insight/ — the person-facing investor-viewed-you
+    teaser (doc "utilizadores valorizados" §6 item 4), mirroring
+    orgs.views.OrgInsightView: the aggregate count is always the free
+    teaser; the named list is gated behind Founder Pro."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        views_qs = (
+            PersonProfileView.objects.filter(subject=user, viewer__investorprofile__is_verified=True)
+            .select_related("viewer__investorprofile")
+            .order_by("-viewed_at")
+        )
+        viewers_entitled = has_entitlement(user, "investor_viewers")
+        return Response(
+            {
+                "investor_views_count": views_qs.values("viewer").distinct().count(),
+                "viewers": (
+                    [
+                        {"investor": _public_investor_name(v.viewer), "viewed_at": v.viewed_at}
+                        for v in views_qs[:200]
+                    ]
+                    if viewers_entitled
+                    else None
+                ),
             }
         )
 

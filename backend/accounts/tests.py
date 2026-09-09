@@ -234,6 +234,82 @@ def test_investor_stats_profile_views_and_impressions_are_windowed_to_range_days
 
 
 @pytest.mark.django_db
+def test_investor_stats_verified_investor_views_count_only_counts_verified_investors(api, user):
+    verified_investor = User.objects.create_user(
+        username="vinvestor@example.com", email="vinvestor@example.com", password="pw"
+    )
+    InvestorProfile.objects.create(user=verified_investor, is_verified=True)
+    unverified_investor = User.objects.create_user(
+        username="uinvestor@example.com", email="uinvestor@example.com", password="pw"
+    )
+    InvestorProfile.objects.create(user=unverified_investor, is_verified=False)
+    plain_viewer = User.objects.create_user(
+        username="plain@example.com", email="plain@example.com", password="pw"
+    )
+    PersonProfileView.objects.create(subject=user, viewer=verified_investor)
+    PersonProfileView.objects.create(subject=user, viewer=unverified_investor)
+    PersonProfileView.objects.create(subject=user, viewer=plain_viewer)
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/stats/")
+    assert res.status_code == 200
+    assert res.data["profile_views_count"] == 3
+    assert res.data["verified_investor_views_count"] == 1
+
+
+@pytest.mark.django_db
+def test_person_insight_reflects_current_investor_verification_status(api, user):
+    """Live-query, not a frozen flag: revoking verification after the view
+    was recorded must change the count on the next read."""
+    investor = User.objects.create_user(
+        username="investor2@example.com", email="investor2@example.com", password="pw"
+    )
+    profile = InvestorProfile.objects.create(user=investor, is_verified=True)
+    PersonProfileView.objects.create(subject=user, viewer=investor)
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/insight/")
+    assert res.status_code == 200
+    assert res.data["investor_views_count"] == 1
+
+    profile.is_verified = False
+    profile.save()
+    res = api.get("/api/investors/me/insight/")
+    assert res.data["investor_views_count"] == 0
+
+
+@pytest.mark.django_db
+def test_person_insight_viewers_list_is_none_without_entitlement(api, user):
+    investor = User.objects.create_user(
+        username="investor3@example.com", email="investor3@example.com", password="pw"
+    )
+    InvestorProfile.objects.create(user=investor, is_verified=True)
+    PersonProfileView.objects.create(subject=user, viewer=investor)
+
+    api.force_authenticate(user)
+    res = api.get("/api/investors/me/insight/")
+    assert res.status_code == 200
+    assert res.data["investor_views_count"] == 1
+    assert res.data["viewers"] is None
+
+
+@pytest.mark.django_db
+def test_verify_investor_command_notifies_only_on_grant():
+    from django.core.management import call_command
+
+    from notifications.models import Notification
+
+    target = User.objects.create_user(username="grantee@example.com", email="grantee@example.com", password="pw")
+
+    call_command("verify_investor", "grantee@example.com")
+    assert Notification.objects.filter(user=target, kind=Notification.Kind.VERIFICATION).exists()
+
+    Notification.objects.all().delete()
+    call_command("verify_investor", "grantee@example.com", "--revoke")
+    assert not Notification.objects.filter(user=target, kind=Notification.Kind.VERIFICATION).exists()
+
+
+@pytest.mark.django_db
 def test_self_declared_experience_create_and_list(api, user):
     api.force_authenticate(user)
     res = api.post(

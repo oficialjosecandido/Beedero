@@ -6,7 +6,9 @@ from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from accounts.models import User
+from accounts.models import InvestorProfile, User
+from affiliations.models import Affiliation, RoleType
+from analytics.models import PersonProfileView
 from orgs.models import Activity, FundraiseRound, OrgFollow, OrgMembership, Organization
 
 from .milestones import (
@@ -327,5 +329,81 @@ def test_send_weekly_digest_respects_unsubscribe_preference(settings, owner, org
     OrgFollow.objects.create(org=org, user=User.objects.create_user(username="follower2", password="x"))
 
     call_command("send_weekly_digest")
+
+    assert len(mail.outbox) == 0
+
+
+# --- personal digest command: real signal only, never a fabricated metric ---
+
+
+@pytest.fixture
+def investor_person(db):
+    user = User.objects.create_user(
+        username="investor-person", email="investor-person@example.com", password="x"
+    )
+    InvestorProfile.objects.create(user=user, full_name="Jane Doe", headline="Founder", country="PT")
+    return user
+
+
+@pytest.mark.django_db
+def test_send_personal_digest_skips_zero_signal_week(settings, investor_person):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+    call_command("send_personal_digest")
+
+    assert len(mail.outbox) == 0
+    assert DigestSend.objects.filter(user=investor_person).count() == 0
+
+
+@pytest.mark.django_db
+def test_send_personal_digest_sends_on_verified_investor_view_only(settings, investor_person):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    verified_investor = User.objects.create_user(
+        username="verified-investor", email="verified-investor@example.com", password="x"
+    )
+    InvestorProfile.objects.create(user=verified_investor, is_verified=True)
+    PersonProfileView.objects.create(subject=investor_person, viewer=verified_investor)
+
+    call_command("send_personal_digest")
+
+    assert len(mail.outbox) == 1
+    text_body = mail.outbox[0].body
+    assert "1 verified investor viewed your profile" in text_body
+    assert "new verified fact" not in text_body
+
+
+@pytest.mark.django_db
+def test_send_personal_digest_sends_on_new_verified_fact_only(settings, investor_person):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    org = Organization.objects.create(slug="acme-digest", name="Acme", status=Organization.Status.LIVE)
+    Affiliation.objects.create(
+        user=investor_person,
+        org=org,
+        role=RoleType.ADVISOR,
+        started_on=date(2024, 1, 1),
+        status=Affiliation.Status.VERIFIED,
+        verified_at=timezone.now(),
+        created_by=investor_person,
+    )
+
+    call_command("send_personal_digest")
+
+    assert len(mail.outbox) == 1
+    text_body = mail.outbox[0].body
+    assert "1 new verified fact joined your journey" in text_body
+    assert "viewed your profile" not in text_body
+
+
+@pytest.mark.django_db
+def test_send_personal_digest_respects_unsubscribe_preference(settings, investor_person):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    NotificationPreference.objects.create(user=investor_person, digest_email=False)
+    verified_investor = User.objects.create_user(
+        username="verified-investor2", email="verified-investor2@example.com", password="x"
+    )
+    InvestorProfile.objects.create(user=verified_investor, is_verified=True)
+    PersonProfileView.objects.create(subject=investor_person, viewer=verified_investor)
+
+    call_command("send_personal_digest")
 
     assert len(mail.outbox) == 0

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FaBullhorn, FaEye, FaFileAlt, FaThumbsUp, FaUserPlus } from "react-icons/fa";
+import { FaBullhorn, FaEye, FaFileAlt, FaThumbsUp, FaUserCheck, FaUserPlus } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 import { AppColumnSection } from "@/components/AppColumnSection";
@@ -10,6 +10,7 @@ export type PersonalKpiStats = {
   range_days: number;
   new_connections: number;
   profile_views_count: number;
+  verified_investor_views_count: number;
   posts_count: number;
   reactions_received: number;
   post_impressions_count: number;
@@ -71,6 +72,15 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       highlight: true,
       delta: (value) => `${value} views in the last ${days} days`,
       hint: "Distinct people who opened your profile.",
+    },
+    {
+      key: "verified_investor_views",
+      label: "Verified investors viewed you",
+      value: stats.verified_investor_views_count,
+      icon: FaUserCheck,
+      highlight: true,
+      delta: (value) => `${value} verified investors in the last ${days} days`,
+      hint: "Distinct verified investors who opened your profile.",
     },
     {
       key: "impressions",
@@ -169,7 +179,7 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
 
   const metrics = stats ? buildMetrics(stats) : [];
   const audienceMetrics = metrics.filter((metric) =>
-    ["connections", "views", "impressions"].includes(metric.key)
+    ["connections", "views", "verified_investor_views", "impressions"].includes(metric.key)
   );
   const contentMetrics = metrics.filter((metric) => ["posts", "reactions"].includes(metric.key));
 

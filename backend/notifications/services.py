@@ -237,7 +237,7 @@ def notify_interest_signal(org, actor, kind: str):
         )
 
 
-def notify_verification_update(org, message: str):
+def notify_verification_update(org, message: str, *, payload: dict | None = None):
     owners = User.objects.filter(
         orgmembership__org=org,
         orgmembership__role__in=[OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN],
@@ -250,6 +250,7 @@ def notify_verification_update(org, message: str):
             title=f"{org.name} verification update",
             body=message,
             link=f"/dashboard/{org.slug}",
+            payload=payload,
         )
 
 

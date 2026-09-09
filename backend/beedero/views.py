@@ -34,6 +34,7 @@ def run_management_job(request):
         "compute_daily_site_stats": ("compute_daily_site_stats", []),
         "check_milestones": ("check_milestones", []),
         "send_weekly_digest": ("send_weekly_digest", []),
+        "send_personal_digest": ("send_personal_digest", []),
         "send_investor_alerts": ("send_investor_alerts", []),
         "expire_jobs": ("expire_jobs", []),
     }

@@ -3,6 +3,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import InvestorProfile
+from notifications.models import Notification
+from notifications.services import notify
 
 User = get_user_model()
 
@@ -34,3 +36,17 @@ class Command(BaseCommand):
             profile.verified_at = timezone.now()
             self.stdout.write(self.style.SUCCESS(f"{email} verified as investor."))
         profile.save()
+
+        if not options["revoke"]:
+            notify(
+                user,
+                kind=Notification.Kind.VERIFICATION,
+                aggregate_key=f"investor_kyc:{user.id}",
+                title="You're a verified investor",
+                body="Your investor identity was verified. Your profile just got stronger.",
+                link="/dashboard",
+                payload={
+                    "suggestion_title": "I'm now a verified investor on Beedero!",
+                    "suggestion_body": "Just completed identity verification on Beedero.",
+                },
+            )

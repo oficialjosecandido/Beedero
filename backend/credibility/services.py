@@ -131,14 +131,19 @@ def approve_verification(verification: Verification, reviewer) -> Verification:
     if verification.type == VerificationType.ANNUAL_ACCOUNTS:
         _write_financial_fields(verification.org, verification)
 
-    notify_org_owners(
-        verification.org, f"Your '{verification.get_type_display()}' verification was approved."
-    )
+    type_label = verification.get_type_display()
+    message = f"Your '{type_label}' verification was confirmed. {verification.org.name} just got stronger."
+    notify_org_owners(verification.org, message)
     from notifications.milestones import check_credibility_level_milestone
     from notifications.services import notify_verification_update
 
     notify_verification_update(
-        verification.org, f"Your '{verification.get_type_display()}' verification was approved."
+        verification.org,
+        message,
+        payload={
+            "suggestion_title": f"{verification.org.name} just verified its {type_label}!",
+            "suggestion_body": f"{verification.org.name} is now verified for {type_label} on Beedero.",
+        },
     )
     check_credibility_level_milestone(verification.org, level_before, credibility_level(verification.org))
     return verification

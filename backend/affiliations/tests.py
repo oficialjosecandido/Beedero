@@ -99,6 +99,17 @@ def test_confirm_only_works_on_person_initiated_pending(org, owner, person):
 
 
 @pytest.mark.django_db
+def test_confirm_sends_celebratory_notification_with_payload(org, owner, person):
+    affiliation = declare_affiliation(person, org, role=RoleType.EMPLOYEE, started_on=date(2024, 1, 1))
+    confirm_affiliation(affiliation, owner)
+    n = Notification.objects.get(user=person, kind=Notification.Kind.AFFILIATION_UPDATE)
+    assert "confirmed" in n.body
+    assert "verified fact" in n.body
+    assert n.payload["suggestion_title"]
+    assert n.payload["suggestion_body"]
+
+
+@pytest.mark.django_db
 def test_confirm_rejects_org_added_affiliation(org, owner, person):
     affiliation = org_add_affiliation(owner, org, person, role=RoleType.EMPLOYEE, started_on=date(2024, 1, 1))
     with pytest.raises(ValidationError):
@@ -165,6 +176,17 @@ def test_verify_founder_via_registry_requires_founder_role(org, owner, person):
     affiliation = declare_affiliation(person, org, role=RoleType.EMPLOYEE, started_on=date(2024, 1, 1))
     with pytest.raises(ValidationError):
         verify_founder_via_registry(affiliation, reviewer=owner)
+
+
+@pytest.mark.django_db
+def test_verify_founder_via_registry_sends_celebratory_notification_with_payload(org, owner, person):
+    affiliation = declare_affiliation(person, org, role=RoleType.FOUNDER, started_on=date(2024, 1, 1))
+    verify_founder_via_registry(affiliation, reviewer=owner)
+    n = Notification.objects.get(user=person, kind=Notification.Kind.AFFILIATION_UPDATE)
+    assert "verified via registry" in n.body
+    assert "verified fact" in n.body
+    assert n.payload["suggestion_title"]
+    assert n.payload["suggestion_body"]
 
 
 def _admin_request(rf, user):

@@ -50,6 +50,7 @@ type InvestorPost = {
 };
 type ProfileStats = {
   profile_views_count: number;
+  verified_investor_views_count: number;
   post_impressions_count: number;
   range_days: number;
   new_connections: number;

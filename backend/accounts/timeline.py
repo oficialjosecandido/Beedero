@@ -104,6 +104,25 @@ def person_timeline(profile, viewer) -> list[dict]:
     return bands
 
 
+def verified_facts_count(user) -> int:
+    """How many facts on this person's timeline are independently verified —
+    the "your journey grew" number surfaced in celebration copy and the
+    weekly digest (doc: reflect real, already-earned value)."""
+    from affiliations.models import Affiliation
+    from credibility.models import ProfessionalCredential
+
+    memberships = OrgMembership.objects.filter(
+        user_id=user.id, org__status=Organization.Status.LIVE
+    ).count()
+    verified_affiliations = Affiliation.objects.filter(
+        user=user, org__status=Organization.Status.LIVE, status=Affiliation.Status.VERIFIED
+    ).count()
+    verified_credentials = ProfessionalCredential.objects.filter(
+        user=user, status=ProfessionalCredential.Status.VERIFIED
+    ).count()
+    return memberships + verified_affiliations + verified_credentials
+
+
 def aggregate_anchored_skills(profile) -> list[dict]:
     """Server-side "React — used at 2 orgs over 4 years" aggregation across
     every LIVE-org membership the person has — one source of truth, not

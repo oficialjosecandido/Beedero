@@ -130,13 +130,25 @@ def confirm_affiliation(affiliation: Affiliation, by_admin) -> Affiliation:
     affiliation.verified_via = Affiliation.VerifiedVia.ORG
     affiliation.verified_at = timezone.now()
     affiliation.save(update_fields=["status", "verified_via", "verified_at"])
+    from accounts.timeline import verified_facts_count
+
+    facts = verified_facts_count(affiliation.user)
+    plural = "fact" if facts == 1 else "facts"
+    role_label = affiliation.get_role_display()
     notify(
         affiliation.user,
         kind=Notification.Kind.AFFILIATION_UPDATE,
         aggregate_key=f"affiliation_update:{affiliation.id}",
         title="Affiliation confirmed",
-        body=f"{affiliation.org.name} confirmed your {affiliation.get_role_display()} affiliation.",
+        body=(
+            f"{affiliation.org.name} confirmed your {role_label} affiliation. "
+            f"Your journey now has {facts} verified {plural}."
+        ),
         link="/dashboard",
+        payload={
+            "suggestion_title": f"I'm now a verified {role_label} at {affiliation.org.name}!",
+            "suggestion_body": f"{affiliation.org.name} just confirmed my {role_label} affiliation on Beedero.",
+        },
     )
     return affiliation
 
@@ -200,13 +212,24 @@ def verify_founder_via_registry(affiliation: Affiliation, reviewer) -> Affiliati
     affiliation.verified_via = Affiliation.VerifiedVia.REGISTRY
     affiliation.verified_at = timezone.now()
     affiliation.save(update_fields=["status", "verified_via", "verified_at"])
+    from accounts.timeline import verified_facts_count
+
+    facts = verified_facts_count(affiliation.user)
+    plural = "fact" if facts == 1 else "facts"
     notify(
         affiliation.user,
         kind=Notification.Kind.AFFILIATION_UPDATE,
         aggregate_key=f"affiliation_update:{affiliation.id}",
         title="Founder status verified",
-        body=f"Your founder status at {affiliation.org.name} was verified via registry certificate.",
+        body=(
+            f"Your founder status at {affiliation.org.name} was verified via registry certificate. "
+            f"Your journey now has {facts} verified {plural}."
+        ),
         link="/dashboard",
+        payload={
+            "suggestion_title": f"I'm now a verified founder of {affiliation.org.name}!",
+            "suggestion_body": f"My founder status at {affiliation.org.name} is now verified on Beedero.",
+        },
     )
     return affiliation
 

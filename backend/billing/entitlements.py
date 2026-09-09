@@ -38,11 +38,15 @@ ENTITLEMENTS = {
         "deck_analytics",
         "interest_signals",
         "discovery_advanced",
+        "investor_viewers",
     },
 }
 
 # Paid features currently enforced. Empty -> nothing is gated yet.
-PAID_FEATURES_LIVE: set[str] = set()
+# "investor_viewers" is the one exception: gated live from day one, since
+# there's no real subscription yet — this is what makes the person-facing
+# investor-viewed-you teaser (PersonInsightView) actually behave as a teaser.
+PAID_FEATURES_LIVE: set[str] = {"investor_viewers"}
 
 
 def _current_plan(subject) -> str:

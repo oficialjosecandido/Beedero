@@ -7,6 +7,7 @@ urlpatterns = [
     path("investors/me/", views.InvestorProfileView.as_view()),
     path("investors/me/posts/", views.InvestorPostListCreateView.as_view()),
     path("investors/me/stats/", views.InvestorStatsView.as_view()),
+    path("investors/me/insight/", views.PersonInsightView.as_view()),
     path("investors/me/vitality/", views.InvestorVitalityView.as_view()),
     path("investors/me/badge-embed/", views.InvestorBadgeEmbedView.as_view()),
     path("experience/", views.SelfDeclaredExperienceListCreateView.as_view()),

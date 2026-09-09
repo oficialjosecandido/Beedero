@@ -175,6 +175,26 @@ class TestApproveReject:
         assert v.status == Verification.Status.REJECTED
         assert v.rejection_reason == "doc unreadable"
 
+    def test_approve_sends_celebratory_notification_with_share_payload(self, org, owner):
+        from notifications.models import Notification
+
+        v = submit_verification(org, owner, VerificationType.COMPANY_REGISTRY, {"nif": VALID_NIF}, {})
+        approve_verification(v, reviewer=owner)
+        n = Notification.objects.get(user=owner, kind=Notification.Kind.VERIFICATION)
+        assert "confirmed" in n.body
+        assert "just got stronger" in n.body
+        assert n.payload["suggestion_title"]
+        assert n.payload["suggestion_body"]
+
+    def test_reject_notification_stays_dry(self, org, owner):
+        from notifications.models import Notification
+
+        v = submit_verification(org, owner, VerificationType.COMPANY_REGISTRY, {"nif": VALID_NIF}, {})
+        reject_verification(v, reviewer=owner, reason="bad doc")
+        n = Notification.objects.get(user=owner, kind=Notification.Kind.VERIFICATION)
+        assert "rejected" in n.body
+        assert n.payload == {}
+
     def test_annual_accounts_approval_writes_restricted_financial_fields(self, org, owner):
         v = submit_verification(
             org,
@@ -316,6 +336,26 @@ class TestProfessionalCredential:
         approve_credential(c, reviewer=outsider)
         c.refresh_from_db()
         assert c.verified_at == first_verified_at
+
+    def test_approve_sends_celebratory_notification_with_growth_line_and_payload(self, outsider):
+        from notifications.models import Notification
+
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        approve_credential(c, reviewer=outsider)
+        n = Notification.objects.get(user=outsider, kind=Notification.Kind.VERIFICATION)
+        assert "verified" in n.body
+        assert "1 verified fact" in n.body
+        assert n.payload["suggestion_title"]
+        assert n.payload["suggestion_body"]
+
+    def test_reject_notification_stays_dry(self, outsider):
+        from notifications.models import Notification
+
+        c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")
+        reject_credential(c, reviewer=outsider, reason="doc unreadable")
+        n = Notification.objects.get(user=outsider, kind=Notification.Kind.VERIFICATION)
+        assert "rejected" in n.body
+        assert n.payload == {}
 
     def test_reject_sets_reason(self, outsider):
         c = submit_credential(outsider, title="Psychotherapist", issuer="Ordem dos Psicólogos", identifier="12345")

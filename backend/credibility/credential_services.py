@@ -39,17 +39,6 @@ def submit_credential(user, *, title: str, issuer: str, identifier: str, file=No
     )
 
 
-def _notify(credential: ProfessionalCredential, message: str):
-    notify(
-        credential.user,
-        kind=Notification.Kind.VERIFICATION,
-        aggregate_key=f"credential:{credential.id}",
-        title="Professional credential update",
-        body=message,
-        link="/dashboard?tab=settings",
-    )
-
-
 def approve_credential(credential: ProfessionalCredential, reviewer) -> ProfessionalCredential:
     """Idempotent, mirrors services.approve_verification."""
     if credential.status != ProfessionalCredential.Status.PENDING:
@@ -61,7 +50,25 @@ def approve_credential(credential: ProfessionalCredential, reviewer) -> Professi
     credential.verified_at = timezone.now()
     credential.save()
 
-    _notify(credential, f"Your '{credential.title}' credential was verified.")
+    from accounts.timeline import verified_facts_count
+
+    facts = verified_facts_count(credential.user)
+    plural = "fact" if facts == 1 else "facts"
+    notify(
+        credential.user,
+        kind=Notification.Kind.VERIFICATION,
+        aggregate_key=f"credential:{credential.id}",
+        title="Credential verified",
+        body=(
+            f"Your '{credential.title}' credential was verified. "
+            f"Your journey now has {facts} verified {plural}."
+        ),
+        link="/dashboard?tab=settings",
+        payload={
+            "suggestion_title": f"I just verified my '{credential.title}' credential on Beedero!",
+            "suggestion_body": f"'{credential.title}' ({credential.issuer}) is now a verified fact on my Beedero profile.",
+        },
+    )
     return credential
 
 
@@ -75,7 +82,14 @@ def reject_credential(credential: ProfessionalCredential, reviewer, reason: str)
     credential.rejection_reason = reason
     credential.save()
 
-    _notify(credential, f"Your '{credential.title}' credential was rejected: {reason}")
+    notify(
+        credential.user,
+        kind=Notification.Kind.VERIFICATION,
+        aggregate_key=f"credential:{credential.id}",
+        title="Professional credential update",
+        body=f"Your '{credential.title}' credential was rejected: {reason}",
+        link="/dashboard?tab=settings",
+    )
     return credential
 
 
