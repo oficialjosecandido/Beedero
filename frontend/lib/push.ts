@@ -1,10 +1,18 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
-import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
-
 import { firebaseConfig, isFirebaseConfigured } from "@/lib/firebase-config";
 
-function firebaseApp() {
-  return getApps().length ? getApp() : initializeApp(firebaseConfig);
+// The Firebase SDK is imported dynamically rather than at module scope.
+// `listenForForegroundPush` is mounted from the root layout, so a static
+// import would pull firebase/app + firebase/messaging into the first-load
+// bundle of every route — including logged-out pages that can never receive
+// a push. These imports resolve to a separate chunk fetched after hydration,
+// and only when Firebase is actually configured.
+async function messagingApi() {
+  const [{ getApp, getApps, initializeApp }, messaging] = await Promise.all([
+    import("firebase/app"),
+    import("firebase/messaging"),
+  ]);
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  return { app, ...messaging };
 }
 
 /**
@@ -16,6 +24,8 @@ export async function requestPushToken(): Promise<string | null> {
   if (!isFirebaseConfigured()) return null;
   if (typeof window === "undefined" || !("Notification" in window)) return null;
   if (!("serviceWorker" in navigator)) return null;
+
+  const { app, getMessaging, getToken, isSupported } = await messagingApi();
   if (!(await isSupported())) return null;
 
   const permission = await Notification.requestPermission();
@@ -26,7 +36,7 @@ export async function requestPushToken(): Promise<string | null> {
 
   try {
     const registration = await navigator.serviceWorker.ready;
-    const messaging = getMessaging(firebaseApp());
+    const messaging = getMessaging(app);
     return await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
   } catch {
     return null;
@@ -43,17 +53,22 @@ export function listenForForegroundPush(onReceive: (push: ForegroundPush) => voi
   let unsubscribe = () => {};
   let cancelled = false;
 
-  isSupported().then((supported) => {
-    if (!supported || cancelled) return;
-    const messaging = getMessaging(firebaseApp());
-    unsubscribe = onMessage(messaging, (payload) => {
-      onReceive({
-        title: payload.notification?.title ?? "Beedero",
-        body: payload.notification?.body ?? "",
-        link: payload.fcmOptions?.link || (payload.data?.link as string | undefined) || "/",
+  void (async () => {
+    try {
+      const { app, getMessaging, isSupported, onMessage } = await messagingApi();
+      if (!(await isSupported()) || cancelled) return;
+      unsubscribe = onMessage(getMessaging(app), (payload) => {
+        onReceive({
+          title: payload.notification?.title ?? "Beedero",
+          body: payload.notification?.body ?? "",
+          link: payload.fcmOptions?.link || (payload.data?.link as string | undefined) || "/",
+        });
       });
-    });
-  });
+    } catch {
+      // Push is a progressive enhancement — a failed chunk load or an
+      // unsupported browser should never break the page it's mounted on.
+    }
+  })();
 
   return () => {
     cancelled = true;

@@ -51,7 +51,11 @@
   --color-warning: var(--color-warning);
   --color-warning-surface: var(--color-warning-surface);
   --font-sans: var(--font-clash);
-  --font-mono: var(--font-geist-mono);
+  /* System monospace stack. `font-mono` is used in two spots (invite
+     token/URL readouts) deep in the dashboard — not worth a webfont
+     downloaded on every page, so no --font-geist-mono here. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
 html,
