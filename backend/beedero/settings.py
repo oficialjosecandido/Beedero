@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "newsletter",
     "jobs",
     "affiliations",
+    "investments",
 ]
 
 MIDDLEWARE = [

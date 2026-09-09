@@ -19,7 +19,7 @@
     <div>
       <p class="beedero-kpi-eyebrow">Internal dashboard</p>
       <h1>Newsletter</h1>
-      <p class="beedero-kpi-muted">Compõe um email em HTML e envia-o para utilizadores registados e/ou a lista de interessados.</p>
+      <p class="beedero-kpi-muted">Compose an HTML email and send it to registered users and/or the interested-contacts list.</p>
     </div>
   </header>
 
@@ -33,39 +33,39 @@
 
   <section class="beedero-kpi-panel">
     <div class="beedero-kpi-block-head">
-      <h2>Compor email</h2>
-      <p>O conteúdo é HTML puro — o que escreveres aqui é exatamente o que é enviado.</p>
+      <h2>Compose email</h2>
+      <p>Content is raw HTML — what you write here is exactly what gets sent.</p>
     </div>
 
     <form id="newsletter-compose-form" method="post">
       {% csrf_token %}
       <div class="form-row">
-        <label for="id_subject">Assunto</label>
+        <label for="id_subject">Subject</label>
         <input type="text" id="id_subject" name="subject" required>
       </div>
       <div class="form-row">
-        <label for="id_html_content">Conteúdo (HTML)</label>
+        <label for="id_html_content">Content (HTML)</label>
         <textarea id="id_html_content" name="html_content" class="beedero-newsletter-html" required></textarea>
       </div>
       <div class="form-row">
-        <label>Público</label>
+        <label>Audience</label>
         <div class="beedero-newsletter-audience">
-          <label><input type="radio" name="audience" value="users" checked> Todos os utilizadores ({{ users_count }})</label>
-          <label><input type="radio" name="audience" value="recipients"> Todos os interessados ({{ recipients_count }})</label>
-          <label><input type="radio" name="audience" value="both"> Ambos</label>
+          <label><input type="radio" name="audience" value="users" checked> All users ({{ users_count }})</label>
+          <label><input type="radio" name="audience" value="recipients"> All interested contacts ({{ recipients_count }})</label>
+          <label><input type="radio" name="audience" value="both"> Both</label>
         </div>
       </div>
       <div class="beedero-newsletter-actions submit-row">
         <button type="submit" formaction="{% url 'admin-newsletter-send-test' %}" class="button">
-          Enviar teste para {{ test_email }}
+          Send test to {{ test_email }}
         </button>
         <button
           type="submit"
           formaction="{% url 'admin-newsletter-send' %}"
           class="default"
-          onclick="return confirm('Enviar este email agora? Esta ação não pode ser desfeita.');"
+          onclick="return confirm('Send this email now? This action cannot be undone.');"
         >
-          Enviar agora
+          Send now
         </button>
       </div>
     </form>
@@ -74,35 +74,35 @@
   <div class="beedero-kpi-panels">
     <section class="beedero-kpi-panel">
       <div class="beedero-kpi-block-head">
-        <h2>Interessados</h2>
-        <p>Lista de emails adicional, independente dos utilizadores registados.</p>
+        <h2>Interested contacts</h2>
+        <p>Extra email list, independent of registered users.</p>
       </div>
 
       <form method="post" action="{% url 'admin-newsletter-recipients-add' %}" class="beedero-newsletter-add-form">
         {% csrf_token %}
-        <label for="id_emails">Adicionar emails (um por linha)</label>
-        <textarea id="id_emails" name="emails" class="beedero-newsletter-emails" placeholder="nome@exemplo.com"></textarea>
-        <button type="submit" class="button">Adicionar</button>
+        <label for="id_emails">Add emails (one per line)</label>
+        <textarea id="id_emails" name="emails" class="beedero-newsletter-emails" placeholder="name@example.com"></textarea>
+        <button type="submit" class="button">Add</button>
       </form>
 
       <table class="beedero-kpi-table">
         <thead>
-          <tr><th>Email</th><th>Adicionado em</th><th></th></tr>
+          <tr><th>Email</th><th>Added on</th><th></th></tr>
         </thead>
         <tbody>
           {% for recipient in recipients %}
             <tr>
               <td>{{ recipient.email }}</td>
-              <td>{{ recipient.created_at|date:"d/m/Y H:i" }}</td>
+              <td>{{ recipient.created_at|date:"Y-m-d H:i" }}</td>
               <td>
-                <form method="post" action="{% url 'admin-newsletter-recipient-delete' recipient.pk %}" onsubmit="return confirm('Remover {{ recipient.email }}?');">
+                <form method="post" action="{% url 'admin-newsletter-recipient-delete' recipient.pk %}" onsubmit="return confirm('Remove {{ recipient.email }}?');">
                   {% csrf_token %}
-                  <button type="submit" class="button">Remover</button>
+                  <button type="submit" class="button">Remove</button>
                 </form>
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="3">Ainda sem interessados adicionados.</td></tr>
+            <tr><td colspan="3">No interested contacts yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -110,12 +110,12 @@
 
     <section class="beedero-kpi-panel">
       <div class="beedero-kpi-block-head">
-        <h2>Histórico de envios</h2>
-        <p>Últimas 20 campanhas enviadas.</p>
+        <h2>Send history</h2>
+        <p>Last 20 campaigns sent.</p>
       </div>
       <table class="beedero-kpi-table">
         <thead>
-          <tr><th>Assunto</th><th>Público</th><th>Enviados</th><th>Falhas</th><th>Por</th><th>Quando</th></tr>
+          <tr><th>Subject</th><th>Audience</th><th>Sent</th><th>Failed</th><th>By</th><th>When</th></tr>
         </thead>
         <tbody>
           {% for send in history %}
@@ -125,10 +125,10 @@
               <td>{{ send.recipient_count }}</td>
               <td>{{ send.failed_count }}</td>
               <td>{{ send.sent_by.email|default:"—" }}</td>
-              <td>{{ send.sent_at|date:"d/m/Y H:i" }}</td>
+              <td>{{ send.sent_at|date:"Y-m-d H:i" }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="6">Ainda sem envios.</td></tr>
+            <tr><td colspan="6">No sends yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>

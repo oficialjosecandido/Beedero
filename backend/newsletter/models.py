@@ -20,9 +20,9 @@ class NewsletterSend(models.Model):
     """Audit row for one newsletter campaign send."""
 
     class Audience(models.TextChoices):
-        USERS = "users", "Todos os utilizadores"
-        RECIPIENTS = "recipients", "Todos os interessados"
-        BOTH = "both", "Ambos"
+        USERS = "users", "All users"
+        RECIPIENTS = "recipients", "All interested contacts"
+        BOTH = "both", "Both"
 
     subject = models.CharField(max_length=255)
     html_content = models.TextField()

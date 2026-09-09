@@ -41,5 +41,6 @@ urlpatterns = [
     path("api/", include("advisory.urls")),
     path("api/", include("jobs.urls")),
     path("api/", include("affiliations.urls")),
+    path("api/", include("investments.urls")),
     path("api/internal/run-job/", views.run_management_job),
 ]

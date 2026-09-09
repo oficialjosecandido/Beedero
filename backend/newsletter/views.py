@@ -47,16 +47,16 @@ def newsletter_send_test(request):
     subject = request.POST.get("subject", "").strip()
     html_content = request.POST.get("html_content", "").strip()
     if not subject or not html_content:
-        messages.error(request, "Preenche o assunto e o conteúdo HTML antes de enviar o teste.")
+        messages.error(request, "Fill in the subject and HTML content before sending a test.")
         return redirect("admin-newsletter")
 
     try:
-        _send_one(f"[TESTE] {subject}", html_content, TEST_EMAIL_RECIPIENT)
+        _send_one(f"[TEST] {subject}", html_content, TEST_EMAIL_RECIPIENT)
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
-        messages.error(request, f"Falha ao enviar o email de teste: {exc}")
+        messages.error(request, f"Failed to send test email: {exc}")
     else:
-        messages.success(request, f"Email de teste enviado para {TEST_EMAIL_RECIPIENT}.")
+        messages.success(request, f"Test email sent to {TEST_EMAIL_RECIPIENT}.")
     return redirect("admin-newsletter")
 
 
@@ -68,7 +68,7 @@ def newsletter_send(request):
     audience = request.POST.get("audience", "")
 
     if not subject or not html_content or audience not in NewsletterSend.Audience.values:
-        messages.error(request, "Preenche o assunto, o conteúdo HTML e escolhe o público.")
+        messages.error(request, "Fill in the subject, HTML content, and choose an audience.")
         return redirect("admin-newsletter")
 
     emails = set()
@@ -94,7 +94,7 @@ def newsletter_send(request):
         failed_count=failed,
         sent_by=request.user,
     )
-    messages.success(request, f"Newsletter enviada: {sent} com sucesso, {failed} falha(s).")
+    messages.success(request, f"Newsletter sent: {sent} succeeded, {failed} failed.")
     return redirect("admin-newsletter")
 
 
@@ -115,7 +115,7 @@ def newsletter_recipients_add(request):
         _, created = NewsletterRecipient.objects.get_or_create(email=email)
         added += int(created)
 
-    messages.success(request, f"{added} email(s) adicionados. {skipped} inválido(s) ignorados.")
+    messages.success(request, f"{added} email(s) added. {skipped} invalid skipped.")
     return redirect("admin-newsletter")
 
 
@@ -123,5 +123,5 @@ def newsletter_recipients_add(request):
 @require_POST
 def newsletter_recipient_delete(request, pk):
     NewsletterRecipient.objects.filter(pk=pk).delete()
-    messages.success(request, "Contacto removido.")
+    messages.success(request, "Contact removed.")
     return redirect("admin-newsletter")

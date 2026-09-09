@@ -60,12 +60,12 @@ def _card(label, value, section, delta=None, *, highlight=False):
 
 
 KPI_SECTIONS = [
-    ("Hoje", "Daily pulse — activity since midnight (Lisbon time)."),
-    ("Rede", "Network size, growth, and pending actions."),
-    ("Confiança", "Verification queue and expiry risk."),
-    ("Liquidez", "Profile views, interest signals, and deals."),
-    ("Atividade", "Content and engagement."),
-    ("Saúde operacional", "Background jobs and data freshness."),
+    ("Today", "Daily pulse — activity since midnight (Lisbon time)."),
+    ("Network", "Network size, growth, and pending actions."),
+    ("Trust", "Verification queue and expiry risk."),
+    ("Liquidity", "Profile views, interest signals, and deals."),
+    ("Activity", "Content and engagement."),
+    ("Operational health", "Background jobs and data freshness."),
 ]
 
 
@@ -172,39 +172,39 @@ def kpis_view(request):
             daily_stats_fresh = daily_stats_latest >= today_local - timedelta(days=1)
 
     cards = [
-        # -- Hoje --
-        _card("Novos utilizadores", new_users_today, "Hoje", highlight=True),
-        _card("Novas orgs", new_orgs_today, "Hoje", highlight=True),
-        _card("Posts", posts_today, "Hoje", highlight=True),
-        _card("Logins", logins_today, "Hoje", highlight=True),
-        _card("Novas conexões", new_connections_today, "Hoje", highlight=True),
-        # -- Rede --
-        _card("Orgs live", orgs_live, "Rede", orgs_new),
-        _card("Orgs em draft", orgs_draft, "Rede"),
-        _card("Utilizadores", users_total, "Rede", users_new),
-        _card("Novos utilizadores (30d)", users_new_30d, "Rede"),
-        _card("Ativos (7d)", users_active_7d, "Rede"),
-        _card("Email verificado", users_email_ok, "Rede"),
-        _card("Investidores prontos", investors_ready, "Rede"),
-        _card("Novos follows", follows_new, "Rede") if follows_new is not None else None,
-        _card("Conexões", connections_total, "Rede"),
-        _card("Pedidos pendentes", pending_requests, "Rede"),
-        _card("Rondas abertas", open_rounds, "Rede"),
-        # -- Confiança --
-        _card("Verificações pendentes", verif_pending, "Confiança"),
-        _card("Verificações a expirar (30d)", verif_expiring, "Confiança"),
-        # -- Liquidez --
-        _card("Views de perfil (7d)", views_week, "Liquidez"),
-        _card("Sinais de interesse (7d)", signals_week, "Liquidez"),
-        _card("Deals reportados", deals_reported, "Liquidez"),
-        _card("Deals confirmados", deals_confirmed, "Liquidez"),
-        # -- Atividade --
-        _card("Posts (7d)", posts_week, "Atividade"),
-        # -- Saúde operacional --
+        # -- Today --
+        _card("New users", new_users_today, "Today", highlight=True),
+        _card("New orgs", new_orgs_today, "Today", highlight=True),
+        _card("Posts", posts_today, "Today", highlight=True),
+        _card("Logins", logins_today, "Today", highlight=True),
+        _card("New connections", new_connections_today, "Today", highlight=True),
+        # -- Network --
+        _card("Live orgs", orgs_live, "Network", orgs_new),
+        _card("Draft orgs", orgs_draft, "Network"),
+        _card("Users", users_total, "Network", users_new),
+        _card("New users (30d)", users_new_30d, "Network"),
+        _card("Active (7d)", users_active_7d, "Network"),
+        _card("Email verified", users_email_ok, "Network"),
+        _card("Ready investors", investors_ready, "Network"),
+        _card("New follows", follows_new, "Network") if follows_new is not None else None,
+        _card("Connections", connections_total, "Network"),
+        _card("Pending requests", pending_requests, "Network"),
+        _card("Open rounds", open_rounds, "Network"),
+        # -- Trust --
+        _card("Pending verifications", verif_pending, "Trust"),
+        _card("Expiring verifications (30d)", verif_expiring, "Trust"),
+        # -- Liquidity --
+        _card("Profile views (7d)", views_week, "Liquidity"),
+        _card("Interest signals (7d)", signals_week, "Liquidity"),
+        _card("Deals reported", deals_reported, "Liquidity"),
+        _card("Deals confirmed", deals_confirmed, "Liquidity"),
+        # -- Activity --
+        _card("Posts (7d)", posts_week, "Activity"),
+        # -- Operational health --
         _card(
-            "Stats diárias — última execução",
-            f"{daily_stats_latest.strftime('%d/%m')}" + ("" if daily_stats_fresh else " ⚠️ atrasado"),
-            "Saúde operacional",
+            "Daily stats — last run",
+            f"{daily_stats_latest.strftime('%Y-%m-%d')}" + ("" if daily_stats_fresh else " ⚠️ stale"),
+            "Operational health",
         )
         if daily_stats_latest is not None
         else None,
@@ -221,12 +221,12 @@ def kpis_view(request):
 
     # ---------- Funil de onboarding ----------
     raw_funnel = [
-        ("Contas criadas", users_total),
-        ("Email verificado", users_email_ok),
-        ("Org criada", orgs_draft + orgs_live),
-        ("Org publicada (live)", orgs_live),
-        ("Credibilidade ≥ 1", sum(n for lv, n in level_counts.items() if lv >= 1)),
-        ("Credibilidade ≥ 3", sum(n for lv, n in level_counts.items() if lv >= 3)),
+        ("Accounts created", users_total),
+        ("Email verified", users_email_ok),
+        ("Org created", orgs_draft + orgs_live),
+        ("Org published (live)", orgs_live),
+        ("Credibility ≥ 1", sum(n for lv, n in level_counts.items() if lv >= 1)),
+        ("Credibility ≥ 3", sum(n for lv, n in level_counts.items() if lv >= 3)),
     ]
     funnel = []
     for i, (label, count) in enumerate(raw_funnel):
