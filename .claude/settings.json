@@ -223,7 +223,9 @@
       "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --virtual-time-budget=8000 --dump-dom http://localhost:3994/__probe.html)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3994/__probe.html)",
       "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --virtual-time-budget=15000 --dump-dom http://localhost:3994/__probe.html)",
-      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --hide-scrollbars --window-size=390,844 --virtual-time-budget=15000 --screenshot=v390.png http://localhost:3994/)"
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --hide-scrollbars --window-size=390,844 --virtual-time-budget=15000 --screenshot=v390.png http://localhost:3994/)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --window-size=1600,900 --virtual-time-budget=25000 --dump-dom http://localhost:3994/__probe.html)",
+      "Bash(curl -s http://localhost:3994/)"
     ]
   }
 }
