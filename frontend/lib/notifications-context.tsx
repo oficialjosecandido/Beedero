@@ -27,16 +27,22 @@ export type NotificationPreferences = {
   push_enabled: boolean;
 };
 
+const DEFAULT_PREFS: NotificationPreferences = {
+  digest_email: true,
+  inapp_engagement: true,
+  push_enabled: false,
+};
+
 type NotificationsContextValue = {
   unread: number;
   items: NotificationItem[];
   loading: boolean;
-  prefs: NotificationPreferences | null;
+  prefs: NotificationPreferences;
   refresh: () => Promise<void>;
   markAllRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreference: (field: keyof NotificationPreferences, value: boolean) => Promise<void>;
-  setPushEnabled: (value: boolean) => Promise<void>;
+  setPushEnabled: (value: boolean) => Promise<string | null>;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
@@ -49,7 +55,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // notifications yet" for users who do have notifications, before the
   // first poll resolved.
   const [loading, setLoading] = useState(true);
-  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
 
   const refresh = useCallback(async () => {
     try {
@@ -98,41 +104,56 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const updatePreference = useCallback(
     async (field: keyof NotificationPreferences, value: boolean) => {
-      setPrefs((prev) => (prev ? { ...prev, [field]: value } : prev));
+      setPrefs((prev) => ({ ...prev, [field]: value }));
       try {
         const res = await fetch("/api/notifications/preferences", {
           method: "PATCH",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ [field]: value }),
         });
-        if (res.ok) setPrefs((await res.json()) as NotificationPreferences);
+        if (res.ok) {
+          setPrefs((await res.json()) as NotificationPreferences);
+          return;
+        }
+        // Revert optimistic update if the server rejected it.
+        setPrefs((prev) => ({ ...prev, [field]: !value }));
       } catch {
-        // ignore
+        setPrefs((prev) => ({ ...prev, [field]: !value }));
       }
     },
     []
   );
 
   const setPushEnabled = useCallback(
-    async (value: boolean) => {
+    async (value: boolean): Promise<string | null> => {
       if (value) {
         const token = await requestPushToken();
-        if (!token) return;
+        if (!token) {
+          return "Push is not available on this device. Allow notifications in system settings, or add Beedero to your Home Screen.";
+        }
         try {
-          await fetch("/api/notifications/push-token", {
+          const res = await fetch("/api/notifications/push-token", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token }),
           });
+          if (!res.ok) return "Could not register this device for push notifications.";
         } catch {
-          return;
+          return "Could not register this device for push notifications.";
         }
       } else {
         try {
-          await fetch("/api/notifications/push-token", { method: "DELETE", body: JSON.stringify({}) });
+          await fetch("/api/notifications/push-token", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
         } catch {
-          // ignore — preference is still turned off below regardless
+          // Prefer turning the preference off even if unregister fails.
         }
       }
       await updatePreference("push_enabled", value);
+      return null;
     },
     [updatePreference]
   );

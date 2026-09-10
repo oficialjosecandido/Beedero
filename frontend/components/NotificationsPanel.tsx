@@ -123,6 +123,43 @@ function NotificationRow({
   );
 }
 
+function PreferenceSwitch({
+  checked,
+  label,
+  disabled,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  label: string;
+  disabled?: boolean;
+  onCheckedChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-1 py-1.5 text-left text-sm text-beedero-black touch-manipulation disabled:opacity-50"
+    >
+      <span className="min-w-0 flex-1 leading-5">{label}</span>
+      <span
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-beedero-black" : "bg-zinc-300"
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-[left] ${
+            checked ? "left-5" : "left-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
 export function NotificationsPanel() {
   const {
     unread,
@@ -137,6 +174,8 @@ export function NotificationsPanel() {
   } = useNotifications();
   const [showPrefs, setShowPrefs] = useState(false);
   const [resolvedIds, setResolvedIds] = useState<number[]>([]);
+  const [prefsBusy, setPrefsBusy] = useState(false);
+  const [prefsError, setPrefsError] = useState<string | null>(null);
 
   useEffect(() => {
     void refresh();
@@ -144,6 +183,14 @@ export function NotificationsPanel() {
   }, [refresh, loadPreferences]);
 
   const visibleItems = items.filter((item) => !resolvedIds.includes(item.id));
+
+  async function togglePush(next: boolean) {
+    setPrefsBusy(true);
+    setPrefsError(null);
+    const error = await setPushEnabled(next);
+    if (error) setPrefsError(error);
+    setPrefsBusy(false);
+  }
 
   return (
     <div className="overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
@@ -170,31 +217,32 @@ export function NotificationsPanel() {
       </div>
 
       {showPrefs && (
-        <div className="flex flex-col gap-2 border-b border-beedero-border bg-beedero-yellow/10 px-5 py-4 text-sm text-beedero-black">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={prefs?.inapp_engagement ?? true}
-              onChange={(e) => updatePreference("inapp_engagement", e.target.checked)}
-            />
-            In-app engagement notifications
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={prefs?.digest_email ?? true}
-              onChange={(e) => updatePreference("digest_email", e.target.checked)}
-            />
-            Weekly digest email
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={prefs?.push_enabled ?? false}
-              onChange={(e) => setPushEnabled(e.target.checked)}
-            />
-            Push notifications on this device
-          </label>
+        <div className="flex flex-col gap-1 border-b border-beedero-border bg-beedero-yellow/10 px-5 py-3 text-beedero-black">
+          <PreferenceSwitch
+            label="In-app engagement notifications"
+            checked={prefs.inapp_engagement}
+            onCheckedChange={(next) => {
+              setPrefsError(null);
+              void updatePreference("inapp_engagement", next);
+            }}
+          />
+          <PreferenceSwitch
+            label="Weekly digest email"
+            checked={prefs.digest_email}
+            onCheckedChange={(next) => {
+              setPrefsError(null);
+              void updatePreference("digest_email", next);
+            }}
+          />
+          <PreferenceSwitch
+            label="Push notifications on this device"
+            checked={prefs.push_enabled}
+            disabled={prefsBusy}
+            onCheckedChange={(next) => {
+              void togglePush(next);
+            }}
+          />
+          {prefsError && <p className="px-1 pb-1 text-xs text-danger">{prefsError}</p>}
         </div>
       )}
 

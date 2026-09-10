@@ -25,11 +25,17 @@ export async function requestPushToken(): Promise<string | null> {
   if (typeof window === "undefined" || !("Notification" in window)) return null;
   if (!("serviceWorker" in navigator)) return null;
 
+  // Ask for permission while we still have the user gesture. On iOS PWAs,
+  // awaiting Firebase imports first can drop the activation and the prompt
+  // never appears — the toggle then looks broken.
+  let permission = Notification.permission;
+  if (permission === "default") {
+    permission = await Notification.requestPermission();
+  }
+  if (permission !== "granted") return null;
+
   const { app, getMessaging, getToken, isSupported } = await messagingApi();
   if (!(await isSupported())) return null;
-
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return null;
 
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
   if (!vapidKey) return null;
