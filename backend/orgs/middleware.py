@@ -1,8 +1,8 @@
 from django.db import connection, transaction
 
-from accounts.entra_auth import EntraJWTAuthentication
+from accounts.firebase_auth import FirebaseIDTokenAuthentication
 
-_entra_authentication = EntraJWTAuthentication()
+_authentication = FirebaseIDTokenAuthentication()
 
 # Routes that never read viewer-scoped, RLS-protected data: `public_profile()`
 # (orgs/public.py, §3.4) hardcodes `visibility=public` into the query itself
@@ -25,8 +25,10 @@ def _viewer_id(request) -> int:
     request (this app has no session-based auth). Re-running the same
     authenticator here is the only way to know the real viewer this early."""
     try:
-        result = _entra_authentication.authenticate(request)
+        result = _authentication.authenticate(request)
     except Exception:
+        # Includes AuthenticationFailed on a bad/expired token: viewer 0 means
+        # "anonymous" to the RLS policies, and DRF raises the real 401 later.
         return 0
     if result is None:
         return 0

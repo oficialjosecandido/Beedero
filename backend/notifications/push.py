@@ -3,34 +3,15 @@ configured, send_push() is a silent no-op — push is a progressive
 enhancement layered on top of in-app notifications, not core infra like
 email (see beedero/settings.py)."""
 
-import json
-
 import sentry_sdk
-from django.conf import settings
 
-_app = None
-_init_attempted = False
-
-
-def _get_app():
-    global _app, _init_attempted
-    if _init_attempted:
-        return _app
-    _init_attempted = True
-
-    if not settings.FIREBASE_SERVICE_ACCOUNT_JSON:
-        return None
-
-    import firebase_admin
-    from firebase_admin import credentials
-
-    cred = credentials.Certificate(json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON))
-    _app = firebase_admin.initialize_app(cred)
-    return _app
+from beedero.firebase import get_firebase_app
 
 
 def send_push(user, *, title: str, body: str, link: str = ""):
-    app = _get_app()
+    # Shared with accounts.firebase_auth — firebase_admin allows only one
+    # initialize_app() per app name, so both go through beedero.firebase.
+    app = get_firebase_app()
     if app is None:
         return
 

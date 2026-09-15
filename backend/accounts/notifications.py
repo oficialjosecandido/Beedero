@@ -4,7 +4,9 @@ from django.core.mail import send_mail
 
 
 def notify_admin_new_user(user) -> None:
-    """Email the configured admin when a new Entra user is JIT-provisioned."""
+    """Email the configured admin when a new user is JIT-provisioned on their
+    first Firebase sign-in. Not called when an existing row is merely adopted
+    by that sign-in (see accounts/provisioning.py) — that's not a sign-up."""
     recipient = getattr(settings, "NEW_USER_NOTIFY_EMAIL", "") or ""
     if not recipient:
         return

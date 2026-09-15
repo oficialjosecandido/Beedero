@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getEntraConfig, tokenUrl } from "./entra";
+import { refreshFirebaseSession } from "./firebase-auth";
 import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
 const DEFAULT_API_TIMEOUT_MS = 15_000;
@@ -138,44 +138,25 @@ function doFetch(path: string, options: { method?: string; body?: unknown }, tok
   );
 }
 
-/** P0.5: the access token is short-lived (30min) — on a 401, try the refresh
- * cookie once before giving up, so a session doesn't die mid-visit. Mirrors
- * proxy.ts's refreshEntraSession and app/api/auth/refresh/route.ts — this
- * one runs in the normal Node runtime, so it can import lib/entra.ts
- * directly (proxy.ts can't: it's edge middleware and lib/entra.ts uses
- * node:crypto). */
+/** P0.5: the Firebase ID token is short-lived (1 hour) — on a 401, try the
+ * refresh cookie once before giving up, so a session doesn't die mid-visit.
+ * proxy.ts does the same on the way into a page; this covers the calls that
+ * expire during one. */
 async function tryRefresh(): Promise<string | null> {
   const refresh = await getRefreshToken();
-  const config = getEntraConfig();
-  if (!refresh || !config) return null;
-
-  const body = new URLSearchParams({
-    client_id: config.webClientId,
-    client_secret: config.webClientSecret,
-    grant_type: "refresh_token",
-    refresh_token: refresh,
-    scope: `openid offline_access ${config.scope}`,
-  });
+  if (!refresh) return null;
 
   try {
-    const { res, text } = await fetchWithTimeout(
-      tokenUrl(config),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
-      },
-      DEFAULT_API_TIMEOUT_MS
-    );
-    if (!res.ok) {
+    const tokens = await refreshFirebaseSession(refresh);
+    if (!tokens) {
       await clearSession();
       return null;
     }
-    const tokens: { access_token: string; refresh_token?: string } = JSON.parse(text);
-    await setSession(tokens.access_token, tokens.refresh_token ?? refresh);
-    return tokens.access_token;
+    await setSession(tokens.idToken, tokens.refreshToken);
+    return tokens.idToken;
   } catch {
-    await clearSession();
+    // Firebase unreachable. Keep the cookies — the session may well still be
+    // valid — and just fail this call.
     return null;
   }
 }

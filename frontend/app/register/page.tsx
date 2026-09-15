@@ -1,23 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { EmailLinkForm } from "@/components/EmailLinkForm";
+import { authErrorMessage } from "@/lib/firebase-auth";
+import { getPendingConfirmation } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
   title: "Create account",
-  description: "Join Beedero — then connect to your startup or start investing. Build structured profiles and discover verified opportunities.",
+  description:
+    "Join Beedero — then connect to your startup or start investing. Build structured profiles and discover verified opportunities.",
   path: "/register",
 });
 
-const FORCE_SIGNUP_COOKIE = "beedero_force_signup";
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
 
-export default async function RegisterPage() {
-  const store = await cookies();
-  // After Entra logout, resume signup via a Route Handler (can clear the cookie).
-  if (store.get(FORCE_SIGNUP_COOKIE)?.value === "1") {
-    redirect("/api/auth/signup/continue");
+  // Sign-in and sign-up are the same act now: the first link sent to an
+  // address creates the account. This page exists for the framing (and the
+  // landing page's CTA), but the confirm step belongs on one page only.
+  if (await getPendingConfirmation()) {
+    redirect("/login?confirm=1");
   }
 
   return (
@@ -27,17 +35,17 @@ export default async function RegisterPage() {
           <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
             Beedero
           </p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">
-            Create account
-          </h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Join Beedero</h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            Founders, experts, investors and the organisations they build. Free to join.
+          </p>
         </div>
-        {/* Opens Entra signup (prompt=create). Logs out first only if already signed in. */}
-        <a
-          href="/api/auth/signup"
-          className="flex items-center justify-center rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90"
-        >
-          Create account with Beedero ID
-        </a>
+        <EmailLinkForm
+          mode="send"
+          next="/feed"
+          submitLabel="Email me a sign-up link"
+          initialError={authErrorMessage(error)}
+        />
         <p className="text-center text-sm text-zinc-600">
           Already have an account?{" "}
           <Link

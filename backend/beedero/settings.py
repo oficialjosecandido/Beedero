@@ -207,9 +207,11 @@ EMAIL_BACKEND = "beedero.email_backend.AzureCommunicationEmailBackend"
 
 NEW_USER_NOTIFY_EMAIL = os.environ.get("NEW_USER_NOTIFY_EMAIL", "josevcandido@gmail.com")
 
-# Web push (FCM) — unlike email above, this is a progressive enhancement,
-# not core infra: with no service account configured, notifications/push.py
-# silently no-ops instead of failing boot.
+# One service account, two consumers (beedero/firebase.py): web push (FCM)
+# and ID-token verification for authentication. Unset is tolerated at boot so
+# local/CI runs don't need a real credential, but the two consumers diverge at
+# runtime: push silently no-ops (progressive enhancement) while
+# accounts.firebase_auth rejects every authenticated request.
 FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -232,46 +234,16 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {
-    # Microsoft Entra External ID (CIAM) is the only authentication path —
-    # native email/password auth was removed in favor of it.
+    # Firebase Authentication is the only authentication path. It replaced
+    # Microsoft Entra External ID (CIAM), which in turn had replaced native
+    # email/password auth.
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "accounts.entra_auth.EntraJWTAuthentication",
+        "accounts.firebase_auth.FirebaseIDTokenAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
 }
-
-# --- Microsoft Entra External ID (CIAM) ------------------------------------
-# Deliberately NOT validated with ImproperlyConfigured like the settings
-# above: the Entra tenant may not exist yet in a given environment (it
-# doesn't, as of this writing, in any of ours). EntraJWTAuthentication and
-# get_or_provision_user must degrade to "Entra login unavailable" rather than
-# crash the whole app when these are unset.
-ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "")
-ENTRA_TENANT_SUBDOMAIN = os.environ.get("ENTRA_TENANT_SUBDOMAIN", "")
-ENTRA_CUSTOM_DOMAIN = os.environ.get("ENTRA_CUSTOM_DOMAIN", "")  # e.g. auth.beedero.com
-ENTRA_API_CLIENT_ID = os.environ.get("ENTRA_API_CLIENT_ID", "")  # audience of the beedero-api app registration
-
-_entra_authority = (
-    f"https://{ENTRA_CUSTOM_DOMAIN}"
-    if ENTRA_CUSTOM_DOMAIN
-    # The `iss` claim on issued tokens always uses the tenant-ID subdomain,
-    # never the friendly ENTRA_TENANT_SUBDOMAIN (confirmed via the tenant's
-    # own /.well-known/openid-configuration, whose "issuer" field is
-    # identical regardless of which subdomain you query it through).
-    else f"https://{ENTRA_TENANT_ID}.ciamlogin.com"
-    if ENTRA_TENANT_ID
-    else ""
-)
-ENTRA_ISSUER = f"{_entra_authority}/{ENTRA_TENANT_ID}/v2.0" if _entra_authority and ENTRA_TENANT_ID else ""
-# JWKS always resolves against the tenant subdomain (not the custom domain),
-# per Entra External ID's discovery document layout.
-ENTRA_JWKS_URL = (
-    f"https://{ENTRA_TENANT_SUBDOMAIN}.ciamlogin.com/{ENTRA_TENANT_ID}/discovery/v2.0/keys"
-    if ENTRA_TENANT_SUBDOMAIN and ENTRA_TENANT_ID
-    else ""
-)
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000"

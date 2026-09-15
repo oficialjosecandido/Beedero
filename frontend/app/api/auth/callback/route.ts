@@ -1,76 +1,96 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { getEntraConfig, tokenUrl } from "@/lib/entra";
-import { setSession } from "@/lib/session";
+import { FirebaseAuthError, completeSignInWithEmailLink, safeNextPath } from "@/lib/firebase-auth";
+import {
+  clearPendingLink,
+  readPendingLink,
+  setPendingConfirmation,
+  setSession,
+} from "@/lib/session";
 import { SITE_URL } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
 
-const OAUTH_COOKIE_NAMES = [
-  "beedero_oidc_verifier",
-  "beedero_oidc_state",
-  "beedero_oidc_nonce",
-  "beedero_oidc_next",
-  "beedero_oidc_screen",
-];
-
+/**
+ * Where a Firebase sign-in link lands.
+ *
+ * Two routes here, and both must keep working:
+ *
+ *  - Default. The emailed link points at Firebase's own action handler, which
+ *    for mode=signIn redirects to the `continueUrl` we supplied when sending
+ *    (lib/auth-actions.ts) with `oobCode`, `mode` and `apiKey` appended to its
+ *    existing query. So `state` and `next` arrive as top-level params, having
+ *    survived the hop untouched.
+ *  - Custom action URL. If the project's "Email address sign-in" template is
+ *    ever pointed straight at this route, Firebase skips its handler and passes
+ *    `continueUrl` itself as a param, with `state` and `next` nested inside it.
+ *
+ * Reading top-level first and falling back to the nested copy covers both
+ * without the route needing to know which is configured.
+ */
 export async function GET(request: NextRequest) {
-  const config = getEntraConfig();
-  if (!config) {
-    return NextResponse.redirect(new URL("/login?error=entra_not_configured", SITE_URL));
-  }
-
   const params = request.nextUrl.searchParams;
-  const providerError = params.get("error");
-  const code = params.get("code");
-  const state = params.get("state");
+  const mode = params.get("mode");
+  const oobCode = params.get("oobCode");
 
-  const store = await cookies();
-  const expectedState = store.get("beedero_oidc_state")?.value;
-  const verifier = store.get("beedero_oidc_verifier")?.value;
-  const next = store.get("beedero_oidc_next")?.value || "/feed";
-  const oidcScreen = store.get("beedero_oidc_screen")?.value;
-  for (const name of OAUTH_COOKIE_NAMES) store.delete(name);
-
-  const errorRedirect = (error: string) => {
-    const base = oidcScreen === "signup" ? "/register" : "/login";
-    return NextResponse.redirect(new URL(`${base}?error=${encodeURIComponent(error)}`, SITE_URL));
-  };
-
-  if (providerError) {
-    return errorRedirect(providerError);
-  }
-  if (!code || !state || !verifier || state !== expectedState) {
-    return errorRedirect("entra_invalid_state");
-  }
-
-  const body = new URLSearchParams({
-    client_id: config.webClientId,
-    client_secret: config.webClientSecret,
-    grant_type: "authorization_code",
-    code,
-    redirect_uri: config.redirectUri,
-    code_verifier: verifier,
-    scope: `openid offline_access ${config.scope}`,
-  });
-
-  let tokens: { access_token: string; refresh_token?: string; id_token?: string };
-  try {
-    const res = await fetch(tokenUrl(config), {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    if (!res.ok) {
-      return errorRedirect("entra_token_exchange_failed");
+  // Both of these are echoed back by a third party, so neither decides anything
+  // beyond its own contents — `next` is narrowed to a path on this site before
+  // it is ever used as a redirect target.
+  let state = params.get("state");
+  let next = params.get("next");
+  const continueUrl = params.get("continueUrl");
+  if (continueUrl && (state === null || next === null)) {
+    try {
+      const nested = new URL(continueUrl, SITE_URL).searchParams;
+      state ??= nested.get("state");
+      next ??= nested.get("next");
+    } catch {
+      // Malformed — fall through on whatever came in top-level.
     }
-    tokens = await res.json();
-  } catch {
-    return errorRedirect("entra_unreachable");
+  }
+  const destination = safeNextPath(next);
+
+  const failure = (code: string) =>
+    NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(code)}`, SITE_URL)
+    );
+
+  // Beedero only ever sends mode=signIn links. Anything else means this route
+  // was hit by a link it doesn't handle.
+  if (mode && mode !== "signIn") return failure("missing_code");
+  if (!oobCode) return failure("missing_code");
+
+  const pending = await readPendingLink();
+
+  // State is checked only when this browser has a record of the send. A click
+  // from a different device legitimately has no cookie — that's the branch
+  // below, not a failure. A cookie that exists and disagrees IS a failure.
+  if (pending.state && state && pending.state !== state) {
+    await clearPendingLink();
+    return failure("invalid_state");
   }
 
-  await setSession(tokens.access_token, tokens.refresh_token ?? "", tokens.id_token);
-  return NextResponse.redirect(new URL(next, SITE_URL));
+  if (!pending.email) {
+    // Cross-device: Firebase needs the address back before it will redeem the
+    // code, and only the person who typed it knows which one it was. Park the
+    // code in an httpOnly cookie rather than the URL so it stays out of
+    // history and out of any Referer header, and go ask.
+    await setPendingConfirmation(oobCode);
+    return NextResponse.redirect(
+      new URL(`/login?confirm=1&next=${encodeURIComponent(destination)}`, SITE_URL)
+    );
+  }
+
+  try {
+    const session = await completeSignInWithEmailLink(pending.email, oobCode);
+    await setSession(session.idToken, session.refreshToken);
+  } catch (err) {
+    await clearPendingLink();
+    if (err instanceof FirebaseAuthError) return failure(err.code);
+    throw err;
+  }
+
+  await clearPendingLink();
+  return NextResponse.redirect(new URL(destination, SITE_URL));
 }

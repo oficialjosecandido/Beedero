@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { EmailLinkForm } from "@/components/EmailLinkForm";
+import { authErrorMessage, safeNextPath } from "@/lib/firebase-auth";
+import { getPendingConfirmation } from "@/lib/session";
 import { noIndexMetadata, pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
@@ -12,21 +15,16 @@ export const metadata: Metadata = {
   ...noIndexMetadata,
 };
 
-const ENTRA_ERROR_MESSAGES: Record<string, string> = {
-  entra_not_configured: "Beedero ID sign-in isn't available right now. Please try again shortly.",
-  entra_invalid_state: "That sign-in link expired or was already used. Please try again.",
-  entra_token_exchange_failed: "Beedero ID sign-in failed. Please try again.",
-  entra_unreachable: "Couldn't reach Beedero ID right now. Please try again.",
-};
-
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; confirm?: string }>;
 }) {
   const { next, error } = await searchParams;
-  const errorMessage = error ? ENTRA_ERROR_MESSAGES[error] ?? "Sign-in failed. Please try again." : null;
-  const entraLoginHref = next ? `/api/auth/login?next=${encodeURIComponent(next)}` : "/api/auth/login";
+  // The callback route parks the one-time code here when a link is opened on a
+  // browser that never saw the send. Its presence — not the query string — is
+  // what puts the form in confirm mode.
+  const awaitingConfirmation = Boolean(await getPendingConfirmation());
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-beedero-white px-6 py-12 text-beedero-black">
@@ -35,28 +33,28 @@ export default async function LoginPage({
           <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
             Beedero
           </p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Log in</h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">
+            {awaitingConfirmation ? "Confirm your email" : "Log in"}
+          </h1>
         </div>
-        {errorMessage && (
-          <p className="rounded-2xl bg-danger-surface px-4 py-3 text-sm text-danger-strong">{errorMessage}</p>
-        )}
-        <a
-          href={entraLoginHref}
-          className="flex items-center justify-center rounded-full border-2 border-beedero-black px-4 py-3 text-sm font-semibold text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
-        >
-          Log in with Beedero ID
-        </a>
-        <div className="flex flex-col gap-2 text-center text-sm text-zinc-600">
-          <p>
-          Don&apos;t have an account yet?{" "}
-          <Link
-            href="/register"
-            className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-          >
-            Create account
-          </Link>
+        <EmailLinkForm
+          mode={awaitingConfirmation ? "confirm" : "send"}
+          next={safeNextPath(next)}
+          submitLabel={awaitingConfirmation ? "Confirm and sign in" : "Email me a sign-in link"}
+          initialError={authErrorMessage(error)}
+        />
+        {!awaitingConfirmation && (
+          <p className="text-center text-sm text-zinc-600">
+            New here? The same link creates your account —{" "}
+            <Link
+              href="/register"
+              className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
+              see what you get
+            </Link>
+            .
           </p>
-        </div>
+        )}
         <p className="text-center text-xs text-zinc-500">
           <Link href="/terms" className="underline underline-offset-2 hover:text-beedero-black">
             Terms

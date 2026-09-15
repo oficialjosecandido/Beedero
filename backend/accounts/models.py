@@ -5,10 +5,18 @@ from django.db import models
 class User(AbstractUser):
     # investor, founder, talent (future)
     email_verified_at = models.DateTimeField(null=True, blank=True)
-    # Stable Microsoft Entra External ID identifier (the `oid` claim). Never
-    # the email — Entra lets users change that. Null for users who haven't
-    # authenticated via Entra yet (see accounts/provisioning.py).
+    # Legacy Microsoft Entra External ID identifier (the `oid` claim). Kept
+    # after the Firebase cutover so accounts created under Entra stay
+    # identifiable (and the cutover stays reversible); nothing authenticates
+    # against it any more.
     entra_oid = models.UUIDField(null=True, blank=True, unique=True, db_index=True)
+    # Firebase Authentication UID — the current identity key. A string, not a
+    # UUID: Firebase UIDs are opaque 28-char tokens, not UUIDs. Null for rows
+    # that predate the cutover until their owner signs in once, at which point
+    # provisioning links them by verified email.
+    firebase_uid = models.CharField(
+        max_length=128, null=True, blank=True, unique=True, db_index=True
+    )
 
     @property
     def is_email_verified(self) -> bool:
