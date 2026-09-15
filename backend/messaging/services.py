@@ -72,6 +72,17 @@ def create_report(*, reporter, conversation: Conversation, reason: str, details:
     )
 
 
+def create_user_report(*, reporter, reported_user, reason: str, details: str = "") -> MessageReport:
+    """Report a person with no conversation to point at — a co-founder card,
+    for instance. Same table and same /admin queue as create_report: staff
+    review one list of reports, not one per surface."""
+    if reporter.id == reported_user.id:
+        raise ValueError("A user can't report themselves.")
+    return MessageReport.objects.create(
+        reporter=reporter, reported_user=reported_user, reason=reason, details=details
+    )
+
+
 def get_or_create_conversation(user_a, user_b) -> Conversation:
     """Orders the pair by pk before get_or_create so the two participant
     FKs always satisfy the conversation_ordered_pair CheckConstraint,

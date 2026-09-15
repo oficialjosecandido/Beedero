@@ -103,8 +103,9 @@ class UserBlock(models.Model):
 
 
 class MessageReport(models.Model):
-    """A user flagging another for abuse/unsolicited contact within a DM
-    thread. Reviewed only via /admin (like credibility.Verification) —
+    """A user flagging another for abuse/unsolicited contact — from a DM
+    thread, or standalone (a co-founder card, say).
+    Reviewed only via /admin (like credibility.Verification) —
     never read back through a public API, so unlike UserBlock this has no
     RLS policy: a `beedero_app`-role admin session runs with
     beedero.viewer_id=0 (no JWT on session-authenticated /admin/ requests,
@@ -121,7 +122,14 @@ class MessageReport(models.Model):
     reported_user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="reports_against", on_delete=models.CASCADE
     )
-    conversation = models.ForeignKey(Conversation, related_name="reports", on_delete=models.CASCADE)
+    # Nullable since the co-founder module: a builder card can be reported
+    # before any conversation exists between the two people (there's no
+    # conversation until they match), and "report this card" has to work
+    # then — otherwise reporting only becomes possible after the contact
+    # you wanted to report has already happened.
+    conversation = models.ForeignKey(
+        Conversation, related_name="reports", on_delete=models.CASCADE, null=True, blank=True
+    )
     reason = models.CharField(max_length=20, choices=Reason.choices)
     details = models.CharField(max_length=1000, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

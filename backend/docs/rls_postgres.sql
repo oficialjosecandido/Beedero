@@ -154,3 +154,57 @@ USING (
           AND m.user_id = current_setting('beedero.viewer_id', true)::int
     )
 );
+
+-- Find a co-founder (source of truth: cofounder/migrations/0002_cofounder_rls.py).
+-- An inactive builder profile is a private draft: only its owner sees it.
+-- Active rows stay readable by anyone authenticated, because the density gate
+-- (services.active_builder_count) is read by people who are *not* builders;
+-- the "only active builders see other builders" rule from doc §7 is enforced
+-- at the app layer instead (DeckView).
+
+ALTER TABLE cofounder_builderprofile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cofounder_builderprofile FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY builder_profile_access ON cofounder_builderprofile
+FOR ALL
+USING (
+    is_active
+    OR user_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+)
+WITH CHECK (
+    user_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+);
+
+-- Interest is readable by both sides (record_interest()'s reciprocity check
+-- reads the row where the viewer is the target) but writable only by the
+-- actor. One-sided interest stays private because no endpoint exposes it.
+
+ALTER TABLE cofounder_cofounderinterest ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cofounder_cofounderinterest FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY cofounder_interest_access ON cofounder_cofounderinterest
+FOR ALL
+USING (
+    actor_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+    OR target_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+)
+WITH CHECK (
+    actor_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+);
+
+-- A match has no audience beyond the two people in it (same shape as
+-- messaging_conversation).
+
+ALTER TABLE cofounder_cofoundermatch ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cofounder_cofoundermatch FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY cofounder_match_access ON cofounder_cofoundermatch
+FOR ALL
+USING (
+    user_a_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+    OR user_b_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+)
+WITH CHECK (
+    user_a_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+    OR user_b_id = NULLIF(current_setting('beedero.viewer_id', true), '')::int
+);

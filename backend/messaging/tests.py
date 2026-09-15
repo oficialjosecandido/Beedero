@@ -357,6 +357,64 @@ def test_reporting_non_participant_conversation_gets_404(api, alice, bob, carol)
 
 
 @pytest.mark.django_db
+def test_report_user_without_conversation(api, alice, bob):
+    """A co-founder card can be reported before the two have ever matched,
+    so there's no conversation to attach the report to."""
+    api.force_authenticate(alice)
+
+    res = api.post(
+        "/api/reports/",
+        {"user_id": bob.id, "reason": "scam", "details": "fake company"},
+        format="json",
+    )
+    assert res.status_code == 201
+
+    report = MessageReport.objects.get()
+    assert report.reporter_id == alice.id
+    assert report.reported_user_id == bob.id
+    assert report.conversation_id is None
+    assert report.reason == "scam"
+    assert report.details == "fake company"
+
+
+@pytest.mark.django_db
+def test_report_user_requires_authentication(api, bob):
+    res = api.post("/api/reports/", {"user_id": bob.id, "reason": "scam"}, format="json")
+    assert res.status_code in (401, 403)
+    assert not MessageReport.objects.exists()
+
+
+@pytest.mark.django_db
+def test_cannot_report_yourself(api, alice):
+    api.force_authenticate(alice)
+    res = api.post("/api/reports/", {"user_id": alice.id, "reason": "scam"}, format="json")
+    assert res.status_code == 400
+    assert not MessageReport.objects.exists()
+
+
+@pytest.mark.django_db
+def test_report_unknown_user_gets_404(api, alice):
+    api.force_authenticate(alice)
+    res = api.post("/api/reports/", {"user_id": 99999, "reason": "scam"}, format="json")
+    assert res.status_code == 404
+    assert not MessageReport.objects.exists()
+
+
+@pytest.mark.django_db
+def test_report_user_shares_the_reporters_daily_budget(api, alice, bob, carol):
+    """The rate limit is per reporter, not per surface — otherwise the
+    standalone endpoint would double everyone's reporting budget."""
+    conversation = get_or_create_conversation(alice, bob)
+    api.force_authenticate(alice)
+    for _ in range(REPORTS_PER_DAY):
+        res = api.post(f"/api/conversations/{conversation.id}/report/", {"reason": "unsolicited"}, format="json")
+        assert res.status_code == 201
+
+    over_limit = api.post("/api/reports/", {"user_id": carol.id, "reason": "unsolicited"}, format="json")
+    assert over_limit.status_code == 429
+
+
+@pytest.mark.django_db
 def test_report_rate_limit(api, alice, bob):
     conversation = get_or_create_conversation(alice, bob)
     api.force_authenticate(alice)

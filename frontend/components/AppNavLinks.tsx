@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaBriefcase, FaHome, FaSearch } from "react-icons/fa";
+import { FaBriefcase, FaHandshake, FaHome, FaSearch } from "react-icons/fa";
 
 function navLinkClass(active: boolean, mobile = false) {
   if (mobile) {
@@ -27,11 +27,16 @@ function JobsIcon({ className = "size-5" }: { className?: string }) {
   return <FaBriefcase className={className} aria-hidden />;
 }
 
-export function DesktopAppNavLinks() {
+function CofounderIcon({ className = "size-5" }: { className?: string }) {
+  return <FaHandshake className={className} aria-hidden />;
+}
+
+export function DesktopAppNavLinks({ showCofounder = false }: { showCofounder?: boolean }) {
   const pathname = usePathname();
   const feedActive = pathname.startsWith("/feed");
   const discoverActive = pathname.startsWith("/discovery");
   const jobsActive = pathname.startsWith("/jobs");
+  const cofounderActive = pathname.startsWith("/cofounder");
   const dashboardActive = pathname.startsWith("/dashboard");
 
   return (
@@ -60,6 +65,16 @@ export function DesktopAppNavLinks() {
       >
         <JobsIcon />
       </Link>
+      {showCofounder && (
+        <Link
+          href="/cofounder"
+          className={navLinkClass(cofounderActive)}
+          aria-label="Find a co-founder"
+          aria-current={cofounderActive ? "page" : undefined}
+        >
+          <CofounderIcon />
+        </Link>
+      )}
       <Link
         href="/dashboard"
         className={`rounded-full px-4 py-2 text-sm font-semibold hover:bg-beedero-black/10 ${
@@ -75,11 +90,12 @@ export function DesktopAppNavLinks() {
   );
 }
 
-export function MobileAppNavLinks() {
+export function MobileAppNavLinks({ showCofounder = false }: { showCofounder?: boolean }) {
   const pathname = usePathname();
   const feedActive = pathname.startsWith("/feed");
   const discoverActive = pathname.startsWith("/discovery");
   const jobsActive = pathname.startsWith("/jobs");
+  const cofounderActive = pathname.startsWith("/cofounder");
   const dashboardActive = pathname.startsWith("/dashboard");
 
   return (
@@ -111,6 +127,17 @@ export function MobileAppNavLinks() {
         <JobsIcon />
         <span>Jobs</span>
       </Link>
+      {showCofounder && (
+        <Link
+          href="/cofounder"
+          className={navLinkClass(cofounderActive, true)}
+          aria-label="Find a co-founder"
+          aria-current={cofounderActive ? "page" : undefined}
+        >
+          <CofounderIcon />
+          <span>Co-founder</span>
+        </Link>
+      )}
       <Link
         href="/dashboard"
         className={navLinkClass(dashboardActive, true)}

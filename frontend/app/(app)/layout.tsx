@@ -7,14 +7,26 @@ import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvide
 import { NetworkBell } from "@/components/NetworkBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
+import { apiFetch, safeFetch } from "@/lib/api";
 import { logoutAction } from "@/lib/auth-actions";
+import type { CofounderStatus } from "@/lib/cofounder-options";
 import { NetworkProvider } from "@/lib/network-context";
 import { NotificationsProvider } from "@/lib/notifications-context";
 import { noIndexMetadata } from "@/lib/site-metadata";
 
 export const metadata = noIndexMetadata;
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // Doc §10: co-founder matching is only *promoted* once a market has enough
+  // builders to match against — below that the nav entry stays hidden for
+  // everyone except the people already using it. The page itself is always
+  // reachable at /cofounder; this gates the advertisement, not the feature.
+  const cofounderStatus = await safeFetch(
+    apiFetch<CofounderStatus>("/cofounder/status/"),
+    null
+  );
+  const showCofounder = Boolean(cofounderStatus?.show_entry_point);
+
   return (
     <NotificationsProvider>
     <NetworkProvider>
@@ -32,7 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <NotificationBell />
                 <MessageBell />
                 <NetworkBell />
-                <DesktopAppNavLinks />
+                <DesktopAppNavLinks showCofounder={showCofounder} />
               </div>
               <ProfileSwitcher />
               <form action={logoutAction} className="hidden md:block">
@@ -68,7 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <MessageBell />
                   <NetworkBell />
                 </div>
-                <MobileAppNavLinks />
+                <MobileAppNavLinks showCofounder={showCofounder} />
                 <form action={logoutAction}>
                   <button
                     type="submit"

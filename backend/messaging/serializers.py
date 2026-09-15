@@ -40,6 +40,10 @@ class ReportConversationSerializer(serializers.Serializer):
     details = serializers.CharField(max_length=1000, required=False, allow_blank=True, default="")
 
 
+class ReportUserSerializer(ReportConversationSerializer):
+    user_id = serializers.IntegerField()
+
+
 class MessageSendSerializer(serializers.Serializer):
     body = serializers.CharField(max_length=4000)
 

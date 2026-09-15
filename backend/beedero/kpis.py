@@ -36,6 +36,11 @@ try:  # ainda não construído (está no roadmap) — o painel ignora
 except ImportError:
     DealReport = None
 
+try:
+    from cofounder.models import BuilderProfile, CofounderMatch
+except ImportError:
+    BuilderProfile = CofounderMatch = None
+
 
 WINDOW_DAYS = 7
 LISBON = ZoneInfo("Europe/Lisbon")
@@ -148,6 +153,15 @@ def kpis_view(request):
         deals_reported = DealReport.objects.filter(status="reported").count()
         deals_confirmed = DealReport.objects.filter(status="confirmed").count()
 
+    # ---------- CO-FUNDADOR ----------
+    # builders_active mede a densidade do doc §10 (não promover abaixo de 150
+    # num mercado); orgs_from_match é a métrica-mãe do módulo.
+    builders_active = orgs_from_match = matches_week = None
+    if BuilderProfile is not None:
+        builders_active = BuilderProfile.objects.filter(is_active=True).count()
+        matches_week = _count_since(CofounderMatch, "created_at", since)
+        orgs_from_match = CofounderMatch.objects.filter(org__isnull=False).count()
+
     # ---------- ATIVIDADE ----------
     posts_week = _count_since(Activity, "created_at", since)
 
@@ -198,6 +212,9 @@ def kpis_view(request):
         _card("Interest signals (7d)", signals_week, "Liquidity"),
         _card("Deals reported", deals_reported, "Liquidity"),
         _card("Deals confirmed", deals_confirmed, "Liquidity"),
+        _card("Active builders", builders_active, "Liquidity"),
+        _card("Co-founder matches (7d)", matches_week, "Liquidity"),
+        _card("Orgs from a match", orgs_from_match, "Liquidity", highlight=True),
         # -- Activity --
         _card("Posts (7d)", posts_week, "Activity"),
         # -- Operational health --

@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "jobs",
     "affiliations",
     "investments",
+    "cofounder",
 ]
 
 MIDDLEWARE = [

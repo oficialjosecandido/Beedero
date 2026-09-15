@@ -19,6 +19,7 @@ from .serializers import (
     BlockUserSerializer,
     MessageSendSerializer,
     ReportConversationSerializer,
+    ReportUserSerializer,
     StartConversationSerializer,
     _display_name,
     _profile_picture,
@@ -31,6 +32,7 @@ from .serializers import (
 from .services import (
     block_user,
     create_report,
+    create_user_report,
     get_or_create_conversation,
     get_visible_conversation_or_404,
     get_visible_org_conversation_or_404,
@@ -379,6 +381,34 @@ class ConversationReportView(APIView):
         create_report(
             reporter=request.user,
             conversation=conversation,
+            reason=serializer.validated_data["reason"],
+            details=serializer.validated_data["details"],
+        )
+        return Response(status=201)
+
+
+class UserReportView(APIView):
+    """POST /api/reports/ — flag a person with no conversation to point at,
+    e.g. a co-founder card seen in the daily deck. Shares the rate-limit
+    bucket with ConversationReportView: it's the same person filing the same
+    kind of report, so the budget is the person's, not the surface's."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = ReportUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_id = serializer.validated_data["user_id"]
+        if target_id == request.user.id:
+            return Response({"detail": "You can't report yourself."}, status=400)
+        target = get_object_or_404(User, pk=target_id)
+
+        enforce_rate_limit(
+            f"report-conversation:{request.user.id}", limit=REPORTS_PER_DAY, window_seconds=86400
+        )
+        create_user_report(
+            reporter=request.user,
+            reported_user=target,
             reason=serializer.validated_data["reason"],
             details=serializer.validated_data["details"],
         )
