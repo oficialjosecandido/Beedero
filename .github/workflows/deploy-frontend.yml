@@ -24,9 +24,27 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # NEXT_PUBLIC_* are substituted into the bundles at build time, not read
+      # from the environment at runtime — so an Azure App Setting with one of
+      # these names has no effect whatsoever. They have to be here, or the
+      # deployed app runs with the empty-string fallbacks in lib/firebase-config
+      # and sign-in fails with `unconfigured`. Every value is a public
+      # identifier that ships to the browser anyway, hence vars and not secrets.
       - name: Build (standalone output)
         working-directory: frontend
         run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
+          # Unset today, so client-side Sentry stays off exactly as it is now.
+          # Setting the repo variable is all it takes to turn it back on.
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
 
       - name: Assemble deploy package
         working-directory: frontend
