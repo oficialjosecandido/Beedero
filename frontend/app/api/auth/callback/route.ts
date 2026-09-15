@@ -13,21 +13,21 @@ import { SITE_URL } from "@/lib/site-metadata";
 export const dynamic = "force-dynamic";
 
 /**
- * Where a Firebase sign-in link lands.
+ * Where a sign-in link lands.
  *
- * Two routes here, and both must keep working:
+ * Two link shapes arrive here, and both must keep working:
  *
- *  - Default. The emailed link points at Firebase's own action handler, which
- *    for mode=signIn redirects to the `continueUrl` we supplied when sending
- *    (lib/auth-actions.ts) with `oobCode`, `mode` and `apiKey` appended to its
- *    existing query. So `state` and `next` arrive as top-level params, having
- *    survived the hop untouched.
- *  - Custom action URL. If the project's "Email address sign-in" template is
- *    ever pointed straight at this route, Firebase skips its handler and passes
- *    `continueUrl` itself as a param, with `state` and `next` nested inside it.
+ *  - Ours. accounts/signin_link.py builds the emailed link itself — this path,
+ *    with `state`, `next`, `mode` and `oobCode` as top-level params — so that
+ *    every URL in a Beedero email is a beedero.com one.
+ *  - Firebase's own action handler. Anything minted the other way (or by an
+ *    older build) points at `<project>.firebaseapp.com/__/auth/action`, which
+ *    for mode=signIn redirects here with `oobCode`, `mode` and `apiKey` appended
+ *    to the `continueUrl` it was given — and may pass that `continueUrl` along
+ *    as a param, with `state` and `next` nested inside it.
  *
- * Reading top-level first and falling back to the nested copy covers both
- * without the route needing to know which is configured.
+ * Reading top-level first and falling back to the nested copy covers both, so
+ * links already sitting in inboxes keep working across the change.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;

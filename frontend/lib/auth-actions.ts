@@ -11,8 +11,8 @@ import {
   looksLikeEmail,
   randomState,
   safeNextPath,
-  sendSignInLink,
 } from "./firebase-auth";
+import { sendSignInLink } from "./signin-link";
 import {
   clearPendingConfirmation,
   clearPendingLink,
@@ -20,7 +20,6 @@ import {
   setPendingLink,
   setSession,
 } from "./session";
-import { SITE_URL } from "./site-metadata";
 
 /** `sent` carries the address back so the page can say where the link went. */
 export type SignInState = { sent?: string; error?: string } | null;
@@ -45,19 +44,18 @@ export async function sendSignInLinkAction(
   const next = safeNextPath(String(formData.get("next") ?? ""));
 
   if (!looksLikeEmail(email)) return { error: "Enter a valid email address." };
+  // Sending no longer needs the public API key — the API mints the link with
+  // its service account — but redeeming the click does. Checking here means a
+  // frontend missing its config says so now, rather than mailing a link that
+  // can't be completed when it lands.
   if (!isFirebaseAuthConfigured()) return { error: authErrorMessage("unconfigured") };
 
-  // Both the landing route and the carrier for our own state: Firebase's action
-  // handler redirects the click here, appending oobCode to the query below.
-  // SITE_URL is what makes one Firebase project serve localhost and production
-  // alike — the destination rides in the link, not in project settings.
-  const continueUrl = new URL("/api/auth/callback", SITE_URL);
+  // `state` pairs the click with this send; the API puts it, and `next`, into
+  // the link it builds. Both come back as query params on /api/auth/callback.
   const state = randomState();
-  continueUrl.searchParams.set("state", state);
-  continueUrl.searchParams.set("next", next);
 
   try {
-    await sendSignInLink(email, continueUrl.toString());
+    await sendSignInLink(email, state, next);
   } catch (err) {
     return { error: errorFrom(err) };
   }

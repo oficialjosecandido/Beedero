@@ -10,6 +10,11 @@ import { firebaseConfig } from "./firebase-config";
  * would ship ~90 KB of JS to every visitor to reach the same place. The REST
  * endpoints below are what the SDK itself calls.
  *
+ * This module redeems links and refreshes sessions. *Sending* a link lives in
+ * lib/signin-link.ts, which asks the Django API to do it — that side holds the
+ * service-account credential needed to mint a link without Firebase mailing its
+ * own unbranded version of it.
+ *
  * The API key is the public Firebase Web API key (NEXT_PUBLIC_FIREBASE_API_KEY)
  * — it identifies the project, it isn't a secret, and nothing here needs a
  * service-account credential. That lives on the Django side, which verifies
@@ -81,34 +86,6 @@ function identityToolkit(method: string, payload: Record<string, unknown>) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  });
-}
-
-/**
- * Emails a sign-in link to `email`.
- *
- * The emailed link points at Firebase's own action handler, which for
- * mode=signIn does one thing: redirect to `continueUrl` with `oobCode` and
- * `mode` appended to whatever query it already had. So `continueUrl` is both
- * the landing route and the carrier for our own state — no custom action URL
- * needs configuring, and because the destination travels in the link rather
- * than living in project settings, localhost and beedero.com can share one
- * Firebase project. `continueUrl`'s domain does have to be on the project's
- * authorized-domains list.
- *
- * `canHandleCodeInApp` is what selects that redirect: without it Firebase
- * treats the link as one its own hosted page should complete, using the client
- * SDK we deliberately don't ship.
- *
- * Note what this does NOT reveal: the response is identical whether or not the
- * address has an account, so it can't be used to enumerate members.
- */
-export async function sendSignInLink(email: string, continueUrl: string): Promise<void> {
-  await identityToolkit("accounts:sendOobCode", {
-    requestType: "EMAIL_SIGNIN",
-    email,
-    continueUrl,
-    canHandleCodeInApp: true,
   });
 }
 

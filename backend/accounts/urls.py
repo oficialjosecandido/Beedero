@@ -1,8 +1,9 @@
 from django.urls import path
 
-from . import public_views, views
+from . import public_views, signin_link, views
 
 urlpatterns = [
+    path("auth/signin-link/", signin_link.SignInLinkView.as_view()),
     path("auth/me/", views.MeView.as_view()),
     path("investors/me/", views.InvestorProfileView.as_view()),
     path("investors/me/posts/", views.InvestorPostListCreateView.as_view()),

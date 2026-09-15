@@ -116,6 +116,24 @@ export async function publicFetch<T = unknown>(path: string, revalidate = 300): 
   return parse(res, text) as T;
 }
 
+/** A POST that deliberately carries no session — the sign-in endpoints, which
+ * are called by people who don't have one yet. Separate from apiFetch so those
+ * calls never touch the 401-refresh path, where "no token" would otherwise be
+ * mistaken for "expired token". */
+export async function publicPost<T = unknown>(path: string, body: unknown): Promise<T> {
+  const { res, text } = await fetchWithTimeout(
+    `${getBackendUrl()}${path}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    },
+    DEFAULT_API_TIMEOUT_MS
+  );
+  return parse(res, text) as T;
+}
+
 function doFetch(path: string, options: { method?: string; body?: unknown }, token?: string) {
   const isFormData = options.body instanceof FormData;
   return fetchWithTimeout(
