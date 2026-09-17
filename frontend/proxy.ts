@@ -4,10 +4,9 @@ import type { NextRequest } from "next/server";
 import { refreshFirebaseSession } from "@/lib/firebase-auth";
 import {
   ACCESS_COOKIE,
-  ACCESS_MAX_AGE,
   REFRESH_COOKIE,
-  REFRESH_MAX_AGE,
-  sessionCookieOptions,
+  accessCookieAttrs,
+  refreshCookieAttrs,
 } from "@/lib/session-cookies";
 import { SITE_URL } from "@/lib/site-metadata";
 
@@ -19,6 +18,16 @@ function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", SITE_URL);
   loginUrl.searchParams.set("next", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
+}
+
+function withSessionCookies(
+  response: NextResponse,
+  idToken: string,
+  refreshToken: string
+) {
+  response.cookies.set(ACCESS_COOKIE, idToken, accessCookieAttrs());
+  response.cookies.set(REFRESH_COOKIE, refreshToken, refreshCookieAttrs());
+  return response;
 }
 
 export async function proxy(request: NextRequest) {
@@ -42,19 +51,15 @@ export async function proxy(request: NextRequest) {
     try {
       const tokens = await refreshFirebaseSession(refresh);
       if (tokens) {
-        const response = NextResponse.next();
-        response.cookies.set(ACCESS_COOKIE, tokens.idToken, {
-          ...sessionCookieOptions,
-          maxAge: ACCESS_MAX_AGE,
-        });
-        response.cookies.set(REFRESH_COOKIE, tokens.refreshToken, {
-          ...sessionCookieOptions,
-          maxAge: REFRESH_MAX_AGE,
-        });
-        return response;
+        return withSessionCookies(NextResponse.next(), tokens.idToken, tokens.refreshToken);
       }
+      // Refresh token revoked / invalid — fall through to login.
     } catch {
-      // Firebase unreachable — fall through to the login redirect below.
+      // Firebase unreachable. A network blip is not a logged-out user: keep
+      // the refresh cookie and let the request through so apiFetch can retry
+      // the refresh from the page render. Bouncing to /login here is what made
+      // overnight opens feel like the session had died.
+      return NextResponse.next();
     }
   }
 

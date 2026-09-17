@@ -1,4 +1,4 @@
-const CACHE_NAME = "beedero-shell-v1";
+const CACHE_NAME = "beedero-shell-v2";
 const OFFLINE_URL = "/offline";
 const FIREBASE_SDK_VERSION = "12.18.0";
 
@@ -36,12 +36,22 @@ const FIREBASE_SDK_VERSION = "12.18.0";
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const link = (event.notification.data && event.notification.data.link) || "/";
+  const absolute = new URL(link, self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsList) => {
       for (const client of clientsList) {
-        if (client.url.includes(link) && "focus" in client) return client.focus();
+        if ("focus" in client) {
+          // Prefer focusing an existing PWA window and navigating it — this is
+          // how push taps reopen the installed app instead of a fresh browser tab.
+          if ("navigate" in client && typeof client.navigate === "function") {
+            return client.focus().then(() => client.navigate(absolute));
+          }
+          if (client.url.startsWith(self.location.origin)) {
+            return client.focus();
+          }
+        }
       }
-      if (self.clients.openWindow) return self.clients.openWindow(link);
+      if (self.clients.openWindow) return self.clients.openWindow(absolute);
     }),
   );
 });

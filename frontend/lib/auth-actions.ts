@@ -17,6 +17,7 @@ import {
   clearPendingConfirmation,
   clearPendingLink,
   getPendingConfirmation,
+  readPendingLink,
   setPendingLink,
   setSession,
 } from "./session";
@@ -96,6 +97,64 @@ export async function confirmSignInAction(
   await clearPendingLink();
   // Outside the try: redirect() signals by throwing, and catching it here
   // would turn a successful sign-in into an error message.
+  redirect(`/auth/continue?next=${encodeURIComponent(next)}`);
+}
+
+/**
+ * Redeems a magic link the user pasted into the PWA.
+ *
+ * iOS Home Screen apps have a separate cookie jar from Safari, so tapping the
+ * emailed link signs the *browser* in and leaves the installed app logged out.
+ * Pasting the same URL back into the app completes sign-in in the right store.
+ */
+export async function completePastedLinkAction(
+  _prev: SignInState,
+  formData: FormData
+): Promise<SignInState> {
+  const raw = String(formData.get("link") ?? "").trim();
+  const nextFallback = safeNextPath(String(formData.get("next") ?? ""));
+
+  let oobCode: string | null = null;
+  let state: string | null = null;
+  let next = nextFallback;
+
+  try {
+    // Accept a full URL or a bare query string someone copied incompletely.
+    const url = raw.includes("://")
+      ? new URL(raw)
+      : new URL(raw.startsWith("?") ? raw : `?${raw}`, "https://beedero.local");
+    oobCode = url.searchParams.get("oobCode");
+    state = url.searchParams.get("state");
+    next = safeNextPath(url.searchParams.get("next") ?? nextFallback);
+  } catch {
+    return { error: "That doesn't look like a Beedero sign-in link." };
+  }
+
+  if (!oobCode) {
+    return { error: "That link is missing its sign-in code. Copy the full link from the email." };
+  }
+
+  const pending = await readPendingLink();
+  if (!pending.email) {
+    return {
+      error: "Request a sign-in link from this app first, then paste the email link here.",
+    };
+  }
+  if (pending.state && state && pending.state !== state) {
+    await clearPendingLink();
+    return { error: authErrorMessage("invalid_state") };
+  }
+
+  let session;
+  try {
+    session = await completeSignInWithEmailLink(pending.email, oobCode);
+  } catch (err) {
+    return { error: errorFrom(err) };
+  }
+
+  await setSession(session.idToken, session.refreshToken);
+  await clearPendingLink();
+  await clearPendingConfirmation();
   redirect(next);
 }
 

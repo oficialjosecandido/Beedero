@@ -1,8 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
-import { confirmSignInAction, sendSignInLinkAction, type SignInState } from "@/lib/auth-actions";
+import {
+  completePastedLinkAction,
+  confirmSignInAction,
+  sendSignInLinkAction,
+  type SignInState,
+} from "@/lib/auth-actions";
+import { isStandaloneDisplay } from "@/lib/pwa-install";
 
 type Props = {
   /** "send" emails a link; "confirm" redeems one that was opened on another
@@ -18,10 +24,20 @@ type Props = {
 export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) {
   const action = mode === "confirm" ? confirmSignInAction : sendSignInLinkAction;
   const [state, formAction, pending] = useActionState<SignInState, FormData>(action, null);
+  const [pasteState, pasteAction, pastePending] = useActionState<SignInState, FormData>(
+    completePastedLinkAction,
+    null
+  );
+  const [inPwa, setInPwa] = useState(false);
+
+  useEffect(() => {
+    setInPwa(isStandaloneDisplay());
+  }, []);
 
   // A fresh submission's own result always wins over the stale query-string
   // error that brought the user here.
-  const error = state?.error ?? (state === null ? initialError : null);
+  const error =
+    pasteState?.error ?? state?.error ?? (state === null && pasteState === null ? initialError : null);
 
   if (state?.sent) {
     return (
@@ -33,17 +49,66 @@ export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) 
             once, and expires in a few hours.
           </p>
         </div>
-        <p className="text-center text-xs text-zinc-500">
-          Nothing after a minute or two? Check spam, or{" "}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-          >
-            try a different address
-          </button>
-          .
-        </p>
+
+        {inPwa ? (
+          <form action={pasteAction} className="flex flex-col gap-3">
+            <input type="hidden" name="next" value={next} />
+            <p className="text-sm text-zinc-700">
+              On this device, open the email, copy the link, and paste it here — that keeps you
+              signed in inside Beedero instead of the browser.
+            </p>
+            {pasteState?.error && (
+              <p className="rounded-2xl bg-danger-surface px-4 py-3 text-sm text-danger-strong">
+                {pasteState.error}
+              </p>
+            )}
+            <label htmlFor="link" className="text-sm font-semibold">
+              Paste sign-in link
+            </label>
+            <input
+              id="link"
+              name="link"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              required
+              placeholder="https://beedero.com/api/auth/callback?..."
+              className="rounded-2xl border-2 border-beedero-border px-4 py-3 text-sm outline-none focus:border-beedero-black"
+            />
+            <button
+              type="submit"
+              disabled={pastePending}
+              className="rounded-full bg-beedero-black px-4 py-3 text-sm font-semibold text-beedero-yellow hover:bg-beedero-black/90 disabled:opacity-50"
+            >
+              {pastePending ? "Signing in…" : "Sign in with pasted link"}
+            </button>
+          </form>
+        ) : (
+          <p className="text-center text-xs text-zinc-500">
+            Nothing after a minute or two? Check spam, or{" "}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
+              try a different address
+            </button>
+            .
+          </p>
+        )}
+
+        {inPwa && (
+          <p className="text-center text-xs text-zinc-500">
+            Wrong address?{" "}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
+              Try again
+            </button>
+          </p>
+        )}
       </div>
     );
   }

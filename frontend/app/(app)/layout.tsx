@@ -7,6 +7,7 @@ import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvide
 import { NetworkBell } from "@/components/NetworkBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
+import { SessionRefresh } from "@/components/SessionRefresh";
 import { apiFetch, safeFetch } from "@/lib/api";
 import { logoutAction } from "@/lib/auth-actions";
 import type { CofounderStatus } from "@/lib/cofounder-options";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <NotificationsProvider>
     <NetworkProvider>
     <MessagingShell>
+      <SessionRefresh />
       <NavigationLoadingProvider>
       <div className="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
         <header className="sticky top-0 z-20 w-full bg-beedero-yellow text-beedero-black">

@@ -6,8 +6,8 @@ import {
   clearPendingLink,
   readPendingLink,
   setPendingConfirmation,
-  setSession,
 } from "@/lib/session";
+import { ACCESS_COOKIE, REFRESH_COOKIE, accessCookieAttrs, refreshCookieAttrs } from "@/lib/session-cookies";
 import { SITE_URL } from "@/lib/site-metadata";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,12 @@ export const dynamic = "force-dynamic";
  *
  * Reading top-level first and falling back to the nested copy covers both, so
  * links already sitting in inboxes keep working across the change.
+ *
+ * After a successful redemption we land on /auth/continue rather than the app
+ * destination directly. That page detects whether we're already inside the
+ * installed PWA; if the email client opened a browser tab instead, it can
+ * steer the user back into the app (Chromium) or explain the paste-in-app path
+ * (iOS, where Home Screen apps have a separate cookie jar from Safari).
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -82,9 +88,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  let idToken: string;
+  let refreshToken: string;
   try {
     const session = await completeSignInWithEmailLink(pending.email, oobCode);
-    await setSession(session.idToken, session.refreshToken);
+    idToken = session.idToken;
+    refreshToken = session.refreshToken;
   } catch (err) {
     await clearPendingLink();
     if (err instanceof FirebaseAuthError) return failure(err.code);
@@ -92,5 +101,13 @@ export async function GET(request: NextRequest) {
   }
 
   await clearPendingLink();
-  return NextResponse.redirect(new URL(destination, SITE_URL));
+
+  // Set cookies on the redirect response itself — more reliable than
+  // cookies().set() followed by a separate NextResponse.redirect().
+  const response = NextResponse.redirect(
+    new URL(`/auth/continue?next=${encodeURIComponent(destination)}`, SITE_URL)
+  );
+  response.cookies.set(ACCESS_COOKIE, idToken, accessCookieAttrs());
+  response.cookies.set(REFRESH_COOKIE, refreshToken, refreshCookieAttrs());
+  return response;
 }

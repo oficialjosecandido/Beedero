@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 
 import {
   ACCESS_COOKIE,
-  ACCESS_MAX_AGE,
   REFRESH_COOKIE,
-  REFRESH_MAX_AGE,
+  accessCookieAttrs,
+  refreshCookieAttrs,
   sessionCookieOptions,
 } from "./session-cookies";
 
@@ -49,11 +49,8 @@ function isReadonlyCookiesError(err: unknown) {
 export async function setSession(idToken: string, refreshToken: string) {
   const store = await cookies();
   try {
-    store.set(ACCESS_COOKIE, idToken, { ...sessionCookieOptions, maxAge: ACCESS_MAX_AGE });
-    store.set(REFRESH_COOKIE, refreshToken, {
-      ...sessionCookieOptions,
-      maxAge: REFRESH_MAX_AGE,
-    });
+    store.set(ACCESS_COOKIE, idToken, accessCookieAttrs());
+    store.set(REFRESH_COOKIE, refreshToken, refreshCookieAttrs());
   } catch (err) {
     if (!isReadonlyCookiesError(err)) throw err;
   }
@@ -81,7 +78,10 @@ export async function getRefreshToken(): Promise<string | undefined> {
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  return Boolean(await getAccessToken());
+  // Access expires every ~55 minutes; the refresh cookie is the real session
+  // (up to 90 days). Treating only the access cookie as "logged in" made
+  // overnight returns look signed-out even when refresh was still valid.
+  return Boolean((await getAccessToken()) || (await getRefreshToken()));
 }
 
 export async function setPendingLink(email: string, state: string) {

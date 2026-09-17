@@ -119,6 +119,9 @@ def _compose(link):
         "Here is your sign-in link for Beedero:\n\n"
         f"{link}\n\n"
         f"It works once, and expires in about {LINK_TTL_HOURS} hours.\n\n"
+        "Using the Beedero app on iPhone? Copy this link and paste it into the "
+        "app after requesting sign-in there — email taps open Safari, which "
+        "can't share your login with the app.\n\n"
         "If you didn't ask to sign in, you can ignore this email — the link "
         "above is the only way in, and nobody else has it.\n\n"
         "— Beedero\n"
@@ -134,6 +137,9 @@ def _compose(link):
         f"<p style=\"color:#52525b;font-size:13px\">It works once, and expires in "
         f"about {LINK_TTL_HOURS} hours. If the button doesn't work, paste this "
         f'into your browser:<br><a href="{safe_link}">{safe_link}</a></p>'
+        '<p style="color:#52525b;font-size:13px">Using the Beedero app on iPhone? '
+        "Copy the link and paste it into the app after requesting sign-in there "
+        "— email taps open Safari, which can't share your login with the app.</p>"
         '<p style="color:#52525b;font-size:13px">If you didn\'t ask to sign in, '
         "you can ignore this email — the link above is the only way in, and "
         "nobody else has it.</p>"

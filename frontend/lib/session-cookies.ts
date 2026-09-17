@@ -22,3 +22,11 @@ export const sessionCookieOptions = {
   sameSite: "lax" as const,
   path: "/",
 };
+
+export function accessCookieAttrs() {
+  return { ...sessionCookieOptions, maxAge: ACCESS_MAX_AGE };
+}
+
+export function refreshCookieAttrs() {
+  return { ...sessionCookieOptions, maxAge: REFRESH_MAX_AGE };
+}
