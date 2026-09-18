@@ -20,6 +20,12 @@ redirect to `continueUrl` with `oobCode` and `mode` appended, so doing that
 ourselves costs nothing and buys an email in which every URL is a beedero.com
 one. The code is redeemed the same way either way (accounts:signInWithEmailLink
 takes the code and the address, and neither cares which URL carried it).
+
+The same email also carries a six-digit code, and that is the path most people
+take: a link can only sign in whichever browser the mail app decides to open,
+while a typed code signs in the window it was typed into. See signin_code.py.
+Both endpoints below end in the same place — an `oobCode` the frontend redeems
+— so there is only one way to actually become signed in, reached two ways.
 """
 
 import hashlib
@@ -36,6 +42,8 @@ from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 
 from beedero.firebase import get_firebase_app
+
+from .signin_code import CODE_RE, CODE_TTL_SECONDS, discard_code, issue_code, verify_code
 
 CALLBACK_PATH = "/api/auth/callback"
 
@@ -79,27 +87,27 @@ def safe_next_path(value, fallback="/feed"):
 
 
 def _callback_url(**params):
-    return f"{settings.FRONTEND_URL}{CALLBACK_PATH}?{urlencode(params)}"
+    query = urlencode(params)
+    return f"{settings.FRONTEND_URL}{CALLBACK_PATH}{'?' + query if query else ''}"
 
 
-def build_signin_link(email, state, next_path):
-    """Mint a one-time sign-in link for `email`. Sends nothing.
+def mint_oob_code(email, continue_url):
+    """Ask Firebase for a one-time sign-in code for `email`. Sends nothing.
 
     Note what this does not reveal: Firebase creates the account on redemption,
     not here, so the result is identical whether or not the address has one.
-    That is what lets the view answer every caller the same way.
+    That is what lets both views answer every caller the same way.
     """
     app = get_firebase_app()
     if app is None:
         raise SignInLinkUnavailable("no Firebase service account configured")
 
-    # Firebase validates this URL's domain against the project's authorized
-    # domains, which is why it is passed even though the link it comes back
-    # inside is discarded.
-    continue_url = _callback_url(state=state, next=next_path)
     try:
         firebase_link = firebase_auth.generate_sign_in_with_email_link(
             email,
+            # Firebase validates this URL's domain against the project's
+            # authorized domains, which is why it is passed even on the
+            # code path, where the link it comes back inside is discarded.
             firebase_auth.ActionCodeSettings(url=continue_url, handle_code_in_app=True),
             app=app,
         )
@@ -109,50 +117,79 @@ def build_signin_link(email, state, next_path):
     oob_code = parse_qs(urlparse(firebase_link).query).get("oobCode", [""])[0]
     if not oob_code:
         raise SignInLinkUnavailable("generated link carried no oobCode")
+    return oob_code
 
+
+def build_signin_link(email, state, next_path):
+    """Mint a one-time sign-in link for `email`. Sends nothing."""
+    continue_url = _callback_url(state=state, next=next_path)
+    oob_code = mint_oob_code(email, continue_url)
     return _callback_url(state=state, next=next_path, mode="signIn", oobCode=oob_code)
 
 
-def _compose(link):
+def _compose(link, code):
+    """The one email, carrying both ways in.
+
+    The code leads because it is the one that always works: it is typed into
+    whichever window asked for it, so it doesn't matter which browser the mail
+    app decides to open. The link follows for the common case where that
+    browser is the right one anyway, and one tap beats six digits.
+    """
     safe_link = escape(link)
+    code_minutes = CODE_TTL_SECONDS // 60
     text = (
-        "Here is your sign-in link for Beedero:\n\n"
-        f"{link}\n\n"
-        f"It works once, and expires in about {LINK_TTL_HOURS} hours.\n\n"
-        "Using the Beedero app on iPhone? Copy this link and paste it into the "
-        "app after requesting sign-in there — email taps open Safari, which "
-        "can't share your login with the app.\n\n"
-        "If you didn't ask to sign in, you can ignore this email — the link "
-        "above is the only way in, and nobody else has it.\n\n"
+        "Your Beedero sign-in code is:\n\n"
+        f"    {code}\n\n"
+        f"Type it into the Beedero window where you asked to sign in. It "
+        f"expires in {code_minutes} minutes.\n\n"
+        "Reading this on the device you want to sign in on? You can just open "
+        f"this link instead — it works once, and lasts about {LINK_TTL_HOURS} "
+        f"hours:\n{link}\n\n"
+        "If you didn't ask to sign in, you can ignore this email. The code and "
+        "the link above are the only ways in, and nobody else has them.\n\n"
         "— Beedero\n"
     )
     html = (
         '<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;'
         'font-size:15px;line-height:1.55;color:#050604">'
-        "<p>Here is your sign-in link for Beedero:</p>"
+        "<p>Your Beedero sign-in code is:</p>"
+        f'<p style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+        "font-size:34px;font-weight:700;letter-spacing:8px;background:#f9de4a;"
+        'color:#050604;display:inline-block;padding:14px 22px;border-radius:14px">'
+        f"{escape(code)}</p>"
+        f'<p style="color:#52525b;font-size:13px">Type it into the Beedero window '
+        f"where you asked to sign in. It expires in {code_minutes} minutes.</p>"
+        "<p>Reading this on the device you want to sign in on? Open this instead:</p>"
         f'<p><a href="{safe_link}" '
         'style="display:inline-block;padding:12px 22px;border-radius:9999px;'
-        "background:#f9de4a;color:#050604;font-weight:700;text-decoration:none\">"
+        "background:#050604;color:#f9de4a;font-weight:700;text-decoration:none\">"
         "Sign in to Beedero</a></p>"
-        f"<p style=\"color:#52525b;font-size:13px\">It works once, and expires in "
+        f'<p style="color:#52525b;font-size:13px">That link works once, and lasts '
         f"about {LINK_TTL_HOURS} hours. If the button doesn't work, paste this "
         f'into your browser:<br><a href="{safe_link}">{safe_link}</a></p>'
-        '<p style="color:#52525b;font-size:13px">Using the Beedero app on iPhone? '
-        "Copy the link and paste it into the app after requesting sign-in there "
-        "— email taps open Safari, which can't share your login with the app.</p>"
         '<p style="color:#52525b;font-size:13px">If you didn\'t ask to sign in, '
-        "you can ignore this email — the link above is the only way in, and "
-        "nobody else has it.</p>"
+        "you can ignore this email — the code and the link above are the only "
+        "ways in, and nobody else has them.</p>"
         "<p>— Beedero</p>"
         "</div>"
     )
     return text, html
 
 
-def send_signin_link(email, state, next_path):
-    """Mint the link and email it. Raises SignInLinkUnavailable on any failure."""
+def send_signin_email(email, state, next_path):
+    """Mint the link, issue the code, and email both.
+
+    Raises SignInLinkUnavailable on any failure. Order matters on the way in:
+    issuing a code invalidates the address's previous one, so the link — the
+    part that can fail — is minted first, and a Firebase outage leaves a code
+    already in someone's inbox still usable. On the way out the code is
+    discarded if the send fails, which is only tidiness (the next request
+    overwrites it anyway), but it keeps "a code exists" meaning "a code was
+    delivered".
+    """
     link = build_signin_link(email, state, next_path)
-    text, html = _compose(link)
+    code = issue_code(email)
+    text, html = _compose(link, code)
     message = EmailMultiAlternatives(
         "Sign in to Beedero", text, settings.DEFAULT_FROM_EMAIL, [email]
     )
@@ -160,13 +197,14 @@ def send_signin_link(email, state, next_path):
     try:
         message.send()
     except Exception as exc:
+        discard_code(email)
         raise SignInLinkUnavailable("Azure Communication Services refused the message") from exc
 
 
 class _SignInLinkThrottle(SimpleRateThrottle):
-    """Rates live here rather than in DEFAULT_THROTTLE_RATES because this is the
-    only throttled endpoint in the project, and splitting the limit away from
-    the thing it protects would only hide it."""
+    """Rates live here rather than in DEFAULT_THROTTLE_RATES because these are
+    the only throttled endpoints in the project, and splitting the limits away
+    from the things they protect would only hide them."""
 
     def _key(self, ident):
         # The cache is a shared database table, so addresses are hashed rather
@@ -199,8 +237,32 @@ class SignInLinkIpThrottle(_SignInLinkThrottle):
         return self._key(self.get_ident(request))
 
 
+class SignInCodeEmailThrottle(_SignInLinkThrottle):
+    """A ceiling on guesses against one address, above the five-per-code budget
+    in signin_code.py. Set high enough that a person who mistypes, asks for a
+    fresh code and mistypes again never meets it."""
+
+    scope = "verify_email"
+    rate = "30/hour"
+
+    def get_cache_key(self, request, view):
+        email = str(request.data.get("email") or "").strip().lower()
+        return self._key(email) if email else None
+
+
+class SignInCodeIpThrottle(_SignInLinkThrottle):
+    """The per-address limits above do nothing against one source working
+    through a list of addresses, a few guesses each."""
+
+    scope = "verify_ip"
+    rate = "60/hour"
+
+    def get_cache_key(self, request, view):
+        return self._key(self.get_ident(request))
+
+
 class SignInLinkView(APIView):
-    """POST /api/auth/signin-link/ — email a magic link. Public by necessity.
+    """POST /api/auth/signin-link/ — email a code and a link. Public by necessity.
 
     Answers 204 whether or not the address has an account: the reply is the
     same either way, so this can't be used to find out who's a member.
@@ -221,7 +283,7 @@ class SignInLinkView(APIView):
             return Response({"detail": "invalid_state"}, status=400)
 
         try:
-            send_signin_link(email, state, next_path)
+            send_signin_email(email, state, next_path)
         except SignInLinkUnavailable as exc:
             # Loudly: a sign-in flow that quietly stops sending is exactly the
             # failure that took a day to notice last time.
@@ -229,3 +291,42 @@ class SignInLinkView(APIView):
             return Response({"detail": "unavailable"}, status=503)
 
         return Response(status=204)
+
+
+class SignInCodeVerifyView(APIView):
+    """POST /api/auth/signin-code/verify/ — trade a six-digit code for an oobCode.
+
+    What comes back is a Firebase one-time code: a bearer credential for the
+    address, good for one redemption. So it is only ever minted *after* the
+    typed code has been checked and consumed, and the endpoint carries the
+    tightest limits in the project.
+
+    Every rejection is the same `invalid_code`, whether the code was wrong,
+    expired, already used, or never issued at all. Distinguishing them helps
+    nobody except someone guessing.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = [SignInCodeIpThrottle, SignInCodeEmailThrottle]
+
+    def post(self, request):
+        email = str(request.data.get("email") or "").strip().lower()
+        code = str(request.data.get("code") or "").strip()
+
+        if not EMAIL_RE.match(email) or len(email) > MAX_EMAIL_LENGTH:
+            return Response({"detail": "invalid_email"}, status=400)
+        if not CODE_RE.match(code):
+            return Response({"detail": "invalid_code"}, status=400)
+        if not verify_code(email, code):
+            return Response({"detail": "invalid_code"}, status=400)
+
+        try:
+            oob_code = mint_oob_code(email, _callback_url())
+        except SignInLinkUnavailable as exc:
+            # The person did everything right and still can't get in — exactly
+            # the failure worth waking someone for.
+            sentry_sdk.capture_exception(exc)
+            return Response({"detail": "unavailable"}, status=503)
+
+        return Response({"oobCode": oob_code})

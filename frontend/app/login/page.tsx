@@ -40,12 +40,12 @@ export default async function LoginPage({
         <EmailLinkForm
           mode={awaitingConfirmation ? "confirm" : "send"}
           next={safeNextPath(next)}
-          submitLabel={awaitingConfirmation ? "Confirm and sign in" : "Email me a sign-in link"}
+          submitLabel={awaitingConfirmation ? "Confirm and sign in" : "Email me a sign-in code"}
           initialError={authErrorMessage(error)}
         />
         {!awaitingConfirmation && (
           <p className="text-center text-sm text-zinc-600">
-            New here? The same link creates your account —{" "}
+            New here? The same code creates your account —{" "}
             <Link
               href="/register"
               className="font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"

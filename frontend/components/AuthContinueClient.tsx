@@ -18,7 +18,9 @@ type Props = {
 /**
  * Post-magic-link landing. Email clients almost always open the link in a
  * browser tab — on Android/Chrome we try to hand off into the installed PWA;
- * on iOS (separate cookie jar) we explain how to finish inside the app.
+ * on iOS (separate cookie jar) we point at the six-digit code, which is the
+ * only way to sign in to the app itself. Nobody has to end up here: the code
+ * on the login screen finishes the job without a link ever being tapped.
  */
 export function AuthContinueClient({ next }: Props) {
   const router = useRouter();
@@ -64,8 +66,8 @@ export function AuthContinueClient({ next }: Props) {
         <p className="text-sm font-bold">You&apos;re signed in</p>
         <p className="mt-1 text-sm text-zinc-700">
           {platform === "ios"
-            ? "On iPhone, email links open in Safari — not the Beedero app. Open Beedero from your home screen; if it asks you to sign in again, request a link there and paste it into the app."
-            : "If you installed Beedero, open it from your home screen to continue there. Otherwise you can keep using this browser."}
+            ? "On iPhone, email links open in Safari — not the Beedero app. To sign in to the app itself, open Beedero from your home screen, ask for a code there, and type in the 6 digits from the email."
+            : "If you installed Beedero, open it from your home screen and sign in with the 6-digit code from the email. Otherwise you can keep using this browser."}
         </p>
       </div>
       <Link
@@ -79,7 +81,7 @@ export function AuthContinueClient({ next }: Props) {
           href="/login"
           className="text-center text-sm font-medium text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
         >
-          Open login in case you need a fresh link
+          Open login in case you need a fresh code
         </Link>
       )}
     </div>

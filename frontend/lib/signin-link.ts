@@ -4,7 +4,7 @@ import { ApiError, BackendConfigError, publicPost } from "./api";
 import { FirebaseAuthError } from "./firebase-auth";
 
 /**
- * Asks the Django API to email a sign-in link.
+ * Asks the Django API to email a sign-in code and link.
  *
  * Sending used to happen here, straight to Identity Toolkit's
  * accounts:sendOobCode. It moved because of what Firebase puts in the envelope:
@@ -34,6 +34,34 @@ export async function sendSignInLink(
   }
 }
 
+/**
+ * Trades the six digits from the email for a Firebase oobCode.
+ *
+ * This is the path that works everywhere. A link can only sign in whichever
+ * browser the mail app chooses to open, and on iOS that is Safari — which does
+ * not share cookies with a Home Screen app. A code is typed into the window
+ * that asked for it, so the session lands where the person actually is.
+ *
+ * The oobCode never reaches the browser: it comes back to this server module,
+ * which redeems it through lib/firebase-auth.ts in the same request.
+ */
+export async function verifySignInCode(email: string, code: string): Promise<string> {
+  let oobCode: string;
+  try {
+    const body = await publicPost<{ oobCode?: unknown }>("/auth/signin-code/verify/", {
+      email,
+      code,
+    });
+    oobCode = String(body?.oobCode ?? "");
+  } catch (err) {
+    throw asAuthError(err);
+  }
+  // A 200 with nothing in it means the API changed shape under us — an
+  // operator problem, not a wrong code, so don't tell the visitor to retype.
+  if (!oobCode) throw new FirebaseAuthError("unconfigured");
+  return oobCode;
+}
+
 function asAuthError(err: unknown): FirebaseAuthError {
   // Neither a reachable backend nor a correct one: nothing the visitor can fix,
   // and nothing that should read as a problem with their address.
@@ -48,6 +76,11 @@ function asAuthError(err: unknown): FirebaseAuthError {
   if (err.status === 429) return new FirebaseAuthError("TOO_MANY_ATTEMPTS_TRY_LATER");
   if (err.status === 400 && detail === "invalid_email") {
     return new FirebaseAuthError("INVALID_EMAIL");
+  }
+  // Wrong, expired, already used, or never issued — the API deliberately
+  // doesn't say which, and neither does the message the visitor sees.
+  if (err.status === 400 && detail === "invalid_code") {
+    return new FirebaseAuthError("invalid_code");
   }
   // 503 is the API telling us it couldn't mint or hand off the link; a 400 for
   // anything but the address means this client sent a malformed request, which

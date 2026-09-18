@@ -185,6 +185,10 @@ export function authErrorMessage(code: string | undefined | null): string | null
       TOO_MANY_ATTEMPTS_TRY_LATER: "Too many attempts. Wait a few minutes and try again.",
       invalid_state: "That sign-in link didn't match this browser's request. Request a new one below.",
       missing_code: "That link is incomplete. Request a new one below.",
+      // Deliberately one message for wrong, expired, already used and never
+      // issued: the API doesn't distinguish them, because only a guesser
+      // benefits from knowing which it was.
+      invalid_code: "That code isn't right, or it has expired. Ask for a new one.",
     }[code] ?? "Sign-in failed. Please request a new link."
   );
 }

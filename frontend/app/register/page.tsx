@@ -43,7 +43,7 @@ export default async function RegisterPage({
         <EmailLinkForm
           mode="send"
           next="/feed"
-          submitLabel="Email me a sign-up link"
+          submitLabel="Email me a sign-up code"
           initialError={authErrorMessage(error)}
         />
         <p className="text-center text-sm text-zinc-600">

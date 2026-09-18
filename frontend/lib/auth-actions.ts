@@ -12,7 +12,7 @@ import {
   randomState,
   safeNextPath,
 } from "./firebase-auth";
-import { sendSignInLink } from "./signin-link";
+import { sendSignInLink, verifySignInCode } from "./signin-link";
 import {
   clearPendingConfirmation,
   clearPendingLink,
@@ -31,7 +31,7 @@ function errorFrom(err: unknown): string {
 }
 
 /**
- * Emails a sign-in link.
+ * Emails a sign-in code and link.
  *
  * The reply is the same whether or not the address has an account — Firebase
  * creates the user on first redemption, not here — so this can't be used to
@@ -101,52 +101,37 @@ export async function confirmSignInAction(
 }
 
 /**
- * Redeems a magic link the user pasted into the PWA.
+ * Signs in with the six digits from the email.
  *
- * iOS Home Screen apps have a separate cookie jar from Safari, so tapping the
- * emailed link signs the *browser* in and leaves the installed app logged out.
- * Pasting the same URL back into the app completes sign-in in the right store.
+ * This is the path that doesn't depend on where a tapped link lands. The code
+ * is typed into the window that asked for it, so the session is written to
+ * that window's cookie jar — which is what makes it work inside an installed
+ * iOS app, where a link tapped in Mail always opens Safari instead.
+ *
+ * The address comes from the httpOnly cookie set when the code was requested,
+ * not from the form: the browser proving it asked for this code is the point,
+ * and Firebase needs the address back at redemption anyway.
  */
-export async function completePastedLinkAction(
+export async function verifySignInCodeAction(
   _prev: SignInState,
   formData: FormData
 ): Promise<SignInState> {
-  const raw = String(formData.get("link") ?? "").trim();
-  const nextFallback = safeNextPath(String(formData.get("next") ?? ""));
+  // People paste "123 456" and "123-456" out of the email — the digits are the
+  // only part that was ever meaningful.
+  const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+  const next = safeNextPath(String(formData.get("next") ?? ""));
 
-  let oobCode: string | null = null;
-  let state: string | null = null;
-  let next = nextFallback;
-
-  try {
-    // Accept a full URL or a bare query string someone copied incompletely.
-    const url = raw.includes("://")
-      ? new URL(raw)
-      : new URL(raw.startsWith("?") ? raw : `?${raw}`, "https://beedero.local");
-    oobCode = url.searchParams.get("oobCode");
-    state = url.searchParams.get("state");
-    next = safeNextPath(url.searchParams.get("next") ?? nextFallback);
-  } catch {
-    return { error: "That doesn't look like a Beedero sign-in link." };
-  }
-
-  if (!oobCode) {
-    return { error: "That link is missing its sign-in code. Copy the full link from the email." };
-  }
+  if (code.length !== 6) return { error: "Enter the 6-digit code from your email." };
+  if (!isFirebaseAuthConfigured()) return { error: authErrorMessage("unconfigured") };
 
   const pending = await readPendingLink();
   if (!pending.email) {
-    return {
-      error: "Request a sign-in link from this app first, then paste the email link here.",
-    };
-  }
-  if (pending.state && state && pending.state !== state) {
-    await clearPendingLink();
-    return { error: authErrorMessage("invalid_state") };
+    return { error: "This sign-in has expired. Ask for a new code." };
   }
 
   let session;
   try {
+    const oobCode = await verifySignInCode(pending.email, code);
     session = await completeSignInWithEmailLink(pending.email, oobCode);
   } catch (err) {
     return { error: errorFrom(err) };
@@ -155,6 +140,7 @@ export async function completePastedLinkAction(
   await setSession(session.idToken, session.refreshToken);
   await clearPendingLink();
   await clearPendingConfirmation();
+  // Outside the try, for the same reason as above: redirect() throws to signal.
   redirect(next);
 }
 

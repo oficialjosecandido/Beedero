@@ -265,7 +265,13 @@
       "Bash(gh workflow *)",
       "Bash(curl -s -o /dev/null -w \"continue: %{http_code}\\\\n\" \"https://beedero.com/auth/continue?next=%2Ffeed\")",
       "Bash(curl -s \"https://beedero.com/manifest.webmanifest\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\({k:d.get\\(k\\) for k in \\('id','scope','start_url','handle_links','launch_handler','display'\\)}\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\({k:d.get\\(k\\) for k in \\('id','scope','start_url','handle_links','launch_handler','display'\\)}\\)\")",
+      "Bash(python -m pytest accounts/test_signin_code.py accounts/test_signin_link.py -q)",
+      "Bash(ruff format *)",
+      "Bash(python -)",
+      "Bash(python /private/tmp/claude-501/-Users-josecandido-Documents-Beedero/76ab3faf-9173-477f-a724-c134b14e96d5/scratchpad/e2e_code.py)",
+      "Bash(pkill -f \"manage.py runserver 8011\")",
+      "Bash(python -m pytest accounts/test_signin_code.py -q)"
     ]
   }
 }
