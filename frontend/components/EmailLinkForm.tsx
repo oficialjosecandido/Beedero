@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 
 import {
   completePastedLinkAction,
@@ -8,7 +8,11 @@ import {
   sendSignInLinkAction,
   type SignInState,
 } from "@/lib/auth-actions";
-import { isStandaloneDisplay } from "@/lib/pwa-install";
+import {
+  isStandaloneDisplay,
+  subscribeToDisplayMode,
+  unknownDisplayMode,
+} from "@/lib/pwa-install";
 
 type Props = {
   /** "send" emails a link; "confirm" redeems one that was opened on another
@@ -28,11 +32,10 @@ export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) 
     completePastedLinkAction,
     null
   );
-  const [inPwa, setInPwa] = useState(false);
-
-  useEffect(() => {
-    setInPwa(isStandaloneDisplay());
-  }, []);
+  // Treated as false until hydration resolves it, so the server and the first
+  // client render agree on which follow-up to show.
+  const inPwa =
+    useSyncExternalStore(subscribeToDisplayMode, isStandaloneDisplay, unknownDisplayMode) === true;
 
   // A fresh submission's own result always wins over the stale query-string
   // error that brought the user here.

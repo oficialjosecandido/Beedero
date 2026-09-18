@@ -261,7 +261,11 @@
       "Bash(curl -s -X POST https://beedero-api.azurewebsites.net/api/auth/signin-link/ -H 'Content-Type: application/json' -d '{\"email\":\"__CMDSUB_OUTPUT__\",\"state\":\"0123456789abcdef0123456789abcdef\",\"next\":\"/feed\"}' -w '\\\\n--- status %{http_code} in %{time_total}s ---\\\\n' --max-time 90)",
       "Bash(curl -s -X POST https://beedero-api.azurewebsites.net/api/auth/signin-link/ -H 'Content-Type: application/json' -d '{\"email\":\"nope\",\"state\":\"0123456789abcdef0123456789abcdef\"}' -w '\\\\n status %{http_code} in %{time_total}s\\\\n' --max-time 60)",
       "Bash(curl -s -o /dev/null -w \" status %{http_code} in %{time_total}s\\\\n\" --max-time 60 https://beedero-api.azurewebsites.net/api/public/people/__none__/)",
-      "Bash(curl -s https://beedero.com/login -F '$ACTION_REF_1=' -F '$ACTION_1:0={\"id\":\"60222e30491e8733b15060234eb5e64c5f4acc4061\",\"bound\":\"$@1\"}' -F '$ACTION_1:1=[null]' -F '$ACTION_KEY=k1edff6a09b3e8511cc6b8eb08145f2a5' -F email=__TRACKED_VAR__ -F next=/feed)"
+      "Bash(curl -s https://beedero.com/login -F '$ACTION_REF_1=' -F '$ACTION_1:0={\"id\":\"60222e30491e8733b15060234eb5e64c5f4acc4061\",\"bound\":\"$@1\"}' -F '$ACTION_1:1=[null]' -F '$ACTION_KEY=k1edff6a09b3e8511cc6b8eb08145f2a5' -F email=__TRACKED_VAR__ -F next=/feed)",
+      "Bash(gh workflow *)",
+      "Bash(curl -s -o /dev/null -w \"continue: %{http_code}\\\\n\" \"https://beedero.com/auth/continue?next=%2Ffeed\")",
+      "Bash(curl -s \"https://beedero.com/manifest.webmanifest\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\({k:d.get\\(k\\) for k in \\('id','scope','start_url','handle_links','launch_handler','display'\\)}\\)\")"
     ]
   }
 }

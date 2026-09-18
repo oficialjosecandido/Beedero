@@ -23,6 +23,22 @@ export function isStandaloneDisplay(): boolean {
   return window.matchMedia("(display-mode: standalone)").matches || nav.standalone === true;
 }
 
+/** Subscribe form of the above, for useSyncExternalStore.
+ *
+ * Whether we're inside the installed app can only be known in the browser, so
+ * components used to read it in an effect and setState — which costs a second
+ * render pass and trips react-hooks/set-state-in-effect. Reading it through a
+ * store instead lets the server snapshot be `null` ("don't know yet"), which is
+ * the loading state these components already wanted. */
+export function subscribeToDisplayMode(onChange: () => void): () => void {
+  const media = window.matchMedia("(display-mode: standalone)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+/** The server/hydration snapshot: nothing about `window` is knowable yet. */
+export const unknownDisplayMode = (): boolean | null => null;
+
 export function wasInstallPromptRecentlyDismissed(): boolean {
   const raw = window.localStorage.getItem(DISMISS_KEY);
   if (!raw) return false;

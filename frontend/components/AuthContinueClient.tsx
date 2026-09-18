@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
-import { detectPlatform, isStandaloneDisplay } from "@/lib/pwa-install";
+import {
+  detectPlatform,
+  isStandaloneDisplay,
+  subscribeToDisplayMode,
+  unknownDisplayMode,
+} from "@/lib/pwa-install";
 
 type Props = {
   next: string;
@@ -17,15 +22,21 @@ type Props = {
  */
 export function AuthContinueClient({ next }: Props) {
   const router = useRouter();
-  const [mode, setMode] = useState<"loading" | "standalone" | "browser">("loading");
-  const [platform, setPlatform] = useState<"ios" | "android" | "other">("other");
+  // null until hydration has run — same three states as before, without the
+  // extra render pass that setting them in an effect cost.
+  const inPwa = useSyncExternalStore(
+    subscribeToDisplayMode,
+    isStandaloneDisplay,
+    unknownDisplayMode
+  );
+  // Only read on the client: while inPwa is null we're still rendering the
+  // server's markup, where there is no navigator.
+  const platform = inPwa === null ? "other" : detectPlatform(navigator.userAgent);
 
   useEffect(() => {
-    const standalone = isStandaloneDisplay();
-    setPlatform(detectPlatform(navigator.userAgent));
-    setMode(standalone ? "standalone" : "browser");
+    if (inPwa === null) return;
 
-    if (standalone) {
+    if (inPwa) {
       router.replace(next);
       return;
     }
@@ -37,9 +48,9 @@ export function AuthContinueClient({ next }: Props) {
     if (androidIntent) {
       window.location.replace(androidIntent);
     }
-  }, [next, router]);
+  }, [inPwa, next, router]);
 
-  if (mode === "loading" || mode === "standalone") {
+  if (inPwa === null || inPwa) {
     return (
       <p className="text-sm text-zinc-600" role="status">
         Signing you in…
