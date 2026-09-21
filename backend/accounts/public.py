@@ -57,6 +57,11 @@ def public_person_profile(handle: str, viewer) -> dict:
         person["links"] = profile.links
     if resolver.can_see("country") and profile.country:
         person["country"] = profile.country
+    # City rides the country section rather than getting a toggle of its own:
+    # both answer "where are you", and two switches for one question is a
+    # worse setting than one.
+    if resolver.can_see("country") and profile.city:
+        person["city"] = profile.city
 
     attestations = platform_attestations(profile) if resolver.can_see("attestations") else []
 

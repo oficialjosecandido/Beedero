@@ -31,6 +31,13 @@ class InvestorProfile(models.Model):
     headline = models.CharField(max_length=200, blank=True)
     bio = models.TextField(blank=True)  # optional
     country = models.CharField(max_length=2, blank=True)  # ISO 3166-1 alpha-2
+    # Base city, declared — never inferred from IP. `city` is what the person
+    # typed and what we show back; `city_key` is the normalized form we count
+    # and filter on, so "Lisboa" and "Lisbon" are one city (accounts/cities.py).
+    # Both live here next to country because location is one idea, and they
+    # share its visibility section.
+    city = models.CharField(max_length=80, blank=True)
+    city_key = models.CharField(max_length=80, blank=True, db_index=True)
     profile_picture = models.ImageField(upload_to="avatars/", blank=True, null=True)
     manifesto = models.CharField(max_length=600, blank=True)  # optional brand-voice sentence
     links = models.JSONField(default=list, blank=True)  # [{"label": "Site", "url": ...}]
@@ -65,6 +72,19 @@ class InvestorProfile(models.Model):
 
     def __str__(self):
         return f"InvestorProfile({self.user.username})"
+
+    def save(self, *args, **kwargs):
+        # Derived here rather than in the serializer so no write path can
+        # leave the two out of step — /admin, a shell, a data migration and
+        # the API all go through save().
+        from .cities import clean_city, normalize_city
+
+        self.city = clean_city(self.city)
+        self.city_key = normalize_city(self.city)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "city" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "city_key"}
+        return super().save(*args, **kwargs)
 
     def merged_visibility(self) -> dict:
         return {**self.DEFAULT_VISIBILITY, **(self.visibility or {})}

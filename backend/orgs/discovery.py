@@ -127,6 +127,7 @@ def discover_active_this_week(viewer, limit=12):
 
 
 def discover_people(viewer, params: dict):
+    from accounts.cities import normalize_city
     from accounts.completeness import profile_completeness
     from accounts.models import InvestorProfile
 
@@ -141,6 +142,13 @@ def discover_people(viewer, params: dict):
             | Q(headline__icontains=query)
             | Q(handle__icontains=query)
         )
+
+    # Local density (doc `beedero-features-onfound-analise.md` §1.1): matched
+    # on the normalized key, so the filter finds "Lisboa" and "Lisbon" alike
+    # whichever one the searcher typed.
+    city = normalize_city(params.get("city") or "")
+    if city:
+        qs = qs.filter(city_key=city)
 
     profiles = list(qs)
     profiles.sort(

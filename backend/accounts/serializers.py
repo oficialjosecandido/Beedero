@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from orgs.posting.imaging import PostImageValidationMixin, process_logo_image
 
+from .cities import clean_city
 from .models import InvestorPost, InvestorProfile, SelfDeclaredExperience
 from .skills import normalize_skills
 from .visibility import ALL_LEVELS
@@ -28,6 +29,8 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "links",
             "skills",
             "country",
+            "city",
+            "city_key",
             "profile_picture",
             "stage_focus",
             "sector_focus",
@@ -40,7 +43,13 @@ class InvestorProfileSerializer(serializers.ModelSerializer):
             "is_complete",
             "has_public_handle",
         ]
-        read_only_fields = ["is_verified", "verified_at", "handle"]
+        read_only_fields = ["is_verified", "verified_at", "handle", "city_key"]
+
+    def validate_city(self, value):
+        # Exposed so a bad value fails here with a field error rather than
+        # being silently truncated by the model's save(). The normalized
+        # key is still derived there — this only guards the display form.
+        return clean_city(value)
 
     def validate_full_name(self, value):
         if self.instance and self.instance.full_name and value != self.instance.full_name:
