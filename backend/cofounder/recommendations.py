@@ -23,7 +23,8 @@ CANDIDATE_POOL = 200  # scored in Python; ordering below is not expressible in S
 # Tinder the photo decides, here the credibility does (doc §2).
 VERIFIED_IDENTITY_POINTS = 4
 VERIFIED_TRACK_RECORD_POINTS = 2  # at least one org/registry-verified affiliation
-SAME_LOCATION_POINTS = 3  # a co-founder you can have coffee with is worth more
+SAME_COUNTRY_POINTS = 3  # a co-founder you can have coffee with is worth more
+SAME_CITY_POINTS = 2  # on top of the country point — same city is the coffee
 SAME_COMMITMENT_POINTS = 2
 
 LISBON = ZoneInfo("Europe/Lisbon")
@@ -55,12 +56,15 @@ def _score(candidate: BuilderProfile, me: BuilderProfile, verified_track_record:
         score += VERIFIED_IDENTITY_POINTS
     if candidate.user_id in verified_track_record:
         score += VERIFIED_TRACK_RECORD_POINTS
-    # Location comes from the personal profile (country is the finest
-    # granularity it carries today — city would sharpen "coffee in Lisbon",
-    # and is the natural upgrade once the profile has one).
-    if my_profile and candidate_profile and my_profile.country:
-        if my_profile.country == candidate_profile.country:
-            score += SAME_LOCATION_POINTS
+    # Location comes from the personal profile. Country and city stack rather
+    # than replacing each other: same country is worth something on its own
+    # (one flight, one timezone, one set of company law), and the same city on
+    # top of it is the part that actually means "coffee on Thursday".
+    if my_profile and candidate_profile:
+        if my_profile.country and my_profile.country == candidate_profile.country:
+            score += SAME_COUNTRY_POINTS
+        if my_profile.city_key and my_profile.city_key == candidate_profile.city_key:
+            score += SAME_CITY_POINTS
     score += len(set(me.sectors or []) & set(candidate.sectors or []))
     if candidate.commitment and candidate.commitment == me.commitment:
         score += SAME_COMMITMENT_POINTS

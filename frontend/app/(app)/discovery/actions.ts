@@ -7,6 +7,7 @@ type PersonSummary = {
   id: number;
   name: string;
   headline?: string;
+  city?: string;
   profile_picture?: string | null;
 };
 

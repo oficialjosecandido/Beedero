@@ -25,6 +25,7 @@ type PublicPerson = {
     profile_picture?: string | null;
     bio?: string;
     country?: string;
+    city?: string;
   };
   attestations: {
     kind: string;
@@ -129,9 +130,11 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                 {person.headline && (
                   <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">{person.headline}</p>
                 )}
-                {person.country && (
+                {(person.city || person.country) && (
                   <p className="mt-1 text-xs text-zinc-400">
-                    {COUNTRY_NAMES[person.country] ?? person.country}
+                    {[person.city, person.country && (COUNTRY_NAMES[person.country] ?? person.country)]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
               </div>

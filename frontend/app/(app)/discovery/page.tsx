@@ -13,8 +13,17 @@ type PersonSummary = {
   headline?: string;
   handle?: string | null;
   is_verified?: boolean;
+  city?: string;
   profile_picture?: string | null;
   connection_status?: "none" | "pending_sent" | "pending_received" | "connected";
+};
+
+type CitySummary = { city: string; city_key: string; count: number } | null;
+
+type PeopleResponse = {
+  items: PersonSummary[];
+  next_offset: number | null;
+  city_summary?: CitySummary;
 };
 
 export default async function DiscoveryPage({
@@ -26,6 +35,7 @@ export default async function DiscoveryPage({
   const tab = params.tab === "organizations" ? "organizations" : "people";
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
+  if (params.city) query.set("city", params.city);
   for (const key of ["stage", "sector", "geo", "fundraising", "min_credibility"]) {
     if (params[key]) query.set(key, params[key]!);
   }
@@ -43,11 +53,9 @@ export default async function DiscoveryPage({
         }>(`/discovery/?${query.toString()}`)
       : { items: [], next_offset: null, active_this_week: [] };
 
-  const peopleResults: { items: PersonSummary[]; next_offset: number | null } =
+  const peopleResults: PeopleResponse =
     tab === "people"
-      ? await apiFetch<{ items: PersonSummary[]; next_offset: number | null }>(
-          `/discovery/people/?${query.toString()}`
-        )
+      ? await apiFetch<PeopleResponse>(`/discovery/people/?${query.toString()}`)
       : { items: [], next_offset: null };
 
   const tabQuery = (nextTab: "organizations" | "people") => {
@@ -59,11 +67,23 @@ export default async function DiscoveryPage({
   const clearSearchQuery = () => {
     const next = new URLSearchParams(query);
     next.delete("q");
+    next.delete("city");
     next.set("tab", tab);
     return next.toString();
   };
 
-  const hasSearchQuery = Boolean(params.q?.trim());
+  const hasSearchQuery = Boolean(params.q?.trim() || params.city?.trim());
+
+  // "47 people in Lisbon" — only worth showing when it isn't already the
+  // filter in force, and only once the viewer has told us where they are.
+  const citySummary = peopleResults.city_summary ?? null;
+  const showCityPrompt = tab === "people" && citySummary !== null && !params.city;
+  const cityPromptQuery = () => {
+    const next = new URLSearchParams(query);
+    next.set("tab", "people");
+    next.set("city", citySummary!.city_key);
+    return next.toString();
+  };
 
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
@@ -98,6 +118,15 @@ export default async function DiscoveryPage({
                 }
                 className="flex-1 rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
+              {tab === "people" && (
+                <input
+                  name="city"
+                  defaultValue={params.city ?? ""}
+                  placeholder="City — Lisbon, Porto…"
+                  aria-label="City"
+                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 sm:w-52"
+                />
+              )}
               <div className="flex gap-2">
                 {hasSearchQuery && (
                   <Link
@@ -140,6 +169,18 @@ export default async function DiscoveryPage({
             Organizations
           </Link>
         </div>
+
+        {showCityPrompt && (
+          <Link
+            href={`/discovery?${cityPromptQuery()}`}
+            className="flex w-fit items-center gap-2 rounded-full border-2 border-beedero-border bg-beedero-yellow/20 px-4 py-2 text-sm font-semibold text-beedero-black transition hover:bg-beedero-yellow"
+          >
+            {citySummary!.count === 1
+              ? `1 other person in ${citySummary!.city}`
+              : `${citySummary!.count} people in ${citySummary!.city}`}
+            <span aria-hidden="true">→</span>
+          </Link>
+        )}
 
         {tab === "people" ? (
           <PeopleDiscoveryList

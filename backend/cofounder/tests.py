@@ -177,6 +177,25 @@ def test_deck_ranks_verified_identity_first(alice, db):
 
 
 @pytest.mark.django_db
+def test_deck_ranks_the_same_city_above_the_same_country(alice, db):
+    """Same country is one flight; same city is coffee on Thursday."""
+    alice.investorprofile.city = "Lisboa"
+    alice.investorprofile.save(update_fields=["city"])
+    make_builder(alice, strength=Strength.TECHNICAL, looking_for=["business"])
+
+    elsewhere = make_user("dave")
+    same_city = make_user("erin")
+    same_city.investorprofile.city = "lisbon"  # typed differently, same city
+    same_city.investorprofile.save(update_fields=["city"])
+    make_builder(elsewhere, strength=Strength.BUSINESS, looking_for=["technical"])
+    make_builder(same_city, strength=Strength.BUSINESS, looking_for=["technical"])
+
+    deck = build_deck(alice)
+
+    assert [b.user_id for b in deck] == [same_city.id, elsewhere.id]
+
+
+@pytest.mark.django_db
 def test_deck_is_capped_at_the_daily_limit(alice, db):
     make_builder(alice, strength=Strength.TECHNICAL, looking_for=["business"])
     for i in range(DAILY_LIMIT + 4):

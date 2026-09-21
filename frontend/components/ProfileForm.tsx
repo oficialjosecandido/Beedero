@@ -20,6 +20,7 @@ type Profile = {
   links?: ProfileLink[];
   skills?: string[];
   country?: string;
+  city?: string;
   profile_picture?: string | null;
   handle?: string | null;
   visibility?: Visibility;
@@ -33,7 +34,7 @@ type Profile = {
 
 const VISIBILITY_SECTIONS = [
   { key: "bio", label: "Bio", hint: "Your about text, manifesto, and links" },
-  { key: "country", label: "Country", hint: "Where you're based" },
+  { key: "country", label: "Location", hint: "The country and city you're based in" },
   { key: "skills", label: "Skills", hint: "Your skills cloud" },
   { key: "posts", label: "Activity posts", hint: "Updates and milestones" },
   { key: "attestations", label: "Platform facts", hint: "Memberships and stats" },
@@ -327,6 +328,20 @@ export function ProfileForm({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+            City <span className="font-normal text-subtle">(optional)</span>
+            <input
+              name="city"
+              maxLength={80}
+              placeholder="Lisbon"
+              defaultValue={profile?.city ?? ""}
+              className={fieldClass}
+            />
+            <span className="text-xs font-normal text-subtle">
+              Free text, and yours to set — we never guess it from your connection. It&apos;s what
+              lets us show you who else builds where you do.
+            </span>
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
             Bio <span className="font-normal text-subtle">(optional)</span>

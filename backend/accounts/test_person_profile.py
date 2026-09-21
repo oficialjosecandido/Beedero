@@ -47,6 +47,25 @@ def test_public_person_profile_hides_private_bio(api, person):
 
 
 @pytest.mark.django_db
+def test_public_person_profile_shows_the_declared_city(api, person):
+    person.city = "Lisboa"
+    person.save(update_fields=["city"])
+    res = api.get("/api/public/people/adalovelace/")
+    assert res.json()["person"]["city"] == "Lisboa"
+
+
+@pytest.mark.django_db
+def test_city_is_hidden_with_the_rest_of_the_location(api, person):
+    """City rides the `country` section — one question, one switch."""
+    person.city = "Lisboa"
+    person.visibility = {"country": "private"}
+    person.save(update_fields=["city", "visibility"])
+    body = api.get("/api/public/people/adalovelace/").json()["person"]
+    assert "city" not in body
+    assert "country" not in body
+
+
+@pytest.mark.django_db
 def test_public_person_profile_incomplete_returns_404(api, person):
     person.full_name = ""
     person.save(update_fields=["full_name"])

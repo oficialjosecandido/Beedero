@@ -151,6 +151,9 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   body.set("bio", formData.get("bio") ?? "");
   body.set("manifesto", formData.get("manifesto") ?? "");
   body.set("country", formData.get("country") ?? "");
+  // Sent raw — the backend both stores what was typed and derives the key it
+  // matches on, so the two can never disagree (accounts/cities.py).
+  body.set("city", formData.get("city") ?? "");
 
   const visibility: Record<string, string> = {};
   for (const key of ["bio", "country", "skills", "posts", "attestations", "credentials"]) {

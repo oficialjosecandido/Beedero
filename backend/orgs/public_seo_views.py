@@ -1,4 +1,16 @@
-"""Public SEO endpoints — sitemap data and unauthenticated discovery."""
+"""Public SEO endpoints — sitemap data and unauthenticated discovery.
+
+On why there is no IP throttle here, deliberately: every one of these is
+called server-side by Next.js (`publicFetch` in frontend/lib/api.ts is
+`server-only`, and forwards none of the visitor's headers), so the backend
+sees one client — the frontend host — for all of this traffic. An IP throttle
+would therefore not slow a scraper down by a single request; it would take
+the public site offline the moment it grew popular. The bounds below are the
+protection instead: no response here can be made to grow without limit, and
+nothing here carries a field that isn't already on the indexable page it
+points at. The authenticated listings in orgs/views.py are where the rate
+limits live, because there the caller is a person rather than a cache.
+"""
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +20,11 @@ from accounts.models import InvestorProfile
 from .discovery import discover
 from .models import Organization
 from .serializers import _org_summary
+
+# The sitemaps protocol's own ceiling (50,000 URLs per file), used here as the
+# response bound. Passing it means it's time to split into a sitemap index,
+# not to raise this number — Google would ignore the overflow either way.
+MAX_SITEMAP_ENTRIES = 50_000
 
 
 def _parse_limit_offset(request, default_limit=24, max_limit=50):
@@ -32,31 +49,33 @@ class PublicSitemapView(APIView):
     permission_classes = []
 
     def get(self, request):
-        orgs = Organization.objects.filter(status=Organization.Status.LIVE).order_by("slug")
-        org_entries = [
-            {"slug": org.slug, "lastmod": org.created_at.date().isoformat()} for org in orgs
-        ]
+        # values_list, not model instances: this builds tens of thousands of
+        # entries and needs three columns of each.
+        orgs = (
+            Organization.objects.filter(status=Organization.Status.LIVE)
+            .order_by("slug")
+            .values_list("slug", "created_at", "is_verified")[:MAX_SITEMAP_ENTRIES]
+        )
+        org_entries = []
+        verify_entries = []
+        for slug, created_at, is_verified in orgs:
+            entry = {"slug": slug, "lastmod": created_at.date().isoformat()}
+            org_entries.append(entry)
+            if is_verified:
+                verify_entries.append(entry)
 
-        people_qs = (
+        people = (
             InvestorProfile.objects.filter(handle__isnull=False)
             .exclude(handle="")
             .exclude(full_name="")
             .exclude(headline="")
             .exclude(country="")
-            .select_related("user")
             .order_by("handle")
+            .values_list("handle", "user__date_joined")[:MAX_SITEMAP_ENTRIES]
         )
         people_entries = [
-            {
-                "handle": profile.handle,
-                "lastmod": profile.user.date_joined.date().isoformat(),
-            }
-            for profile in people_qs
-        ]
-
-        verify_entries = [
-            {"slug": org.slug, "lastmod": org.created_at.date().isoformat()}
-            for org in orgs.filter(is_verified=True)
+            {"handle": handle, "lastmod": date_joined.date().isoformat()}
+            for handle, date_joined in people
         ]
 
         return Response(

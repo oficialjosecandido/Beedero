@@ -38,7 +38,13 @@ from .completeness import (
 from .constants import FUNDRAISE_KINDS, SectionKind
 from connections import services as connections_services
 
-from .discovery import discover, discover_active_this_week, discover_people
+from .discovery import (
+    discover,
+    discover_active_this_week,
+    discover_people,
+    people_in_viewer_city,
+    visible_city_ids,
+)
 from advisory.discovery import find_advisors
 from .feed import activity_feed_items
 from .models import (
@@ -1292,8 +1298,14 @@ class DiscoveryView(APIView):
 
     DEFAULT_LIMIT = 20
     MAX_LIMIT = 50
+    # Pagination bounds one response; this bounds the sweep. See
+    # DiscoverPeopleView for the reasoning.
+    SEARCHES_PER_HOUR = 120
 
     def get(self, request):
+        enforce_rate_limit(
+            f"discover-orgs:{request.user.id}", limit=self.SEARCHES_PER_HOUR, window_seconds=3600
+        )
         try:
             limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
         except (TypeError, ValueError):
@@ -1320,14 +1332,25 @@ class DiscoveryView(APIView):
 
 
 class DiscoverPeopleView(APIView):
-    """GET /api/discovery/people/?q= — search investors by name or headline."""
+    """GET /api/discovery/people/?q=&city= — search investors by name, headline or city.
+
+    Also answers "how many people are in my city" (`city_summary`), which is
+    the point of the city field: local density is what turns a directory into
+    somewhere worth meeting people."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     DEFAULT_LIMIT = 20
     MAX_LIMIT = 50
+    # Listing pages are the mass-scraping vector — one request is cheap, a
+    # paginated sweep of the whole table isn't. Generous enough that nobody
+    # browsing ever meets it.
+    SEARCHES_PER_HOUR = 120
 
     def get(self, request):
+        enforce_rate_limit(
+            f"discover-people:{request.user.id}", limit=self.SEARCHES_PER_HOUR, window_seconds=3600
+        )
         try:
             limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
         except (TypeError, ValueError):
@@ -1343,6 +1366,9 @@ class DiscoverPeopleView(APIView):
         page = list(qs[offset : offset + limit + 1])
         has_more = len(page) > limit
         page = page[:limit]
+        # Someone who set their location to private stays in the results —
+        # they're still findable by name — but their city doesn't ride along.
+        city_visible = visible_city_ids(request.user, page)
 
         return Response(
             {
@@ -1353,6 +1379,7 @@ class DiscoverPeopleView(APIView):
                         "headline": profile.headline,
                         "handle": profile.handle,
                         "is_verified": profile.is_verified,
+                        "city": profile.city if profile.pk in city_visible else "",
                         "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
                         "connection_status": connections_services.connection_status(
                             request.user, profile.user
@@ -1361,6 +1388,7 @@ class DiscoverPeopleView(APIView):
                     for profile in page
                 ],
                 "next_offset": offset + limit if has_more else None,
+                "city_summary": people_in_viewer_city(request.user),
             }
         )
 
@@ -1376,8 +1404,14 @@ class DiscoverAdvisorsView(APIView):
 
     DEFAULT_LIMIT = 20
     MAX_LIMIT = 50
+    SEARCHES_PER_HOUR = 120
 
     def get(self, request):
+        enforce_rate_limit(
+            f"discover-advisors:{request.user.id}",
+            limit=self.SEARCHES_PER_HOUR,
+            window_seconds=3600,
+        )
         try:
             limit = int(request.query_params.get("limit", self.DEFAULT_LIMIT))
         except (TypeError, ValueError):

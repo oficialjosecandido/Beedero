@@ -18,6 +18,7 @@ type PersonSummary = {
   headline?: string;
   handle?: string | null;
   is_verified?: boolean;
+  city?: string;
   profile_picture?: string | null;
   connection_status?: ConnectionStatus;
 };
@@ -74,6 +75,7 @@ function PersonCard({ person }: { person: PersonSummary }) {
             <p className="text-xs font-medium text-zinc-500">{formatAtHandle(person.handle)}</p>
           )}
           {person.headline && <p className="text-xs text-zinc-500">{person.headline}</p>}
+          {person.city && <p className="text-xs text-zinc-500">{person.city}</p>}
         </div>
       </div>
       <div className="flex flex-col items-start gap-1 sm:items-end">
