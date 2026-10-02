@@ -54,8 +54,6 @@ function UsernameField() {
   useEffect(() => {
     const normalized = normalizeUsername(query);
     if (normalized.length < 2) {
-      setMatches([]);
-      setLoading(false);
       return;
     }
 
@@ -92,6 +90,10 @@ function UsernameField() {
     setQuery(person.handle);
     setMenuOpen(false);
   }
+
+  const normalizedQuery = normalizeUsername(query);
+  const visibleMatches = normalizedQuery.length < 2 ? [] : matches;
+  const searching = normalizedQuery.length >= 2 && loading;
 
   return (
     <div className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">

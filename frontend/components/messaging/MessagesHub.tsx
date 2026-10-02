@@ -240,9 +240,9 @@ function MessagesHubContent() {
     intervalMs: 45_000,
   });
 
+  // Remounts via MessagesHubKeyed's key when inboxContext changes, so selected/
+  // loading reset themselves — only kick off the first fetch here.
   useEffect(() => {
-    setSelected(null);
-    setLoading(true);
     void refresh();
   }, [refresh]);
 

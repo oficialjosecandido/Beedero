@@ -18,12 +18,12 @@ function normalizeCounts(counts?: ReactionCounts): ReactionCounts {
 
 export function ReactionBar({
   activityId,
-  initialCount,
   initialCounts,
   initialReaction,
 }: {
   activityId: number;
-  initialCount: number;
+  /** Kept for call-site compatibility; counts come from `initialCounts`. */
+  initialCount?: number;
   initialCounts?: ReactionCounts;
   initialReaction: string | null;
 }) {
