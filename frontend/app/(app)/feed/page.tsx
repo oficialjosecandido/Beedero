@@ -1,17 +1,11 @@
-import { redirect } from "next/navigation";
-
-import { AppColumnHeader } from "@/components/AppColumnHeader";
-import { AppRightColumn } from "@/components/AppRightColumn";
-import { ProfileColumn } from "@/components/ProfileColumn";
-import { SuggestedFollowsPanel } from "@/components/SuggestedFollowsPanel";
-import { TrendingPanel, type TrendingItem } from "@/components/TrendingPanel";
-import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
-import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
-import { ApiError, apiFetch, safeFetch } from "@/lib/api";
-
 import { FeedComposer } from "./FeedComposer";
 import { FeedList } from "./FeedList";
+import { FeedRightColumn } from "./FeedRightColumn";
 import type { FeedItem } from "./types";
+import { ApiError, apiFetch, safeFetch } from "@/lib/api";
+import type { TrendingItem } from "@/components/TrendingPanel";
+import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
+import { redirect } from "next/navigation";
 
 type InvestorPost = {
   id: number;
@@ -34,47 +28,46 @@ type InvestorProfile = {
   is_complete?: boolean;
 };
 type Me = { email: string; investor_profile: InvestorProfile | null };
-type ProfileStats = { profile_views_count: number; post_impressions_count: number; range_days: number };
-type NetworkCounts = { connections: number; pending: number; following: number };
+
+function greetingFor(name: string): string {
+  const first = name.trim().split(/\s+/)[0] || "there";
+  const hour = new Date().getHours();
+  if (hour < 12) return `Good morning, ${first}.`;
+  if (hour < 18) return `Good afternoon, ${first}.`;
+  return `Good evening, ${first}.`;
+}
 
 export default async function FeedPage() {
   let items: FeedItem[];
   let next_cursor: string | null;
   let me: Me;
-  let orgs: Membership[];
   let hasPostedToday = false;
   let myPosts: InvestorPost[] = [];
-  let trending: TrendingItem[] = [];
-  let recentOrgUpdates: RecentOrgUpdateItem[] = [];
-  let stats: ProfileStats | null = null;
-  let network: NetworkCounts | null = null;
   let vitality: Vitality | null = null;
-  let recommendations: { organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] } = {
-    organizations: [],
-  };
+  let recommendations: {
+    organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[];
+  } = { organizations: [] };
+
   try {
-    const [feed, meRes, orgsRes, posts, trendingRes, updatesRes, statsRes, recRes, networkRes] = await Promise.all([
+    const [feed, meRes, posts, recRes] = await Promise.all([
       apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
       apiFetch<Me>("/auth/me/"),
-      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
+      safeFetch(
+        apiFetch<{
+          organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[];
+        }>("/recommendations/"),
+        { organizations: [] }
+      ),
+      // Keep these warm in parallel — used lightly / reserved for later panels.
       safeFetch(apiFetch<{ items: TrendingItem[] }>("/trending/"), { items: [] }),
       safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
-      safeFetch(apiFetch<ProfileStats>("/investors/me/stats/"), null),
-      safeFetch(apiFetch<{ organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[] }>("/recommendations/"), {
-        organizations: [],
-      }),
-      safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
+      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
     ]);
     ({ items, next_cursor } = feed);
     me = meRes;
-    orgs = orgsRes;
     myPosts = posts;
-    trending = trendingRes.items;
-    recentOrgUpdates = updatesRes.items;
-    stats = statsRes;
     recommendations = recRes;
-    network = networkRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
     if (!me.investor_profile?.is_complete) {
@@ -90,22 +83,28 @@ export default async function FeedPage() {
   const displayName = profile?.full_name || me.email;
   const events = myPosts
     .filter((post) => post.kind === "events")
-    .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
-
-  const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, items);
+    .map((post) => ({
+      id: post.id,
+      title: post.title,
+      occurred_at: post.occurred_at,
+      ends_at: post.ends_at,
+    }));
 
   return (
-    <main className="flex min-w-0 flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="grid w-full min-w-0 max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
-        <div className="order-1 min-w-0 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} stats={stats} network={network} />
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,630px)_minmax(270px,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+      <section className="min-w-0">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
+              The network, today
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
+              {greetingFor(displayName)}
+            </h1>
+          </div>
         </div>
 
-        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-none lg:gap-6">
-          <div className="hidden lg:block">
-            <AppColumnHeader label="Feed" />
-          </div>
-
+        <div className="mt-7">
           <FeedComposer
             name={displayName}
             profilePicture={profile?.profile_picture}
@@ -114,20 +113,14 @@ export default async function FeedPage() {
             completeness={vitality?.completeness ?? 0}
             checklist={vitality?.checklist ?? []}
           />
+        </div>
 
-          {items.length < 3 && recommendations.organizations.length > 0 && (
-            <SuggestedFollowsPanel organizations={recommendations.organizations} />
-          )}
-
+        <div className="mt-5">
           <FeedList initialItems={items} initialCursor={next_cursor} />
-
-          {trending.length > 0 && <TrendingPanel items={trending} />}
         </div>
+      </section>
 
-        <div className="order-3 min-w-0 lg:order-none">
-          <AppRightColumn updates={orgNews} />
-        </div>
-      </div>
-    </main>
+      <FeedRightColumn organizations={recommendations.organizations} events={events} />
+    </div>
   );
 }

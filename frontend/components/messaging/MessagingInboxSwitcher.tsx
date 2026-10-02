@@ -26,14 +26,14 @@ function ContextAvatar({
       aria-label={label}
       aria-pressed={selected}
       className={`rounded-full p-0.5 transition ${
-        selected ? "ring-2 ring-beedero-black ring-offset-1" : "opacity-70 hover:opacity-100"
+        selected ? "ring-2 ring-beedero-yellow ring-offset-1 ring-offset-app-bg" : "opacity-70 hover:opacity-100"
       }`}
     >
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img loading="lazy" src={image} alt="" className="size-10 rounded-full object-cover" />
       ) : (
-        <span className="flex size-10 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600">
+        <span className="flex size-10 items-center justify-center rounded-full bg-[#68738a] text-sm font-semibold text-white">
           {name.charAt(0).toUpperCase()}
         </span>
       )}

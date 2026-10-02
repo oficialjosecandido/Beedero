@@ -9,6 +9,14 @@
   --foreground: var(--color-beedero-black);
   color-scheme: light;
 
+  /* App shell (Figma platform) — dark surfaces used by /(app) routes. */
+  --color-app-bg: #111319;
+  --color-app-surface: #15181f;
+  --color-app-elevated: #171a20;
+  --color-app-border: rgb(255 255 255 / 0.1);
+  --color-app-muted: rgb(255 255 255 / 0.45);
+  --color-app-faint: rgb(255 255 255 / 0.3);
+
   /* Text hierarchy tokens. --color-subtle replaces the old zinc-400
      tier, which fails WCAG AA (≈2.9:1 on white); zinc-500's hex
      clears 4.5:1 and is used here instead. */
@@ -38,6 +46,12 @@
   --color-beedero-yellow: var(--color-beedero-yellow);
   --color-beedero-border: var(--color-beedero-border);
   --color-beedero-white: var(--color-beedero-white);
+  --color-app-bg: var(--color-app-bg);
+  --color-app-surface: var(--color-app-surface);
+  --color-app-elevated: var(--color-app-elevated);
+  --color-app-border: var(--color-app-border);
+  --color-app-muted: var(--color-app-muted);
+  --color-app-faint: var(--color-app-faint);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--color-muted);

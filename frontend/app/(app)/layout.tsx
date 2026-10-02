@@ -1,15 +1,8 @@
-import Link from "next/link";
-
-import { DesktopAppNavLinks, MobileAppNavLinks } from "@/components/AppNavLinks";
 import { MessagingShell } from "@/components/MessagingShell";
-import { MessageBell } from "@/components/MessageBell";
 import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvider";
-import { NetworkBell } from "@/components/NetworkBell";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { SessionRefresh } from "@/components/SessionRefresh";
+import { AppShell } from "@/components/app-shell/AppShell";
 import { apiFetch, safeFetch } from "@/lib/api";
-import { logoutAction } from "@/lib/auth-actions";
 import type { CofounderStatus } from "@/lib/cofounder-options";
 import { NetworkProvider } from "@/lib/network-context";
 import { NotificationsProvider } from "@/lib/notifications-context";
@@ -17,106 +10,27 @@ import { noIndexMetadata } from "@/lib/site-metadata";
 
 export const metadata = noIndexMetadata;
 
+type Membership = { slug: string; name: string; logo?: string | null };
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // Doc §10: co-founder matching is only *promoted* once a market has enough
-  // builders to match against — below that the nav entry stays hidden for
-  // everyone except the people already using it. The page itself is always
-  // reachable at /cofounder; this gates the advertisement, not the feature.
-  const cofounderStatus = await safeFetch(
-    apiFetch<CofounderStatus>("/cofounder/status/"),
-    null
-  );
+  const [cofounderStatus, orgs] = await Promise.all([
+    safeFetch(apiFetch<CofounderStatus>("/cofounder/status/"), null),
+    safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
+  ]);
   const showCofounder = Boolean(cofounderStatus?.show_entry_point);
 
   return (
     <NotificationsProvider>
-    <NetworkProvider>
-    <MessagingShell>
-      <SessionRefresh />
-      <NavigationLoadingProvider>
-      <div className="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
-        <header className="sticky top-0 z-20 w-full bg-beedero-yellow text-beedero-black">
-          <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
-            <Link href="/feed" className="text-lg font-black uppercase tracking-[-0.04em]">
-              Beedero
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <div className="hidden items-center gap-2 md:flex">
-                <NotificationBell />
-                <MessageBell />
-                <NetworkBell />
-                <DesktopAppNavLinks showCofounder={showCofounder} />
-              </div>
-              <ProfileSwitcher />
-              <form action={logoutAction} className="hidden md:block">
-                <button
-                  type="submit"
-                  className="rounded-full p-2.5 text-beedero-black/80 hover:bg-beedero-black hover:text-beedero-white"
-                  aria-label="Log out"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="size-5"
-                    aria-hidden="true"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <path d="M16 17l5-5-5-5" />
-                    <path d="M21 12H9" />
-                  </svg>
-                </button>
-              </form>
-
-              <details className="group relative md:hidden" data-mobile-nav>
-              <summary className="list-none rounded-full border border-beedero-black/20 px-4 py-2 text-sm font-semibold text-beedero-black marker:hidden hover:bg-beedero-black/10">
-                Menu
-              </summary>
-              <div className="absolute right-0 mt-3 flex w-48 flex-col rounded-2xl border-2 border-beedero-border bg-beedero-white p-2 shadow-lg">
-                <div className="flex items-center gap-1 px-1 py-1">
-                  <NotificationBell />
-                  <MessageBell />
-                  <NetworkBell />
-                </div>
-                <MobileAppNavLinks showCofounder={showCofounder} />
-                <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    className="flex w-full items-center rounded-xl px-3 py-2 text-beedero-black/70 hover:bg-beedero-black hover:text-beedero-white"
-                    aria-label="Log out"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="size-5"
-                      aria-hidden="true"
-                    >
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <path d="M16 17l5-5-5-5" />
-                      <path d="M21 12H9" />
-                    </svg>
-                  </button>
-                </form>
-              </div>
-              </details>
-            </div>
-          </nav>
-        </header>
-        <div className="flex flex-1 flex-col">
-          <div className="flex flex-1 flex-col bg-beedero-white pb-20 lg:pb-0">{children}</div>
-        </div>
-      </div>
-      </NavigationLoadingProvider>
-    </MessagingShell>
-    </NetworkProvider>
+      <NetworkProvider>
+        <MessagingShell>
+          <SessionRefresh />
+          <NavigationLoadingProvider>
+            <AppShell showCofounder={showCofounder} orgs={orgs}>
+              {children}
+            </AppShell>
+          </NavigationLoadingProvider>
+        </MessagingShell>
+      </NetworkProvider>
     </NotificationsProvider>
   );
 }

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
-import { FaRegComment } from "react-icons/fa";
+import { FaPaperPlane, FaRegComment } from "react-icons/fa";
 
-import { formatDate } from "@/lib/format";
-import { useActionToast } from "@/lib/use-action-toast";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { RichText } from "@/components/RichText";
+import { formatRelativeTime } from "@/lib/format";
+import { useActionToast } from "@/lib/use-action-toast";
 
 import { loadCommentsAction, postCommentAction } from "./actions";
 import type { Comment } from "./types";
@@ -20,7 +20,7 @@ function CommentAvatar({ name, pictureUrl }: { name: string; pictureUrl?: string
     );
   }
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/40 text-xs font-bold text-beedero-black">
+    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#4a5568] text-[10px] font-black">
       {name.charAt(0).toUpperCase()}
     </span>
   );
@@ -30,11 +30,13 @@ function CommentAuthor({ comment }: { comment: Comment }) {
   const avatar = <CommentAvatar name={comment.author_name} pictureUrl={comment.author_profile_picture} />;
   const content = (
     <div className="min-w-0 flex-1">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="font-semibold text-beedero-black">{comment.author_name}</span>
-        <span className="text-xs text-subtle">{formatDate(comment.created_at)}</span>
+      <div className="flex items-baseline gap-2">
+        <b className="text-xs text-white">{comment.author_name}</b>
+        <small className="text-[10px] text-white/30">
+          {formatRelativeTime(comment.created_at).replace(" ago", "")}
+        </small>
       </div>
-      <p className="mt-1 text-sm leading-6 text-zinc-700">
+      <p className="mt-1 text-sm leading-6 text-white/70">
         <RichText body={comment.body} mentions={comment.mentions} />
       </p>
     </div>
@@ -42,10 +44,7 @@ function CommentAuthor({ comment }: { comment: Comment }) {
 
   if (comment.author_handle) {
     return (
-      <Link
-        href={`/p/${comment.author_handle}`}
-        className="flex min-w-0 flex-1 gap-3 hover:opacity-90"
-      >
+      <Link href={`/p/${comment.author_handle}`} className="flex min-w-0 flex-1 gap-3 hover:opacity-90">
         {avatar}
         {content}
       </Link>
@@ -88,7 +87,7 @@ export function CommentThread({
         setViewerHasCommented(res.viewer_has_commented);
         setLoaded(true);
       } catch {
-        // leave the composer usable even if the initial list fails to load
+        // leave composer usable
       }
     });
   }
@@ -101,7 +100,7 @@ export function CommentThread({
         setComments((prev) => [...prev, ...res.items]);
         setCursor(res.next_cursor);
       } catch {
-        // no-op: user can retry via the same button
+        // no-op
       }
     });
   }
@@ -122,65 +121,62 @@ export function CommentThread({
   const [state, formAction, pending] = useActionState(commentFormAction, null);
   useActionToast(state, pending);
 
-  if (!expanded) {
-    return (
+  return (
+    <>
       <button
         type="button"
-        onClick={expand}
-        className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline"
+        onClick={() => (expanded ? setExpanded(false) : expand())}
+        className={`flex items-center gap-1 text-xs font-bold transition ${
+          expanded ? "text-beedero-yellow" : "text-white/45 hover:text-white"
+        }`}
       >
-        <FaRegComment className="text-sm" aria-hidden />
-        {count > 0 ? `${count} comment${count === 1 ? "" : "s"}` : "Add a comment"}
+        <FaRegComment className="size-[13px]" aria-hidden />
+        Comment
+        {count > 0 && <span className="ml-0.5 opacity-50">{count}</span>}
       </button>
-    );
-  }
 
-  return (
-    <div className="mt-4 border-t border-beedero-border pt-4">
-      {comments.length > 0 && (
-        <ul className="grid gap-3">
+      {expanded && (
+        <div className="-mx-5 mt-4 basis-full border-t border-white/10 bg-white/[0.015]">
           {comments.map((comment) => (
-            <li
-              key={comment.id}
-              className="flex gap-3 rounded-2xl border border-beedero-border/60 bg-zinc-50/80 p-3"
-            >
+            <div key={comment.id} className="flex gap-3 border-b border-white/[0.06] px-5 py-4">
               <CommentAuthor comment={comment} />
-            </li>
+            </div>
           ))}
-        </ul>
+          {cursor && (
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={isPending}
+              className="px-5 py-2 text-xs font-semibold text-white/45 hover:text-white disabled:opacity-50"
+            >
+              {isPending ? "Loading…" : "Load more comments"}
+            </button>
+          )}
+          {viewerHasCommented ? (
+            <p className="px-5 py-3 text-sm text-white/40">You have already commented on this post.</p>
+          ) : (
+            <form action={formAction} className="flex gap-3 px-5 py-3">
+              <div className="flex flex-1 items-center gap-2 border border-white/10 bg-white/5 px-3">
+                <MentionTextarea
+                  name="body"
+                  rows={1}
+                  maxLength={2000}
+                  placeholder="Add a comment…"
+                  className="min-h-0 flex-1 resize-none border-0 bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/30"
+                />
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="text-beedero-yellow disabled:opacity-30"
+                  aria-label="Post comment"
+                >
+                  <FaPaperPlane className="size-[13px]" aria-hidden />
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
-      {cursor && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={isPending}
-          className="mt-3 text-xs font-semibold text-zinc-500 hover:text-beedero-black hover:underline disabled:opacity-50"
-        >
-          {isPending ? "Loading…" : "Load more comments"}
-        </button>
-      )}
-      {viewerHasCommented ? (
-        <p className="mt-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-          You have already commented on this post. Each person can leave one comment.
-        </p>
-      ) : (
-        <form action={formAction} className="mt-4 flex items-end gap-2">
-          <MentionTextarea
-            name="body"
-            rows={2}
-            maxLength={2000}
-            placeholder="Write a comment…"
-            className="min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-beedero-border bg-beedero-white px-3 py-2.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-          />
-          <button
-            type="submit"
-            disabled={pending}
-            className="shrink-0 rounded-full bg-beedero-yellow px-4 py-2.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-          >
-            {pending ? "Posting…" : "Post"}
-          </button>
-        </form>
-      )}
-    </div>
+    </>
   );
 }

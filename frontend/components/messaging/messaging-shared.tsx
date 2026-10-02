@@ -56,7 +56,7 @@ export function ParticipantAvatar({
   }
   return (
     <span
-      className={`flex ${classes} shrink-0 items-center justify-center rounded-full bg-zinc-200 font-semibold text-zinc-600`}
+      className={`flex ${classes} shrink-0 items-center justify-center rounded-full bg-[#68738a] font-semibold text-white`}
     >
       {name.charAt(0).toUpperCase()}
     </span>
