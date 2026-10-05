@@ -64,6 +64,8 @@ export function InstallPwaPrompt() {
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4 sm:hidden">
       <div className="w-full max-w-sm rounded-2xl border border-beedero-border bg-beedero-black p-4 text-beedero-white shadow-xl">
         <div className="flex items-start gap-3">
+          {/* Static local icon — next/image adds little here and the lint rule is noisy for this prompt. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/icon-192.png"
             alt=""

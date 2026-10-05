@@ -104,9 +104,14 @@ function UsernameField() {
           name="handle"
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const next = event.target.value;
+            setQuery(next);
             setSelected(null);
             setMenuOpen(true);
+            if (normalizeUsername(next).length < 2) {
+              setMatches([]);
+              setLoading(false);
+            }
           }}
           onFocus={() => setMenuOpen(true)}
           onBlur={() => window.setTimeout(() => setMenuOpen(false), 150)}
@@ -115,14 +120,14 @@ function UsernameField() {
           autoComplete="off"
           className={fieldClass}
         />
-        {menuOpen && normalizeUsername(query).length >= 2 && (
+        {menuOpen && normalizedQuery.length >= 2 && (
           <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-beedero-border bg-white shadow-lg">
-            {loading && <p className="px-3 py-2 text-xs text-zinc-500">Searching…</p>}
-            {!loading && matches.length === 0 && (
+            {searching && <p className="px-3 py-2 text-xs text-zinc-500">Searching…</p>}
+            {!searching && visibleMatches.length === 0 && (
               <p className="px-3 py-2 text-xs text-zinc-500">No people found with that username.</p>
             )}
-            {!loading &&
-              matches.map((person) => (
+            {!searching &&
+              visibleMatches.map((person) => (
                 <button
                   key={person.handle}
                   type="button"

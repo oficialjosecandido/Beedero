@@ -2,24 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import {
-  FaBriefcase,
-  FaBuilding,
-  FaChevronRight,
-  FaComment,
-  FaHandshake,
-  FaHome,
-  FaSearch,
-  FaUserCircle,
-  FaUsers,
-} from "react-icons/fa";
+  Bell,
+  BellDot,
+  BriefcaseBusiness,
+  Building2,
+  ChevronRight,
+  CircleHelp,
+  CircleUserRound,
+  Home,
+  MessageCircle,
+  Search,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
-import { MessageBell } from "@/components/MessageBell";
-import { NetworkBell } from "@/components/NetworkBell";
-import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
-import { logoutAction } from "@/lib/auth-actions";
+import { useMessaging } from "@/lib/messaging-context";
+import { useNotifications } from "@/lib/notifications-context";
+
+import { RightSidebarProvider } from "./RightSidebar";
 
 export type ShellOrg = { slug: string; name: string; logo?: string | null };
 
@@ -29,58 +33,143 @@ type Props = {
   orgs?: ShellOrg[];
 };
 
-const DESKTOP_NAV: {
+type NavItem = {
   label: string;
   shortLabel: string;
   href: string;
   match: (path: string) => boolean;
-  Icon: typeof FaHome;
-  cofounderOnly?: boolean;
+  Icon: LucideIcon;
   mobile?: boolean;
-}[] = [
-  { label: "Home", shortLabel: "Home", href: "/feed", match: (p) => p.startsWith("/feed"), Icon: FaHome, mobile: true },
-  { label: "Discover", shortLabel: "Discover", href: "/discovery", match: (p) => p.startsWith("/discovery"), Icon: FaSearch, mobile: true },
+  badgeKey?: "notifications" | "messages";
+};
+
+const DESKTOP_NAV: NavItem[] = [
+  { label: "Home", shortLabel: "Home", href: "/feed", match: (p) => p.startsWith("/feed"), Icon: Home, mobile: true },
+  { label: "Discover", shortLabel: "Discover", href: "/discovery", match: (p) => p.startsWith("/discovery"), Icon: Search, mobile: true },
   {
     label: "My network",
     shortLabel: "Network",
     href: "/network",
     match: (p) => p.startsWith("/network") || p.startsWith("/connections"),
-    Icon: FaUsers,
+    Icon: UsersRound,
+  },
+  {
+    label: "Notifications",
+    shortLabel: "Alerts",
+    href: "/notifications",
+    match: (p) => p.startsWith("/notifications"),
+    Icon: BellDot,
+    mobile: true,
+    badgeKey: "notifications",
+  },
+  {
+    label: "Messages",
+    shortLabel: "Messages",
+    href: "/messages",
+    match: (p) => p.startsWith("/messages"),
+    Icon: MessageCircle,
+    mobile: true,
+    badgeKey: "messages",
+  },
+  { label: "Opportunities", shortLabel: "Jobs", href: "/jobs", match: (p) => p.startsWith("/jobs"), Icon: BriefcaseBusiness },
+  {
+    label: "Investor pipeline",
+    shortLabel: "Pipeline",
+    href: "/pipeline",
+    match: (p) => p.startsWith("/pipeline"),
+    Icon: ChevronRight,
+  },
+  {
+    label: "My profile",
+    shortLabel: "Profile",
+    href: "/dashboard",
+    match: (p) => p.startsWith("/dashboard"),
+    Icon: CircleUserRound,
     mobile: true,
   },
-  { label: "Messages", shortLabel: "Messages", href: "/messages", match: (p) => p.startsWith("/messages"), Icon: FaComment, mobile: true },
-  { label: "Opportunities", shortLabel: "Jobs", href: "/jobs", match: (p) => p.startsWith("/jobs"), Icon: FaBriefcase },
-  {
-    label: "Find a co-founder",
-    shortLabel: "Co-founder",
-    href: "/cofounder",
-    match: (p) => p.startsWith("/cofounder"),
-    Icon: FaHandshake,
-    cofounderOnly: true,
-  },
-  { label: "My profile", shortLabel: "Profile", href: "/dashboard", match: (p) => p.startsWith("/dashboard"), Icon: FaUserCircle, mobile: true },
 ];
 
 function navClass(active: boolean) {
   return active
-    ? "flex items-center gap-3 bg-beedero-yellow px-3 py-3 text-sm font-extrabold text-beedero-black"
-    : "flex items-center gap-3 px-3 py-3 text-sm text-white/65 transition hover:bg-white/5 hover:text-white";
+    ? "flex min-h-[46px] items-center gap-3 bg-beedero-yellow px-3 py-3 text-sm font-extrabold text-beedero-black"
+    : "flex min-h-[46px] items-center gap-3 px-3 py-3 text-sm text-white/65 transition hover:bg-white/5 hover:text-white";
 }
 
-export function AppShell({ children, showCofounder = false, orgs = [] }: Props) {
-  const pathname = usePathname();
-  const items = DESKTOP_NAV.filter((item) => !item.cofounderOnly || showCofounder);
+function HeaderNotificationButton() {
+  const [open, setOpen] = useState(false);
+  const { unread, items } = useNotifications();
 
   return (
-    <div className="flex min-h-full w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-app-bg text-[#f4f4f1]">
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="relative grid size-10 place-items-center border border-white/10 text-white/75 transition hover:border-beedero-yellow"
+        aria-label="Open notifications"
+        aria-expanded={open}
+      >
+        <Bell size={18} strokeWidth={1.8} aria-hidden />
+        {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-beedero-yellow" />}
+      </button>
+      {open && (
+        <section className="fixed right-4 top-[78px] z-40 w-[330px] border border-white/15 bg-[#171a20] p-4 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black">Notifications</h2>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-white/50 hover:text-white"
+              aria-label="Close notifications"
+            >
+              <X size={18} aria-hidden />
+            </button>
+          </div>
+          {(items.length > 0 ? items.slice(0, 3) : []).map((note) => (
+            <div key={note.id} className="flex gap-3 border-t border-white/10 py-4 text-sm text-white/80">
+              <BellDot size={16} className="mt-0.5 shrink-0 text-white/50" aria-hidden />
+              <span>{note.title || note.body}</span>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <p className="border-t border-white/10 py-4 text-sm text-white/45">No notifications yet.</p>
+          )}
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="block pt-2 text-xs font-bold text-beedero-yellow"
+          >
+            View all notifications →
+          </Link>
+        </section>
+      )}
+    </div>
+  );
+}
+
+export function AppShell({ children, orgs = [] }: Props) {
+  const pathname = usePathname();
+  const { unread: notifUnread } = useNotifications();
+  const { unreadTotal: messagesUnread } = useMessaging();
+  const [rightSidebar, setRightSidebar] = useState<ReactNode | null>(null);
+  const onRightSidebarChange = useCallback((node: ReactNode | null) => {
+    setRightSidebar(node);
+  }, []);
+
+  const badges: Record<"notifications" | "messages", number> = {
+    notifications: notifUnread,
+    messages: messagesUnread,
+  };
+
+  return (
+    <div className="min-h-screen bg-app-bg text-[#f4f4f1]">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-app-bg/95 px-4 backdrop-blur sm:px-6">
-        <div className="mx-auto flex h-[70px] w-full max-w-[1440px] items-center gap-5">
-          <Link href="/feed" className="text-lg font-black uppercase tracking-[-0.055em] sm:text-xl">
+        <div className="flex h-[70px] w-full items-center gap-5">
+          <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.055em]">
             beedero<span className="text-beedero-yellow">.</span>
           </Link>
 
-          <label className="hidden max-w-[390px] flex-1 items-center gap-3 border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/40 md:flex">
-            <FaSearch className="shrink-0 text-sm" aria-hidden />
+          <label className="hidden max-w-[520px] flex-1 items-center gap-3 border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/40 md:flex">
+            <Search size={15} strokeWidth={1.8} aria-hidden />
             <input
               className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-white/40"
               placeholder="Search people, organisations, skills…"
@@ -89,45 +178,28 @@ export function AppShell({ children, showCofounder = false, orgs = [] }: Props) 
             />
           </label>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-1 sm:gap-2 [&_button]:text-white/75 [&_a]:text-white/75">
-              <NotificationBell />
-              <MessageBell />
-              <NetworkBell />
+          <div className="ml-auto flex items-center gap-3">
+            <HeaderNotificationButton />
+            <div className="[&_button]:size-10 [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:pr-0 [&_button]:text-white [&_button]:hover:bg-transparent [&_button>svg]:hidden [&_img]:size-10 [&_button>span]:size-10 [&_button>span]:bg-[#68738a] [&_button>span]:text-xs [&_button>span]:font-black [&_button>span]:text-white">
+              <ProfileSwitcher />
             </div>
-            <ProfileSwitcher />
-            <form action={logoutAction} className="hidden md:block">
-              <button
-                type="submit"
-                className="grid h-10 w-10 place-items-center border border-white/10 text-white/60 transition hover:border-beedero-yellow hover:text-white"
-                aria-label="Log out"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="size-5"
-                  aria-hidden
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <path d="M16 17l5-5-5-5" />
-                  <path d="M21 12H9" />
-                </svg>
-              </button>
-            </form>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1440px] flex-1 gap-6 px-4 py-6 pb-24 sm:px-6 lg:grid-cols-[222px_minmax(0,1fr)] lg:pb-8">
+      <div
+        className={`grid w-full gap-6 px-4 py-6 pb-24 sm:px-6 lg:pb-8 ${
+          rightSidebar
+            ? "lg:grid-cols-[222px_minmax(0,1fr)_minmax(280px,340px)]"
+            : "lg:grid-cols-[222px_1fr]"
+        }`}
+      >
         <aside className="hidden lg:block">
           <div className="sticky top-[94px]">
             <nav className="grid gap-1" aria-label="Primary">
-              {items.map(({ label, href, match, Icon }) => {
+              {DESKTOP_NAV.map(({ label, href, match, Icon, badgeKey }) => {
                 const active = match(pathname);
+                const badge = badgeKey ? badges[badgeKey] : 0;
                 return (
                   <Link
                     key={href}
@@ -135,8 +207,19 @@ export function AppShell({ children, showCofounder = false, orgs = [] }: Props) 
                     className={navClass(active)}
                     aria-current={active ? "page" : undefined}
                   >
-                    <Icon className="size-[17px] shrink-0" aria-hidden />
+                    <Icon size={17} strokeWidth={1.8} aria-hidden />
                     {label}
+                    {badge > 0 && (
+                      <span
+                        className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                          active
+                            ? "bg-beedero-black text-beedero-yellow"
+                            : "bg-beedero-yellow text-beedero-black"
+                        }`}
+                      >
+                        {badge > 9 ? "9+" : badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -147,7 +230,7 @@ export function AppShell({ children, showCofounder = false, orgs = [] }: Props) 
                 Your organisations
               </p>
               <ul className="mt-3">
-                {orgs.slice(0, 4).map((org) => (
+                {orgs.slice(0, 4).map((org, index) => (
                   <li key={org.slug}>
                     <Link
                       href={`/dashboard/${org.slug}`}
@@ -161,9 +244,17 @@ export function AppShell({ children, showCofounder = false, orgs = [] }: Props) 
                           className="size-4 shrink-0 rounded-sm object-cover"
                         />
                       ) : (
-                        <FaBuilding className="size-4 shrink-0 text-beedero-yellow" aria-hidden />
+                        <Building2
+                          size={16}
+                          className={index === 0 ? "shrink-0 text-beedero-yellow" : "shrink-0 text-white/40"}
+                          aria-hidden
+                        />
                       )}
-                      <span className="flex-1 truncate text-sm font-bold">{org.name}</span>
+                      <span
+                        className={`flex-1 truncate text-sm ${index === 0 ? "font-bold" : ""}`}
+                      >
+                        {org.name}
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -172,38 +263,58 @@ export function AppShell({ children, showCofounder = false, orgs = [] }: Props) 
                 href="/dashboard"
                 className="mt-2 flex items-center gap-2 px-3 text-xs font-bold text-beedero-yellow"
               >
-                Manage organisations <FaChevronRight className="size-3" aria-hidden />
+                Manage organisations <ChevronRight size={14} aria-hidden />
               </Link>
             </div>
           </div>
         </aside>
 
-        <div className="min-w-0">{children}</div>
+        <RightSidebarProvider onChange={onRightSidebarChange}>
+          <section className="min-w-0">{children}</section>
+        </RightSidebarProvider>
+
+        {rightSidebar && (
+          <aside className="hidden lg:block">
+            <div className="sticky top-[94px] space-y-4">{rightSidebar}</div>
+          </aside>
+        )}
       </div>
 
       <nav
         className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-white/10 bg-app-bg/95 px-2 py-2 backdrop-blur lg:hidden"
         aria-label="Mobile"
       >
-        {items
-          .filter((item) => item.mobile)
-          .map(({ shortLabel, href, match, Icon }) => {
-            const active = match(pathname);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`grid min-h-12 place-items-center gap-1 px-2 text-[10px] ${
-                  active ? "text-beedero-yellow" : "text-white/55"
-                }`}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className="size-[18px]" aria-hidden />
-                {shortLabel}
-              </Link>
-            );
-          })}
+        {DESKTOP_NAV.filter((item) => item.mobile).map(({ shortLabel, href, match, Icon, badgeKey }) => {
+          const active = match(pathname);
+          const badge = badgeKey ? badges[badgeKey] : 0;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`relative grid min-h-12 place-items-center gap-1 px-2 text-[10px] ${
+                active ? "text-beedero-yellow" : "text-white/55"
+              }`}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon size={18} strokeWidth={1.8} aria-hidden />
+              {badge > 0 && (
+                <span className="absolute right-2 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-beedero-yellow px-0.5 text-[9px] font-black text-beedero-black">
+                  {badge > 9 ? "9+" : badge}
+                </span>
+              )}
+              {shortLabel}
+            </Link>
+          );
+        })}
       </nav>
+
+      <a
+        href="mailto:hello@beedero.com"
+        className="fixed bottom-6 right-6 z-20 hidden size-10 place-items-center border border-white/15 bg-app-surface text-white/55 transition hover:border-beedero-yellow hover:text-beedero-yellow lg:grid"
+        aria-label="Help"
+      >
+        <CircleHelp size={18} strokeWidth={1.8} aria-hidden />
+      </a>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { FaThumbsDown, FaThumbsUp } from "react-icons/fa";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { reactAction, unreactAction } from "./actions";
 
@@ -51,12 +51,12 @@ export function ReactionBar({
   }
 
   const actions = [
-    { kind: "like", label: "Relevant", Icon: FaThumbsUp },
-    { kind: "insight", label: "Not for me", Icon: FaThumbsDown },
+    { kind: "like", label: "Relevant", Icon: ThumbsUp },
+    { kind: "insight", label: "Not for me", Icon: ThumbsDown },
   ] as const;
 
   return (
-    <div className="flex flex-1 flex-wrap gap-3 text-xs font-bold text-white/45">
+    <div className="flex flex-wrap gap-3 text-sm font-bold text-white/45">
       {actions.map(({ kind, label, Icon }) => (
         <button
           key={kind}
@@ -67,7 +67,7 @@ export function ReactionBar({
             reaction === kind ? "text-beedero-yellow" : "hover:text-white"
           }`}
         >
-          <Icon className="size-[13px]" aria-hidden />
+          <Icon size={15} strokeWidth={2} aria-hidden />
           {label}
           {(counts[kind] ?? 0) > 0 && (
             <span className="ml-0.5 opacity-50">{counts[kind]}</span>

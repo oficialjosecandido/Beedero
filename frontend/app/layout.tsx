@@ -5,6 +5,7 @@ import { ForegroundPushListener } from "@/components/ForegroundPushListener";
 import { Footer } from "@/components/Footer";
 import { InstallPwaPrompt } from "@/components/InstallPwaPrompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { SiteFooterGate } from "@/components/SiteFooterGate";
 import { SitePageViewBeacon } from "@/components/SitePageViewBeacon";
 import { siteMetadata } from "@/lib/site-metadata";
 import "./globals.css";
@@ -39,14 +40,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashGrotesk.variable} h-full antialiased`}
+      className={`${clashGrotesk.variable} ${clashGrotesk.className} h-full antialiased`}
     >
       <body className="flex min-h-full w-full flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
         <SitePageViewBeacon />
         <ServiceWorkerRegistration />
         <ForegroundPushListener />
         {children}
-        <Footer />
+        <SiteFooterGate>
+          <Footer />
+        </SiteFooterGate>
         <InstallPwaPrompt />
         <Toaster position="bottom-right" richColors closeButton />
       </body>

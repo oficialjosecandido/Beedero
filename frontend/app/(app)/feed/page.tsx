@@ -91,36 +91,34 @@ export default async function FeedPage() {
     }));
 
   return (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,630px)_minmax(270px,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-      <section className="min-w-0">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
-              The network, today
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
-              {greetingFor(displayName)}
-            </h1>
-          </div>
+    <>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
+            The network, today
+          </p>
+          <h1 className="mt-2 text-[2.5rem] font-black leading-none tracking-[-0.045em] sm:text-5xl">
+            {greetingFor(displayName)}
+          </h1>
         </div>
+      </div>
 
-        <div className="mt-7">
-          <FeedComposer
-            name={displayName}
-            profilePicture={profile?.profile_picture}
-            profileComplete={profileComplete}
-            hasPostedToday={hasPostedToday}
-            completeness={vitality?.completeness ?? 0}
-            checklist={vitality?.checklist ?? []}
-          />
-        </div>
+      <div className="mt-7">
+        <FeedComposer
+          name={displayName}
+          profilePicture={profile?.profile_picture}
+          profileComplete={profileComplete}
+          hasPostedToday={hasPostedToday}
+          completeness={vitality?.completeness ?? 0}
+          checklist={vitality?.checklist ?? []}
+        />
+      </div>
 
-        <div className="mt-5">
-          <FeedList initialItems={items} initialCursor={next_cursor} />
-        </div>
-      </section>
+      <div className="mt-5">
+        <FeedList initialItems={items} initialCursor={next_cursor} />
+      </div>
 
       <FeedRightColumn organizations={recommendations.organizations} events={events} />
-    </div>
+    </>
   );
 }

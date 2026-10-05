@@ -38,11 +38,16 @@ function AvatarCircle({
       <img loading="lazy" src={image} alt="" className={`${className} shrink-0 rounded-full object-cover`} />
     );
   }
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
   return (
     <span
-      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-500`}
+      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-[#68738a] text-xs font-black text-white`}
     >
-      {name.charAt(0).toUpperCase()}
+      {initials || name.charAt(0).toUpperCase()}
     </span>
   );
 }

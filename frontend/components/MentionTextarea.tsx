@@ -30,6 +30,7 @@ export function MentionTextarea({
   required,
   autoFocus,
   className,
+  onValueChange,
 }: {
   name: string;
   defaultValue?: string;
@@ -39,6 +40,7 @@ export function MentionTextarea({
   required?: boolean;
   autoFocus?: boolean;
   className?: string;
+  onValueChange?: (value: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [query, setQuery] = useState<string | null>(null);
@@ -46,6 +48,11 @@ export function MentionTextarea({
   const [activeIndex, setActiveIndex] = useState(0);
   const triggerStartRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function setText(next: string) {
+    setValue(next);
+    onValueChange?.(next);
+  }
 
   useEffect(() => {
     // Stale `options` from a previous query are harmless here — the dropdown
@@ -95,7 +102,7 @@ export function MentionTextarea({
 
   function handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const next = event.target.value;
-    setValue(next);
+    setText(next);
     updateTriggerFromCaret(next, event.target.selectionStart ?? next.length);
   }
 
@@ -112,7 +119,7 @@ export function MentionTextarea({
     const marker = option.type === "user" ? `@[user:${option.handle}]` : `@[org:${option.slug}]`;
     const caret = textarea.selectionStart ?? value.length;
     const next = `${value.slice(0, triggerStart)}${marker} ${value.slice(caret)}`;
-    setValue(next);
+    setText(next);
     setQuery(null);
     triggerStartRef.current = null;
     const cursor = triggerStart + marker.length + 1;

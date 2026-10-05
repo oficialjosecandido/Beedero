@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { FaBuilding } from "react-icons/fa";
+import { Building2, Repeat2 } from "lucide-react";
 
 import { EventParticipationBar } from "@/components/EventParticipationBar";
 import { LinkPreviewCard } from "@/components/LinkPreviewCard";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { RichText } from "@/components/RichText";
 import { formatDate, formatDateTime, formatRelativeTime } from "@/lib/format";
-import { formatAtHandle } from "@/lib/handles";
 import { SECTION_LABELS } from "@/lib/types";
 
 import { loadMoreFeedAction } from "./actions";
@@ -53,8 +52,6 @@ function FeedCard({ item }: { item: FeedItem }) {
   const timeLabel = compactTime(item.created_at) || dateLabel;
   const profileHref =
     isOrg && item.org ? `/org/${item.org.slug}` : item.author?.handle ? `/p/${item.author.handle}` : null;
-  const atHandle =
-    isOrg && item.org ? formatAtHandle(item.org.slug) : formatAtHandle(item.author?.handle);
 
   const avatar = pictureUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -79,16 +76,15 @@ function FeedCard({ item }: { item: FeedItem }) {
       {avatar}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-bold text-white">{name}</span>
+          <span className="truncate text-base font-bold text-white">{name}</span>
           {isOrg && (
             <span className="grid size-4 place-items-center bg-beedero-yellow text-[8px] font-black text-beedero-black [clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]">
               ✓
             </span>
           )}
         </div>
-        <p className="mt-0.5 truncate text-xs text-white/40">
+        <p className="mt-0.5 truncate text-sm text-white/40">
           {[subtitle, timeLabel].filter(Boolean).join(" · ")}
-          {atHandle ? ` · ${atHandle}` : ""}
         </p>
       </div>
     </>
@@ -104,7 +100,7 @@ function FeedCard({ item }: { item: FeedItem }) {
     >
       {isOrg && (
         <div className="flex items-center gap-2 border-b border-beedero-yellow/15 bg-beedero-yellow/[0.04] px-5 py-2.5">
-          <FaBuilding className="size-3 text-beedero-yellow" aria-hidden />
+          <Building2 size={12} className="text-beedero-yellow" aria-hidden />
           <span className="text-[10px] font-black uppercase tracking-[0.14em] text-beedero-yellow/70">
             Organisation · {SECTION_LABELS[item.kind] ?? item.kind}
           </span>
@@ -158,12 +154,12 @@ function FeedCard({ item }: { item: FeedItem }) {
         </header>
 
         {item.value.title && item.value.title !== "Update" && (
-          <h2 className="mt-4 text-[15px] font-bold leading-6 text-white">{item.value.title}</h2>
+          <h2 className="mt-4 text-lg font-bold leading-7 text-white">{item.value.title}</h2>
         )}
         {item.value.body && (
           <>
             <p
-              className={`mt-3 text-[15px] leading-7 text-white/85 ${
+              className={`mt-3 text-base leading-7 text-white/85 ${
                 !bodyExpanded && isLongBody ? "line-clamp-4" : ""
               }`}
             >
@@ -173,7 +169,7 @@ function FeedCard({ item }: { item: FeedItem }) {
               <button
                 type="button"
                 onClick={() => setBodyExpanded((v) => !v)}
-                className="mt-1 text-xs font-semibold text-white/45 hover:text-beedero-yellow"
+                className="mt-1 text-sm font-semibold text-white/45 hover:text-beedero-yellow"
               >
                 {bodyExpanded ? "See less" : "…see more"}
               </button>
@@ -234,6 +230,17 @@ function FeedCard({ item }: { item: FeedItem }) {
             initialCount={item.comment_count}
             initialViewerHasCommented={item.viewer_has_commented}
           />
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window === "undefined") return;
+              void navigator.clipboard.writeText(window.location.href);
+            }}
+            className="flex items-center gap-1 text-sm font-bold text-white/45 transition hover:text-white"
+          >
+            <Repeat2 size={15} aria-hidden />
+            Share
+          </button>
         </div>
       </div>
     </article>

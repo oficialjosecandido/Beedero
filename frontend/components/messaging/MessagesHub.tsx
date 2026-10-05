@@ -220,7 +220,7 @@ function MessagesHubContent() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const refresh = useCallback(async () => {
+  const pollInbox = useCallback(async () => {
     const [items, contactItems] = await Promise.all([
       loadConversations(inboxContext),
       inboxContext.type === "personal" ? loadContacts() : Promise.resolve([] as PersonSummary[]),
@@ -231,31 +231,24 @@ function MessagesHubContent() {
     await refreshUnreadTotal();
   }, [inboxContext, refreshUnreadTotal]);
 
-  useVisiblePolling({
-    onPoll: async () => {
-      const items = await loadConversations(inboxContext);
-      setConversations(items);
-      setLoading(false);
-    },
-    intervalMs: 45_000,
-  });
-
-  // Remounts via MessagesHubKeyed's key when inboxContext changes, so selected/
-  // loading reset themselves — only kick off the first fetch here.
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // Initial load + interval polling. MessagesHubKeyed remounts on inbox switch.
+  useVisiblePolling({ onPoll: pollInbox, intervalMs: 45_000 });
 
   useEffect(() => {
     const chatParam = searchParams.get("chat");
     if (!chatParam || inboxContext.type !== "personal") return;
     const id = Number(chatParam);
     if (!Number.isFinite(id)) return;
+    let cancelled = false;
     void (async () => {
       const items = await loadConversations(inboxContext);
+      if (cancelled) return;
       const conversation = items.find((item) => item.id === id);
       if (conversation) setSelected(conversation);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams, inboxContext]);
 
   function openConversation(conversation: ConversationSummary) {
@@ -278,7 +271,7 @@ function MessagesHubContent() {
         return;
       }
       setSelected(result.conversation);
-      await refresh();
+      await pollInbox();
     });
   }
 

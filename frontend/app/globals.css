@@ -64,7 +64,12 @@
   --color-success-surface: var(--color-success-surface);
   --color-warning: var(--color-warning);
   --color-warning-surface: var(--color-warning-surface);
-  --font-sans: var(--font-clash);
+  --font-sans: var(--font-clash), "Clash Grotesk", Arial, Helvetica, sans-serif;
+  /* Same face as sans — Figma Make used `font-serif` as a display alias, not a serif. */
+  --font-serif: var(--font-clash), "Clash Grotesk", Arial, Helvetica, sans-serif;
+  /* Clash Grotesk tops out at Bold (700); map black/extrabold so nothing synthesizes a faux face. */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
   /* System monospace stack. `font-mono` is used in two spots (invite
      token/URL readouts) deep in the dashboard — not worth a webfont
      downloaded on every page, so no --font-geist-mono here. */
@@ -80,7 +85,7 @@ body {
 }
 
 body {
-  font-family: var(--font-clash), Arial, Helvetica, sans-serif;
+  font-family: var(--font-clash), "Clash Grotesk", Arial, Helvetica, sans-serif;
 }
 
 @layer base {

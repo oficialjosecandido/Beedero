@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
-import { FaPaperPlane, FaRegComment } from "react-icons/fa";
+import { MessageSquare, Send } from "lucide-react";
 
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { RichText } from "@/components/RichText";
@@ -31,12 +31,12 @@ function CommentAuthor({ comment }: { comment: Comment }) {
   const content = (
     <div className="min-w-0 flex-1">
       <div className="flex items-baseline gap-2">
-        <b className="text-xs text-white">{comment.author_name}</b>
-        <small className="text-[10px] text-white/30">
+        <b className="text-sm text-white">{comment.author_name}</b>
+        <small className="text-xs text-white/30">
           {formatRelativeTime(comment.created_at).replace(" ago", "")}
         </small>
       </div>
-      <p className="mt-1 text-sm leading-6 text-white/70">
+      <p className="mt-1 text-base leading-7 text-white/70">
         <RichText body={comment.body} mentions={comment.mentions} />
       </p>
     </div>
@@ -126,11 +126,11 @@ export function CommentThread({
       <button
         type="button"
         onClick={() => (expanded ? setExpanded(false) : expand())}
-        className={`flex items-center gap-1 text-xs font-bold transition ${
+        className={`flex items-center gap-1 text-sm font-bold transition ${
           expanded ? "text-beedero-yellow" : "text-white/45 hover:text-white"
         }`}
       >
-        <FaRegComment className="size-[13px]" aria-hidden />
+        <MessageSquare size={15} strokeWidth={2} aria-hidden />
         Comment
         {count > 0 && <span className="ml-0.5 opacity-50">{count}</span>}
       </button>
@@ -147,13 +147,13 @@ export function CommentThread({
               type="button"
               onClick={loadMore}
               disabled={isPending}
-              className="px-5 py-2 text-xs font-semibold text-white/45 hover:text-white disabled:opacity-50"
+              className="px-5 py-2 text-sm font-semibold text-white/45 hover:text-white disabled:opacity-50"
             >
               {isPending ? "Loading…" : "Load more comments"}
             </button>
           )}
           {viewerHasCommented ? (
-            <p className="px-5 py-3 text-sm text-white/40">You have already commented on this post.</p>
+            <p className="px-5 py-3 text-base text-white/40">You have already commented on this post.</p>
           ) : (
             <form action={formAction} className="flex gap-3 px-5 py-3">
               <div className="flex flex-1 items-center gap-2 border border-white/10 bg-white/5 px-3">
@@ -162,7 +162,7 @@ export function CommentThread({
                   rows={1}
                   maxLength={2000}
                   placeholder="Add a comment…"
-                  className="min-h-0 flex-1 resize-none border-0 bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/30"
+                  className="min-h-0 flex-1 resize-none border-0 bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-white/30"
                 />
                 <button
                   type="submit"
@@ -170,7 +170,7 @@ export function CommentThread({
                   className="text-beedero-yellow disabled:opacity-30"
                   aria-label="Post comment"
                 >
-                  <FaPaperPlane className="size-[13px]" aria-hidden />
+                  <Send size={13} aria-hidden />
                 </button>
               </div>
             </form>

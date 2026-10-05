@@ -39,7 +39,7 @@ export function RichText({
           href={url}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="break-words text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2"
+          className="break-words text-beedero-yellow underline decoration-beedero-yellow/50 decoration-2 underline-offset-2 hover:opacity-80"
         >
           {url}
         </a>
@@ -53,7 +53,11 @@ export function RichText({
     if (resolved) {
       const href = resolved.type === "org" ? `/o/${resolved.slug}` : `/p/${resolved.handle}`;
       nodes.push(
-        <Link key={key++} href={href} className="font-semibold text-beedero-black hover:underline">
+        <Link
+          key={key++}
+          href={href}
+          className="font-semibold text-beedero-yellow hover:underline"
+        >
           @{resolved.name}
         </Link>
       );
