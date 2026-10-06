@@ -25,7 +25,7 @@ type InvestorProfile = {
   bio?: string;
   country?: string;
   city?: string;
-  links?: { label?: string; url: string }[];
+  links?: { label: string; url: string }[];
   profile_picture?: string | null;
   handle?: string | null;
   visibility?: Record<string, string>;

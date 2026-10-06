@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Read-only copy of the Figma Make export, kept for design reference.
+    ".figma-ref/**",
   ]),
 ]);
 
