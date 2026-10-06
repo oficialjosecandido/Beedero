@@ -167,6 +167,50 @@ def test_non_participant_gets_404_on_accept(api, alice, bob, carol):
     assert res.status_code == 404
 
 
+@pytest.mark.django_db
+def test_sent_list_shows_only_the_viewers_own_pending_requests(api, alice, bob, carol):
+    mine = send_request(alice, bob)
+    send_request(carol, alice)  # inbound — belongs on the pending list, not this one
+
+    api.force_authenticate(alice)
+    res = api.get("/api/connections/requests/sent/")
+    assert res.status_code == 200
+    assert [item["id"] for item in res.data["items"]] == [mine.id]
+    assert res.data["items"][0]["recipient"]["id"] == bob.id
+
+
+@pytest.mark.django_db
+def test_withdraw_removes_the_request_and_the_recipients_notification(api, alice, bob):
+    req = send_request(alice, bob)
+    assert Notification.objects.filter(user=bob, kind=Notification.Kind.CONNECTION_REQUEST).exists()
+
+    api.force_authenticate(alice)
+    assert api.post(f"/api/connections/requests/{req.id}/withdraw/").status_code == 204
+    assert not ConnectionRequest.objects.filter(pk=req.id).exists()
+    assert not Notification.objects.filter(user=bob, kind=Notification.Kind.CONNECTION_REQUEST).exists()
+
+    # The pair is free again, which is the point of deleting rather than
+    # flagging: uniq_pending_connection_request no longer blocks a retry.
+    assert send_request(alice, bob).status == ConnectionRequest.Status.PENDING
+
+
+@pytest.mark.django_db
+def test_only_the_requester_can_withdraw(api, alice, bob, carol):
+    req = send_request(alice, bob)
+    for user in (bob, carol):
+        api.force_authenticate(user)
+        assert api.post(f"/api/connections/requests/{req.id}/withdraw/").status_code == 404
+    assert ConnectionRequest.objects.filter(pk=req.id).exists()
+
+
+@pytest.mark.django_db
+def test_withdraw_rejects_a_request_that_is_no_longer_pending(api, alice, bob):
+    req = send_request(alice, bob)
+    decline_request(req, bob)
+    api.force_authenticate(alice)
+    assert api.post(f"/api/connections/requests/{req.id}/withdraw/").status_code == 400
+
+
 def test_connection_row_invisible_without_viewer_id_set(db_app_role_connection):
     """Root cause of the "shows Ask to connect for an already-connected pair"
     bug on public profiles: connections_connection has FORCE ROW LEVEL

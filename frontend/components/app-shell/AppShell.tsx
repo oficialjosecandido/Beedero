@@ -163,7 +163,7 @@ export function AppShell({ children, orgs = [] }: Props) {
   return (
     <div className="min-h-screen bg-app-bg text-[#f4f4f1]">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-app-bg/95 px-4 backdrop-blur sm:px-6">
-        <div className="flex h-[70px] w-full items-center gap-5">
+        <div className="mx-auto flex h-[70px] w-full max-w-[1440px] items-center gap-5">
           <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.055em]">
             beedero<span className="text-beedero-yellow">.</span>
           </Link>
@@ -188,7 +188,7 @@ export function AppShell({ children, orgs = [] }: Props) {
       </header>
 
       <div
-        className={`grid w-full gap-6 px-4 py-6 pb-24 sm:px-6 lg:pb-8 ${
+        className={`mx-auto grid w-full max-w-[1440px] gap-6 px-4 py-6 pb-24 sm:px-6 lg:pb-8 ${
           rightSidebar
             ? "lg:grid-cols-[222px_minmax(0,1fr)_minmax(280px,340px)]"
             : "lg:grid-cols-[222px_1fr]"

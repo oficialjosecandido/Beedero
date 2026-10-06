@@ -2,9 +2,8 @@
 
 import { useState, useTransition } from "react";
 
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyPanel } from "@/components/app-shell/ui";
 import { JobCard } from "@/components/jobs/JobCard";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
 import type { JobSummary } from "@/lib/types";
 
 import { loadMoreJobsAction } from "./actions";
@@ -13,12 +12,12 @@ export function JobsList({
   initialItems,
   initialNextOffset,
   query,
-  hasSearchQuery,
+  hasFilters,
 }: {
   initialItems: JobSummary[];
   initialNextOffset: number | null;
   query: string;
-  hasSearchQuery: boolean;
+  hasFilters: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [nextOffset, setNextOffset] = useState(initialNextOffset);
@@ -34,39 +33,42 @@ export function JobsList({
         setNextOffset(next.next_offset);
         setError(null);
       } catch {
-        setError("Could not load more jobs.");
+        setError("Could not load more opportunities.");
       }
     });
   }
 
   if (items.length === 0) {
-    return hasSearchQuery ? (
-      <EmptyState title="No jobs found" description="Try a different search or filters." />
-    ) : (
-      <EmptyState
-        title="No jobs to show yet"
-        description="Check back as more organizations publish openings."
-      />
+    return (
+      <EmptyPanel>
+        {hasFilters
+          ? "No opportunities match these filters."
+          : "No opportunities yet. Verified organisations publish their open roles here."}
+      </EmptyPanel>
     );
   }
 
   return (
-    <div className="grid w-full gap-3">
+    <div className="grid gap-3">
       {items.map((job) => (
         <JobCard key={job.id} job={job} />
       ))}
+
       {nextOffset !== null && (
         <button
           type="button"
           onClick={loadMore}
           disabled={isPending}
-          className="mx-auto flex items-center gap-2 rounded-full border border-beedero-border bg-beedero-white px-6 py-2 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20 disabled:opacity-50"
+          className="mx-auto mt-2 flex items-center gap-2 border border-white/15 px-6 py-2.5 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow disabled:cursor-default disabled:opacity-40"
         >
-          {isPending && <LoadingSpinner className="size-4" label="" />}
-          {isPending ? "Loading…" : "Load more"}
+          {isPending && (
+            <i className="size-3 animate-spin rounded-full border-2 border-white/20 border-t-beedero-yellow" />
+          )}
+          {isPending ? "Loading more opportunities" : "Load more"}
         </button>
       )}
-      {error && <p className="text-center text-sm text-danger">{error}</p>}
+
+      {error && <p className="text-center text-sm text-beedero-yellow">{error}</p>}
     </div>
   );
 }

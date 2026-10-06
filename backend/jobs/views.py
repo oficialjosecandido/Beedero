@@ -129,6 +129,9 @@ class JobsDiscoveryView(APIView):
             {
                 "items": [job_summary(job) for job in page],
                 "next_offset": offset + limit if has_more else None,
+                # The listing leads with "N opportunities match your search",
+                # which the page length can't answer once there is a page 2.
+                "total": qs.count(),
             }
         )
 

@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { AppColumnHeader } from "@/components/AppColumnHeader";
-import { AppRightColumn } from "@/components/AppRightColumn";
-import { ProfileColumn } from "@/components/ProfileColumn";
 import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
 import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
 import type { FeedItem } from "@/app/(app)/feed/types";
 import { ProfileForm } from "@/components/ProfileForm";
+import { ProfileHeaderCard } from "@/components/dashboard/ProfileHeaderCard";
 import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import type { Experience } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
@@ -14,6 +12,7 @@ import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import type { AffiliationSummary } from "@/lib/types";
 
+import { DashboardRightColumn } from "./DashboardRightColumn";
 import {
   PersonalDashboardTabs,
   type PersonalTabId,
@@ -25,6 +24,8 @@ type InvestorProfile = {
   headline?: string;
   bio?: string;
   country?: string;
+  city?: string;
+  links?: { label?: string; url: string }[];
   profile_picture?: string | null;
   handle?: string | null;
   visibility?: Record<string, string>;
@@ -147,9 +148,6 @@ export default async function DashboardPage({
     throw err;
   }
   const profileComplete = Boolean(me.investor_profile?.is_complete);
-  const events = myPosts
-    .filter((post) => post.kind === "events")
-    .map((post) => ({ id: post.id, title: post.title, occurred_at: post.occurred_at, ends_at: post.ends_at }));
 
   const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, feedItems);
   const memberships = me.memberships.map((m) => ({
@@ -158,39 +156,39 @@ export default async function DashboardPage({
   }));
 
   return (
-    <main className="flex min-w-0 flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="grid w-full min-w-0 max-w-7xl gap-4 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:gap-6">
-        <div className="order-1 min-w-0 lg:order-none">
-          <ProfileColumn me={me} orgs={orgs} events={events} stats={profileStats} network={network} />
-        </div>
+    <>
+      <ProfileHeaderCard profile={me.investor_profile} email={me.email} />
 
-        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-none lg:gap-6">
-          <AppColumnHeader label="Dashboard" />
-
-          {!profileComplete ? (
-            <ProfileForm profile={me.investor_profile} variant="onboarding" />
-          ) : (
-            <PersonalDashboardTabs
-              key={initialTab ?? "kpis"}
-              profile={me.investor_profile}
-              profileStats={profileStats}
-              vitality={vitality}
-              badgeEmbed={badgeEmbed}
-              advisorProfile={advisorProfile}
-              experiences={experiences}
-              affiliations={affiliations}
-              memberships={memberships}
-              myCredentials={myCredentials}
-              myPosts={myPosts}
-              initialTab={initialTab}
-            />
-          )}
-        </div>
-
-        <div className="order-3 min-w-0 lg:order-none">
-          <AppRightColumn updates={orgNews} />
-        </div>
+      <div className="mt-5">
+        {!profileComplete ? (
+          <ProfileForm profile={me.investor_profile} variant="onboarding" />
+        ) : (
+          <PersonalDashboardTabs
+            key={initialTab ?? "kpis"}
+            profile={me.investor_profile}
+            profileStats={profileStats}
+            vitality={vitality}
+            badgeEmbed={badgeEmbed}
+            advisorProfile={advisorProfile}
+            experiences={experiences}
+            affiliations={affiliations}
+            memberships={memberships}
+            myCredentials={myCredentials}
+            myPosts={myPosts}
+            initialTab={initialTab}
+          />
+        )}
       </div>
-    </main>
+
+      <DashboardRightColumn
+        checklist={vitality?.checklist ?? null}
+        doneCount={vitality?.done_count ?? 0}
+        totalCount={vitality?.total_count ?? 0}
+        network={network}
+        orgs={orgs}
+        visibility={me.investor_profile?.visibility}
+        updates={orgNews}
+      />
+    </>
   );
 }

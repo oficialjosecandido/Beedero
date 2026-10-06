@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { FaEye, FaGlassCheers, FaLightbulb, FaThumbsUp } from "react-icons/fa";
-import type { IconType } from "react-icons";
+import { Eye, GlassWater, Lightbulb, ThumbsUp, type LucideIcon } from "lucide-react";
 
 import {
   PersonBadgeEmbedPanel,
@@ -13,7 +12,6 @@ import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKp
 import { ProfileForm } from "@/components/ProfileForm";
 import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import { DeleteAccountPanel } from "@/components/DeleteAccountPanel";
-import { EmptyState } from "@/components/EmptyState";
 import { ExperienceManager, type Experience } from "@/components/ExperienceManager";
 import {
   MembershipSkillsManager,
@@ -23,6 +21,7 @@ import {
   ProfessionalCredentialsPanel,
   type PersonCredential,
 } from "@/components/ProfessionalCredentialsPanel";
+import { EmptyPanel, btnPrimary } from "@/components/app-shell/ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { RichText } from "@/components/RichText";
 import type { ResolvedMention } from "@/lib/richtext";
@@ -30,9 +29,9 @@ import { SECTION_LABELS, type AffiliationSummary } from "@/lib/types";
 
 const TABS = [
   { id: "kpis", label: "KPIs", shortLabel: "KPIs" },
-  { id: "posts", label: "My Posts", shortLabel: "Posts" },
-  { id: "saved", label: "Saved Posts", shortLabel: "Saved" },
-  { id: "settings", label: "Profile Settings", shortLabel: "Settings" },
+  { id: "posts", label: "My posts", shortLabel: "Posts" },
+  { id: "saved", label: "Saved posts", shortLabel: "Saved" },
+  { id: "settings", label: "Profile settings", shortLabel: "Settings" },
 ] as const;
 
 export type PersonalTabId = (typeof TABS)[number]["id"];
@@ -54,12 +53,15 @@ type InvestorPost = {
   mentions?: ResolvedMention[];
 };
 
-const REACTION_KINDS: { kind: keyof NonNullable<InvestorPost["reaction_counts"]>; icon: IconType; label: string }[] =
-  [
-    { kind: "like", icon: FaThumbsUp, label: "Like" },
-    { kind: "insight", icon: FaLightbulb, label: "Insight" },
-    { kind: "congrats", icon: FaGlassCheers, label: "Congrats" },
-  ];
+const REACTION_KINDS: {
+  kind: keyof NonNullable<InvestorPost["reaction_counts"]>;
+  icon: LucideIcon;
+  label: string;
+}[] = [
+  { kind: "like", icon: ThumbsUp, label: "Like" },
+  { kind: "insight", icon: Lightbulb, label: "Insight" },
+  { kind: "congrats", icon: GlassWater, label: "Congrats" },
+];
 
 type InvestorProfile = {
   full_name?: string;
@@ -101,9 +103,9 @@ function PostEngagementMetrics({ post }: { post: InvestorPost }) {
     feedViews === 1 ? "1 person saw this in their feed" : `${feedViews} people saw this in their feed`;
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-beedero-yellow pt-3">
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-        <FaEye className="text-sm" aria-hidden />
+    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/10 pt-3">
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-white/45">
+        <Eye size={13} aria-hidden />
         {feedViewsLabel}
       </span>
       <div className="flex flex-wrap items-center gap-2">
@@ -111,9 +113,9 @@ function PostEngagementMetrics({ post }: { post: InvestorPost }) {
           <span
             key={kind}
             title={label}
-            className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600"
+            className="inline-flex items-center gap-1.5 border border-white/10 px-2 py-0.5 text-[11px] font-bold text-white/55"
           >
-            <Icon className="text-sm" aria-hidden />
+            <Icon size={12} aria-hidden />
             <span className="tabular-nums">{reactionCounts[kind]}</span>
           </span>
         ))}
@@ -124,29 +126,31 @@ function PostEngagementMetrics({ post }: { post: InvestorPost }) {
 
 function MyPostCard({ post }: { post: InvestorPost }) {
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+    <article className="border border-white/10 bg-white/[0.025] p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+        <span className="border border-white/15 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-white/55">
           {SECTION_LABELS[post.kind] ?? post.kind}
         </span>
-        <p className="text-xs text-subtle">Published {formatDate(post.created_at)}</p>
+        <p className="text-[11px] text-white/35">Published {formatDate(post.created_at)}</p>
       </div>
       {post.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img loading="lazy" src={post.image} alt="" className="max-h-72 w-full rounded-xl object-cover" />
+        <img loading="lazy" src={post.image} alt="" className="mt-4 max-h-72 w-full object-cover" />
       )}
-      <h3 className="text-lg font-extrabold text-zinc-900">{post.title || "Update"}</h3>
+      <h3 className="mt-3 text-lg font-bold tracking-[-0.02em]">{post.title || "Update"}</h3>
       {post.body && (
-        <p className="text-sm leading-6 text-zinc-600">
+        <p className="mt-2 border-l-2 border-beedero-yellow pl-3 text-sm leading-6 text-white/60">
           <RichText body={post.body} mentions={post.mentions} />
         </p>
       )}
       {post.kind === "events" && post.occurred_at && post.ends_at ? (
-        <p className="text-xs text-subtle">
+        <p className="mt-2 text-[11px] text-white/35">
           {formatDateTime(post.occurred_at)} – {formatDateTime(post.ends_at)}
         </p>
       ) : (
-        post.occurred_at && <p className="text-xs text-subtle">{formatDate(post.occurred_at)}</p>
+        post.occurred_at && (
+          <p className="mt-2 text-[11px] text-white/35">{formatDate(post.occurred_at)}</p>
+        )
       )}
       <PostEngagementMetrics post={post} />
     </article>
@@ -214,17 +218,19 @@ export function PersonalDashboardTabs({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="grid min-w-0 grid-cols-4 gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
+    <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Profile sections">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
+            role="tab"
+            aria-selected={active === tab.id}
             onClick={() => selectTab(tab.id)}
-            className={`min-w-0 truncate rounded-xl px-2 py-2 text-center text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
+            className={`border px-3 py-1.5 text-[11px] font-bold transition ${
               active === tab.id
-                ? "bg-beedero-black text-beedero-yellow"
-                : "text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
+                ? "border-beedero-yellow bg-beedero-yellow text-beedero-black"
+                : "border-white/15 text-white/55 hover:border-white/30 hover:text-white"
             }`}
           >
             <span className="sm:hidden">{tab.shortLabel}</span>
@@ -238,33 +244,29 @@ export function PersonalDashboardTabs({
           <PersonalKpiPanel initialStats={profileStats} />
           {vitality && <PersonPresenceSignalsPanel presence={vitality.presence} />}
           {!profileStats && !vitality?.presence.has_signal && (
-            <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
-              KPI data will appear here as your profile gets activity.
-            </p>
+            <EmptyPanel>KPI data will appear here as your profile gets activity.</EmptyPanel>
           )}
         </div>
       )}
 
       {active === "posts" && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-4 border border-white/10 bg-white/[0.025] p-5">
             <div>
-              <h2 className="font-extrabold text-zinc-900">Your posts</h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                Milestones, events, and updates you&apos;ve shared on the feed.
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+                What you published
+              </p>
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Your posts.</h2>
+              <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
+                Milestones, events and updates you&apos;ve shared on the feed.
               </p>
             </div>
-            <Link
-              href="/feed"
-              className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-semibold text-beedero-black transition hover:bg-beedero-black hover:text-beedero-yellow"
-            >
+            <Link href="/feed" className={btnPrimary}>
               Share on feed
             </Link>
           </div>
           {myPosts.length === 0 ? (
-            <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
-              No posts yet. Head to the feed to share your first update.
-            </p>
+            <EmptyPanel>No posts yet. Head to the feed to share your first update.</EmptyPanel>
           ) : (
             myPosts.map((post) => <MyPostCard key={post.id} post={post} />)
           )}
@@ -272,18 +274,23 @@ export function PersonalDashboardTabs({
       )}
 
       {active === "saved" && (
-        <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-          <h2 className="font-extrabold text-zinc-900">Saved posts</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+        <div className="border border-white/10 bg-white/[0.025] p-5 sm:p-7">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+            Kept for later
+          </p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Saved posts.</h2>
+          <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
             Posts you bookmark from the feed will show up here.
           </p>
-          <div className="mt-4">
-            <EmptyState
-              title="You haven't saved any posts yet"
-              description="Bookmark a post from the feed to keep it handy here."
-              action={{ href: "/feed", label: "Browse the feed" }}
-            />
+          <div className="mt-5">
+            <EmptyPanel>
+              You haven&apos;t saved any posts yet. Bookmark one from the feed to keep it handy
+              here.
+            </EmptyPanel>
           </div>
+          <Link href="/feed" className={`${btnPrimary} mt-5 w-fit`}>
+            Browse the feed
+          </Link>
         </div>
       )}
 
@@ -292,8 +299,8 @@ export function PersonalDashboardTabs({
           {badgeEmbed && vitality && (
             <PersonBadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
           )}
-          <ProfileForm profile={profile} />
           <ExperienceManager experiences={experiences} affiliations={affiliations} />
+          <ProfileForm profile={profile} />
           <MembershipSkillsManager memberships={memberships} />
           <ProfessionalCredentialsPanel credentials={myCredentials} />
           <AdvisoryProfileForm profile={advisorProfile} />

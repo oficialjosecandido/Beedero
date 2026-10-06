@@ -39,6 +39,7 @@ type NotificationsContextValue = {
   loading: boolean;
   prefs: NotificationPreferences;
   refresh: () => Promise<void>;
+  markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreference: (field: keyof NotificationPreferences, value: boolean) => Promise<void>;
@@ -85,6 +86,23 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   useVisiblePolling({ onPoll: pollUnread, intervalMs: 60_000 });
+
+  // Opening a notification reads it. Optimistic: the row is usually unmounted
+  // by the navigation it triggers, so there is nothing left to revert to —
+  // and the 60s unread poll reconciles the count if the write failed.
+  const markRead = useCallback(
+    async (id: number) => {
+      if (!items.some((item) => item.id === id && !item.read)) return;
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+      setUnread((count) => Math.max(0, count - 1));
+      try {
+        await fetch("/api/notifications", { method: "POST", body: JSON.stringify({ ids: [id] }) });
+      } catch {
+        // ignore
+      }
+    },
+    [items]
+  );
 
   const markAllRead = useCallback(async () => {
     await fetch("/api/notifications", { method: "POST", body: JSON.stringify({}) });
@@ -165,12 +183,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       loading,
       prefs,
       refresh,
+      markRead,
       markAllRead,
       loadPreferences,
       updatePreference,
       setPushEnabled,
     }),
-    [unread, items, loading, prefs, refresh, markAllRead, loadPreferences, updatePreference, setPushEnabled]
+    [
+      unread,
+      items,
+      loading,
+      prefs,
+      refresh,
+      markRead,
+      markAllRead,
+      loadPreferences,
+      updatePreference,
+      setPushEnabled,
+    ]
   );
 
   return (

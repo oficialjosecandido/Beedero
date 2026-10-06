@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FaBullhorn, FaEye, FaFileAlt, FaThumbsUp, FaUserCheck, FaUserPlus } from "react-icons/fa";
-import type { IconType } from "react-icons";
+import {
+  BarChart3,
+  Eye,
+  FileText,
+  Megaphone,
+  ThumbsUp,
+  UserCheck,
+  UserPlus,
+  type LucideIcon,
+} from "lucide-react";
 
-import { AppColumnSection } from "@/components/AppColumnSection";
+import { Shimmer } from "@/components/app-shell/ui";
 
 export type PersonalKpiStats = {
   range_days: number;
@@ -28,19 +36,15 @@ type MetricDef = {
   key: string;
   label: string;
   value: number;
-  icon: IconType;
+  icon: LucideIcon;
   highlight: boolean;
   delta?: (value: number, rangeDays: number) => string;
   hint?: string;
 };
 
-function deltaTrendClass(value: number) {
-  return value > 0 ? "text-success" : "text-danger";
-}
-
 function valueClass(value: number, highlight: boolean) {
-  if (!highlight) return "text-zinc-900";
-  return value > 0 ? "text-success" : "text-danger";
+  if (!highlight) return "text-white";
+  return value > 0 ? "text-emerald-400" : "text-white/40";
 }
 
 async function loadStats(range: RangeId): Promise<PersonalKpiStats | null> {
@@ -60,7 +64,7 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       key: "connections",
       label: "New connections",
       value: stats.new_connections,
-      icon: FaUserPlus,
+      icon: UserPlus,
       highlight: true,
       delta: (value) => `+${value} in the last ${days} days`,
     },
@@ -68,7 +72,7 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       key: "views",
       label: "Profile views",
       value: stats.profile_views_count,
-      icon: FaEye,
+      icon: Eye,
       highlight: true,
       delta: (value) => `${value} views in the last ${days} days`,
       hint: "Distinct people who opened your profile.",
@@ -77,7 +81,7 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       key: "verified_investor_views",
       label: "Verified investors viewed you",
       value: stats.verified_investor_views_count,
-      icon: FaUserCheck,
+      icon: UserCheck,
       highlight: true,
       delta: (value) => `${value} verified investors in the last ${days} days`,
       hint: "Distinct verified investors who opened your profile.",
@@ -86,7 +90,7 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       key: "impressions",
       label: "Post impressions",
       value: stats.post_impressions_count,
-      icon: FaBullhorn,
+      icon: Megaphone,
       highlight: true,
       delta: (value) => `${value} feed impressions in the last ${days} days`,
       hint: "Times your posts appeared in someone else's feed.",
@@ -95,14 +99,14 @@ function buildMetrics(stats: PersonalKpiStats): MetricDef[] {
       key: "posts",
       label: "Posts published",
       value: stats.posts_count,
-      icon: FaFileAlt,
+      icon: FileText,
       highlight: false,
     },
     {
       key: "reactions",
       label: "Reactions received",
       value: stats.reactions_received,
-      icon: FaThumbsUp,
+      icon: ThumbsUp,
       highlight: false,
     },
   ];
@@ -112,42 +116,43 @@ function KpiMetricCard({ metric, rangeDays }: { metric: MetricDef; rangeDays: nu
   const Icon = metric.icon;
 
   return (
-    <article className="min-w-0 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-beedero-yellow/35 ring-1 ring-beedero-yellow/60">
-          <Icon className="text-sm text-beedero-black" aria-hidden />
-        </div>
-      </div>
-      <p className="mt-3 text-sm font-medium text-zinc-500">{metric.label}</p>
+    <article className="min-w-0 border border-white/10 p-4">
+      <span
+        aria-hidden
+        className="grid size-8 place-items-center border border-beedero-yellow/35 bg-beedero-yellow/10 text-beedero-yellow"
+      >
+        <Icon size={14} />
+      </span>
+      <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.1em] text-white/45">
+        {metric.label}
+      </p>
       <p
-        className={`mt-1 text-3xl font-extrabold tabular-nums tracking-tight ${valueClass(metric.value, metric.highlight)}`}
+        className={`mt-1 text-3xl font-black tabular-nums tracking-[-0.03em] ${valueClass(
+          metric.value,
+          metric.highlight
+        )}`}
       >
         {metric.value}
       </p>
-      {metric.delta ? (
-        <p className={`mt-1 break-words text-xs font-semibold ${deltaTrendClass(metric.value)}`}>
-          {metric.delta(metric.value, rangeDays)}
-        </p>
-      ) : (
-        <p className="mt-1 text-xs font-medium text-subtle">In the last {rangeDays} days</p>
-      )}
-      {metric.hint && <p className="mt-1.5 text-xs leading-relaxed text-subtle">{metric.hint}</p>}
+      <p className="mt-1 break-words text-[11px] text-white/35">
+        {metric.delta
+          ? metric.delta(metric.value, rangeDays)
+          : `In the last ${rangeDays} days`}
+      </p>
+      {metric.hint && <p className="mt-1.5 text-[11px] leading-5 text-white/30">{metric.hint}</p>}
     </article>
   );
 }
 
 function KpiSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div
-          key={index}
-          className="animate-pulse rounded-2xl border-2 border-beedero-border bg-beedero-white p-5"
-        >
-          <div className="size-10 rounded-xl bg-zinc-100" />
-          <div className="mt-3 h-4 w-24 rounded bg-zinc-100" />
-          <div className="mt-2 h-8 w-16 rounded bg-zinc-100" />
-          <div className="mt-2 h-3 w-32 rounded bg-zinc-100" />
+        <div key={index} className="border border-white/10 p-4">
+          <Shimmer className="size-8" />
+          <Shimmer className="mt-3 h-3 w-24" />
+          <Shimmer className="mt-2 h-8 w-16" />
+          <Shimmer className="mt-2 h-3 w-32" />
         </div>
       ))}
     </div>
@@ -184,22 +189,28 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
   const contentMetrics = metrics.filter((metric) => ["posts", "reactions"].includes(metric.key));
 
   return (
-    <AppColumnSection label="Your KPIs" className="min-w-0" bodyClassName="min-w-0 p-4 sm:p-6">
-      <div className="flex min-w-0 flex-col gap-4 border-b border-beedero-border pb-5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-md text-sm leading-6 text-zinc-600">
-          Activity on your personal profile in the selected period.
-        </p>
-        <div className="grid w-full min-w-0 shrink-0 grid-cols-3 gap-1 rounded-2xl border border-beedero-border bg-zinc-50 p-1 sm:w-auto sm:flex sm:flex-wrap">
+    <section className="min-w-0 border border-white/10 bg-white/[0.025] p-5 sm:p-7">
+      <div className="flex min-w-0 flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+            <BarChart3 size={13} aria-hidden /> Private metrics
+          </p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Your KPIs.</h2>
+          <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
+            Activity on your personal profile in the selected period.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {RANGE_OPTIONS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => selectRange(option.id)}
               disabled={loading}
-              className={`min-w-0 rounded-xl px-2 py-1.5 text-center text-xs font-semibold transition-colors disabled:opacity-60 sm:px-3 ${
+              className={`border px-3 py-1.5 text-[11px] font-bold transition disabled:opacity-60 ${
                 range === option.id
-                  ? "bg-beedero-black text-beedero-yellow"
-                  : "text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
+                  ? "border-beedero-yellow bg-beedero-yellow text-beedero-black"
+                  : "border-white/15 text-white/55 hover:border-white/30 hover:text-white"
               }`}
             >
               <span className="sm:hidden">{option.shortLabel}</span>
@@ -209,21 +220,25 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
         </div>
       </div>
 
-      {loading && !stats && <div className="mt-5"><KpiSkeleton /></div>}
+      {loading && !stats && (
+        <div className="mt-5">
+          <KpiSkeleton />
+        </div>
+      )}
 
       {!loading && !stats && (
-        <p className="mt-5 rounded-xl border border-dashed border-beedero-border bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+        <p className="mt-5 border border-dashed border-white/15 p-8 text-center text-sm text-white/45">
           Could not load KPIs. Try again in a moment.
         </p>
       )}
 
       {stats && (
-        <div className={`mt-5 flex min-w-0 flex-col gap-5 ${loading ? "opacity-60" : ""}`}>
+        <div className={`mt-5 flex min-w-0 flex-col gap-6 ${loading ? "opacity-60" : ""}`}>
           <div className="min-w-0">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
               Audience
             </p>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {audienceMetrics.map((metric) => (
                 <KpiMetricCard key={metric.key} metric={metric} rangeDays={stats.range_days} />
               ))}
@@ -231,10 +246,10 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
           </div>
 
           <div className="min-w-0">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-subtle">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
               Content
             </p>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               {contentMetrics.map((metric) => (
                 <KpiMetricCard key={metric.key} metric={metric} rangeDays={stats.range_days} />
               ))}
@@ -242,6 +257,6 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
           </div>
         </div>
       )}
-    </AppColumnSection>
+    </section>
   );
 }

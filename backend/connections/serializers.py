@@ -55,3 +55,15 @@ def connection_request_summary(req: ConnectionRequest) -> dict:
         "status": req.status,
         "created_at": req.created_at.isoformat(),
     }
+
+
+def sent_connection_request_summary(req: ConnectionRequest) -> dict:
+    """The requester's own view of a request they sent — keyed on the
+    recipient, since the requester is always the viewer here."""
+    return {
+        "id": req.id,
+        "recipient": user_summary(req.recipient),
+        "note": req.note,
+        "status": req.status,
+        "created_at": req.created_at.isoformat(),
+    }

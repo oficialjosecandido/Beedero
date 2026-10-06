@@ -243,3 +243,19 @@ def test_discovery_endpoint_only_lists_open_jobs(api, org, candidate):
     assert "Open role" in titles
     assert "Closed role" not in titles
     assert open_job.id in [item["id"] for item in res.data["items"]]
+    # `total` counts the filtered queryset, not the page — the listing's
+    # "N opportunities match your search" line reads it.
+    assert res.data["total"] == 1
+
+
+@pytest.mark.django_db
+def test_discovery_total_counts_every_match_not_just_the_page(api, org, candidate):
+    for index in range(3):
+        create_job(org, created_by=None, **_job_kwargs(title=f"Role {index}"))
+
+    api.force_authenticate(candidate)
+    res = api.get("/api/jobs/?limit=2")
+    assert res.status_code == 200
+    assert len(res.data["items"]) == 2
+    assert res.data["next_offset"] == 2
+    assert res.data["total"] == 3

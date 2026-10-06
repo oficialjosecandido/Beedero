@@ -4,17 +4,28 @@ import { revalidatePath } from "next/cache";
 
 import { ApiError, apiFetch } from "@/lib/api";
 
+type PersonSummary = {
+  id: number;
+  name: string;
+  handle: string | null;
+  headline: string;
+  profile_picture: string | null;
+  reputation_tier: string;
+  attestations: { kind: string; label: string; detail: string; org_slug?: string }[];
+};
+
 export type ConnectionRequestItem = {
   id: number;
-  requester: {
-    id: number;
-    name: string;
-    handle: string | null;
-    headline: string;
-    profile_picture: string | null;
-    reputation_tier: string;
-    attestations: { kind: string; label: string; detail: string; org_slug?: string }[];
-  };
+  requester: PersonSummary;
+  note: string;
+  status: string;
+  created_at: string;
+};
+
+/** A request the viewer sent and can still withdraw — keyed on the recipient. */
+export type SentConnectionRequestItem = {
+  id: number;
+  recipient: PersonSummary;
   note: string;
   status: string;
   created_at: string;
@@ -66,6 +77,18 @@ export async function acceptConnectionRequestAction(
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not accept this request.") };
   }
+}
+
+export async function withdrawConnectionRequestAction(
+  requestId: number
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await apiFetch(`/connections/requests/${requestId}/withdraw/`, { method: "POST" });
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not withdraw this request.") };
+  }
+  revalidatePath("/network");
+  return { ok: true };
 }
 
 export async function declineConnectionRequestAction(

@@ -6,8 +6,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import ConnectionRequest
-from .serializers import SendConnectionRequestSerializer, connection_request_summary
-from .services import accept_request, credibility_weight, decline_request, send_request
+from .serializers import (
+    SendConnectionRequestSerializer,
+    connection_request_summary,
+    sent_connection_request_summary,
+)
+from .services import (
+    accept_request,
+    credibility_weight,
+    decline_request,
+    send_request,
+    withdraw_request,
+)
 
 User = get_user_model()
 
@@ -45,6 +55,33 @@ class PendingConnectionRequestListView(APIView):
         )
         pending.sort(key=_pending_sort_key)
         return Response({"items": [connection_request_summary(r) for r in pending]})
+
+
+class SentConnectionRequestListView(APIView):
+    """GET /api/connections/requests/sent/ — the viewer's own outstanding
+    requests, so they can see and withdraw what they sent."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        sent = ConnectionRequest.objects.filter(
+            requester=request.user, status=ConnectionRequest.Status.PENDING
+        ).select_related("recipient__investorprofile").order_by("-created_at")
+        return Response({"items": [sent_connection_request_summary(r) for r in sent]})
+
+
+class ConnectionRequestWithdrawView(APIView):
+    """POST /api/connections/requests/<id>/withdraw/ — the requester unsends
+    a pending request; the recipient's notification goes with it."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, request_id):
+        req = get_object_or_404(ConnectionRequest, pk=request_id)
+        if request.user.id != req.requester_id:
+            raise Http404
+        withdraw_request(req, request.user)
+        return Response(status=204)
 
 
 class ConnectionRequestAcceptView(APIView):

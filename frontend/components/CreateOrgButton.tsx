@@ -4,7 +4,14 @@ import { useState } from "react";
 
 import { CreateOrgForm } from "@/components/CreateOrgForm";
 
-export function CreateOrgButton({ className = "mt-4" }: { className?: string }) {
+export function CreateOrgButton({
+  className = "mt-4",
+  variant = "default",
+}: {
+  className?: string;
+  /** `dark` matches the app shell's `/(app)` surfaces; the form itself is light. */
+  variant?: "default" | "dark";
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -12,7 +19,11 @@ export function CreateOrgButton({ className = "mt-4" }: { className?: string }) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`w-full rounded-full border border-zinc-500 px-3 py-1.5 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-900 hover:bg-zinc-50 hover:text-zinc-900 ${className}`}
+        className={
+          variant === "dark"
+            ? `w-full border border-beedero-yellow/55 px-3 py-2.5 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black ${className}`
+            : `w-full rounded-full border border-zinc-500 px-3 py-1.5 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-900 hover:bg-zinc-50 hover:text-zinc-900 ${className}`
+        }
       >
         Create organization
       </button>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { searchOrgsAction } from "@/app/(app)/dashboard/affiliation-actions";
+import { inputDark } from "@/components/app-shell/ui";
 import type { OrgSummary } from "@/lib/types";
 
 const fieldClass =
@@ -16,11 +17,13 @@ export function OrgAutocomplete({
   defaultValue,
   onSelect,
   placeholder,
+  dark = false,
 }: {
   name: string;
   defaultValue?: string;
   onSelect: (org: OrgSummary | null) => void;
   placeholder?: string;
+  dark?: boolean;
 }) {
   const [query, setQuery] = useState(defaultValue ?? "");
   const [results, setResults] = useState<OrgSummary[]>([]);
@@ -68,21 +71,33 @@ export function OrgAutocomplete({
         placeholder={placeholder}
         autoComplete="off"
         required
-        className={fieldClass}
+        className={dark ? `${inputDark} placeholder:text-white/35` : fieldClass}
       />
       {open && visibleResults.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-beedero-border bg-white shadow-lg">
+        <ul
+          className={
+            dark
+              ? "absolute z-10 mt-1 w-full overflow-hidden border border-white/15 bg-app-elevated shadow-2xl"
+              : "absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-beedero-border bg-white shadow-lg"
+          }
+        >
           {visibleResults.map((org) => (
             <li key={org.slug}>
               <button
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handlePick(org)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-beedero-yellow/15"
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+                  dark ? "hover:bg-white/[0.06]" : "hover:bg-beedero-yellow/15"
+                }`}
               >
-                <span className="font-medium text-zinc-900">{org.name}</span>
+                <span className={dark ? "font-medium text-white" : "font-medium text-zinc-900"}>
+                  {org.name}
+                </span>
                 {org.one_liner && (
-                  <span className="truncate text-xs text-zinc-500">{org.one_liner}</span>
+                  <span className={`truncate text-xs ${dark ? "text-white/45" : "text-zinc-500"}`}>
+                    {org.one_liner}
+                  </span>
                 )}
               </button>
             </li>

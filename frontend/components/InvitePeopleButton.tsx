@@ -42,7 +42,8 @@ export function InvitePeopleButton({
   variant = "default",
 }: {
   className?: string;
-  variant?: "default" | "row";
+  /** `dark` matches the app shell's `/(app)` surfaces; the dialog itself is light. */
+  variant?: "default" | "row" | "dark";
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -80,7 +81,9 @@ export function InvitePeopleButton({
         className={
           variant === "row"
             ? `flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 ${className}`
-            : `flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-beedero-border bg-beedero-white px-3 py-2.5 text-sm font-bold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/15 ${className}`
+            : variant === "dark"
+              ? `flex w-full items-center justify-center gap-2 border border-white/15 px-3 py-2.5 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow ${className}`
+              : `flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-beedero-border bg-beedero-white px-3 py-2.5 text-sm font-bold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/15 ${className}`
         }
       >
         <span className={variant === "row" ? "flex size-5 shrink-0 items-center justify-center text-zinc-500" : undefined}>

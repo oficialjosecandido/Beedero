@@ -4,6 +4,9 @@ import { useState, useTransition } from "react";
 
 import { applyToJobAction } from "@/app/(app)/jobs/actions";
 
+const fieldClass =
+  "w-full border border-white/15 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-beedero-yellow";
+
 export function ApplyButton({ jobId, jobTitle }: { jobId: number; jobTitle: string }) {
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
@@ -27,7 +30,7 @@ export function ApplyButton({ jobId, jobTitle }: { jobId: number; jobTitle: stri
 
   if (applied) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-beedero-border px-4 py-2 text-xs font-semibold text-zinc-500">
+      <span className="shrink-0 border border-emerald-400/40 px-4 py-2 text-xs font-bold text-emerald-400">
         Applied
       </span>
     );
@@ -38,47 +41,47 @@ export function ApplyButton({ jobId, jobTitle }: { jobId: number; jobTitle: stri
       <button
         type="button"
         onClick={() => setShowForm(true)}
-        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-beedero-yellow px-4 py-2 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+        className="shrink-0 border border-beedero-yellow/55 px-4 py-2 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow/10"
       >
-        Apply
+        Express interest
       </button>
     );
   }
 
   return (
-    <div className="flex w-full flex-col gap-2 rounded-xl border border-beedero-border p-3">
+    <div className="flex w-full flex-col gap-2 border border-white/15 bg-white/[0.02] p-3">
       <textarea
         value={note}
         onChange={(event) => setNote(event.target.value.slice(0, 1500))}
         placeholder={`Say why you're a fit for ${jobTitle}…`}
         rows={3}
-        className="w-full rounded-lg border border-beedero-border p-2 text-sm text-beedero-black focus:border-beedero-black focus:outline-none"
+        className={`${fieldClass} resize-y`}
       />
       <input
         value={externalLink}
         onChange={(event) => setExternalLink(event.target.value)}
         placeholder="Link to CV / portfolio (optional)"
         type="url"
-        className="w-full rounded-lg border border-beedero-border p-2 text-sm text-beedero-black focus:border-beedero-black focus:outline-none"
+        className={fieldClass}
       />
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={handleApply}
           disabled={isPending}
-          className="rounded-full bg-beedero-yellow px-4 py-2 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+          className="bg-beedero-yellow px-4 py-2 text-xs font-black text-beedero-black transition hover:opacity-90 disabled:cursor-default disabled:opacity-40"
         >
           {isPending ? "Sending…" : "Send application"}
         </button>
         <button
           type="button"
           onClick={() => setShowForm(false)}
-          className="text-xs font-semibold text-zinc-500 hover:text-beedero-black"
+          className="text-xs font-bold text-white/50 transition hover:text-white"
         >
           Cancel
         </button>
       </div>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-beedero-yellow">{error}</p>}
     </div>
   );
 }

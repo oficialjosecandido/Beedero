@@ -84,6 +84,25 @@ body {
   color: var(--foreground);
 }
 
+/* Vertical connector between entries of a professional record (Figma
+   "record-line"). The Figma original hid the connector with
+   `:last-child::before`, which never matched — the class sits on the icon,
+   the first child of the row — so the last entry grew a dangling line.
+   Callers omit the class on the last entry instead. */
+.record-line {
+  position: relative;
+}
+
+.record-line::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: -18px;
+  width: 1px;
+  background: linear-gradient(var(--color-beedero-yellow), rgb(249 222 74 / 0.12));
+}
+
 body {
   font-family: var(--font-clash), "Clash Grotesk", Arial, Helvetica, sans-serif;
 }

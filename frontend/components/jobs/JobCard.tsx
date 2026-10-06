@@ -1,82 +1,85 @@
 import Link from "next/link";
 
-import { CredibilityBadge } from "@/components/CredibilityBadge";
+import { Seal } from "@/components/app-shell/ui";
+import { credibilityLevelHeading } from "@/lib/credibility";
 import { compensationKindLabel, engagementTypeLabel, locationTypeLabel } from "@/lib/job-options";
 import type { JobSummary } from "@/lib/types";
 
 import { ApplyButton } from "./ApplyButton";
 
 export function JobCard({ job }: { job: JobSummary }) {
+  const level = job.org.credibility_level ?? 0;
+
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <Link href={`/o/${job.org.slug}`} className="shrink-0">
-            {job.org.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={job.org.logo}
-                alt={`${job.org.name} logo`}
-                className="size-11 rounded-xl border border-beedero-border object-cover"
-              />
-            ) : (
-              <span className="flex size-11 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-500">
-                {job.org.name.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </Link>
-          <div className="min-w-0">
-            <p className="font-semibold text-zinc-950">{job.title}</p>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
-              <Link href={`/o/${job.org.slug}`} className="font-medium text-beedero-black hover:underline">
-                {job.org.name}
-              </Link>
-              <CredibilityBadge level={job.org.credibility_level ?? 0} />
-              {job.org.is_verified && (
-                <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
-                  Verified
+    <article className="border border-white/10 bg-white/[0.025] p-5">
+      <div className="flex flex-wrap items-center gap-5">
+        {job.org.is_verified ? (
+          <Seal />
+        ) : (
+          <span
+            aria-hidden
+            className="grid size-5 shrink-0 place-items-center border border-white/20 text-[9px] font-black text-white/35 [clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]"
+          >
+            ·
+          </span>
+        )}
+
+        <div className="min-w-[200px] flex-1">
+          <h2 className="text-sm font-bold">{job.title}</h2>
+          <p className="mt-1 text-sm text-white/55">
+            <Link href={`/o/${job.org.slug}`} className="hover:text-white hover:underline">
+              {job.org.name}
+            </Link>
+            {job.org.is_verified && <> · <span className="text-emerald-400">Verified</span></>}
+            {level > 0 && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="text-white/40" title={credibilityLevelHeading(level)}>
+                  Level {level}
                 </span>
-              )}
-            </div>
-          </div>
+              </>
+            )}
+          </p>
         </div>
+
+        <p className="text-sm text-white/55">
+          {job.location_city ? `${job.location_city} · ` : ""}
+          {locationTypeLabel(job.location_type)} · {engagementTypeLabel(job.engagement_type)}
+        </p>
+
+        {job.salary_text && <p className="text-sm text-white/80">{job.salary_text}</p>}
+
         <ApplyButton jobId={job.id} jobTitle={job.title} />
       </div>
 
-      <p className="text-xs text-zinc-500">
-        {engagementTypeLabel(job.engagement_type)} · {locationTypeLabel(job.location_type)}
-        {job.location_city ? ` · ${job.location_city}` : ""}
-        {job.salary_text ? ` · ${job.salary_text}` : ""}
-      </p>
+      {job.description && (
+        <p className="mt-4 line-clamp-3 border-l-2 border-beedero-yellow pl-3 text-sm leading-6 text-white/60">
+          {job.description}
+        </p>
+      )}
 
-      <p className="line-clamp-3 text-sm leading-6 text-zinc-600">{job.description}</p>
-
-      {job.compensation.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+      {(job.compensation.length > 0 || job.skills.length > 0) && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
           {job.compensation.map((comp) => (
             <span
               key={comp.kind}
               title={comp.detail || undefined}
-              className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600"
+              className="border border-beedero-yellow/40 px-2 py-0.5 text-[10px] font-bold text-beedero-yellow"
             >
               {compensationKindLabel(comp.kind)}
             </span>
           ))}
-        </div>
-      )}
-
-      {job.skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
           {job.skills.map((skill) => (
             <span
               key={skill}
-              className="rounded-full border border-beedero-border px-2 py-0.5 text-xs text-zinc-600"
+              className="border border-white/15 px-2 py-0.5 text-[10px] font-bold text-white/55"
             >
               {skill}
             </span>
           ))}
         </div>
       )}
-    </div>
+    </article>
   );
 }

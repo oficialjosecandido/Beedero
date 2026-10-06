@@ -3,9 +3,11 @@
 import { useActionState, useId, useState } from "react";
 
 import { updateProfileAction } from "@/app/(app)/dashboard/actions";
+import { inputDark } from "@/components/app-shell/ui";
 import { COUNTRIES } from "@/lib/countries";
 import { formatAtHandle } from "@/lib/handles";
 import { GEO_INVESTOR_FOCUS_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
+import { VISIBILITY_OPTIONS, VISIBILITY_SECTIONS } from "@/lib/profile-visibility";
 import { useActionToast } from "@/lib/use-action-toast";
 
 type Visibility = Record<string, string>;
@@ -31,15 +33,6 @@ type Profile = {
   check_min?: number | null;
   check_max?: number | null;
 };
-
-const VISIBILITY_SECTIONS = [
-  { key: "bio", label: "Bio", hint: "Your about text, manifesto, and links" },
-  { key: "country", label: "Location", hint: "The country and city you're based in" },
-  { key: "skills", label: "Skills", hint: "Your skills cloud" },
-  { key: "posts", label: "Activity posts", hint: "Updates and milestones" },
-  { key: "attestations", label: "Platform facts", hint: "Memberships and stats" },
-  { key: "credentials", label: "Credentials", hint: "Your verified professional credentials" },
-] as const;
 
 const MANIFESTO_MAX = 600;
 
@@ -112,7 +105,7 @@ function LinksInput({ initial }: { initial: ProfileLink[] }) {
   );
 }
 
-export function SkillsInput({ initial }: { initial: string[] }) {
+export function SkillsInput({ initial, dark = false }: { initial: string[]; dark?: boolean }) {
   const [skills, setSkills] = useState(initial);
   const [draft, setDraft] = useState("");
 
@@ -130,13 +123,17 @@ export function SkillsInput({ initial }: { initial: string[] }) {
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1.5 rounded-full border border-beedero-border bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700"
+            className={
+              dark
+                ? "inline-flex items-center gap-1.5 border border-white/15 px-2.5 py-1 text-xs font-medium text-white/60"
+                : "inline-flex items-center gap-1.5 rounded-full border border-beedero-border bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700"
+            }
           >
             {skill}
             <button
               type="button"
               onClick={() => setSkills((current) => current.filter((s) => s !== skill))}
-              className="text-subtle hover:text-beedero-black"
+              className={dark ? "text-white/40 hover:text-white" : "text-subtle hover:text-beedero-black"}
               aria-label={`Remove ${skill}`}
             >
               ×
@@ -155,18 +152,11 @@ export function SkillsInput({ initial }: { initial: string[] }) {
         }}
         onBlur={commitDraft}
         placeholder="Type a skill and press Enter"
-        className={fieldClass}
+        className={dark ? `${inputDark} placeholder:text-white/35` : fieldClass}
       />
     </div>
   );
 }
-
-const VISIBILITY_OPTIONS = [
-  { value: "public", label: "Public" },
-  { value: "verified_investors", label: "Verified only" },
-  { value: "connections", label: "Connections" },
-  { value: "private", label: "Private" },
-] as const;
 
 const ATTESTATION_OPTIONS = [
   { key: "show_memberships", label: "Organization memberships", hint: "Teams you belong to" },

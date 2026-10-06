@@ -185,6 +185,22 @@ def accept_request(req: ConnectionRequest, by):
     return connection, conversation
 
 
+@transaction.atomic
+def withdraw_request(req: ConnectionRequest, by) -> None:
+    """Unsend a pending request. Deleted rather than status-flagged: a
+    withdrawn request should leave no trace for the recipient (the
+    notification goes with it) and should not keep occupying
+    uniq_pending_connection_request, so the requester can try again later."""
+    if req.status != ConnectionRequest.Status.PENDING:
+        raise ValidationError("This request is no longer pending.")
+    if by.id != req.requester_id:
+        raise PermissionDenied("Only the requester can withdraw this request.")
+    Notification.objects.filter(
+        user_id=req.recipient_id, aggregate_key=f"connection_request:{req.id}"
+    ).delete()
+    req.delete()
+
+
 def decline_request(req: ConnectionRequest, by) -> None:
     if req.status != ConnectionRequest.Status.PENDING:
         raise ValidationError("This request is no longer pending.")
