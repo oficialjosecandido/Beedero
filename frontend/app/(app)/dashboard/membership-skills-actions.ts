@@ -27,6 +27,7 @@ export async function declareMembershipSkillAction(_prevState: string | null, fo
   } catch (err) {
     return firstErrorMessage(err, "Could not declare this skill.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -36,6 +37,7 @@ export async function retractMembershipSkillAction(formData: FormData) {
   const memberId = String(formData.get("member_id"));
   const skillId = String(formData.get("skill_id"));
   await apiFetch(`/orgs/${slug}/members/${memberId}/skills/${skillId}/`, { method: "DELETE" });
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
 }
 

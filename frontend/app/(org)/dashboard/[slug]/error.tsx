@@ -49,7 +49,7 @@ export default function OrgDashboardError({
           Try again
         </button>
         <Link
-          href="/dashboard"
+          href="/profile"
           className="rounded-xl border border-beedero-border px-5 py-2.5 text-sm font-semibold text-beedero-black hover:bg-beedero-yellow/20"
         >
           Back to dashboard

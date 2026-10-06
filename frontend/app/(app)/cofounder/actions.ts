@@ -130,7 +130,8 @@ export async function createOrgFromMatchAction(
       body: { name, one_liner: oneLiner },
     });
     revalidatePath("/cofounder");
-    revalidatePath("/dashboard");
+    revalidatePath("/profile");
+  revalidatePath("/dashboard");
     return { slug: result.org.slug, inviteToken: result.invite_token };
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not create the organization.") };

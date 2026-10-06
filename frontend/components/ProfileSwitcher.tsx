@@ -131,7 +131,7 @@ export function ProfileSwitcher() {
           </p>
 
           <Link
-            href="/dashboard"
+            href="/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
             className={`flex items-center gap-3 rounded-xl px-2 py-2 text-sm hover:bg-beedero-yellow/25 ${

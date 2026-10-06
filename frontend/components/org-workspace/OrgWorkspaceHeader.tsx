@@ -59,7 +59,7 @@ export function OrgWorkspaceHeader({ personName }: { personName: string }) {
             {unread > 0 && <CountPill count={unread} />}
           </Link>
           <Link
-            href="/dashboard"
+            href="/profile"
             className="ml-1 grid size-9 place-items-center rounded-full bg-org-ink text-[10px] font-black text-white"
             aria-label="Open personal profile"
           >

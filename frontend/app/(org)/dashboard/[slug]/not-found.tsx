@@ -12,7 +12,7 @@ export default function OrgDashboardNotFound() {
         <code className="rounded bg-zinc-100 px-1">.env</code>, or create the org again locally.
       </p>
       <Link
-        href="/dashboard"
+        href="/profile"
         className="rounded-xl bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
       >
         Back to dashboard

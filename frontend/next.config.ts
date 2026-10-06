@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Personal profile moved off `/dashboard` so it no longer collides
+        // with the org workspace at `/dashboard/[slug]` under `(org)`.
+        source: "/dashboard",
+        destination: "/profile",
+        permanent: false,
+      },
+      {
         source: "/org/:slug",
         destination: "/o/:slug",
         permanent: true,

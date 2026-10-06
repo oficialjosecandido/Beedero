@@ -65,6 +65,7 @@ export async function createAffiliationAction(_prevState: string | null, formDat
   } catch (err) {
     return firstErrorMessage(err, "Could not declare this affiliation.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -76,6 +77,7 @@ export async function withdrawAffiliationAction(_prevState: string | null, formD
   } catch (err) {
     return firstErrorMessage(err, "Could not withdraw this affiliation.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -88,6 +90,7 @@ export async function acceptAffiliationAction(
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not accept this affiliation.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -100,6 +103,7 @@ export async function withdrawAffiliationByIdAction(
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not withdraw this affiliation.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return { ok: true };
 }

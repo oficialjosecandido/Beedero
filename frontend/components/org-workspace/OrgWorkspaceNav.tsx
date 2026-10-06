@@ -114,7 +114,7 @@ export function OrgWorkspaceNav({
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/profile"
           className="mt-2 flex items-center gap-3 border border-black/15 px-3 py-3 text-sm font-bold text-black/70 transition hover:border-beedero-yellow hover:bg-org-chip hover:text-black"
         >
           <CircleUserRound size={17} aria-hidden />

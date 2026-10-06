@@ -46,6 +46,7 @@ export async function createExperienceAction(_prevState: string | null, formData
   } catch (err) {
     return firstErrorMessage(err, "Could not add this experience.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -85,6 +86,7 @@ export async function updateExperienceAction(_prevState: string | null, formData
   } catch (err) {
     return firstErrorMessage(err, "Could not update this experience.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -96,6 +98,7 @@ export async function deleteExperienceAction(_prevState: string | null, formData
   } catch (err) {
     return firstErrorMessage(err, "Could not remove this experience.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }

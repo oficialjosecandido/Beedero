@@ -54,6 +54,7 @@ export async function createOrgWizardAction(
   } catch (err) {
     return { slug: "", error: wizardErrorMessage(err, "Could not create the organization.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   const progress = await safeOnboardingProgress(org.slug);
@@ -206,6 +207,7 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   } catch (err) {
     return profileErrorMessage(err, "Could not save your profile.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -226,6 +228,7 @@ export async function uploadProfilePictureAction(
   } catch (err) {
     return { error: profileErrorMessage(err, "Could not upload your photo.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   return { ok: true };
@@ -253,6 +256,7 @@ export async function updateProfileVisibilityAction(
   } catch (err) {
     return { error: profileErrorMessage(err, "Could not save your visibility settings.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -266,6 +270,7 @@ export async function followOrgAction(
   } catch (err) {
     return { error: firstErrorMessage(err, "Could not follow this organization.") };
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   revalidatePath(`/org/${slug}`);
@@ -369,6 +374,7 @@ export async function submitCredentialAction(_prevState: string | null, formData
   } catch (err) {
     return firstErrorMessage(err, "Could not submit credential.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }
@@ -543,6 +549,7 @@ export async function createInvestorPostAction(_prevState: string | null, formDa
   } catch (err) {
     return firstErrorMessage(err, "Could not publish your post.");
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   return null;

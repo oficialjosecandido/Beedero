@@ -101,7 +101,8 @@ export async function reactAction(
       method: "POST",
       body: { kind },
     })) as { reaction_count: number; reaction_counts: Record<string, number> };
-    revalidatePath("/dashboard");
+    revalidatePath("/profile");
+  revalidatePath("/dashboard");
     return result;
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not save your reaction.") };
@@ -117,7 +118,8 @@ export async function unreactAction(
     const result = (await apiFetch(`/activities/${activityId}/reactions/`, {
       method: "DELETE",
     })) as { reaction_count: number; reaction_counts: Record<string, number> };
-    revalidatePath("/dashboard");
+    revalidatePath("/profile");
+  revalidatePath("/dashboard");
     return result;
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not remove your reaction.") };

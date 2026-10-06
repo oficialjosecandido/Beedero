@@ -160,7 +160,7 @@ export function ProfileHeaderCard({
         <div className="flex flex-wrap gap-2">
           <ShareProfileModal handle={profile?.handle} visibility={profile?.visibility} />
           <Link
-            href="/dashboard?tab=settings"
+            href="/profile?tab=settings"
             className="flex items-center gap-2 border border-beedero-yellow/60 px-4 py-2.5 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black"
           >
             <Pencil size={14} aria-hidden /> Edit profile

@@ -19,6 +19,7 @@ export async function acceptInviteAction(_prevState: string | null, formData: Fo
     }
     throw err;
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   redirect(`/dashboard/${org.slug}`);
 }

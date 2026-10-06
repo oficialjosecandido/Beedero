@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           "/register",
         ],
         disallow: [
-          "/dashboard",
+          "/profile",
           "/feed",
           "/discovery",
           "/org/",

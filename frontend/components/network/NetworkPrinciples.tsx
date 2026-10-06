@@ -217,7 +217,7 @@ export function NetworkPrinciples({
       </div>
 
       <Link
-        href="/dashboard?tab=settings"
+        href="/profile?tab=settings"
         className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs transition hover:text-white"
       >
         <span className="text-white/45">Profile visibility</span>

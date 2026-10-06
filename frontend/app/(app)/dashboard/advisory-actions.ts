@@ -24,6 +24,7 @@ export async function updateAdvisorProfileAction(_prevState: string | null, form
   } catch {
     return "Could not save your advisory preferences.";
   }
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
   return null;
 }

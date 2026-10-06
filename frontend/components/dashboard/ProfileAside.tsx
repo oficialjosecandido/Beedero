@@ -219,7 +219,7 @@ function ProfileCompletionCard({ completion }: { completion: ProfileCompletion }
                 </small>
               </span>
               <Link
-                href="/dashboard?tab=settings"
+                href="/profile?tab=settings"
                 className="shrink-0 text-[10px] font-bold text-beedero-yellow"
               >
                 Add
@@ -282,7 +282,7 @@ export function ProfileAside({
           })}
         </dl>
         <Link
-          href="/dashboard?tab=settings"
+          href="/profile?tab=settings"
           className="mt-4 block border-t border-white/10 pt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300"
         >
           Change visibility →

@@ -206,7 +206,7 @@ export function PersonalDashboardTabs({
 
   function selectTab(tabId: PersonalTabId) {
     setActive(tabId);
-    window.history.replaceState(null, "", `/dashboard?tab=${tabId}`);
+    window.history.replaceState(null, "", `/profile?tab=${tabId}`);
     if (tabId === "posts") {
       void refreshPosts();
     }
@@ -300,7 +300,7 @@ export function PersonalDashboardTabs({
               Update how you appear on Beedero. Experience stays on your main profile page.
             </p>
             <Link
-              href="/dashboard"
+              href="/profile"
               className="mt-4 inline-block text-xs font-bold text-beedero-yellow hover:underline"
             >
               ← Back to profile

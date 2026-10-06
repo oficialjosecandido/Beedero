@@ -213,7 +213,7 @@ export function FeedComposer({
           </div>
         )}
         <Link
-          href="/dashboard"
+          href="/profile"
           className="mt-4 inline-flex bg-beedero-yellow px-3 py-1.5 text-sm font-bold text-beedero-black hover:opacity-90"
         >
           Go to dashboard

@@ -76,8 +76,8 @@ const DESKTOP_NAV: NavItem[] = [
   {
     label: "My profile",
     shortLabel: "Profile",
-    href: "/dashboard",
-    match: (p) => p.startsWith("/dashboard"),
+    href: "/profile",
+    match: (p) => p.startsWith("/profile"),
     Icon: CircleUserRound,
     mobile: true,
   },
@@ -294,7 +294,7 @@ export function AppShell({ children, orgs = [] }: Props) {
                     ))}
                   </ul>
                   <Link
-                    href="/dashboard"
+                    href="/profile"
                     className="mt-2 flex items-center gap-2 px-3 text-xs font-bold text-beedero-yellow"
                   >
                     Manage organisations <ChevronRight size={14} aria-hidden />
