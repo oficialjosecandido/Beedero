@@ -26,6 +26,11 @@ import {
 } from "@/app/(app)/dashboard/experience-actions";
 import { btnPrimary, inputDark, labelDark } from "@/components/app-shell/ui";
 import { affiliationStatusLabel, ROLE_TYPE_OPTIONS, roleTypeLabel } from "@/lib/affiliation-options";
+import {
+  aggregateSkillTime,
+  recordDuration,
+  type AggregatedSkillTime,
+} from "@/lib/skill-duration";
 import type { AffiliationSummary, OrgSummary } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -51,14 +56,18 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
 };
 
 /**
- * Filter chips. Role types come from affiliations; free-text experiences have
- * no role type, so they get their own chip instead of disappearing.
+ * Filter chips match the Figma professional-record categories. Platform role
+ * types are grouped underneath (e.g. founder + employee → Work).
  */
 const SELF_DECLARED = "self_declared";
-const FILTERS = [
-  { value: "all", label: "All" },
-  ...ROLE_TYPE_OPTIONS.map((option) => ({ value: option.value as string, label: option.label })),
-  { value: SELF_DECLARED, label: "Self-declared" },
+const FILTERS: { value: string; label: string; types: string[] }[] = [
+  { value: "all", label: "All", types: [] },
+  { value: "work", label: "Work", types: ["founder", "employee"] },
+  { value: "academic", label: "Academic", types: ["academic"] },
+  { value: "volunteer", label: "Volunteer", types: ["volunteer"] },
+  { value: "project", label: "Project", types: ["contractor"] },
+  { value: "investment", label: "Investment", types: ["advisor"] },
+  { value: SELF_DECLARED, label: "Self-declared", types: [SELF_DECLARED] },
 ];
 
 const STATUS_STYLES: Record<AffiliationSummary["status"], string> = {
@@ -95,16 +104,69 @@ function affiliationStatusText(affiliation: AffiliationSummary) {
   return affiliationStatusLabel(affiliation.status);
 }
 
-function SkillChips({ skills }: { skills: string[] }) {
+/**
+ * Each skill carries the span of the record it sits on — the design's point
+ * being that a skill means more when you can see how long it was practised.
+ */
+function SkillChips({
+  skills,
+  startedOn,
+  endedOn,
+}: {
+  skills: string[];
+  startedOn: string;
+  endedOn?: string | null;
+}) {
   if (skills.length === 0) return null;
+  const duration = recordDuration(startedOn, endedOn);
   return (
-    <div className="mt-3 flex flex-wrap gap-1.5">
+    <div className="mt-4 flex flex-wrap gap-1.5">
       {skills.map((skill) => (
-        <span key={skill} className="border border-white/15 px-2 py-1 text-[10px] text-white/55">
-          {skill}
+        <span
+          key={skill}
+          className="inline-flex items-center gap-1.5 border border-white/15 bg-white/[0.025] px-2 py-1 text-[10px] text-white/65"
+        >
+          <b className="font-bold text-white/85">{skill}</b>
+          <span className="text-beedero-yellow">{duration}</span>
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * The aggregate under the timeline: one chip per skill, with the total time
+ * across every record it appears on.
+ */
+function CapabilityRecord({ skills }: { skills: AggregatedSkillTime[] }) {
+  if (skills.length === 0) return null;
+  return (
+    <section className="mt-7 border-t border-white/10 pt-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+            Capability record
+          </p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Skills.</h2>
+        </div>
+        <p className="max-w-xs text-[11px] leading-5 text-white/40 sm:text-right">
+          Time reflects the experience where each skill was developed.
+        </p>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        {skills.map((skill) => (
+          <span
+            key={skill.skill}
+            className="inline-flex items-center gap-2 border border-beedero-yellow/30 bg-beedero-yellow/[0.06] px-3 py-2 text-xs font-bold text-white"
+          >
+            <span>{skill.skill}</span>
+            <span className="border-l border-beedero-yellow/30 pl-2 text-[10px] font-black uppercase tracking-[0.08em] text-beedero-yellow">
+              {skill.duration}
+            </span>
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -260,7 +322,11 @@ function ExperienceRecord({ experience, isLast }: { experience: Experience; isLa
           </button>
         </div>
       </div>
-      <SkillChips skills={experience.skills ?? []} />
+      <SkillChips
+        skills={experience.skills ?? []}
+        startedOn={experience.started_on}
+        endedOn={experience.ended_on}
+      />
       <form
         action={deleteAction}
         className="mt-3"
@@ -341,7 +407,11 @@ function AffiliationRecord({
           className={STATUS_STYLES[affiliation.status]}
         />
       </div>
-      <SkillChips skills={affiliation.skills} />
+      <SkillChips
+        skills={affiliation.skills}
+        startedOn={affiliation.started_on}
+        endedOn={affiliation.ended_on}
+      />
 
       {(canAccept || canWithdraw) && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -534,7 +604,25 @@ export function ExperienceManager({
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [adding, setAdding] = useState(items.length === 0);
-  const visible = activeFilter === "all" ? items : items.filter((item) => item.type === activeFilter);
+  const activeTypes = FILTERS.find((filter) => filter.value === activeFilter)?.types ?? [];
+  const visible =
+    activeFilter === "all"
+      ? items
+      : items.filter((item) => activeTypes.includes(item.type));
+
+  // Aggregated over every record, not just the filtered ones: the capability
+  // row answers "what can this person do", which a type filter shouldn't crop.
+  const capabilities = aggregateSkillTime(
+    items.map((item) =>
+      item.kind === "experience"
+        ? item.experience
+        : {
+            skills: item.affiliation.skills,
+            started_on: item.affiliation.started_on,
+            ended_on: item.affiliation.ended_on,
+          }
+    )
+  );
 
   return (
     <section className="border border-white/10 bg-white/[0.025] p-5 sm:p-7">
@@ -593,6 +681,8 @@ export function ExperienceManager({
           })}
         </div>
       )}
+
+      <CapabilityRecord skills={capabilities} />
     </section>
   );
 }

@@ -27,6 +27,21 @@ export function formatCurrency(value: number | null | undefined): string {
   return `$${value.toLocaleString(LOCALE)}`;
 }
 
+/** Headline figures that have to fit a stat tile — e.g. "$1.2M", "$850K". */
+export function formatCompactCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `$${trimZero(value / 1_000_000_000)}B`;
+  if (abs >= 1_000_000) return `$${trimZero(value / 1_000_000)}M`;
+  if (abs >= 1_000) return `$${trimZero(value / 1_000)}K`;
+  return `$${value.toLocaleString(LOCALE)}`;
+}
+
+/** 1.0 → "1", 1.25 → "1.3" — one decimal, but never a trailing ".0". */
+function trimZero(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, "");
+}
+
 /** Compact relative time for sidebar lists — e.g. "2h ago", "3d ago". */
 export function formatRelativeTime(value: string | Date | null | undefined): string {
   if (!value) return "";

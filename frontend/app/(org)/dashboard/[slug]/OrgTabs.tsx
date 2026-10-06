@@ -16,13 +16,15 @@ import {
   updateMemberTitleAction,
   updateOrgProfileAction,
   upsertFieldAction,
-} from "../actions";
-import { confirmMembershipSkillAction } from "../membership-skills-actions";
+} from "@/app/(app)/dashboard/actions";
+import { confirmMembershipSkillAction } from "@/app/(app)/dashboard/membership-skills-actions";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
 import { JobsTab } from "@/components/jobs/JobsTab";
 import { AffiliationsTab } from "@/components/affiliations/AffiliationsTab";
+import type { OrgTabId } from "@/components/org-workspace/tabs";
+import { OrgLogoForm } from "./OrgLogoForm";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site-metadata";
@@ -38,7 +40,15 @@ type SectionField = {
   created_at?: string;
 };
 type Section = { id: number; kind: string; visibility: string; fields: SectionField[] };
-type OrgBasics = { slug: string; name: string; one_liner: string; stage: string; sector: string; geo: string };
+type OrgBasics = {
+  slug: string;
+  name: string;
+  one_liner: string;
+  stage: string;
+  sector: string;
+  geo: string;
+  logo: string | null;
+};
 type FundraiseRound = {
   id: number;
   valuation: number | null;
@@ -195,19 +205,6 @@ const MARKET_THESIS_FIELDS = [
     rows: 3,
   },
 ] as const;
-
-const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "calendar", label: "View calendar" },
-  { id: "activity", label: "Activity" },
-  { id: "profile", label: "Profile" },
-  { id: "affiliations", label: "Affiliations" },
-  { id: "jobs", label: "Jobs" },
-  { id: "fundraising", label: "Fundraising" },
-  { id: "share", label: "Share" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
 
 function SectionFieldRow({ slug, kind, field }: { slug: string; kind: string; field: SectionField }) {
   const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
@@ -844,22 +841,35 @@ function deltaTrendClass(value: number) {
   return value > 0 ? "text-success" : "text-danger";
 }
 
+/**
+ * Overview keeps the profile-strength checklist; the headline numbers that
+ * used to sit here moved to Insights, which the workspace sidebar links to.
+ */
 function OverviewTab({
   slug,
-  stats,
   onboarding,
   canManage,
-  presence,
 }: {
   slug: string;
-  stats: Stats;
   onboarding: Onboarding;
   canManage: boolean;
-  presence: VitalityInfo["presence"] | null;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <OnboardingPanel slug={slug} onboarding={onboarding} canManage={canManage} />
+    </div>
+  );
+}
+
+function InsightsTab({
+  stats,
+  presence,
+}: {
+  stats: Stats;
+  presence: VitalityInfo["presence"] | null;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
       {presence && <PresenceSignalsPanel presence={presence} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
@@ -1440,15 +1450,7 @@ function ShareTab({
       <PublicProfileShareCard slug={slug} members={members} />
 
       {canManage && badgeEmbed && vitality && (
-        <>
-          <BadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
-          <PresenceSignalsPanel presence={vitality.presence} />
-          <VitalityChecklistPanel
-            items={vitality.items}
-            doneCount={vitality.done_count}
-            totalCount={vitality.total_count}
-          />
-        </>
+        <BadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
       )}
 
       <LinksTab slug={slug} section={linksSection} />
@@ -1523,7 +1525,7 @@ export function OrgTabs({
   affiliations,
   suggestedTitle,
   suggestedBody,
-  initialTab,
+  active,
 }: {
   slug: string;
   org: OrgBasics;
@@ -1544,17 +1546,8 @@ export function OrgTabs({
   affiliations: AffiliationSummary[];
   suggestedTitle?: string;
   suggestedBody?: string;
-  initialTab?: TabId;
+  active: OrgTabId;
 }) {
-  const [active, setActive] = useState<TabId>(
-    suggestedTitle ? "activity" : (initialTab ?? "overview")
-  );
-
-  function selectTab(tabId: TabId) {
-    setActive(tabId);
-    window.history.replaceState(null, "", `/dashboard/${slug}?tab=${tabId}`);
-  }
-
   const aboutSection = sections.find((s) => s.kind === "about");
   const productsSection = sections.find((s) => s.kind === "products");
   const marketSection = sections.find((s) => s.kind === "market_thesis");
@@ -1563,33 +1556,12 @@ export function OrgTabs({
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <div className="-mx-1 min-w-0 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max min-w-full gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-white p-1.5 shadow-sm">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => selectTab(tab.id)}
-              className={`shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
-                active === tab.id
-                  ? "bg-beedero-black text-beedero-yellow"
-                  : "text-beedero-black/65 hover:bg-beedero-yellow hover:text-beedero-black"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {active === "overview" && (
-        <OverviewTab
-          slug={slug}
-          stats={stats}
-          onboarding={onboarding}
-          canManage={canManage}
-          presence={vitality?.presence ?? null}
-        />
+        <OverviewTab slug={slug} onboarding={onboarding} canManage={canManage} />
+      )}
+
+      {active === "insights" && (
+        <InsightsTab stats={stats} presence={vitality?.presence ?? null} />
       )}
 
       {active === "calendar" && (
@@ -1608,6 +1580,19 @@ export function OrgTabs({
 
       {active === "profile" && (
         <div className="flex flex-col gap-4">
+          {/* Its own card: the logo uploader is a form of its own, so it cannot
+              be nested inside the company-details form. */}
+          <div className="flex items-center gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
+            <OrgLogoForm slug={org.slug} logo={org.logo} name={org.name} editable={canManage} />
+            <div>
+              <h3 className="font-extrabold text-zinc-900">Logo</h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                {canManage
+                  ? "A square image works best — hover the logo to replace it."
+                  : "Owners and admins can change the logo."}
+              </p>
+            </div>
+          </div>
           <OrgBasicsForm org={org} canManage={canManage} />
           <AboutProfileSection slug={slug} section={aboutSection} />
           <CuratedProfileSection
@@ -1627,6 +1612,11 @@ export function OrgTabs({
             fields={MARKET_THESIS_FIELDS}
             optional
           />
+        </div>
+      )}
+
+      {active === "team" && (
+        <div className="flex flex-col gap-4">
           <ProfileAdminSection
             slug={slug}
             members={members}
@@ -1637,7 +1627,16 @@ export function OrgTabs({
       )}
 
       {active === "affiliations" && (
-        <AffiliationsTab slug={slug} affiliations={affiliations} canManage={canManage} />
+        <div className="flex flex-col gap-4">
+          <AffiliationsTab slug={slug} affiliations={affiliations} canManage={canManage} />
+          {canManage && vitality && (
+            <VitalityChecklistPanel
+              items={vitality.items}
+              doneCount={vitality.done_count}
+              totalCount={vitality.total_count}
+            />
+          )}
+        </div>
       )}
 
       {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canManage} />}

@@ -43,7 +43,9 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
 
   return (
     <section className="border-t border-zinc-100 pt-8">
-      <h2 className={profileSectionHeadingClass}>Timeline</h2>
+      {/* The tree above gives the shape; this is the record-by-record detail
+          with milestones and the skills anchored to each one. */}
+      <h2 className={profileSectionHeadingClass}>Record detail</h2>
       <div className="mt-5 flex flex-col gap-7">
         {bands.map((band, index) => {
           const start = toTime(band.started_on);

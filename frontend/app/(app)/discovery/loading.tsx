@@ -1,30 +1,38 @@
-import { Skeleton } from "@/components/Skeleton";
+import { Shimmer } from "@/components/app-shell/ui";
 
 export default function DiscoveryLoading() {
   return (
-    <main
-      className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14"
-      aria-live="polite"
-      aria-busy="true"
-    >
+    <div aria-live="polite" aria-busy="true">
       <span className="sr-only">Loading discover…</span>
-      <div className="flex w-full max-w-5xl flex-col gap-8">
-        <div className="max-w-2xl space-y-3">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-9 w-4/5" />
-          <Skeleton className="h-4 w-full" />
+
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Shimmer className="h-2.5 w-36" />
+          <Shimmer className="mt-3 h-10 w-64" />
         </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <Skeleton className="h-8 w-20 rounded-full" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 rounded-3xl" />
-          ))}
-        </div>
+        <Shimmer className="h-10 w-32" />
       </div>
-    </main>
+
+      <div className="mb-7 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Shimmer key={i} className="h-14" />
+        ))}
+      </div>
+
+      <Shimmer className="mb-4 h-4 w-56" />
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {[0, 1, 2, 3].map((row) => (
+          <div key={row} className="flex items-start gap-4 border border-white/10 bg-white/[0.025] p-5">
+            <Shimmer className="size-12 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Shimmer className="h-3.5 w-2/5" />
+              <Shimmer className="h-3 w-3/5" />
+              <Shimmer className="mt-2 h-3 w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

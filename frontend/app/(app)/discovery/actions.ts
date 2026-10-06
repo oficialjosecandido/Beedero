@@ -7,8 +7,11 @@ type PersonSummary = {
   id: number;
   name: string;
   headline?: string;
+  handle?: string | null;
+  is_verified?: boolean;
   city?: string;
   profile_picture?: string | null;
+  connection_status?: "none" | "pending_sent" | "pending_received" | "connected";
 };
 
 export async function loadMoreDiscoveryAction(

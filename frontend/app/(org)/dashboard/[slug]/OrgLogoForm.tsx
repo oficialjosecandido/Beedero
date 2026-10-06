@@ -3,7 +3,7 @@
 import { useActionState, useRef } from "react";
 
 import { useActionToast } from "@/lib/use-action-toast";
-import { uploadOrgLogoAction } from "../actions";
+import { uploadOrgLogoAction } from "@/app/(app)/dashboard/actions";
 
 export function OrgLogoForm({
   slug,

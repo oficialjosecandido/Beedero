@@ -1,11 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 
-import { OrgDashboardSidebar } from "@/components/OrgDashboardSidebar";
+import { OrgWorkspaceHeader } from "@/components/org-workspace/OrgWorkspaceHeader";
+import { parseOrgTab } from "@/components/org-workspace/tabs";
+import type { LadderRung, SignalItem } from "@/components/org-workspace/OrgOverview";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
-import { OrgLogoForm } from "./OrgLogoForm";
-import { OrgTabs } from "./OrgTabs";
+import { OrgWorkspace } from "./OrgWorkspace";
 import type { PostingStatus } from "@/components/OrgPostComposer";
-import { formatAtHandle } from "@/lib/handles";
+import { formatDateTime } from "@/lib/format";
+import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 import type { AffiliationSummary, JobSummary } from "@/lib/types";
 
 type SectionField = {
@@ -135,21 +137,42 @@ const ONBOARDING_FALLBACK = (status: "draft" | "live"): Onboarding => ({
   fee: null,
 });
 
-const ORG_TABS = [
-  "overview",
-  "calendar",
-  "activity",
-  "profile",
-  "affiliations",
-  "jobs",
-  "fundraising",
-  "share",
-] as const;
-type OrgTabId = (typeof ORG_TABS)[number];
+/** `seed` → "Seed"; unknown codes show as they are rather than disappearing. */
+function optionLabel(
+  options: readonly { value: string; label: string }[],
+  value: string
+): string {
+  if (!value) return "";
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
-function parseOrgTab(tab?: string): OrgTabId | undefined {
-  if (tab && ORG_TABS.includes(tab as OrgTabId)) return tab as OrgTabId;
-  return undefined;
+/** The first non-empty string field of a section — the curated forms store
+ *  plain strings, but a free-form field could hold anything. */
+function sectionText(section: Section | undefined, key: string): string {
+  const value = section?.fields.find((field) => field.key === key)?.value;
+  return typeof value === "string" ? value.trim() : "";
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  member: "Team member",
+};
+
+/** The sidebar says "Your role: …" — the title the team gave you reads better
+ *  there than the access level, so prefer it when one is set. */
+function myRoleLabel(title: string | undefined, role: string) {
+  return title?.trim() || ROLE_LABELS[role] || role;
+}
+
+/** The soonest event still ahead of us, for the narrative's "Next event" tile.
+ *  The clock reading lives here, outside the component body, because reading it
+ *  during render is impure. */
+function upcomingEvent<T extends { occurred_at: string }>(events: readonly T[]): T | undefined {
+  const now = Date.now();
+  return [...events]
+    .filter((event) => new Date(event.occurred_at).getTime() >= now)
+    .sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime())[0];
 }
 
 export default async function DashboardOrgPage({
@@ -254,68 +277,117 @@ export default async function DashboardOrgPage({
   }));
   const events = [...createdEvents, ...participatingEvents];
 
+  const aboutSection = sections.find((section) => section.kind === "about");
+  const productsSection = sections.find((section) => section.kind === "products");
+
+  // The ladder is the real evidence list when the viewer can see it; everyone
+  // else gets the profile checklist, which is the same idea at a lower tier.
+  const ladder: LadderRung[] = vitality
+    ? vitality.items.map((item) => ({
+        key: item.key,
+        label: item.label,
+        hint: item.hint,
+        done: item.done,
+      }))
+    : onboardingData.checklist.map((item) => ({
+        key: item.key,
+        label: item.key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+        hint: item.hint,
+        done: item.done,
+      }));
+
+  const signals: SignalItem[] = activities.slice(0, 5).map((activity) => ({
+    id: activity.id,
+    kind: activity.kind,
+    title: activity.value.title ?? "Update",
+    detail: activity.value.body ?? "",
+    at: activity.value.occurred_at ?? activity.created_at,
+  }));
+
+  const nextEvent = upcomingEvent(events);
+
+  const capitalRaised = roundHistory.reduce(
+    (total, round) => total + (round.raised_amount ?? 0),
+    0
+  );
+
+  const myMembership = members.find(
+    (member) => member.email.toLowerCase() === me.email.toLowerCase()
+  );
+  const myName = myMembership?.full_name ?? me.email;
+
   return (
-    <main className="flex min-w-0 flex-1 justify-center px-4 py-4 lg:px-6 lg:py-8">
-      <div className="flex w-full min-w-0 max-w-7xl flex-col gap-6 lg:gap-8">
-        <header className="flex flex-col gap-4 rounded-3xl border border-beedero-border bg-gradient-to-br from-beedero-yellow/25 to-beedero-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <OrgLogoForm slug={slug} logo={profile.org.logo} name={profile.org.name} editable={canManage} />
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">
-                  {profile.org.name}
-                </h1>
-                {profile.org.status === "draft" && (
-                  <span className="rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-semibold text-zinc-600">
-                    Draft
-                  </span>
-                )}
-                {profile.org.is_fundraising && (
-                <span className="rounded-full bg-beedero-black px-2.5 py-0.5 text-xs font-bold text-beedero-yellow">
-                    Fundraising
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-sm font-semibold text-zinc-600">{formatAtHandle(slug)}</p>
-              {profile.org.one_liner && (
-                <p className="mt-1 text-sm text-zinc-500">{profile.org.one_liner}</p>
-              )}
-            </div>
-          </div>
-        </header>
+    <main className="min-h-screen bg-org-ground text-org-ink">
+      <OrgWorkspaceHeader personName={myName} />
 
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
-          <div className="order-2 min-w-0 lg:order-none">
-            <OrgDashboardSidebar events={createdEvents} />
-          </div>
-
-          <div className="order-1 min-w-0 lg:order-none">
-            <OrgTabs
-              key={`${slug}-${initialTab ?? "overview"}`}
-              slug={slug}
-              org={profile.org}
-              sections={sections}
-              activities={activities}
-              events={events}
-              isFundraising={profile.org.is_fundraising}
-              roundHistory={roundHistory}
-              postingStatus={postingStatusData}
-              stats={stats}
-              members={members}
-              invites={invites}
-              canManage={canManage}
-              onboarding={onboardingData}
-              badgeEmbed={badgeEmbed}
-              vitality={vitality}
-              jobs={jobs.items}
-              affiliations={affiliations.items}
-              suggestedTitle={suggestedTitle}
-              suggestedBody={suggestedBody}
-              initialTab={initialTab}
-            />
-          </div>
-        </div>
-      </div>
+      <OrgWorkspace
+        initialTab={suggestedTitle ? "activity" : (initialTab ?? "overview")}
+        identity={{
+          name: profile.org.name,
+          logo: profile.org.logo,
+          slug,
+          isVerified: profile.org.is_verified,
+          myRole: myRoleLabel(myMembership?.title, myRole),
+          completeness: onboardingData.completeness,
+          verifiedSignals: vitality?.done_count ?? 0,
+        }}
+        hero={{
+          name: profile.org.name,
+          logo: profile.org.logo,
+          oneLiner: profile.org.one_liner,
+          slug,
+          isVerified: profile.org.is_verified,
+          isDraft: profile.org.status === "draft",
+          isFundraising: profile.org.is_fundraising,
+          meta: [
+            optionLabel(GEO_OPTIONS, profile.org.geo),
+            [optionLabel(SECTOR_OPTIONS, profile.org.sector), optionLabel(STAGE_OPTIONS, profile.org.stage)]
+              .filter(Boolean)
+              .join(" · "),
+          ].filter(Boolean),
+          teamCount: members.length,
+          capitalRaised: capitalRaised > 0 ? capitalRaised : null,
+          recordScore: onboardingData.completeness,
+          verifiedSignals: vitality?.done_count ?? 0,
+        }}
+        narrative={{
+          mission: sectionText(aboutSection, "mission"),
+          summary: sectionText(aboutSection, "summary"),
+          focus: sectionText(productsSection, "overview"),
+          nextEvent: nextEvent
+            ? { title: nextEvent.title, at: formatDateTime(nextEvent.occurred_at) }
+            : null,
+        }}
+        ladder={ladder}
+        signals={signals}
+        counts={{
+          team: members.length,
+          updates: activities.length,
+          events: events.length,
+          jobs: jobs.items.length,
+        }}
+        tabs={{
+          slug,
+          org: profile.org,
+          sections,
+          activities,
+          events,
+          isFundraising: profile.org.is_fundraising,
+          roundHistory,
+          postingStatus: postingStatusData,
+          stats,
+          members,
+          invites,
+          canManage,
+          onboarding: onboardingData,
+          badgeEmbed,
+          vitality,
+          jobs: jobs.items,
+          affiliations: affiliations.items,
+          suggestedTitle,
+          suggestedBody,
+        }}
+      />
     </main>
   );
 }

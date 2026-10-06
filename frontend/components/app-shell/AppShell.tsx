@@ -9,7 +9,6 @@ import {
   BriefcaseBusiness,
   Building2,
   ChevronRight,
-  CircleHelp,
   CircleUserRound,
   Home,
   MessageCircle,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { ProfileSwitcher } from "@/components/ProfileSwitcher";
+import { CreateOrgButton } from "@/components/CreateOrgButton";
 import { useMessaging } from "@/lib/messaging-context";
 import { useNotifications } from "@/lib/notifications-context";
 
@@ -72,13 +72,7 @@ const DESKTOP_NAV: NavItem[] = [
     badgeKey: "messages",
   },
   { label: "Opportunities", shortLabel: "Jobs", href: "/jobs", match: (p) => p.startsWith("/jobs"), Icon: BriefcaseBusiness },
-  {
-    label: "Investor pipeline",
-    shortLabel: "Pipeline",
-    href: "/pipeline",
-    match: (p) => p.startsWith("/pipeline"),
-    Icon: ChevronRight,
-  },
+  // Investor pipeline — hidden until the feature is ready to ship.
   {
     label: "My profile",
     shortLabel: "Profile",
@@ -95,6 +89,33 @@ function navClass(active: boolean) {
     : "flex min-h-[46px] items-center gap-3 px-3 py-3 text-sm text-white/65 transition hover:bg-white/5 hover:text-white";
 }
 
+/** The design's header count pill — sits on the icon's top-right corner. */
+function CountPill({ count }: { count: number }) {
+  return (
+    <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-beedero-yellow px-1 text-[9px] font-black text-beedero-black">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
+/** Messages get a header shortcut of their own, next to the bell. */
+function HeaderMessagesLink() {
+  const { unreadTotal } = useMessaging();
+
+  return (
+    <Link
+      href="/messages"
+      className="relative grid size-10 place-items-center border border-white/10 text-white/75 transition hover:border-beedero-yellow"
+      aria-label={
+        unreadTotal > 0 ? `Open messages, ${unreadTotal} unread` : "Open messages"
+      }
+    >
+      <MessageCircle size={18} strokeWidth={1.8} aria-hidden />
+      {unreadTotal > 0 && <CountPill count={unreadTotal} />}
+    </Link>
+  );
+}
+
 function HeaderNotificationButton() {
   const [open, setOpen] = useState(false);
   const { unread, items } = useNotifications();
@@ -105,11 +126,11 @@ function HeaderNotificationButton() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative grid size-10 place-items-center border border-white/10 text-white/75 transition hover:border-beedero-yellow"
-        aria-label="Open notifications"
+        aria-label={unread > 0 ? `Open notifications, ${unread} unread` : "Open notifications"}
         aria-expanded={open}
       >
         <Bell size={18} strokeWidth={1.8} aria-hidden />
-        {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-beedero-yellow" />}
+        {unread > 0 && <CountPill count={unread} />}
       </button>
       {open && (
         <section className="fixed right-4 top-[78px] z-40 w-[330px] border border-white/15 bg-[#171a20] p-4 shadow-2xl">
@@ -179,6 +200,7 @@ export function AppShell({ children, orgs = [] }: Props) {
           </label>
 
           <div className="ml-auto flex items-center gap-3">
+            <HeaderMessagesLink />
             <HeaderNotificationButton />
             <div className="[&_button]:size-10 [&_button]:rounded-full [&_button]:bg-transparent [&_button]:p-0 [&_button]:pr-0 [&_button]:text-white [&_button]:hover:bg-transparent [&_button>svg]:hidden [&_img]:size-10 [&_button>span]:size-10 [&_button>span]:bg-[#68738a] [&_button>span]:text-xs [&_button>span]:font-black [&_button>span]:text-white">
               <ProfileSwitcher />
@@ -226,45 +248,59 @@ export function AppShell({ children, orgs = [] }: Props) {
             </nav>
 
             <div className="mt-7 border-t border-white/10 pt-5">
-              <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-                Your organisations
-              </p>
-              <ul className="mt-3">
-                {orgs.slice(0, 4).map((org, index) => (
-                  <li key={org.slug}>
-                    <Link
-                      href={`/dashboard/${org.slug}`}
-                      className="flex items-center gap-3 px-3 py-2 hover:bg-white/5"
-                    >
-                      {org.logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={org.logo}
-                          alt=""
-                          className="size-4 shrink-0 rounded-sm object-cover"
-                        />
-                      ) : (
-                        <Building2
-                          size={16}
-                          className={index === 0 ? "shrink-0 text-beedero-yellow" : "shrink-0 text-white/40"}
-                          aria-hidden
-                        />
-                      )}
-                      <span
-                        className={`flex-1 truncate text-sm ${index === 0 ? "font-bold" : ""}`}
-                      >
-                        {org.name}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/dashboard"
-                className="mt-2 flex items-center gap-2 px-3 text-xs font-bold text-beedero-yellow"
-              >
-                Manage organisations <ChevronRight size={14} aria-hidden />
-              </Link>
+              {orgs.length === 0 ? (
+                <CreateOrgButton
+                  variant="sidebar"
+                  label="Join or Create Organization"
+                  className="mt-0"
+                />
+              ) : (
+                <>
+                  <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+                    Your organisations
+                  </p>
+                  <ul className="mt-3">
+                    {orgs.slice(0, 4).map((org, index) => (
+                      <li key={org.slug}>
+                        <Link
+                          href={`/dashboard/${org.slug}`}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-white/5"
+                        >
+                          {org.logo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={org.logo}
+                              alt=""
+                              className="size-4 shrink-0 rounded-sm object-cover"
+                            />
+                          ) : (
+                            <Building2
+                              size={16}
+                              className={
+                                index === 0
+                                  ? "shrink-0 text-beedero-yellow"
+                                  : "shrink-0 text-white/40"
+                              }
+                              aria-hidden
+                            />
+                          )}
+                          <span
+                            className={`flex-1 truncate text-sm ${index === 0 ? "font-bold" : ""}`}
+                          >
+                            {org.name}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/dashboard"
+                    className="mt-2 flex items-center gap-2 px-3 text-xs font-bold text-beedero-yellow"
+                  >
+                    Manage organisations <ChevronRight size={14} aria-hidden />
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </aside>
@@ -307,14 +343,6 @@ export function AppShell({ children, orgs = [] }: Props) {
           );
         })}
       </nav>
-
-      <a
-        href="mailto:hello@beedero.com"
-        className="fixed bottom-6 right-6 z-20 hidden size-10 place-items-center border border-white/15 bg-app-surface text-white/55 transition hover:border-beedero-yellow hover:text-beedero-yellow lg:grid"
-        aria-label="Help"
-      >
-        <CircleHelp size={18} strokeWidth={1.8} aria-hidden />
-      </a>
     </div>
   );
 }

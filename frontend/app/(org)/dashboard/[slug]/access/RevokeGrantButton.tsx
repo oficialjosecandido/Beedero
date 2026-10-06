@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { deleteGrantAction } from "../../actions";
+import { deleteGrantAction } from "@/app/(app)/dashboard/actions";
 import { useActionToast } from "@/lib/use-action-toast";
 
 export function RevokeGrantButton({ slug, grantId }: { slug: string; grantId: number }) {

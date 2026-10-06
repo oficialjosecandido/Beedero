@@ -210,6 +210,53 @@ export async function updateProfileAction(_prevState: string | null, formData: F
   return null;
 }
 
+/** Camera affordance on My profile — uploads only the picture, nothing else. */
+export async function uploadProfilePictureAction(
+  formData: FormData
+): Promise<{ ok: true } | { error: string }> {
+  const picture = formData.get("profile_picture");
+  if (!(picture instanceof File) || picture.size === 0) {
+    return { error: "Choose a photo to upload." };
+  }
+
+  const body = new FormData();
+  body.set("profile_picture", picture);
+  try {
+    await apiFetch("/investors/me/", { method: "PUT", body });
+  } catch (err) {
+    return { error: profileErrorMessage(err, "Could not upload your photo.") };
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/feed");
+  return { ok: true };
+}
+
+/**
+ * The Share-profile sheet writes section visibility on its own. It deliberately
+ * does not reuse `updateProfileAction`: that one PUTs every profile field it
+ * finds on the form, so sending it from a sheet that only knows about
+ * visibility would blank the headline, bio and links.
+ */
+export async function updateProfileVisibilityAction(
+  visibility: Record<string, string>
+): Promise<{ ok: true } | { error: string }> {
+  const allowed = new Set(["public", "verified_investors", "connections", "private"]);
+  const clean: Record<string, string> = {};
+  for (const [section, level] of Object.entries(visibility)) {
+    if (allowed.has(level)) clean[section] = level;
+  }
+
+  const body = new FormData();
+  body.set("visibility", JSON.stringify(clean));
+  try {
+    await apiFetch("/investors/me/", { method: "PUT", body });
+  } catch (err) {
+    return { error: profileErrorMessage(err, "Could not save your visibility settings.") };
+  }
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function followOrgAction(
   formData: FormData
 ): Promise<{ ok: true } | { error: string }> {

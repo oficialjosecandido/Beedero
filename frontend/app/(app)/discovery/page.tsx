@@ -1,7 +1,8 @@
-import Link from "next/link";
+import { Suspense } from "react";
 
+import { PageHeading, btnOutlineYellow } from "@/components/app-shell/ui";
+import { DiscoveryFilters } from "@/components/discovery/DiscoveryFilters";
 import { apiFetch } from "@/lib/api";
-import { GEO_FILTER_HELP, GEO_FILTER_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 import type { OrgSummary } from "@/lib/types";
 
 import { DiscoveryList } from "./DiscoveryList";
@@ -32,7 +33,8 @@ export default async function DiscoveryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const tab = params.tab === "organizations" ? "organizations" : "people";
+  // Figma defaults to organisations — keep "people" only when explicitly asked.
+  const tab = params.tab === "people" ? "people" : "organizations";
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.city) query.set("city", params.city);
@@ -58,253 +60,41 @@ export default async function DiscoveryPage({
       ? await apiFetch<PeopleResponse>(`/discovery/people/?${query.toString()}`)
       : { items: [], next_offset: null };
 
-  const tabQuery = (nextTab: "organizations" | "people") => {
-    const next = new URLSearchParams(query);
-    next.set("tab", nextTab);
-    return next.toString();
-  };
-
-  const clearSearchQuery = () => {
-    const next = new URLSearchParams(query);
-    next.delete("q");
-    next.delete("city");
-    next.set("tab", tab);
-    return next.toString();
-  };
-
-  const hasSearchQuery = Boolean(params.q?.trim() || params.city?.trim());
-
-  // "47 people in Lisbon" — only worth showing when it isn't already the
-  // filter in force, and only once the viewer has told us where they are.
-  const citySummary = peopleResults.city_summary ?? null;
-  const showCityPrompt = tab === "people" && citySummary !== null && !params.city;
-  const cityPromptQuery = () => {
-    const next = new URLSearchParams(query);
-    next.set("tab", "people");
-    next.set("city", citySummary!.city_key);
-    return next.toString();
-  };
+  const resultCount = tab === "people" ? peopleResults.items.length : orgResults.items.length;
+  const hasMore =
+    tab === "people" ? peopleResults.next_offset !== null : orgResults.next_offset !== null;
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
-      <div className="flex w-full max-w-5xl flex-col gap-8">
-        <div className="max-w-2xl">
-          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
-            Discover
-          </p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-950 sm:text-4xl">
-            Find people and organizations
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-zinc-600">
-            Search by name, then follow people or organizations to shape your feed.
-          </p>
-        </div>
+    <>
+      <PageHeading
+        eyebrow="Network directory"
+        title="Find the signal."
+        actions={
+          <button type="button" className={`${btnOutlineYellow} uppercase`} disabled title="Coming soon">
+            Saved search
+          </button>
+        }
+      />
 
-        <form
-          className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:p-6"
-          method="get"
-        >
-          <input type="hidden" name="tab" value={tab} />
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-            Search
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input
-                name="q"
-                defaultValue={params.q ?? ""}
-                placeholder={
-                  tab === "people"
-                    ? "Search people by name or headline…"
-                    : "Search organizations by name…"
-                }
-                className="flex-1 rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-              />
-              {tab === "people" && (
-                <input
-                  name="city"
-                  defaultValue={params.city ?? ""}
-                  placeholder="City — Lisbon, Porto…"
-                  aria-label="City"
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60 sm:w-52"
-                />
-              )}
-              <div className="flex gap-2">
-                {hasSearchQuery && (
-                  <Link
-                    href={`/discovery?${clearSearchQuery()}`}
-                    className="rounded-xl border border-beedero-border px-5 py-2 text-sm font-semibold text-beedero-black/70 hover:bg-zinc-50"
-                  >
-                    Clear
-                  </Link>
-                )}
-                <button
-                  type="submit"
-                  className="rounded-xl bg-beedero-yellow px-5 py-2 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white"
-                >
-                  Search
-                </button>
-              </div>
-            </div>
-          </label>
-        </form>
+      <Suspense fallback={null}>
+        <DiscoveryFilters resultCount={resultCount} hasMore={hasMore} />
+      </Suspense>
 
-        <div className="flex gap-2">
-          <Link
-            href={`/discovery?${tabQuery("people")}`}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
-              tab === "people"
-                ? "bg-beedero-black text-beedero-yellow"
-                : "bg-beedero-white text-beedero-black/70 ring-1 ring-beedero-black/10 hover:bg-beedero-yellow/20"
-            }`}
-          >
-            People
-          </Link>
-          <Link
-            href={`/discovery?${tabQuery("organizations")}`}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
-              tab === "organizations"
-                ? "bg-beedero-black text-beedero-yellow"
-                : "bg-beedero-white text-beedero-black/70 ring-1 ring-beedero-black/10 hover:bg-beedero-yellow/20"
-            }`}
-          >
-            Organizations
-          </Link>
-        </div>
-
-        {showCityPrompt && (
-          <Link
-            href={`/discovery?${cityPromptQuery()}`}
-            className="flex w-fit items-center gap-2 rounded-full border-2 border-beedero-border bg-beedero-yellow/20 px-4 py-2 text-sm font-semibold text-beedero-black transition hover:bg-beedero-yellow"
-          >
-            {citySummary!.count === 1
-              ? `1 other person in ${citySummary!.city}`
-              : `${citySummary!.count} people in ${citySummary!.city}`}
-            <span aria-hidden="true">→</span>
-          </Link>
-        )}
-
-        {tab === "people" ? (
-          <PeopleDiscoveryList
-            initialItems={peopleResults.items}
-            initialNextOffset={peopleResults.next_offset}
-            query={query.toString()}
-          />
-        ) : (
-          <>
-            <form
-              className="grid gap-4 rounded-3xl border-2 border-beedero-border bg-beedero-white p-4 shadow-sm sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_1fr_auto_auto]"
-              method="get"
-            >
-              <input type="hidden" name="tab" value="organizations" />
-              {params.q && <input type="hidden" name="q" value={params.q} />}
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                Stage
-                <select
-                  name="stage"
-                  defaultValue={params.stage ?? ""}
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                >
-                  <option value="">Any</option>
-                  {STAGE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                Sector
-                <select
-                  name="sector"
-                  defaultValue={params.sector ?? ""}
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                >
-                  <option value="">Any</option>
-                  {SECTOR_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                {GEO_FILTER_LABEL}
-                <select
-                  name="geo"
-                  defaultValue={params.geo ?? ""}
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                >
-                  <option value="">Any</option>
-                  {GEO_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-xs font-normal text-subtle">{GEO_FILTER_HELP}</span>
-              </label>
-              <label className="flex items-center gap-2 self-end rounded-xl border border-beedero-border px-3 py-2 text-sm font-medium text-zinc-700">
-                <input
-                  type="checkbox"
-                  name="fundraising"
-                  value="true"
-                  defaultChecked={params.fundraising === "true"}
-                  className="size-4 accent-beedero-black"
-                />
-                Fundraising
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
-                Min. credibility
-                <select
-                  name="min_credibility"
-                  defaultValue={params.min_credibility ?? ""}
-                  className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none transition focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-                >
-                  <option value="">Any</option>
-                  <option value="1">Level 1+</option>
-                  <option value="2">Level 2+</option>
-                  <option value="3">Level 3+</option>
-                  <option value="4">Level 4</option>
-                </select>
-              </label>
-              <button
-                type="submit"
-                className="self-end rounded-xl bg-beedero-yellow px-5 py-2 text-sm font-bold text-beedero-black shadow-sm hover:bg-beedero-black hover:text-beedero-white"
-              >
-                Filter
-              </button>
-            </form>
-
-            {(orgResults.active_this_week?.length ?? 0) > 0 && !hasSearchQuery && (
-              <section className="flex flex-col gap-3">
-                <div>
-                  <h2 className="text-lg font-extrabold text-zinc-950">Active this week</h2>
-                  <p className="text-sm text-zinc-600">
-                    Organizations that published recently, ranked by credibility.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {orgResults.active_this_week!.map((org) => (
-                    <Link
-                      key={org.slug}
-                      href={`/org/${org.slug}`}
-                      className="rounded-2xl border-2 border-success-strong/30 bg-success-surface/60 px-4 py-3 shadow-sm transition hover:border-success-strong"
-                    >
-                      <p className="font-semibold text-zinc-950">{org.name}</p>
-                      {org.one_liner && <p className="mt-1 text-xs text-zinc-600">{org.one_liner}</p>}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <DiscoveryList
-              initialItems={orgResults.items}
-              initialNextOffset={orgResults.next_offset}
-              query={query.toString()}
-            />
-          </>
-        )}
-      </div>
-    </main>
+      {tab === "people" ? (
+        <PeopleDiscoveryList
+          key={`people-${query.toString()}`}
+          initialItems={peopleResults.items}
+          initialNextOffset={peopleResults.next_offset}
+          query={query.toString()}
+        />
+      ) : (
+        <DiscoveryList
+          key={`orgs-${query.toString()}`}
+          initialItems={orgResults.items}
+          initialNextOffset={orgResults.next_offset}
+          query={query.toString()}
+        />
+      )}
+    </>
   );
 }

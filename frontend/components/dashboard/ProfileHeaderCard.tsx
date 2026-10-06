@@ -1,7 +1,12 @@
-import Link from "next/link";
-import { Camera, Pencil, Share2 } from "lucide-react";
+"use client";
 
+import Link from "next/link";
+import { useRef, useState, useTransition } from "react";
+import { Camera, Pencil } from "lucide-react";
+
+import { uploadProfilePictureAction } from "@/app/(app)/dashboard/actions";
 import { Seal } from "@/components/app-shell/ui";
+import { ShareProfileModal } from "@/components/dashboard/ShareProfileModal";
 import { COUNTRIES } from "@/lib/countries";
 
 type ProfileLink = { label?: string; url: string };
@@ -16,6 +21,7 @@ export type HeaderProfile = {
   profile_picture?: string | null;
   handle?: string | null;
   is_verified?: boolean;
+  visibility?: Record<string, string>;
 };
 
 function countryName(code?: string) {
@@ -52,8 +58,7 @@ function initials(name: string) {
 
 /**
  * The Figma "My profile" header: identity, the two profile CTAs, and the bio
- * as a quote. The camera affordance links to the settings tab rather than
- * uploading inline — `ProfileForm` owns the `profile_picture` field.
+ * as a quote. The camera opens a file picker and uploads immediately.
  */
 export function ProfileHeaderCard({
   profile,
@@ -67,17 +72,47 @@ export function ProfileHeaderCard({
   const host = primaryHost(profile?.links);
   const meta = [location, host].filter(Boolean).join(" · ");
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const pictureSrc = preview ?? profile?.profile_picture ?? null;
+
+  function onPick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    setError(null);
+
+    const body = new FormData();
+    body.set("profile_picture", file);
+    startTransition(async () => {
+      const result = await uploadProfilePictureAction(body);
+      if ("error" in result) {
+        setError(result.error);
+        setPreview(null);
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      // Keep the local preview until the server re-renders with the new URL.
+    });
+  }
+
   return (
     <section className="border border-white/10 bg-white/[0.025] p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex min-w-0 items-start gap-4">
           <div className="relative">
-            {profile?.profile_picture ? (
+            {pictureSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={profile.profile_picture}
+                src={pictureSrc}
                 alt=""
-                className="size-16 shrink-0 rounded-full object-cover"
+                className={`size-16 shrink-0 rounded-full object-cover ${pending ? "opacity-60" : ""}`}
               />
             ) : (
               <span
@@ -87,13 +122,22 @@ export function ProfileHeaderCard({
                 {initials(name)}
               </span>
             )}
-            <Link
-              href="/dashboard?tab=settings"
-              aria-label="Change profile photo in profile settings"
-              className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-app-bg bg-beedero-yellow text-beedero-black"
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={pending}
+              aria-label={pending ? "Uploading profile photo" : "Change profile photo"}
+              className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-app-bg bg-beedero-yellow text-beedero-black transition hover:scale-105 disabled:opacity-60"
             >
               <Camera size={13} aria-hidden />
-            </Link>
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={onPick}
+            />
           </div>
 
           <div className="min-w-0">
@@ -106,18 +150,15 @@ export function ProfileHeaderCard({
             </div>
             {profile?.headline && <p className="mt-1 text-base text-white/65">{profile.headline}</p>}
             {meta && <p className="mt-2 text-xs text-white/40">{meta}</p>}
+            {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+            {pending && !error && (
+              <p className="mt-2 text-xs text-white/45">Uploading photo…</p>
+            )}
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {profile?.handle && (
-            <Link
-              href={`/p/${profile.handle}`}
-              className="flex items-center gap-2 border border-white/15 px-4 py-2.5 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow"
-            >
-              <Share2 size={14} aria-hidden /> Share public profile
-            </Link>
-          )}
+          <ShareProfileModal handle={profile?.handle} visibility={profile?.visibility} />
           <Link
             href="/dashboard?tab=settings"
             className="flex items-center gap-2 border border-beedero-yellow/60 px-4 py-2.5 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black"

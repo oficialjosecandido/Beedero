@@ -1,18 +1,17 @@
 import { redirect } from "next/navigation";
 
-import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
-import { resolveOrgNewsUpdates } from "@/components/RecentOrgUpdatesPanel";
-import type { FeedItem } from "@/app/(app)/feed/types";
-import { ProfileForm } from "@/components/ProfileForm";
-import { ProfileHeaderCard } from "@/components/dashboard/ProfileHeaderCard";
 import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
+import { ProfileAside } from "@/components/dashboard/ProfileAside";
+import { ProfileHeaderCard } from "@/components/dashboard/ProfileHeaderCard";
 import type { Experience } from "@/components/ExperienceManager";
+import { ExperienceManager } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel";
+import { ProfileForm } from "@/components/ProfileForm";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
+import type { Vitality } from "@/lib/person-vitality";
 import type { AffiliationSummary } from "@/lib/types";
 
-import { DashboardRightColumn } from "./DashboardRightColumn";
 import {
   PersonalDashboardTabs,
   type PersonalTabId,
@@ -49,36 +48,12 @@ type InvestorPost = {
   reaction_counts?: { like: number; insight: number; congrats: number };
   feed_impression_count?: number;
 };
-type ProfileStats = {
-  profile_views_count: number;
-  verified_investor_views_count: number;
-  post_impressions_count: number;
-  range_days: number;
-  new_connections: number;
-  posts_count: number;
-  reactions_received: number;
-};
-type Vitality = {
-  completeness: number;
-  checklist: { key: string; done: boolean; hint: string }[];
-  done_count: number;
-  total_count: number;
-  presence: { profile_views: number; since_days: number; has_signal: boolean };
-  badge: {
-    handle: string | null;
-    name: string;
-    verified: boolean;
-    visual_status: "verified" | "unverified";
-    as_of: string;
-  };
-};
 type BadgeEmbed = {
   html: string;
   profile_url: string;
   badge_url: string;
   json_url: string;
 };
-type NetworkCounts = { connections: number; pending: number; following: number };
 
 const PERSONAL_TABS = ["kpis", "posts", "saved", "settings"] as const;
 
@@ -99,96 +74,90 @@ export default async function DashboardPage({
 
   let me: Me;
   let orgs: Membership[];
-  let profileStats: ProfileStats | null = null;
+  let profileStats: PersonalKpiStats | null = null;
   let vitality: Vitality | null = null;
   let badgeEmbed: BadgeEmbed | null = null;
   let advisorProfile: AdvisorProfile | null = null;
   let experiences: Experience[] = [];
   let affiliations: AffiliationSummary[] = [];
   let myPosts: InvestorPost[] = [];
-  let recentOrgUpdates: RecentOrgUpdateItem[] = [];
-  let feedItems: FeedItem[] = [];
-  let network: NetworkCounts | null = null;
   let myCredentials: PersonCredential[] = [];
   try {
-    const [meRes, orgsRes, posts, updatesRes, feedRes, networkRes, credentialsRes] = await Promise.all([
-      apiFetch<Me>("/auth/me/"),
-      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
-      safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
-      safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
-      safeFetch(apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/?limit=20"), {
-        items: [],
-        next_cursor: null,
-      }),
-      safeFetch(apiFetch<NetworkCounts>("/network/counts/"), null),
-      safeFetch(apiFetch<PersonCredential[]>("/credentials/mine/"), [] as PersonCredential[]),
-    ]);
-    me = meRes;
-    orgs = orgsRes;
-    myPosts = posts;
-    recentOrgUpdates = updatesRes.items;
-    feedItems = feedRes.items;
-    network = networkRes;
-    myCredentials = credentialsRes;
-
-    if (me.investor_profile?.is_complete) {
-      let affiliationsRes: { items: AffiliationSummary[] };
-      [profileStats, vitality, badgeEmbed, advisorProfile, experiences, affiliationsRes] = await Promise.all([
-        safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
+    const [meRes, orgsRes, posts, credentialsRes, vitalityRes, experiencesRes, affiliationsRes] =
+      await Promise.all([
+        apiFetch<Me>("/auth/me/"),
+        safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
+        safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
+        safeFetch(apiFetch<PersonCredential[]>("/credentials/mine/"), [] as PersonCredential[]),
         safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
-        safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
-        safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
         safeFetch(apiFetch<Experience[]>("/experience/"), [] as Experience[]),
         safeFetch(apiFetch<{ items: AffiliationSummary[] }>("/affiliations/mine/"), { items: [] }),
       ]);
-      affiliations = affiliationsRes.items;
+    me = meRes;
+    orgs = orgsRes;
+    myPosts = posts;
+    myCredentials = credentialsRes;
+    vitality = vitalityRes;
+    experiences = experiencesRes;
+    affiliations = affiliationsRes.items;
+
+    if (me.investor_profile?.is_complete) {
+      [profileStats, badgeEmbed, advisorProfile] = await Promise.all([
+        safeFetch(apiFetch<PersonalKpiStats>("/investors/me/stats/?range=7d"), null),
+        safeFetch(apiFetch<BadgeEmbed>("/investors/me/badge-embed/"), null),
+        safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
+      ]);
     }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
   }
-  const profileComplete = Boolean(me.investor_profile?.is_complete);
 
-  const orgNews = resolveOrgNewsUpdates(recentOrgUpdates, feedItems);
+  const profileComplete = Boolean(me.investor_profile?.is_complete);
   const memberships = me.memberships.map((m) => ({
     ...m,
     orgName: orgs.find((o) => o.slug === m.org)?.name ?? m.org,
   }));
 
+  const aside = (
+    <ProfileAside
+      ladder={vitality?.ladder ?? null}
+      cadence={vitality?.cadence ?? null}
+      completion={vitality?.completion ?? null}
+      visibility={me.investor_profile?.visibility}
+    />
+  );
+
   return (
-    <>
+    <div className="mx-auto max-w-5xl">
       <ProfileHeaderCard profile={me.investor_profile} email={me.email} />
 
-      <div className="mt-5">
-        {!profileComplete ? (
+      {!profileComplete ? (
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
           <ProfileForm profile={me.investor_profile} variant="onboarding" />
-        ) : (
+          {aside}
+        </div>
+      ) : initialTab ? (
+        <div className="mt-5">
           <PersonalDashboardTabs
-            key={initialTab ?? "kpis"}
+            key={initialTab}
             profile={me.investor_profile}
             profileStats={profileStats}
             vitality={vitality}
             badgeEmbed={badgeEmbed}
             advisorProfile={advisorProfile}
-            experiences={experiences}
-            affiliations={affiliations}
             memberships={memberships}
             myCredentials={myCredentials}
             myPosts={myPosts}
             initialTab={initialTab}
           />
-        )}
-      </div>
-
-      <DashboardRightColumn
-        checklist={vitality?.checklist ?? null}
-        doneCount={vitality?.done_count ?? 0}
-        totalCount={vitality?.total_count ?? 0}
-        network={network}
-        orgs={orgs}
-        visibility={me.investor_profile?.visibility}
-        updates={orgNews}
-      />
-    </>
+        </div>
+      ) : (
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
+          <ExperienceManager experiences={experiences} affiliations={affiliations} />
+          {aside}
+        </div>
+      )}
+    </div>
   );
 }

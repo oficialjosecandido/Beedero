@@ -17,6 +17,14 @@
   --color-app-muted: rgb(255 255 255 / 0.45);
   --color-app-faint: rgb(255 255 255 / 0.3);
 
+  /* Organisation workspace (Figma) — the light brutalist context that
+     /(org) routes use instead of the dark app shell. */
+  --color-org-ground: #f4df68;
+  --color-org-ink: #17191f;
+  --color-org-cream: #fffdf2;
+  --color-org-gold: #b08a00;
+  --color-org-chip: #fff1a8;
+
   /* Text hierarchy tokens. --color-subtle replaces the old zinc-400
      tier, which fails WCAG AA (≈2.9:1 on white); zinc-500's hex
      clears 4.5:1 and is used here instead. */
@@ -52,6 +60,11 @@
   --color-app-border: var(--color-app-border);
   --color-app-muted: var(--color-app-muted);
   --color-app-faint: var(--color-app-faint);
+  --color-org-ground: var(--color-org-ground);
+  --color-org-ink: var(--color-org-ink);
+  --color-org-cream: var(--color-org-cream);
+  --color-org-gold: var(--color-org-gold);
+  --color-org-chip: var(--color-org-chip);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--color-muted);

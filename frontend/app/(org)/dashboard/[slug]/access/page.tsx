@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { createGrantAction } from "../../actions";
+import { createGrantAction } from "@/app/(app)/dashboard/actions";
 import { EmptyState } from "@/components/EmptyState";
 import { ApiError, apiFetch } from "@/lib/api";
 import { SECTION_LABELS } from "@/lib/types";

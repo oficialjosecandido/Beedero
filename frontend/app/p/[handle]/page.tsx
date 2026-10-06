@@ -5,6 +5,7 @@ import { PersonProfileActions } from "@/components/PersonProfileActions";
 import { PersonProfileJsonLd } from "@/components/PersonProfileJsonLd";
 import { PersonTimeline, type TimelineBand } from "@/components/PersonTimeline";
 import { PersonSkillsSection, type AggregatedSkill } from "@/components/PersonSkillsSection";
+import { PersonTimelineTree } from "@/components/PersonTimelineTree";
 import { PostsShowcase } from "@/components/PostsShowcase";
 import { ApiError, apiFetch, publicFetch } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
@@ -225,6 +226,8 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
               </ul>
             </section>
           )}
+
+          <PersonTimelineTree bands={timeline} />
 
           <PersonTimeline bands={timeline} />
 

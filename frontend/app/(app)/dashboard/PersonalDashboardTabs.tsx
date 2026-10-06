@@ -12,7 +12,6 @@ import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKp
 import { ProfileForm } from "@/components/ProfileForm";
 import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import { DeleteAccountPanel } from "@/components/DeleteAccountPanel";
-import { ExperienceManager, type Experience } from "@/components/ExperienceManager";
 import {
   MembershipSkillsManager,
   type PersonMembershipWithSkills,
@@ -25,7 +24,7 @@ import { EmptyPanel, btnPrimary } from "@/components/app-shell/ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { RichText } from "@/components/RichText";
 import type { ResolvedMention } from "@/lib/richtext";
-import { SECTION_LABELS, type AffiliationSummary } from "@/lib/types";
+import { SECTION_LABELS } from "@/lib/types";
 
 const TABS = [
   { id: "kpis", label: "KPIs", shortLabel: "KPIs" },
@@ -163,8 +162,6 @@ export function PersonalDashboardTabs({
   vitality,
   badgeEmbed,
   advisorProfile,
-  experiences,
-  affiliations,
   memberships,
   myCredentials,
   myPosts: initialPosts,
@@ -175,8 +172,6 @@ export function PersonalDashboardTabs({
   vitality: Vitality | null;
   badgeEmbed: BadgeEmbed | null;
   advisorProfile: AdvisorProfile | null;
-  experiences: Experience[];
-  affiliations: AffiliationSummary[];
   memberships: PersonMembershipWithSkills[];
   myCredentials: PersonCredential[];
   myPosts: InvestorPost[];
@@ -296,10 +291,24 @@ export function PersonalDashboardTabs({
 
       {active === "settings" && (
         <div className="flex flex-col gap-5">
+          <div className="border border-white/10 bg-white/[0.025] p-5 sm:p-7">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+              Profile
+            </p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Settings.</h2>
+            <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
+              Update how you appear on Beedero. Experience stays on your main profile page.
+            </p>
+            <Link
+              href="/dashboard"
+              className="mt-4 inline-block text-xs font-bold text-beedero-yellow hover:underline"
+            >
+              ← Back to profile
+            </Link>
+          </div>
           {badgeEmbed && vitality && (
             <PersonBadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
           )}
-          <ExperienceManager experiences={experiences} affiliations={affiliations} />
           <ProfileForm profile={profile} />
           <MembershipSkillsManager memberships={memberships} />
           <ProfessionalCredentialsPanel credentials={myCredentials} />
