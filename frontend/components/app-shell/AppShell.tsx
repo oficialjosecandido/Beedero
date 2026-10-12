@@ -148,7 +148,19 @@ function HeaderMessagesLink() {
 
 function HeaderNotificationButton() {
   const [open, setOpen] = useState(false);
-  const { unread, items } = useNotifications();
+  const { unread, items, loading, refresh } = useNotifications();
+
+  // The shell only polls unread_count; items stay empty until refresh runs
+  // (normally on /notifications). Load the list when the dropdown opens so
+  // the badge and the preview stay in sync.
+  useEffect(() => {
+    if (!open) return;
+    void refresh();
+  }, [open, refresh]);
+
+  const preview = items.slice(0, 3);
+  const awaitingList = loading && preview.length === 0;
+  const showEmpty = !loading && preview.length === 0;
 
   return (
     <div className="relative">
@@ -175,13 +187,16 @@ function HeaderNotificationButton() {
               <X size={18} aria-hidden />
             </button>
           </div>
-          {(items.length > 0 ? items.slice(0, 3) : []).map((note) => (
+          {preview.map((note) => (
             <div key={note.id} className="flex gap-3 border-t border-white/10 py-4 text-sm text-white/80">
               <BellDot size={16} className="mt-0.5 shrink-0 text-white/50" aria-hidden />
               <span>{note.title || note.body}</span>
             </div>
           ))}
-          {items.length === 0 && (
+          {awaitingList && preview.length === 0 && (
+            <p className="border-t border-white/10 py-4 text-sm text-white/45">Loading…</p>
+          )}
+          {showEmpty && (
             <p className="border-t border-white/10 py-4 text-sm text-white/45">No notifications yet.</p>
           )}
           <Link

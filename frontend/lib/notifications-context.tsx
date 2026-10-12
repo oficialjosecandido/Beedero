@@ -59,6 +59,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/notifications", { cache: "no-store" });
       if (!res.ok) return;
@@ -72,6 +73,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  // Badge-only poll — must not clear `loading`, which means "list not fetched yet".
+  // Clearing it here made the header dropdown show "No notifications yet" while
+  // unread_count was already > 0.
   const pollUnread = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications/unread-count", { cache: "no-store" });
@@ -80,8 +84,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       setUnread(data.unread_count);
     } catch {
       // ignore polling errors
-    } finally {
-      setLoading(false);
     }
   }, []);
 
