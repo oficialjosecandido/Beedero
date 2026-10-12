@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   Bell,
   BellDot,
@@ -22,6 +22,7 @@ import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { CreateOrgButton } from "@/components/CreateOrgButton";
 import { useMessaging } from "@/lib/messaging-context";
 import { useNotifications } from "@/lib/notifications-context";
+import { fetchProfileSwitcher } from "@/lib/profile-switcher-client";
 
 import { RightSidebarProvider } from "./RightSidebar";
 
@@ -82,6 +83,35 @@ const DESKTOP_NAV: NavItem[] = [
     mobile: true,
   },
 ];
+
+/**
+ * The sidebar's org list has two sources and neither is reliable alone:
+ *
+ *   - the `(app)` layout's server fetch, passed in as `orgs`. Fresh on a full
+ *     page load, but Next's partial rendering means "shared layouts won't
+ *     automatically be refetched on every navigation, only the page segment
+ *     that changes" — so it goes stale the moment you join an org and click
+ *     your way back here. It is also `[]` whenever that fetch fails, because
+ *     the layout wraps it in `safeFetch(..., [])`, which makes a hiccup
+ *     indistinguishable from "you belong to nothing".
+ *   - `/api/profile-switcher`, read on mount. Fresh after a mutation that
+ *     clears its cache, stale after one that doesn't.
+ *
+ * Both read the same authenticated `GET /orgs/`, so neither can invent a
+ * membership: anything in either list is one the viewer really has. Merging
+ * them is therefore safe and removes both stale-empty failure modes. The
+ * residue is an org you *left* lingering until a reload — a far smaller lie
+ * than hiding one you are in.
+ */
+function mergeOrgs(fromServer: ShellOrg[], fromClient: ShellOrg[] | null): ShellOrg[] {
+  if (fromClient === null) return fromServer;
+  const merged = [...fromServer];
+  const known = new Set(merged.map((org) => org.slug));
+  for (const org of fromClient) {
+    if (!known.has(org.slug)) merged.push(org);
+  }
+  return merged;
+}
 
 function navClass(active: boolean) {
   return active
@@ -176,6 +206,21 @@ export function AppShell({ children, orgs = [] }: Props) {
     setRightSidebar(node);
   }, []);
 
+  // Shares the module-level cache and in-flight promise with the header's
+  // ProfileSwitcher, so this costs no extra request — and it guarantees the
+  // sidebar and the avatar menu can never disagree about your organisations.
+  const [clientOrgs, setClientOrgs] = useState<ShellOrg[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchProfileSwitcher().then((data) => {
+      if (data && !cancelled) setClientOrgs(data.orgs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const sidebarOrgs = mergeOrgs(orgs, clientOrgs);
+
   const badges: Record<"notifications" | "messages", number> = {
     notifications: notifUnread,
     messages: messagesUnread,
@@ -248,7 +293,7 @@ export function AppShell({ children, orgs = [] }: Props) {
             </nav>
 
             <div className="mt-7 border-t border-white/10 pt-5">
-              {orgs.length === 0 ? (
+              {sidebarOrgs.length === 0 ? (
                 <CreateOrgButton
                   variant="sidebar"
                   label="Join or Create Organization"
@@ -260,7 +305,7 @@ export function AppShell({ children, orgs = [] }: Props) {
                     Your organisations
                   </p>
                   <ul className="mt-3">
-                    {orgs.slice(0, 4).map((org, index) => (
+                    {sidebarOrgs.slice(0, 4).map((org, index) => (
                       <li key={org.slug}>
                         <Link
                           href={`/dashboard/${org.slug}`}

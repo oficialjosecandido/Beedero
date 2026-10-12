@@ -19,7 +19,11 @@ export async function acceptInviteAction(_prevState: string | null, formData: Fo
     }
     throw err;
   }
-  revalidatePath("/profile");
-  revalidatePath("/dashboard");
+  // The sidebar's org list lives in the `(app)` layout, not in any page, so
+  // revalidating "/profile" (a page path) never reached it — and "/dashboard"
+  // has been a bare redirect to /profile since the personal profile moved.
+  // Invalidating the root layout covers every layout and page beneath it,
+  // which is exactly what a new membership changes.
+  revalidatePath("/", "layout");
   redirect(`/dashboard/${org.slug}`);
 }

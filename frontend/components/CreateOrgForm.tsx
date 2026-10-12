@@ -9,6 +9,7 @@ import {
   saveOrgTextFieldWizardAction,
   type WizardResult,
 } from "@/app/(app)/dashboard/actions";
+import { clearProfileSwitcherCache } from "@/lib/profile-switcher-client";
 
 type ChecklistItem = { key: string; done: boolean; hint: string };
 
@@ -60,7 +61,14 @@ export function CreateOrgForm() {
   }
 
   function finish() {
-    if (slug) router.push(`/dashboard/${slug}`);
+    if (!slug) return;
+    // The new org has to reach both org lists in the shell: the client cache
+    // behind the avatar menu, and the `(app)` layout's server fetch that feeds
+    // the sidebar. Without the refresh, partial rendering keeps serving the
+    // layout from before this org existed.
+    clearProfileSwitcherCache();
+    router.refresh();
+    router.push(`/dashboard/${slug}`);
   }
 
   function handleCreate() {
