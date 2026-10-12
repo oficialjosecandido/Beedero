@@ -17,6 +17,7 @@ from accounts.models import InvestorProfile
 from accounts.timeline import verified_facts_count
 from affiliations.models import Affiliation
 from analytics.models import PersonProfileView
+from beedero.email_brand import frontend_url, unsubscribe_link, wrap_email
 from credibility.models import ProfessionalCredential
 from notifications.models import DigestSend, NotificationPreference
 from notifications.views import digest_pixel_token, digest_unsubscribe_token
@@ -86,17 +87,29 @@ class Command(BaseCommand):
                 f"{settings.BACKEND_URL}/api/notifications/digest/pixel.gif"
                 f"?token={digest_pixel_token(digest_send.id)}"
             )
+            profile_url = frontend_url("profile")
             text_body = (
                 "Your week on Beedero:\n\n"
                 + "\n".join(f"- {line}" for line in lines)
-                + f"\n\nUnsubscribe from this weekly digest: {unsub_url}\n"
+                + f"\n\nOpen your profile: {profile_url}\n\n"
+                + f"Unsubscribe from this weekly digest: {unsub_url}\n"
             )
-            html_body = (
-                "<p>Your week on Beedero:</p><ul>"
-                + "".join(f"<li>{escape(line)}</li>" for line in lines)
+            list_html = (
+                '<ul style="margin:0 0 16px;padding:0 0 0 18px">'
+                + "".join(
+                    f'<li style="margin:0 0 8px;font-size:15px;line-height:1.5">{escape(line)}</li>'
+                    for line in lines
+                )
                 + "</ul>"
-                + f'<p><a href="{escape(unsub_url)}">Unsubscribe from this weekly digest</a></p>'
-                + f'<img src="{escape(pixel_url)}" width="1" height="1" alt="" style="display:none">'
+            )
+            html_body = wrap_email(
+                eyebrow="Weekly digest",
+                title="Your week on Beedero.",
+                body_html=list_html,
+                cta_label="Open my profile",
+                cta_href=profile_url,
+                footer_html=unsubscribe_link(unsub_url),
+                pixel_url=pixel_url,
             )
             message = EmailMultiAlternatives(
                 "Your week on Beedero",

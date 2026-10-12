@@ -12,9 +12,15 @@ from django.core.mail import EmailMultiAlternatives
 from django.core.management.base import BaseCommand
 from django.db.models import OuterRef, Subquery
 from django.utils import timezone
-from django.utils.html import escape
 
 from analytics.models import ProfileView
+from beedero.email_brand import (
+    frontend_url,
+    stat_rows,
+    suggestion_block,
+    unsubscribe_link,
+    wrap_email,
+)
 from notifications.models import DigestSend, NotificationPreference
 from notifications.views import digest_pixel_token, digest_unsubscribe_token
 from orgs.models import OrgFollow, OrgMembership, Organization
@@ -60,21 +66,41 @@ class Command(BaseCommand):
                     continue
                 user = membership.user
                 digest_send = DigestSend.objects.create(user=user)
-                unsub_url = f"{settings.BACKEND_URL}/api/notifications/digest/unsubscribe/?token={digest_unsubscribe_token(user.id)}"
-                pixel_url = f"{settings.BACKEND_URL}/api/notifications/digest/pixel.gif?token={digest_pixel_token(digest_send.id)}"
+                unsub_url = (
+                    f"{settings.BACKEND_URL}/api/notifications/digest/unsubscribe/"
+                    f"?token={digest_unsubscribe_token(user.id)}"
+                )
+                pixel_url = (
+                    f"{settings.BACKEND_URL}/api/notifications/digest/pixel.gif"
+                    f"?token={digest_pixel_token(digest_send.id)}"
+                )
+                org_url = frontend_url(f"dashboard/{org.slug}")
                 text_body = (
                     f"Your weekly Beedero summary for {org.name}:\n\n"
                     f"- Profile views: {profile_views}\n"
                     f"- New followers: {new_followers}\n\n"
                     f"Suggestion: {nudge}\n\n"
+                    f"Open your workspace: {org_url}\n\n"
                     f"Unsubscribe from this weekly digest: {unsub_url}\n"
                 )
-                html_body = (
-                    f"<p>Your weekly Beedero summary for <strong>{escape(org.name)}</strong>:</p>"
-                    f"<ul><li>Profile views: {profile_views}</li><li>New followers: {new_followers}</li></ul>"
-                    f"<p>Suggestion: {escape(nudge)}</p>"
-                    f'<p><a href="{escape(unsub_url)}">Unsubscribe from this weekly digest</a></p>'
-                    f'<img src="{escape(pixel_url)}" width="1" height="1" alt="" style="display:none">'
+                html_body = wrap_email(
+                    eyebrow="Weekly digest",
+                    title=f"Your week on Beedero — {org.name}.",
+                    body_html=(
+                        f"<p style=\"margin:0 0 16px;color:#3f3f46\">"
+                        f"Signal for <strong>{org.name}</strong> over the last 7 days.</p>"
+                        + stat_rows(
+                            [
+                                ("Profile views", profile_views),
+                                ("New followers", new_followers),
+                            ]
+                        )
+                        + suggestion_block(nudge)
+                    ),
+                    cta_label="Open workspace",
+                    cta_href=org_url,
+                    footer_html=unsubscribe_link(unsub_url),
+                    pixel_url=pixel_url,
                 )
                 message = EmailMultiAlternatives(
                     f"Your week on Beedero — {org.name}",

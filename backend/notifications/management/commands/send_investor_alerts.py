@@ -12,6 +12,7 @@ from django.utils.html import escape
 
 from accounts.models import InvestorProfile
 from analytics.models import PipelineEntry
+from beedero.email_brand import frontend_url, unsubscribe_link, wrap_email
 from credibility.levels import credibility_level
 from notifications.models import DigestSend, NotificationPreference
 from notifications.views import digest_pixel_token, digest_unsubscribe_token
@@ -52,7 +53,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         week_ago = timezone.now() - timedelta(days=7)
         sent = 0
-        frontend = settings.FRONTEND_URL.rstrip("/")
+        frontend = frontend_url()
 
         profiles = InvestorProfile.objects.exclude(full_name="").select_related("user")
         for profile in profiles:
@@ -85,27 +86,31 @@ class Command(BaseCommand):
                 lines.append(f"{pending_actions} pipeline item(s) need your attention today.")
 
             text_body = "Your weekly Beedero investor summary:\n\n" + "\n".join(lines)
-            html_parts = ["<p>Your weekly Beedero investor summary:</p>"]
+            html_parts = []
             if matches:
                 html_parts.append(
-                    f"<p><strong>{len(matches)} new thesis match(es)</strong></p><ul>"
+                    f'<p style="margin:0 0 8px"><strong>{len(matches)} new thesis match(es)</strong></p><ul style="margin:0 0 16px;padding:0 0 0 18px">'
                     + "".join(
-                        f"<li>{escape(org.name)} — {escape(frontend)}/o/{escape(org.slug)}</li>"
+                        f'<li style="margin:0 0 6px"><a href="{escape(frontend)}/o/{escape(org.slug)}" '
+                        f'style="color:#050604;font-weight:700">{escape(org.name)}</a></li>'
                         for org in matches
                     )
                     + "</ul>"
                 )
             if updates:
                 html_parts.append(
-                    "<p><strong>Pipeline updates</strong></p><ul>"
+                    '<p style="margin:0 0 8px"><strong>Pipeline updates</strong></p>'
+                    '<ul style="margin:0 0 16px;padding:0 0 0 18px">'
                     + "".join(
-                        f"<li>{escape(activity.org.name)}: {escape(activity.title)}</li>"
+                        f'<li style="margin:0 0 6px">{escape(activity.org.name)}: {escape(activity.title)}</li>'
                         for activity in updates
                     )
                     + "</ul>"
                 )
             if pending_actions:
-                html_parts.append(f"<p><strong>{pending_actions} pipeline reminder(s) due today</strong></p>")
+                html_parts.append(
+                    f'<p style="margin:0 0 16px"><strong>{pending_actions} pipeline reminder(s) due today</strong></p>'
+                )
 
             digest_send = DigestSend.objects.create(user=user)
             unsub_url = (
@@ -116,10 +121,14 @@ class Command(BaseCommand):
                 f"{settings.BACKEND_URL}/api/notifications/digest/pixel.gif"
                 f"?token={digest_pixel_token(digest_send.id)}"
             )
-            html_body = (
-                "".join(html_parts)
-                + f'<p><a href="{escape(unsub_url)}">Unsubscribe from weekly emails</a></p>'
-                + f'<img src="{escape(pixel_url)}" width="1" height="1" alt="" style="display:none">'
+            html_body = wrap_email(
+                eyebrow="Investor alerts",
+                title="Your week on Beedero.",
+                body_html="".join(html_parts),
+                cta_label="Open Beedero",
+                cta_href=frontend_url("feed"),
+                footer_html=unsubscribe_link(unsub_url, "Unsubscribe from weekly emails"),
+                pixel_url=pixel_url,
             )
 
             message = EmailMultiAlternatives(

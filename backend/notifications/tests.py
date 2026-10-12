@@ -320,6 +320,9 @@ def test_send_weekly_digest_sends_when_there_is_signal(settings, owner, org):
     html_body = mail.outbox[0].alternatives[0][0]
     assert "unsubscribe" in html_body.lower()
     assert "pixel.gif" in html_body
+    assert "beedero" in html_body.lower()
+    assert "#f9de4a" in html_body
+    assert "Open workspace" in html_body
 
 
 @pytest.mark.django_db
