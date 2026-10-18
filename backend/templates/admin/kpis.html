@@ -98,6 +98,71 @@
     </section>
   </div>
 
+  <section class="beedero-kpi-block">
+    <div class="beedero-kpi-block-head">
+      <h2>Acquisition by origin</h2>
+      <p>
+        Last {{ acquisition.window_days }} days. Activated = profile ≥
+        {{ acquisition.profile_threshold }}% <em>and</em> at least one connection —
+        registrations on their own don't count. Each percentage is of the step
+        to its left; “Activated” is of registrations.
+      </p>
+    </div>
+    <table class="beedero-kpi-table">
+      <thead>
+        <tr>
+          <th>Origin</th>
+          <th>Registered</th>
+          <th>Profile ≥ {{ acquisition.profile_threshold }}%</th>
+          <th>1st connection</th>
+          <th>Returned (7d)</th>
+          <th>Activated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in acquisition.rows %}
+          <tr>
+            <td>{{ row.label }}</td>
+            <td>{{ row.registered }}</td>
+            <td>{{ row.with_profile }}{% if row.with_profile_pct %} <small>({{ row.with_profile_pct }}%)</small>{% endif %}</td>
+            <td>{{ row.with_connection }}{% if row.with_connection_pct %} <small>({{ row.with_connection_pct }}%)</small>{% endif %}</td>
+            <td>{{ row.returned }}{% if row.returned_pct %} <small>({{ row.returned_pct }}%)</small>{% endif %}</td>
+            <td><strong>{{ row.activated }}</strong>{% if row.activated_pct %} <small>({{ row.activated_pct }}%)</small>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No sign-ups in the window yet.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if acquisition.rows %}
+        <tfoot>
+          <tr>
+            <td><strong>{{ acquisition.total.label }}</strong></td>
+            <td><strong>{{ acquisition.total.registered }}</strong></td>
+            <td><strong>{{ acquisition.total.with_profile }}</strong></td>
+            <td><strong>{{ acquisition.total.with_connection }}</strong></td>
+            <td><strong>{{ acquisition.total.returned }}</strong></td>
+            <td><strong>{{ acquisition.total.activated }}</strong></td>
+          </tr>
+        </tfoot>
+      {% endif %}
+    </table>
+
+    {% if acquisition.top_refs %}
+      <div class="beedero-kpi-block-head" style="margin-top:18px">
+        <h2 style="font-size:15px">Top refs</h2>
+        <p>Which job, which university — the detail half of each origin.</p>
+      </div>
+      <table class="beedero-kpi-table">
+        <thead><tr><th>Ref</th><th>Sign-ups</th></tr></thead>
+        <tbody>
+          {% for r in acquisition.top_refs %}
+            <tr><td><code>{{ r.ref }}</code></td><td>{{ r.count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+
   {% if top_orgs or geo_breakdown %}
     <div class="beedero-kpi-panels">
       {% if top_orgs %}

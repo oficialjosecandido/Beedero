@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.minimum_profile import fill_minimum_profile
 from orgs.permissions import IsOrgOwnerOrAdmin, OrgLookupMixin
 
 from .models import Application, JobPost
@@ -137,7 +138,14 @@ class JobsDiscoveryView(APIView):
 
 
 class JobApplyView(APIView):
-    """POST /api/jobs/<id>/apply/ — body {note, external_link}."""
+    """POST /api/jobs/<id>/apply/ — body {note, external_link, profile?}.
+
+    `profile` is §3.5's minimum profile: the three fields someone who arrived
+    from a public job page can fill in the same submit as the application,
+    instead of being sent to a profile editor first and losing the job. Written
+    before the application so that the org's notification carries their name
+    rather than the local part of their address.
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -145,7 +153,11 @@ class JobApplyView(APIView):
         job = get_object_or_404(JobPost, pk=job_id)
         serializer = ApplicationInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        application = apply_to_job(job, request.user, **serializer.validated_data)
+        data = dict(serializer.validated_data)
+        profile_fields = data.pop("profile", None) or {}
+        if profile_fields:
+            fill_minimum_profile(request.user, **profile_fields)
+        application = apply_to_job(job, request.user, **data)
         return Response(application_summary(application), status=status.HTTP_201_CREATED)
 
 

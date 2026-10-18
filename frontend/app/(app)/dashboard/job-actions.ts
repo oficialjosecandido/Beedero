@@ -54,6 +54,18 @@ function readJobFields(formData: FormData) {
   };
 }
 
+/**
+ * The public board caches `/api/public/jobs/` for five minutes, so a role that
+ * was just closed or renewed would otherwise keep showing to strangers for
+ * that long. Purging the two public paths here makes the change visible at
+ * once, which matters most for the one direction that embarrasses everyone: a
+ * closed role still taking applications.
+ */
+function revalidatePublicJob(jobId: string) {
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobId}`);
+}
+
 export async function createJobAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   try {
@@ -62,6 +74,9 @@ export async function createJobAction(_prevState: string | null, formData: FormD
     return firstErrorMessage(err, "Could not publish this job.");
   }
   revalidatePath(`/dashboard/${slug}`);
+  // No id to purge: the response is discarded, and a brand-new role has no
+  // public page in anyone's cache yet. The index is the one that was wrong.
+  revalidatePath("/jobs");
   return null;
 }
 
@@ -74,6 +89,7 @@ export async function updateJobAction(_prevState: string | null, formData: FormD
     return firstErrorMessage(err, "Could not update this job.");
   }
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePublicJob(jobId);
   return null;
 }
 
@@ -82,6 +98,7 @@ export async function closeJobAction(formData: FormData) {
   const jobId = String(formData.get("job_id"));
   await apiFetch(`/orgs/${slug}/jobs/${jobId}/`, { method: "PATCH", body: { status: "closed" } });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePublicJob(jobId);
 }
 
 export async function deleteJobAction(formData: FormData) {
@@ -89,6 +106,7 @@ export async function deleteJobAction(formData: FormData) {
   const jobId = String(formData.get("job_id"));
   await apiFetch(`/orgs/${slug}/jobs/${jobId}/`, { method: "DELETE" });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePublicJob(jobId);
 }
 
 export async function renewJobAction(formData: FormData) {
@@ -96,6 +114,7 @@ export async function renewJobAction(formData: FormData) {
   const jobId = String(formData.get("job_id"));
   await apiFetch(`/jobs/${jobId}/renew/`, { method: "POST" });
   revalidatePath(`/dashboard/${slug}`);
+  revalidatePublicJob(jobId);
 }
 
 export async function listJobApplicationsAction(

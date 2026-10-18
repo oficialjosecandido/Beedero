@@ -27,7 +27,12 @@ type InvestorProfile = {
   profile_picture?: string | null;
   is_complete?: boolean;
 };
-type Me = { email: string; investor_profile: InvestorProfile | null };
+type Me = {
+  email: string;
+  investor_profile: InvestorProfile | null;
+  /** Has been through §6.3's three steps — not the same as a finished profile. */
+  onboarding_completed?: boolean;
+};
 
 function greetingFor(name: string): string {
   const first = name.trim().split(/\s+/)[0] || "there";
@@ -77,6 +82,12 @@ export default async function FeedPage() {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
   }
+
+  // The entry point into §6.3's flow. Here rather than in the sign-in plumbing
+  // so an explicit `next` always wins — somebody who clicked "apply" on a job
+  // lands on that job, not on onboarding. The flag means "has been through the
+  // steps", so skipping steps 2 and 3 still counts and nobody is sent back.
+  if (!me.onboarding_completed) redirect("/onboarding");
 
   const profile = me.investor_profile;
   const profileComplete = Boolean(profile?.is_complete);

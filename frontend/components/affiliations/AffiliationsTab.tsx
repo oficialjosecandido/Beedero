@@ -6,12 +6,13 @@ import {
   addTeamMemberAction,
   confirmAffiliationAction,
   disputeAffiliationAction,
+  inviteTeamMemberAction,
 } from "@/app/(app)/dashboard/affiliation-actions";
 import { EmptyState } from "@/components/EmptyState";
 import { affiliationStatusLabel, roleTypeLabel } from "@/lib/affiliation-options";
 import { formatDate } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
-import type { AffiliationSummary } from "@/lib/types";
+import type { AffiliationSummary, TeamInviteQuota, TeamInviteSummary } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
 const fieldClass =
@@ -341,13 +342,145 @@ function AddTeamMemberForm({ slug }: { slug: string }) {
   );
 }
 
+const INVITE_ANSWER_STYLES: Record<TeamInviteSummary["answer"], string> = {
+  open: "bg-beedero-yellow text-beedero-black",
+  accepted: "bg-emerald-600 text-white",
+  declined: "bg-zinc-200 text-zinc-600",
+  expired: "bg-zinc-100 text-zinc-500",
+};
+
+function InviteRow({ invite }: { invite: TeamInviteSummary }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-beedero-border p-3 text-sm">
+      <div className="min-w-0">
+        {/* The address is shown in full here and only here: the org typed it in,
+            so it is telling them nothing they didn't already know. */}
+        <p className="truncate font-medium text-zinc-950">{invite.name || invite.email}</p>
+        <p className="truncate text-xs text-zinc-500">
+          {invite.title || invite.role_label}
+          {invite.name && ` · ${invite.email}`}
+          {invite.answer === "open" && ` · expires ${formatDate(invite.expires_at)}`}
+        </p>
+      </div>
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-bold capitalize ${INVITE_ANSWER_STYLES[invite.answer]}`}
+      >
+        {invite.answer === "open" && invite.reminded_at ? "Reminded" : invite.answer}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * §2.2 step 1: invite by email, for the person who has no account to look up.
+ *
+ * Deliberately plainer than it could be. There is no "paste a list" box and no
+ * CSV import — §9 rules both out — and the daily allowance is on screen rather
+ * than discovered by hitting it, because an org that can see "17 left today"
+ * is an org that is being told this is a budget, not a faucet.
+ */
+function InviteByEmailForm({ slug, quota }: { slug: string; quota: TeamInviteQuota | null }) {
+  const [open, setOpen] = useState(false);
+  const [message, formAction, pending] = useActionState(inviteTeamMemberAction, null);
+  useActionToast(message, pending, {
+    isSuccess: (text) => text === "Invite sent." || text.startsWith("They're already"),
+    onSuccess: () => setOpen(false),
+  });
+
+  const exhausted = quota !== null && quota.remaining_today <= 0;
+
+  if (!open) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={exhausted}
+          className="self-start rounded-xl border border-dashed border-beedero-border px-4 py-2.5 text-sm font-semibold text-beedero-black transition-colors hover:border-beedero-black hover:bg-beedero-yellow/10 disabled:opacity-50"
+        >
+          + Invite by email
+        </button>
+        {quota && (
+          <p className="text-xs text-zinc-500">
+            {exhausted
+              ? `That's ${quota.per_day} invites today — the daily limit. More tomorrow.`
+              : `${quota.remaining_today} of ${quota.per_day} invites left today.`}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form
+      action={formAction}
+      className="flex flex-col gap-4 rounded-2xl border border-beedero-border bg-zinc-50/40 p-4"
+    >
+      <input type="hidden" name="slug" value={slug} />
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-extrabold text-zinc-900">Invite by email</h3>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-sm font-semibold text-zinc-500 hover:text-beedero-black"
+        >
+          Cancel
+        </button>
+      </div>
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+        Email
+        <input type="email" name="email" required maxLength={254} className={fieldClass} />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+        Name <span className="font-normal text-subtle">(optional)</span>
+        <input name="name" maxLength={120} className={fieldClass} />
+      </label>
+      <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+          <span className="min-h-10">Role</span>
+          <input
+            name="title"
+            required
+            maxLength={120}
+            placeholder="e.g. Senior Engineer"
+            className={fieldClass}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
+          <span className="min-h-10">
+            Started <span className="font-normal text-subtle">(optional)</span>
+          </span>
+          <input type="date" name="started_on" className={fieldClass} />
+        </label>
+      </div>
+      <p className="text-xs text-zinc-500">
+        We email this person once on your organisation&apos;s behalf, with one reminder if they
+        don&apos;t answer — and then never again. They decide whether this goes on their profile;
+        nothing is added until they say yes. If they already have a Beedero account we skip the
+        email and use the in-app flow instead.
+      </p>
+      <button
+        type="submit"
+        disabled={pending}
+        className="self-start rounded-xl bg-beedero-yellow px-4 py-2.5 text-sm font-bold text-beedero-black transition-colors hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+      >
+        {pending ? "Sending..." : "Send invite"}
+      </button>
+    </form>
+  );
+}
+
 export function AffiliationsTab({
   slug,
   affiliations: initialAffiliations,
+  teamInvites,
+  inviteQuota,
   canManage,
 }: {
   slug: string;
   affiliations: AffiliationSummary[];
+  teamInvites: TeamInviteSummary[];
+  inviteQuota: TeamInviteQuota | null;
   canManage: boolean;
 }) {
   const [affiliations, setAffiliations] = useState(initialAffiliations);
@@ -403,7 +536,23 @@ export function AffiliationsTab({
         )}
       </div>
 
-      <AddTeamMemberForm slug={slug} />
+      {teamInvites.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-extrabold uppercase tracking-[0.14em] text-zinc-500">
+            Email invites
+          </h3>
+          <div className="flex flex-col gap-2">
+            {teamInvites.map((invite) => (
+              <InviteRow key={invite.id} invite={invite} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <AddTeamMemberForm slug={slug} />
+        <InviteByEmailForm slug={slug} quota={inviteQuota} />
+      </div>
     </div>
   );
 }

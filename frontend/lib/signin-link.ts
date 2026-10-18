@@ -25,10 +25,15 @@ import { FirebaseAuthError } from "./firebase-auth";
 export async function sendSignInLink(
   email: string,
   state: string,
-  next: string
+  next: string,
+  /** Where this person came from, if a `?ref=` brought them (§8 of the
+   * acquisition doc). Parked server-side against this address and claimed at
+   * provisioning if the sign-in turns out to create an account; ignored
+   * otherwise. Never a reason for this call to fail. */
+  ref?: string
 ): Promise<void> {
   try {
-    await publicPost("/auth/signin-link/", { email, state, next });
+    await publicPost("/auth/signin-link/", { email, state, next, ...(ref ? { ref } : {}) });
   } catch (err) {
     throw asAuthError(err);
   }

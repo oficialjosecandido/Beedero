@@ -40,6 +40,6 @@ export async function applyToJobAction(
   } catch (err) {
     return { error: actionErrorMessage(err, "Could not submit your application.") };
   }
-  revalidatePath("/jobs");
+  revalidatePath("/opportunities");
   return { ok: true };
 }

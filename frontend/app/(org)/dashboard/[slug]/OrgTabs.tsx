@@ -28,7 +28,12 @@ import { OrgLogoForm } from "./OrgLogoForm";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site-metadata";
-import type { AffiliationSummary, JobSummary } from "@/lib/types";
+import type {
+  AffiliationSummary,
+  JobSummary,
+  TeamInviteQuota,
+  TeamInviteSummary,
+} from "@/lib/types";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -845,18 +850,54 @@ function deltaTrendClass(value: number) {
  * Overview keeps the profile-strength checklist; the headline numbers that
  * used to sit here moved to Insights, which the workspace sidebar links to.
  */
+/**
+ * §2.3's "2 of the 5 people on your team are on Beedero".
+ *
+ * The doc's phrasing implies a denominator — the size of your team — that the
+ * platform does not actually know: the org's free-text team section is not
+ * joined to any account, and guessing the join would be exactly the invented
+ * number §9 forbids. So this states the two counts that are real and are about
+ * the same set of named people: how many have confirmed a role here, and how
+ * many were asked and haven't answered. The gap is the point either way.
+ *
+ * Nothing is shown to an org that has asked nobody — an empty nudge is still a
+ * nudge, and this one has no number behind it yet.
+ */
+function TeamOnBeederoPanel({ confirmed, awaiting }: { confirmed: number; awaiting: number }) {
+  if (confirmed === 0 && awaiting === 0) return null;
+  return (
+    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
+      <p className="text-sm font-extrabold text-zinc-900">
+        {confirmed === 0
+          ? "Nobody has confirmed a role here yet"
+          : `${confirmed} ${confirmed === 1 ? "person has" : "people have"} confirmed a role with your organisation`}
+      </p>
+      <p className="mt-1.5 text-sm text-zinc-600">
+        {awaiting > 0
+          ? `${awaiting} more ${awaiting === 1 ? "hasn't" : "haven't"} answered yet. A role the person confirms themselves counts for more than one you type in — it's their word, not yours.`
+          : "A role the person confirms themselves counts for more than one you type in. Invite the rest of the team from the Affiliations tab."}
+      </p>
+    </div>
+  );
+}
+
 function OverviewTab({
   slug,
   onboarding,
   canManage,
+  confirmedTeam,
+  awaitingTeam,
 }: {
   slug: string;
   onboarding: Onboarding;
   canManage: boolean;
+  confirmedTeam: number;
+  awaitingTeam: number;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <OnboardingPanel slug={slug} onboarding={onboarding} canManage={canManage} />
+      {canManage && <TeamOnBeederoPanel confirmed={confirmedTeam} awaiting={awaitingTeam} />}
     </div>
   );
 }
@@ -1523,6 +1564,8 @@ export function OrgTabs({
   vitality,
   jobs,
   affiliations,
+  teamInvites,
+  inviteQuota,
   suggestedTitle,
   suggestedBody,
   active,
@@ -1544,6 +1587,8 @@ export function OrgTabs({
   vitality: VitalityInfo | null;
   jobs: JobSummary[];
   affiliations: AffiliationSummary[];
+  teamInvites: TeamInviteSummary[];
+  inviteQuota: TeamInviteQuota | null;
   suggestedTitle?: string;
   suggestedBody?: string;
   active: OrgTabId;
@@ -1557,7 +1602,16 @@ export function OrgTabs({
   return (
     <div className="flex min-w-0 flex-col gap-6">
       {active === "overview" && (
-        <OverviewTab slug={slug} onboarding={onboarding} canManage={canManage} />
+        <OverviewTab
+          slug={slug}
+          onboarding={onboarding}
+          canManage={canManage}
+          confirmedTeam={affiliations.filter((item) => item.status === "verified").length}
+          awaitingTeam={
+            affiliations.filter((item) => item.status === "pending").length +
+            teamInvites.filter((item) => item.answer === "open").length
+          }
+        />
       )}
 
       {active === "insights" && (
@@ -1628,7 +1682,13 @@ export function OrgTabs({
 
       {active === "affiliations" && (
         <div className="flex flex-col gap-4">
-          <AffiliationsTab slug={slug} affiliations={affiliations} canManage={canManage} />
+          <AffiliationsTab
+            slug={slug}
+            affiliations={affiliations}
+            teamInvites={teamInvites}
+            inviteQuota={inviteQuota}
+            canManage={canManage}
+          />
           {canManage && vitality && (
             <VitalityChecklistPanel
               items={vitality.items}

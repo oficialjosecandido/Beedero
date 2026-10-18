@@ -134,6 +134,48 @@ export async function disputeAffiliationAction(
   return { ok: true };
 }
 
+/**
+ * Invite someone who isn't on Beedero yet (doc aquisição §2.2).
+ *
+ * The sibling of `addTeamMemberAction`, for the case that one can't serve: no
+ * username to type, because there's no account. The API decides which of the
+ * two it actually is — an address that turns out to belong to a member comes
+ * back as `kind: "affiliation"` and no email is sent — so the form below says
+ * "invite or add" rather than promising an email.
+ */
+export async function inviteTeamMemberAction(_prevState: string | null, formData: FormData) {
+  const slug = String(formData.get("slug") ?? "");
+  const email = String(formData.get("email") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim().slice(0, 120);
+  const startedOn = String(formData.get("started_on") ?? "");
+
+  if (!email || !title) return "Email and role are required.";
+
+  let result: { kind: "invite" | "affiliation" };
+  try {
+    result = await apiFetch<{ kind: "invite" | "affiliation" }>(`/orgs/${slug}/team-invites/`, {
+      method: "POST",
+      body: {
+        email,
+        name: String(formData.get("name") ?? "").trim().slice(0, 120),
+        // Categorical type required by the API; the free-text role is the title.
+        // Founder is deliberately not offerable here — see services.py.
+        role: "employee",
+        title,
+        started_on: startedOn || null,
+      },
+    });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not send this invite.");
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  // Two different true sentences, and the difference matters to the sender:
+  // one of them means somebody's inbox is about to have a cold email in it.
+  return result.kind === "affiliation"
+    ? "They're already on Beedero — added, pending their confirmation."
+    : "Invite sent.";
+}
+
 export async function addTeamMemberAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
   const handle = String(formData.get("handle") ?? "")

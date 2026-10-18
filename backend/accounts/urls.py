@@ -1,11 +1,14 @@
 from django.urls import path
 
-from . import public_views, signin_link, views
+from . import onboarding_views, public_views, signin_link, views
 
 urlpatterns = [
     path("auth/signin-link/", signin_link.SignInLinkView.as_view()),
     path("auth/signin-code/verify/", signin_link.SignInCodeVerifyView.as_view()),
     path("auth/me/", views.MeView.as_view()),
+    path("onboarding/", onboarding_views.OnboardingView.as_view()),
+    path("onboarding/intents/", onboarding_views.OnboardingIntentOptionsView.as_view()),
+    path("onboarding/suggestions/", onboarding_views.OnboardingSuggestionsView.as_view()),
     path("investors/me/", views.InvestorProfileView.as_view()),
     path("investors/me/posts/", views.InvestorPostListCreateView.as_view()),
     path("investors/me/stats/", views.InvestorStatsView.as_view()),

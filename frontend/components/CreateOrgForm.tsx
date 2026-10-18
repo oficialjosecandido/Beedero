@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import {
   createOrgWizardAction,
+  inviteTeamMemberWizardAction,
   saveOrgLogoWizardAction,
   saveOrgTextFieldWizardAction,
   type WizardResult,
@@ -13,7 +14,7 @@ import { clearProfileSwitcherCache } from "@/lib/profile-switcher-client";
 
 type ChecklistItem = { key: string; done: boolean; hint: string };
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const inputClass =
   "rounded-lg border border-beedero-border bg-white px-2.5 py-1.5 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
@@ -53,6 +54,9 @@ export function CreateOrgForm() {
   const [about, setAbout] = useState("");
   const [products, setProducts] = useState("");
   const [market, setMarket] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteTitle, setInviteTitle] = useState("");
+  const [invited, setInvited] = useState<string[]>([]);
 
   function applyProgress(result: WizardResult) {
     setError(result.error);
@@ -117,7 +121,7 @@ export function CreateOrgForm() {
   function handleProductsMarket(skip: boolean) {
     if (!slug) return;
     if (skip || (!products.trim() && !market.trim())) {
-      finish();
+      setStep(4);
       return;
     }
     startTransition(async () => {
@@ -130,7 +134,30 @@ export function CreateOrgForm() {
       }
       const last = results[results.length - 1];
       if (last) applyProgress(last);
-      finish();
+      setStep(4);
+    });
+  }
+
+  function handleInvite() {
+    if (!slug) return;
+    const email = inviteEmail.trim();
+    const title = inviteTitle.trim();
+    if (!email || !title) {
+      setError("Email and role are both needed to invite someone.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await inviteTeamMemberWizardAction(slug, { email, title });
+      applyProgress(result);
+      if (result.error) return;
+      // Kept client-side so the step can say what it just did without a
+      // round-trip; the authoritative list lives on the Affiliations tab.
+      setInvited((prev) => [
+        ...prev,
+        result.alreadyOnBeedero ? `${email} (already on Beedero)` : email,
+      ]);
+      setInviteEmail("");
+      setInviteTitle("");
     });
   }
 
@@ -273,7 +300,67 @@ export function CreateOrgForm() {
               disabled={pending}
               className="text-xs font-semibold text-zinc-500 hover:text-beedero-black"
             >
-              Skip & finish
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* §2.3: the team step, prominent but never required. "I'll do this
+          later" is a plain button at the same size as the primary one, not a
+          greyed-out link, because a skip you have to hunt for isn't optional. */}
+      {step === 4 && slug && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-zinc-700">Who else is on the team?</p>
+          <p className="text-[11px] text-zinc-500">
+            We&apos;ll email each person once to ask them to confirm the role themselves. A role
+            they confirm counts for far more than one you type in — and nothing appears on their
+            profile, or yours, until they agree.
+          </p>
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+            Their email
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              placeholder="person@company.com"
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+            Their role
+            <input
+              value={inviteTitle}
+              onChange={(event) => setInviteTitle(event.target.value)}
+              maxLength={120}
+              placeholder="e.g. Head of Design"
+              className={inputClass}
+            />
+          </label>
+          {invited.length > 0 && (
+            <ul className="flex flex-col gap-0.5 text-[11px] text-zinc-500">
+              {invited.map((entry) => (
+                <li key={entry}>Invited {entry}</li>
+              ))}
+            </ul>
+          )}
+          {error && <p className="text-xs text-danger">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleInvite}
+              disabled={pending}
+              className="rounded-xl bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+            >
+              {pending ? "…" : invited.length > 0 ? "Invite another" : "Send invite"}
+            </button>
+            <button
+              type="button"
+              onClick={finish}
+              disabled={pending}
+              className="rounded-xl border border-beedero-border px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+            >
+              {invited.length > 0 ? "Done" : "I'll do this later"}
             </button>
           </div>
         </div>

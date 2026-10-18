@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { applyToJobAction } from "@/app/(app)/jobs/actions";
+import { applyToJobAction } from "@/app/(app)/opportunities/actions";
 
 const fieldClass =
   "w-full border border-white/15 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-beedero-yellow";

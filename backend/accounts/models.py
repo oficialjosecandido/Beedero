@@ -17,6 +17,13 @@ class User(AbstractUser):
     firebase_uid = models.CharField(
         max_length=128, null=True, blank=True, unique=True, db_index=True
     )
+    # Where this person came from, written once at provisioning and never
+    # again (accounts/signup_source.py). `signup_source` is the closed
+    # vocabulary the admin funnel groups by; `signup_ref` keeps the detail
+    # ("job:123", "uni:ist") for reading by eye. Both blank when unknown,
+    # which is the common case for anyone who typed the address in directly.
+    signup_source = models.CharField(max_length=40, blank=True, db_index=True)
+    signup_ref = models.CharField(max_length=120, blank=True)
 
     @property
     def is_email_verified(self) -> bool:
@@ -48,8 +55,20 @@ class InvestorProfile(models.Model):
     geo_focus = models.JSONField(default=list, blank=True)  # same values as Organization.geo
     check_min = models.PositiveIntegerField(null=True, blank=True)
     check_max = models.PositiveIntegerField(null=True, blank=True)
-    # Public shareable handle for /p/<handle> — assigned automatically.
+    # Public shareable handle for /p/<handle> — assigned automatically, and
+    # editable once, during onboarding (accounts/onboarding.py), while it is
+    # still nobody's address.
     handle = models.SlugField(max_length=50, unique=True, blank=True, null=True, db_index=True)
+    # What brought them here (accounts/intents.py). Private capabilities that
+    # decide what they are shown first (§6.4) — never public labels, which is
+    # why this is absent from InvestorProfileSerializer.Meta.fields and from
+    # the hand-built payload in accounts/public_views.py.
+    intents = models.JSONField(default=list, blank=True)
+    # Set when the person has been *through* the three steps, not when the
+    # profile is finished: skipping step 3 is explicitly allowed (§6.3), and a
+    # flag that meant "complete" would send someone back to onboarding every
+    # time they opened the feed.
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
     # Per-section visibility: public | verified_investors | private
     visibility = models.JSONField(default=dict, blank=True)
     # Opt-in for platform-attested facts shown on the public profile.

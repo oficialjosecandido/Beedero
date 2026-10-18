@@ -72,7 +72,15 @@ const DESKTOP_NAV: NavItem[] = [
     mobile: true,
     badgeKey: "messages",
   },
-  { label: "Opportunities", shortLabel: "Jobs", href: "/jobs", match: (p) => p.startsWith("/jobs"), Icon: BriefcaseBusiness },
+  // /opportunities, not /jobs: /jobs is the public, index-able board a stranger
+  // lands on from Google (doc §3.2), and two pages can't own one path.
+  {
+    label: "Opportunities",
+    shortLabel: "Jobs",
+    href: "/opportunities",
+    match: (p) => p.startsWith("/opportunities"),
+    Icon: BriefcaseBusiness,
+  },
   // Investor pipeline — hidden until the feature is ready to ship.
   {
     label: "My profile",

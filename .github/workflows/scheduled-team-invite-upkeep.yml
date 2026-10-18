@@ -1,0 +1,24 @@
+name: Daily team invite upkeep
+
+# Sends the one due reminder (3 days, no answer) and expires invites past their
+# 30 days, clearing the address with them. Doc `beedero-aquisicao-pessoas.md`
+# §2.2. Once a day, not more: the whole promise of that section is "um convite
+# + um lembrete", and a schedule that ran twice daily would still honour it
+# only because the command stamps `reminded_at` before sending.
+on:
+  schedule:
+    - cron: "30 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run team_invite_upkeep
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: team_invite_upkeep"

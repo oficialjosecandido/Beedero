@@ -41,6 +41,14 @@ type PageMetadataOptions = {
   description?: string;
   path: string;
   index?: boolean;
+  /**
+   * Defaults to `index`, which is right for almost every page: something worth
+   * hiding is usually worth hiding the links of. Paginated pages are the
+   * exception — page 2 of a list is a duplicate nobody should land on, but it
+   * is the only route a crawler has to the items on it, so they pass
+   * `follow: true` alongside `index: false`.
+   */
+  follow?: boolean;
   image?: OgImageInput;
   openGraphType?: "website" | "profile";
   keywords?: string[];
@@ -51,6 +59,7 @@ export function pageMetadata({
   description = DEFAULT_DESCRIPTION,
   path,
   index = true,
+  follow = index,
   image = OG_IMAGE,
   openGraphType = "website",
   keywords,
@@ -81,9 +90,7 @@ export function pageMetadata({
       description,
       images: [ogImage.url],
     },
-    robots: index
-      ? { index: true, follow: true, googleBot: { index: true, follow: true } }
-      : { index: false, follow: false, googleBot: { index: false, follow: false } },
+    robots: { index, follow, googleBot: { index, follow } },
   };
 }
 

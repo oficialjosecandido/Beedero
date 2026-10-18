@@ -9,6 +9,11 @@ from .views import (
     OrgAffiliationDisputeView,
     OrgAffiliationsListCreateView,
     OrgAffiliationsPendingView,
+    OrgTeamInvitesView,
+    PublicTeamInviteDeclineView,
+    PublicTeamInviteReportView,
+    PublicTeamInviteView,
+    TeamInviteAcceptView,
 )
 
 urlpatterns = [
@@ -20,4 +25,12 @@ urlpatterns = [
     path("orgs/<slug:slug>/affiliations/pending/", OrgAffiliationsPendingView.as_view()),
     path("orgs/<slug:slug>/affiliations/<int:affiliation_id>/confirm/", OrgAffiliationConfirmView.as_view()),
     path("orgs/<slug:slug>/affiliations/<int:affiliation_id>/dispute/", OrgAffiliationDisputeView.as_view()),
+    # Team invites by email (doc aquisição §2). The public routes sit under
+    # /api/public/ deliberately: that prefix is what the RLS middleware exempts,
+    # and the person reading an invite has no account and therefore no viewer id.
+    path("orgs/<slug:slug>/team-invites/", OrgTeamInvitesView.as_view()),
+    path("public/team-invites/<str:token>/", PublicTeamInviteView.as_view()),
+    path("public/team-invites/<str:token>/decline/", PublicTeamInviteDeclineView.as_view()),
+    path("public/team-invites/<str:token>/report/", PublicTeamInviteReportView.as_view()),
+    path("team-invites/<str:token>/accept/", TeamInviteAcceptView.as_view()),
 ]

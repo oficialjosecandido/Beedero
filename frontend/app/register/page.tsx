@@ -3,9 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { EmailLinkForm } from "@/components/EmailLinkForm";
-import { authErrorMessage } from "@/lib/firebase-auth";
+import { authErrorMessage, safeNextPath } from "@/lib/firebase-auth";
 import { getPendingConfirmation } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
+import { safeRef } from "@/lib/signup-ref";
 
 export const metadata: Metadata = pageMetadata({
   title: "Create account",
@@ -17,15 +18,20 @@ export const metadata: Metadata = pageMetadata({
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ref?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, ref, next } = await searchParams;
+  // `ref` says which channel sent them (§7–§8 of the acquisition doc);
+  // `next` is where they were headed, so somebody who clicked "apply" on a job
+  // lands back on that job rather than on a generic feed.
+  const signupRef = safeRef(ref);
+  const destination = safeNextPath(next);
 
   // Sign-in and sign-up are the same act now: the first link sent to an
   // address creates the account. This page exists for the framing (and the
   // landing page's CTA), but the confirm step belongs on one page only.
   if (await getPendingConfirmation()) {
-    redirect("/login?confirm=1");
+    redirect(`/login?confirm=1&next=${encodeURIComponent(destination)}`);
   }
 
   return (
@@ -42,7 +48,8 @@ export default async function RegisterPage({
         </div>
         <EmailLinkForm
           mode="send"
-          next="/feed"
+          next={destination}
+          signupRef={signupRef}
           submitLabel="Email me a sign-up code"
           initialError={authErrorMessage(error)}
         />

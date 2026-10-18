@@ -44,6 +44,7 @@ from rest_framework.views import APIView
 from beedero.firebase import get_firebase_app
 
 from .signin_code import CODE_RE, CODE_TTL_SECONDS, discard_code, issue_code, verify_code
+from .signup_source import stash_ref
 
 CALLBACK_PATH = "/api/auth/callback"
 
@@ -281,6 +282,12 @@ class SignInLinkView(APIView):
             return Response({"detail": "invalid_email"}, status=400)
         if not STATE_RE.match(state):
             return Response({"detail": "invalid_state"}, status=400)
+
+        # Park where they came from, keyed to the address, for provisioning to
+        # claim if this sign-in creates an account (accounts/signup_source.py).
+        # After the validation above and before the send: a ref is never a
+        # reason to reject a sign-in, and never a reason to delay one either.
+        stash_ref(email, request.data.get("ref"))
 
         try:
             send_signin_email(email, state, next_path)

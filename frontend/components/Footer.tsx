@@ -4,6 +4,9 @@ import { COMPANY } from "@/lib/legal-content";
 
 const PRODUCT_LINKS = [
   { href: "/startups", label: "Discover" },
+  // On every page, which is how a crawler finds /jobs without waiting for the
+  // sitemap — and how a visitor who came for a company finds the roles.
+  { href: "/jobs", label: "Open roles" },
   { href: "/#how-it-works", label: "How it works" },
 ] as const;
 

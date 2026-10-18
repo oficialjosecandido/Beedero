@@ -13,6 +13,7 @@ import {
   safeNextPath,
 } from "./firebase-auth";
 import { sendSignInLink, verifySignInCode } from "./signin-link";
+import { safeRef } from "./signup-ref";
 import {
   clearPendingConfirmation,
   clearPendingLink,
@@ -43,6 +44,9 @@ export async function sendSignInLinkAction(
 ): Promise<SignInState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const next = safeNextPath(String(formData.get("next") ?? ""));
+  // Hidden field, put there by whichever page the `?ref=` landed on. Narrowed
+  // again here because a form field is attacker-controlled by definition.
+  const ref = safeRef(String(formData.get("ref") ?? ""));
 
   if (!looksLikeEmail(email)) return { error: "Enter a valid email address." };
   // Sending no longer needs the public API key — the API mints the link with
@@ -56,7 +60,7 @@ export async function sendSignInLinkAction(
   const state = randomState();
 
   try {
-    await sendSignInLink(email, state, next);
+    await sendSignInLink(email, state, next, ref);
   } catch (err) {
     return { error: errorFrom(err) };
   }

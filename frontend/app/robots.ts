@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           "/p/",
           "/verify/",
           "/startups",
+          "/jobs",
           "/terms",
           "/privacy",
           "/cookies",
@@ -21,6 +22,10 @@ export default function robots(): MetadataRoute.Robots {
           "/register",
         ],
         disallow: [
+          // The role pages themselves are the point of /jobs; applying is a
+          // form behind a session, and /opportunities is the members' board.
+          "/jobs/*/apply",
+          "/opportunities",
           "/profile",
           "/feed",
           "/discovery",

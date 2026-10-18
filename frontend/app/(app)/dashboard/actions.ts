@@ -112,6 +112,33 @@ export async function addOrgTeamMemberWizardAction(
   return { error: null, ...progress };
 }
 
+/**
+ * The onboarding step that asks who else is on the team (aquisição §2.3).
+ *
+ * One address at a time, by design: §9 rules out contact import and bulk
+ * sending, and a wizard step that took a textarea of addresses would be a bulk
+ * sender with extra steps. The step itself is always skippable — see
+ * CreateOrgForm — so this action is only ever reached by someone who typed a
+ * specific person's address on purpose.
+ */
+export async function inviteTeamMemberWizardAction(
+  slug: string,
+  invite: { email: string; title: string }
+): Promise<WizardResult & { alreadyOnBeedero?: boolean }> {
+  let result: { kind: "invite" | "affiliation" };
+  try {
+    result = await apiFetch<{ kind: "invite" | "affiliation" }>(`/orgs/${slug}/team-invites/`, {
+      method: "POST",
+      body: { email: invite.email, role: "employee", title: invite.title },
+    });
+  } catch (err) {
+    return { error: wizardErrorMessage(err, "Could not send that invite.") };
+  }
+  revalidatePath(`/dashboard/${slug}`);
+  const progress = await safeOnboardingProgress(slug);
+  return { error: null, alreadyOnBeedero: result.kind === "affiliation", ...progress };
+}
+
 export async function updateOrgProfileAction(_prevState: string | null, formData: FormData) {
   const slug = String(formData.get("slug"));
   const body: Record<string, string> = {};

@@ -73,8 +73,15 @@ export const config = {
     "/profile/:path*",
     "/org/:path*",
     "/discovery/:path*",
-    "/jobs/:path*",
+    // /opportunities, not /jobs: /jobs is public and index-able (doc §3.2), so
+    // guarding it here would bounce every crawler and every shared link to
+    // /login. /jobs/<id>/apply is the one page under it that needs a session,
+    // and it sends signed-out visitors to /register with the `ref` the doc
+    // asks for — which this proxy would overwrite with a plain /login hop.
+    "/opportunities/:path*",
     "/feed/:path*",
+    // Matches /onboarding itself as well: `:path*` is zero or more segments.
+    "/onboarding/:path*",
     "/invite/:path*",
     "/network/:path*",
     "/messages/:path*",

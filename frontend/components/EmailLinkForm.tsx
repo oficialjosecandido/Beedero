@@ -15,13 +15,19 @@ type Props = {
    * address. */
   mode: "send" | "confirm";
   next: string;
+  /** Where this visitor came from (`job:123`, `uni:ist`). Rides along as a
+   * hidden field so the API can park it against the address and attribute the
+   * account if this sign-in creates one — see lib/signup-ref.ts. Not called
+   * `ref`: React 19 reads a JSX `ref` as an element ref, and a string there is
+   * the long-removed string-ref pattern. */
+  signupRef?: string;
   submitLabel: string;
   /** Surfaced by the callback route via ?error= when a link fails before any
    * form is submitted. */
   initialError?: string | null;
 };
 
-export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) {
+export function EmailLinkForm({ mode, next, signupRef, submitLabel, initialError }: Props) {
   const action = mode === "confirm" ? confirmSignInAction : sendSignInLinkAction;
   const [state, formAction, pending] = useActionState<SignInState, FormData>(action, null);
   const [codeState, codeAction, codePending] = useActionState<SignInState, FormData>(
@@ -42,6 +48,7 @@ export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) 
     return (
       <form action={codeAction} className="flex flex-col gap-3">
         <input type="hidden" name="next" value={next} />
+        {signupRef && <input type="hidden" name="ref" value={signupRef} />}
         <div className="rounded-2xl border-2 border-beedero-black bg-beedero-yellow/20 px-4 py-4">
           <p className="text-sm font-bold">Check your inbox</p>
           <p className="mt-1 text-sm text-zinc-700">
@@ -100,6 +107,7 @@ export function EmailLinkForm({ mode, next, submitLabel, initialError }: Props) 
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="next" value={next} />
+      {signupRef && <input type="hidden" name="ref" value={signupRef} />}
       {mode === "confirm" && (
         <p className="rounded-2xl bg-beedero-yellow/20 px-4 py-3 text-sm text-zinc-700">
           You opened your sign-in link on a different device. Confirm the email address you asked

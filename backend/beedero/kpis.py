@@ -13,6 +13,7 @@ from django.shortcuts import render
 from django.utils.timezone import now
 from django.views.decorators.cache import cache_page
 
+from accounts.acquisition import acquisition_funnel
 from accounts.models import User
 from connections.models import Connection, ConnectionRequest
 from orgs.models import Activity, FundraiseRound, Organization, OrgFollow
@@ -251,6 +252,11 @@ def kpis_view(request):
         pct = round(count / prev * 100) if i and prev else None
         funnel.append({"label": label, "count": count, "pct": pct})
 
+    # ---------- Aquisição por origem (doc aquisição §8.3) ----------
+    # Aqui, e não como cartões: a pergunta não é "quantos registos" mas "que
+    # canais trazem pessoas que ficam", e isso só se lê numa tabela por origem.
+    acquisition = acquisition_funnel()
+
     # ---------- Top orgs por views ----------
     top_orgs = []
     if ProfileView is not None:
@@ -271,6 +277,7 @@ def kpis_view(request):
             "card_sections": card_sections,
             "levels": levels,
             "funnel": funnel,
+            "acquisition": acquisition,
             "top_orgs": top_orgs,
             "geo_breakdown": geo_breakdown,
             "generated_at": now(),

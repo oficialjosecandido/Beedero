@@ -8,7 +8,15 @@ import { OrgWorkspace } from "./OrgWorkspace";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatDateTime } from "@/lib/format";
 import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
-import type { AffiliationSummary, JobSummary } from "@/lib/types";
+import type {
+  AffiliationSummary,
+  JobSummary,
+  TeamInviteQuota,
+  TeamInviteSummary,
+} from "@/lib/types";
+
+type TeamInvites = { items: TeamInviteSummary[]; quota: TeamInviteQuota | null };
+const EMPTY_INVITES: TeamInvites = { items: [], quota: null };
 
 type SectionField = {
   id: number;
@@ -230,7 +238,7 @@ export default async function DashboardOrgPage({
   )?.role;
   const myRole = membershipRole ?? listedRole ?? "member";
   const canManage = myRole === "owner" || myRole === "admin";
-  const [invites, badgeEmbed, vitality, jobs, affiliations] = await Promise.all([
+  const [invites, badgeEmbed, vitality, jobs, affiliations, teamInvites] = await Promise.all([
     canManage
       ? safeFetch(apiFetch(`/orgs/${slug}/invites/`) as Promise<Invite[]>, [])
       : Promise.resolve([] as Invite[]),
@@ -252,6 +260,9 @@ export default async function DashboardOrgPage({
           { items: [] as AffiliationSummary[] }
         )
       : Promise.resolve({ items: [] as AffiliationSummary[] }),
+    canManage
+      ? safeFetch(apiFetch(`/orgs/${slug}/team-invites/`) as Promise<TeamInvites>, EMPTY_INVITES)
+      : Promise.resolve(EMPTY_INVITES),
   ]);
 
   const postingStatusData = postingStatus;
@@ -384,6 +395,8 @@ export default async function DashboardOrgPage({
           vitality,
           jobs: jobs.items,
           affiliations: affiliations.items,
+          teamInvites: teamInvites.items,
+          inviteQuota: teamInvites.quota,
           suggestedTitle,
           suggestedBody,
         }}

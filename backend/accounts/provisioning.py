@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
 
 from .notifications import notify_admin_new_user
+from .signup_source import claim_ref
 
 User = get_user_model()
 
@@ -50,6 +51,17 @@ def get_or_provision_firebase_user(claims: dict):
             existing.save(update_fields=["firebase_uid", "email_verified_at"])
             return existing
 
+    # Where they came from, if the sign-in form was told (accounts/signup_source.py).
+    # Claimed before the INSERT so the origin lands in the same row write that
+    # creates the account — this is the one moment it is knowable, and §8.2 of
+    # `beedero-aquisicao-pessoas.md` wants it written exactly once.
+    #
+    # Only on this branch. The adopt-by-email branch above belongs to someone
+    # who already had an account before the Firebase cutover: stamping a `ref`
+    # on them would count a returning user as a new acquisition and quietly
+    # inflate whichever channel they happened to arrive through.
+    origin = claim_ref(email) or {}
+
     try:
         with transaction.atomic():
             user = User.objects.create(
@@ -57,6 +69,8 @@ def get_or_provision_firebase_user(claims: dict):
                 email=email,
                 firebase_uid=uid,
                 email_verified_at=timezone.now() if email_verified else None,
+                signup_source=origin.get("source", ""),
+                signup_ref=origin.get("ref", ""),
             )
     except IntegrityError:
         # Two first requests for the same brand-new uid can race here. The

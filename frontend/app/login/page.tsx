@@ -5,6 +5,7 @@ import { EmailLinkForm } from "@/components/EmailLinkForm";
 import { authErrorMessage, safeNextPath } from "@/lib/firebase-auth";
 import { getPendingConfirmation } from "@/lib/session";
 import { noIndexMetadata, pageMetadata } from "@/lib/site-metadata";
+import { safeRef } from "@/lib/signup-ref";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -18,9 +19,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; confirm?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; confirm?: string; ref?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, ref } = await searchParams;
   // The callback route parks the one-time code here when a link is opened on a
   // browser that never saw the send. Its presence — not the query string — is
   // what puts the form in confirm mode.
@@ -40,6 +41,9 @@ export default async function LoginPage({
         <EmailLinkForm
           mode={awaitingConfirmation ? "confirm" : "send"}
           next={safeNextPath(next)}
+          // Sign-in and sign-up are one act here, so a channel link that points
+          // at /login still has to be attributable (lib/signup-ref.ts).
+          signupRef={safeRef(ref)}
           submitLabel={awaitingConfirmation ? "Confirm and sign in" : "Email me a sign-in code"}
           initialError={authErrorMessage(error)}
         />

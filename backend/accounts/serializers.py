@@ -157,10 +157,30 @@ class MeSerializer(serializers.ModelSerializer):
     investor_profile = InvestorProfileSerializer(source="investorprofile", read_only=True)
     memberships = serializers.SerializerMethodField()
     is_email_verified = serializers.BooleanField(read_only=True)
+    onboarding_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "email", "is_email_verified", "investor_profile", "memberships"]
+        fields = [
+            "id",
+            "email",
+            "is_email_verified",
+            "onboarding_completed",
+            "investor_profile",
+            "memberships",
+        ]
+
+    def get_onboarding_completed(self, obj) -> bool:
+        """Whether this person has been through §6.3's three steps.
+
+        A flag rather than the timestamp, and here rather than behind its own
+        request, because the only caller is the feed deciding whether to send
+        somebody to onboarding first — and the feed already fetches this
+        payload. The intents themselves stay out: they are private
+        capabilities read only by /api/onboarding/ (accounts/intents.py).
+        """
+        profile = getattr(obj, "investorprofile", None)
+        return bool(profile and profile.onboarding_completed_at)
 
     def get_memberships(self, obj):
         return [

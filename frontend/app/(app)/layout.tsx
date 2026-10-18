@@ -2,6 +2,7 @@ import { MessagingShell } from "@/components/MessagingShell";
 import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvider";
 import { SessionRefresh } from "@/components/SessionRefresh";
 import { AppShell } from "@/components/app-shell/AppShell";
+import { WelcomeNudge } from "@/components/onboarding/WelcomeNudge";
 import { apiFetch, safeFetch } from "@/lib/api";
 import type { CofounderStatus } from "@/lib/cofounder-options";
 import { NetworkProvider } from "@/lib/network-context";
@@ -26,6 +27,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <SessionRefresh />
           <NavigationLoadingProvider>
             <AppShell showCofounder={showCofounder} orgs={orgs}>
+              {/* §6.4's nudge. Here rather than on each landing page because
+                  three of the five first screens are inside this shell, and a
+                  layout can't read search params itself — the component does
+                  (components/onboarding/WelcomeNudge.tsx). */}
+              <WelcomeNudge />
               {children}
             </AppShell>
           </NavigationLoadingProvider>

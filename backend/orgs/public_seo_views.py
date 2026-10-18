@@ -83,8 +83,40 @@ class PublicSitemapView(APIView):
                 "orgs": org_entries,
                 "people": people_entries,
                 "verify": verify_entries,
+                "jobs": _open_job_entries(),
             }
         )
+
+
+def _open_job_entries() -> list[dict]:
+    """Open roles, for the `/jobs/<id>` URLs in the sitemap (§3.2).
+
+    Imported inside the function because `jobs` imports `orgs.models` at module
+    level, so the reverse import at module level would be a cycle.
+
+    Jobs live seven days (`jobs.models.JOB_TTL_DAYS`), which is short for a
+    sitemap: half of these URLs will 404 within the week. That is the right
+    trade for job listings — Google expects them to expire, `validThrough` on
+    each page says when, and a role nobody can apply to is worth less in the
+    index than a role found on its first day.
+    """
+    from django.utils import timezone
+
+    from jobs.models import JobPost
+
+    jobs = (
+        JobPost.objects.filter(
+            status=JobPost.Status.OPEN,
+            expires_at__gt=timezone.now(),
+            org__status=Organization.Status.LIVE,
+        )
+        .order_by("-created_at")
+        .values_list("id", "renewed_at", "created_at")[:MAX_SITEMAP_ENTRIES]
+    )
+    return [
+        {"id": job_id, "lastmod": (renewed_at or created_at).date().isoformat()}
+        for job_id, renewed_at, created_at in jobs
+    ]
 
 
 class PublicDiscoveryView(APIView):

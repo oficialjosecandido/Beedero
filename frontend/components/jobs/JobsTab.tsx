@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { closeJobAction, deleteJobAction, renewJobAction } from "@/app/(app)/dashboard/job-actions";
@@ -10,6 +11,7 @@ import type { JobSummary } from "@/lib/types";
 
 import { ApplicationsList } from "./ApplicationsList";
 import { JobForm } from "./JobForm";
+import { ShareJobButton } from "./ShareJobButton";
 
 const STATUS_LABELS: Record<JobSummary["status"], string> = { draft: "Draft", open: "Open", closed: "Closed" };
 const STATUS_STYLES: Record<JobSummary["status"], string> = {
@@ -89,6 +91,29 @@ function JobRow({ slug, job }: { slug: string; job: JobSummary }) {
           </form>
         </div>
       </div>
+      {/* §3.4 — the share row appears the moment a role goes live, which is
+          the moment the org has something worth sharing, and stays for the
+          seven days the posting lasts rather than flashing once after publish.
+          The public page link is here so they can see what a stranger sees
+          before they send the link anywhere. */}
+      {job.status === "open" && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-beedero-border pt-3">
+          <ShareJobButton
+            jobId={job.id}
+            jobTitle={job.title}
+            orgSlug={slug}
+            orgName={job.org?.name ?? slug}
+            tone="light"
+          />
+          <Link
+            href={`/jobs/${job.id}`}
+            className="text-xs font-semibold text-zinc-500 underline underline-offset-2 hover:text-beedero-black"
+          >
+            View public page
+          </Link>
+        </div>
+      )}
+
       {expanded && <ApplicationsList slug={slug} jobId={job.id} />}
     </div>
   );

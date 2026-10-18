@@ -37,6 +37,7 @@ def run_management_job(request):
         "send_personal_digest": ("send_personal_digest", []),
         "send_investor_alerts": ("send_investor_alerts", []),
         "expire_jobs": ("expire_jobs", []),
+        "team_invite_upkeep": ("team_invite_upkeep", []),
     }
     if job not in allowed:
         return JsonResponse({"detail": "Unknown job"}, status=400)
