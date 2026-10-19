@@ -166,79 +166,6 @@ export async function activateOrgAction(_prevState: string | null, formData: For
   return null;
 }
 
-export async function updateProfileAction(_prevState: string | null, formData: FormData) {
-  const body = new FormData();
-  const nameLocked = formData.get("name_locked") === "1";
-  if (!nameLocked) {
-    const fullName = formData.get("full_name");
-    if (fullName !== null && String(fullName).trim()) {
-      body.set("full_name", String(fullName).trim());
-    }
-  }
-  body.set("headline", formData.get("headline") ?? "");
-  body.set("bio", formData.get("bio") ?? "");
-  body.set("manifesto", formData.get("manifesto") ?? "");
-  body.set("country", formData.get("country") ?? "");
-  // Sent raw — the backend both stores what was typed and derives the key it
-  // matches on, so the two can never disagree (accounts/cities.py).
-  body.set("city", formData.get("city") ?? "");
-
-  const visibility: Record<string, string> = {};
-  for (const key of ["bio", "country", "skills", "posts", "attestations", "credentials"]) {
-    const value = formData.get(`visibility_${key}`);
-    if (value) visibility[key] = String(value);
-  }
-  body.set("visibility", JSON.stringify(visibility));
-
-  const attestationPrefs: Record<string, boolean> = {
-    show_memberships: formData.get("show_memberships") === "on",
-    show_posts_count: formData.get("show_posts_count") === "on",
-  };
-  body.set("attestation_prefs", JSON.stringify(attestationPrefs));
-
-  const parseList = (name: string) =>
-    formData
-      .getAll(name)
-      .map((value) => String(value).trim())
-      .filter(Boolean);
-
-  const stageFocus = parseList("stage_focus");
-  const sectorFocus = parseList("sector_focus");
-  const geoFocus = parseList("geo_focus");
-  if (stageFocus.length) body.set("stage_focus", JSON.stringify(stageFocus));
-  if (sectorFocus.length) body.set("sector_focus", JSON.stringify(sectorFocus));
-  if (geoFocus.length) body.set("geo_focus", JSON.stringify(geoFocus));
-
-  const linkLabels = formData.getAll("link_label").map((value) => String(value).trim());
-  const linkUrls = formData.getAll("link_url").map((value) => String(value).trim());
-  const links = linkLabels
-    .map((label, index) => ({ label, url: linkUrls[index] ?? "" }))
-    .filter((link) => link.label && link.url);
-  body.set("links", JSON.stringify(links));
-
-  const skills = parseList("skills");
-  body.set("skills", JSON.stringify(skills));
-
-  const checkMin = formData.get("check_min");
-  const checkMax = formData.get("check_max");
-  if (checkMin) body.set("check_min", String(checkMin));
-  if (checkMax) body.set("check_max", String(checkMax));
-
-  const picture = formData.get("profile_picture");
-  if (picture instanceof File && picture.size > 0) {
-    body.set("profile_picture", picture);
-  }
-
-  try {
-    await apiFetch("/investors/me/", { method: "PUT", body });
-  } catch (err) {
-    return profileErrorMessage(err, "Could not save your profile.");
-  }
-  revalidatePath("/profile");
-  revalidatePath("/dashboard");
-  return null;
-}
-
 /** Camera affordance on My profile — uploads only the picture, nothing else. */
 export async function uploadProfilePictureAction(
   formData: FormData
@@ -258,33 +185,6 @@ export async function uploadProfilePictureAction(
   revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/feed");
-  return { ok: true };
-}
-
-/**
- * The Share-profile sheet writes section visibility on its own. It deliberately
- * does not reuse `updateProfileAction`: that one PUTs every profile field it
- * finds on the form, so sending it from a sheet that only knows about
- * visibility would blank the headline, bio and links.
- */
-export async function updateProfileVisibilityAction(
-  visibility: Record<string, string>
-): Promise<{ ok: true } | { error: string }> {
-  const allowed = new Set(["public", "verified_investors", "connections", "private"]);
-  const clean: Record<string, string> = {};
-  for (const [section, level] of Object.entries(visibility)) {
-    if (allowed.has(level)) clean[section] = level;
-  }
-
-  const body = new FormData();
-  body.set("visibility", JSON.stringify(clean));
-  try {
-    await apiFetch("/investors/me/", { method: "PUT", body });
-  } catch (err) {
-    return { error: profileErrorMessage(err, "Could not save your visibility settings.") };
-  }
-  revalidatePath("/profile");
-  revalidatePath("/dashboard");
   return { ok: true };
 }
 

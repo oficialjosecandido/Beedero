@@ -11,7 +11,7 @@ import type { ConnectionItem, FollowItem } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-/** Mirrors ProfileForm's visibility selector, which is where this links to. */
+/** Mirrors the per-section audience pills on /profile, which is where this links to. */
 const VISIBILITY_LABELS: Record<string, string> = {
   public: "Public",
   verified_investors: "Verified only",

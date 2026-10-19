@@ -6,10 +6,8 @@ import {
   declareMembershipSkillAction,
   retractMembershipSkillAction,
 } from "@/app/(app)/dashboard/membership-skills-actions";
+import { btnPrimary, inputDark } from "@/components/app-shell/ui";
 import { useActionToast } from "@/lib/use-action-toast";
-
-const fieldClass =
-  "w-full rounded-xl border border-beedero-border bg-white px-3 py-2.5 text-sm text-beedero-black outline-none transition-colors focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
 
 export type PersonMembershipWithSkills = {
   id: number;
@@ -27,12 +25,13 @@ function MembershipSkillRow({ slug, memberId }: { slug: string; memberId: number
     <form action={formAction} className="flex gap-2">
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="member_id" value={memberId} />
-      <input name="skill" placeholder="A skill you used here" className={fieldClass} />
-      <button
-        type="submit"
-        disabled={pending}
-        className="shrink-0 rounded-lg bg-beedero-yellow px-3 py-1.5 text-xs font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-      >
+      <input
+        name="skill"
+        aria-label="A skill you used here"
+        placeholder="A skill you used here"
+        className={`${inputDark} placeholder:text-white/35`}
+      />
+      <button type="submit" disabled={pending} className={`${btnPrimary} shrink-0`}>
         {pending ? "Adding..." : "Add"}
       </button>
     </form>
@@ -41,18 +40,18 @@ function MembershipSkillRow({ slug, memberId }: { slug: string; memberId: number
 
 function MembershipCard({ membership }: { membership: PersonMembershipWithSkills }) {
   return (
-    <div className="rounded-2xl border border-beedero-border bg-zinc-50/50 p-4">
-      <p className="text-sm font-semibold text-zinc-800">{membership.orgName}</p>
-      <p className="text-xs text-subtle">{membership.role}</p>
+    <div className="border-b border-white/[0.08] pb-4 last:border-0 last:pb-0">
+      <p className="text-sm font-bold">{membership.orgName}</p>
+      <p className="text-xs text-white/45">{membership.role}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {membership.skills.map((skill) => (
           <span
             key={skill.id}
-            className="inline-flex items-center gap-1.5 rounded-full border border-beedero-border bg-white px-2.5 py-1 text-xs font-medium text-zinc-700"
+            className="inline-flex items-center gap-1.5 border border-white/15 px-2.5 py-1 text-xs text-white/75"
           >
             {skill.skill}
             {skill.status === "org_confirmed" && (
-              <span className="text-[10px] font-bold text-success">confirmed</span>
+              <span className="text-[10px] font-black uppercase text-emerald-400">confirmed</span>
             )}
             <form action={retractMembershipSkillAction}>
               <input type="hidden" name="slug" value={membership.org} />
@@ -60,7 +59,7 @@ function MembershipCard({ membership }: { membership: PersonMembershipWithSkills
               <input type="hidden" name="skill_id" value={skill.id} />
               <button
                 type="submit"
-                className="-m-1.5 p-1.5 text-subtle hover:text-beedero-black"
+                className="-m-1.5 p-1.5 text-white/40 hover:text-white"
                 aria-label={`Remove ${skill.skill}`}
               >
                 ×
@@ -68,7 +67,7 @@ function MembershipCard({ membership }: { membership: PersonMembershipWithSkills
             </form>
           </span>
         ))}
-        {membership.skills.length === 0 && <p className="text-xs text-subtle">No skills declared yet.</p>}
+        {membership.skills.length === 0 && <p className="text-xs text-white/40">No skills declared yet.</p>}
       </div>
       <div className="mt-2">
         <MembershipSkillRow slug={membership.org} memberId={membership.id} />
@@ -81,15 +80,14 @@ export function MembershipSkillsManager({ memberships }: { memberships: PersonMe
   if (memberships.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
-      <div className="border-b border-beedero-border bg-beedero-yellow px-6 py-5">
-        <h2 className="text-xl font-extrabold tracking-tight text-zinc-900">Skills by organization</h2>
-        <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-600">
-          Anchor a skill to a specific membership — an org admin can confirm it, which shows on your
-          public timeline.
-        </p>
-      </div>
-      <div className="flex flex-col gap-4 px-6 py-6">
+    <div className="mt-6 border-t border-white/10 pt-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
+        Skills at your Beedero organisations
+      </p>
+      <p className="mt-1 text-xs leading-5 text-white/45">
+        An admin of the organisation can confirm these — confirmed ones show on your timeline.
+      </p>
+      <div className="mt-4 flex flex-col gap-4">
         {memberships.map((membership) => (
           <MembershipCard key={membership.id} membership={membership} />
         ))}

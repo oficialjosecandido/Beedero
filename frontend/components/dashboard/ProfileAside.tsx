@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarCheck, Check, Eye, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { BarChart3, CalendarCheck, Check, ShieldCheck, SlidersHorizontal } from "lucide-react";
+
+import { OpenSectionButton } from "@/components/profile/ProfileEditorContext";
 
 import type {
   LadderRung,
@@ -9,7 +11,18 @@ import type {
   ProfileCompletion,
   VerificationLadder,
 } from "@/lib/person-vitality";
-import { VISIBILITY_SECTIONS, visibilityLabel } from "@/lib/profile-visibility";
+
+/** Completion keys (accounts/completeness.py) → the section that edits them. */
+const SECTION_FOR: Record<string, string> = {
+  full_name: "identity",
+  headline: "identity",
+  country: "identity",
+  city: "identity",
+  profile_picture: "identity",
+  bio: "about",
+  links: "about",
+  skills: "skills",
+};
 
 const panelClass = "border border-white/10 bg-white/[0.025] p-5";
 const hexClipClass = "[clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]";
@@ -218,12 +231,12 @@ function ProfileCompletionCard({ completion }: { completion: ProfileCompletion }
                   {item.hint}
                 </small>
               </span>
-              <Link
-                href="/profile?tab=settings"
-                className="shrink-0 text-[10px] font-bold text-beedero-yellow"
+              <OpenSectionButton
+                section={SECTION_FOR[item.key] ?? "identity"}
+                className="shrink-0 px-2 py-1 text-[10px] font-bold text-beedero-yellow hover:underline"
               >
                 Add
-              </Link>
+              </OpenSectionButton>
             </li>
           ))}
         </ul>
@@ -235,59 +248,58 @@ function ProfileCompletionCard({ completion }: { completion: ProfileCompletion }
 /* ------------------------------------------------------------------- aside */
 
 /**
- * Figma My Profile aside, split into the three things the one "Verification
- * ladder" card used to conflate: what others confirmed, the weekly duty, and
- * the fields you fill in yourself. "Who sees what" stands in for named
- * audiences until those ship.
+ * Phones get the one most useful missing thing at the top of the page
+ * instead of four cards at the bottom (the aside sits below the content
+ * under the `xl` breakpoint).
+ */
+export function NextStepStrip({ completion }: { completion: ProfileCompletion | null }) {
+  const next = completion?.items.find((item) => !item.done);
+  if (!completion || !next) return null;
+  return (
+    <div className="flex items-center gap-3 border border-beedero-yellow/40 bg-beedero-yellow/[0.06] px-4 py-3 xl:hidden">
+      <span className="text-[10px] font-black tabular-nums text-beedero-yellow">{completion.percent}%</span>
+      <span className="min-w-0 flex-1 text-xs">
+        <b className="block">{next.label}</b>
+        <span className="text-white/50">{next.hint}</span>
+      </span>
+      <OpenSectionButton
+        section={SECTION_FOR[next.key] ?? "identity"}
+        className="min-h-11 shrink-0 bg-beedero-yellow px-3 text-xs font-black text-beedero-black"
+      >
+        Add
+      </OpenSectionButton>
+    </div>
+  );
+}
+
+/**
+ * The aside of the one-page profile: insights link, what others confirmed,
+ * the weekly cadence, and what's left to fill in. "Who sees what" is gone —
+ * every section now carries its own audience pill.
  */
 export function ProfileAside({
   ladder,
   cadence,
   completion,
-  visibility,
 }: {
   ladder: VerificationLadder | null;
   cadence: PostingCadence | null;
   completion: ProfileCompletion | null;
-  visibility: Record<string, string> | undefined;
 }) {
   return (
     <aside className="h-fit space-y-5">
+      <Link
+        href="/profile/insights"
+        className="flex items-center justify-between gap-3 border border-white/10 bg-white/[0.025] p-5 text-sm font-bold transition hover:border-beedero-yellow"
+      >
+        <span className="flex items-center gap-2">
+          <BarChart3 size={16} className="text-beedero-yellow" aria-hidden /> Insights
+        </span>
+        <span className="text-xs font-normal text-white/45">Views, posts →</span>
+      </Link>
+      {completion && <ProfileCompletionCard completion={completion} />}
       {ladder && <VerificationLadderCard ladder={ladder} />}
       {cadence && <PostingCadenceCard cadence={cadence} />}
-      {completion && <ProfileCompletionCard completion={completion} />}
-
-      <section className={panelClass}>
-        <CardHeading
-          Icon={Eye}
-          iconClass="text-sky-300"
-          title="Who sees what"
-          note="Each part of your profile has its own audience."
-        />
-        <dl className="mt-4 space-y-2">
-          {VISIBILITY_SECTIONS.map((section) => {
-            const label = visibilityLabel(visibility?.[section.key]);
-            return (
-              <div key={section.key} className="flex items-baseline justify-between gap-3 text-xs">
-                <dt className="truncate text-white/45">{section.label}</dt>
-                <dd
-                  className={`shrink-0 font-bold ${
-                    label === "Public" ? "text-emerald-400" : "text-sky-300"
-                  }`}
-                >
-                  {label}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
-        <Link
-          href="/profile?tab=settings"
-          className="mt-4 block border-t border-white/10 pt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300"
-        >
-          Change visibility →
-        </Link>
-      </section>
     </aside>
   );
 }

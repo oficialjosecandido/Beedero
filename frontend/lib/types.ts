@@ -247,3 +247,25 @@ export const SECTION_LABELS: Record<string, string> = {
   dataroom: "Data room",
   cap_table: "Cap table",
 };
+
+/** GET/PUT /advisory/me/ (was exported from AdvisoryProfileForm). */
+export type AdvisorProfile = {
+  is_available: boolean;
+  expertise: string[];
+  stages: string[];
+  sectors: string[];
+  engagement_types: string[];
+};
+
+/** GET /credentials/mine/ (was exported from ProfessionalCredentialsPanel). */
+export type PersonCredential = {
+  id: number;
+  title: string;
+  issuer: string;
+  identifier: string;
+  status: "pending" | "verified" | "rejected" | "expired";
+  submitted_at: string;
+  reviewed_at: string | null;
+  rejection_reason: string;
+  verified_at: string | null;
+};

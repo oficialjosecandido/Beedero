@@ -63,7 +63,7 @@ def approve_credential(credential: ProfessionalCredential, reviewer) -> Professi
             f"Your '{credential.title}' credential was verified. "
             f"Your journey now has {facts} verified {plural}."
         ),
-        link="/dashboard?tab=settings",
+        link="/profile?edit=credentials",
         payload={
             "suggestion_title": f"I just verified my '{credential.title}' credential on Beedero!",
             "suggestion_body": f"'{credential.title}' ({credential.issuer}) is now a verified fact on my Beedero profile.",
@@ -88,7 +88,7 @@ def reject_credential(credential: ProfessionalCredential, reviewer, reason: str)
         aggregate_key=f"credential:{credential.id}",
         title="Professional credential update",
         body=f"Your '{credential.title}' credential was rejected: {reason}",
-        link="/dashboard?tab=settings",
+        link="/profile?edit=credentials",
     )
     return credential
 

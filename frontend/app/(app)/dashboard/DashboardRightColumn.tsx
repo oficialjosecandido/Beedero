@@ -205,7 +205,7 @@ function VisibilityPanel({ visibility }: { visibility: Record<string, string> | 
         })}
       </dl>
       <Link
-        href="/profile?tab=settings"
+        href="/profile"
         className="mt-4 block border-t border-white/10 pt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300"
       >
         Change visibility →

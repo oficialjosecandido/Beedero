@@ -3,7 +3,8 @@
  * these values and the profile sidebar summarises them.
  */
 export const VISIBILITY_SECTIONS = [
-  { key: "bio", label: "Bio", hint: "Your about text, manifesto, and links" },
+  { key: "bio", label: "About", hint: "Your bio, manifesto and links" },
+  { key: "memberships", label: "Experience", hint: "Your record and timeline" },
   { key: "country", label: "Location", hint: "The country and city you're based in" },
   { key: "skills", label: "Skills", hint: "Your skills cloud" },
   { key: "posts", label: "Activity posts", hint: "Updates and milestones" },

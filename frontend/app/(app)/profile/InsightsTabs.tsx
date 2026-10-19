@@ -4,22 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Eye, GlassWater, Lightbulb, ThumbsUp, type LucideIcon } from "lucide-react";
 
-import {
-  PersonBadgeEmbedPanel,
-  PersonPresenceSignalsPanel,
-} from "@/components/PersonalProfilePanels";
+import { PersonPresenceSignalsPanel } from "@/components/PersonalProfilePanels";
 import { PersonalKpiPanel, type PersonalKpiStats } from "@/components/PersonalKpiPanel";
-import { ProfileForm } from "@/components/ProfileForm";
-import { AdvisoryProfileForm, type AdvisorProfile } from "@/components/AdvisoryProfileForm";
-import { DeleteAccountPanel } from "@/components/DeleteAccountPanel";
-import {
-  MembershipSkillsManager,
-  type PersonMembershipWithSkills,
-} from "@/components/MembershipSkillsManager";
-import {
-  ProfessionalCredentialsPanel,
-  type PersonCredential,
-} from "@/components/ProfessionalCredentialsPanel";
 import { EmptyPanel, btnPrimary } from "@/components/app-shell/ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { RichText } from "@/components/RichText";
@@ -29,11 +15,9 @@ import { SECTION_LABELS } from "@/lib/types";
 const TABS = [
   { id: "kpis", label: "KPIs", shortLabel: "KPIs" },
   { id: "posts", label: "My posts", shortLabel: "Posts" },
-  { id: "saved", label: "Saved posts", shortLabel: "Saved" },
-  { id: "settings", label: "Profile settings", shortLabel: "Settings" },
 ] as const;
 
-export type PersonalTabId = (typeof TABS)[number]["id"];
+export type InsightsTabId = (typeof TABS)[number]["id"];
 
 type ProfileStats = PersonalKpiStats;
 
@@ -62,17 +46,6 @@ const REACTION_KINDS: {
   { kind: "congrats", icon: GlassWater, label: "Congrats" },
 ];
 
-type InvestorProfile = {
-  full_name?: string;
-  headline?: string;
-  bio?: string;
-  country?: string;
-  profile_picture?: string | null;
-  handle?: string | null;
-  visibility?: Record<string, string>;
-  attestation_prefs?: Record<string, boolean>;
-};
-
 type Vitality = {
   presence: { profile_views: number; since_days: number; has_signal: boolean };
   badge: {
@@ -82,13 +55,6 @@ type Vitality = {
     visual_status: "verified" | "unverified";
     as_of: string;
   };
-};
-
-type BadgeEmbed = {
-  html: string;
-  profile_url: string;
-  badge_url: string;
-  json_url: string;
 };
 
 function PostEngagementMetrics({ post }: { post: InvestorPost }) {
@@ -156,28 +122,21 @@ function MyPostCard({ post }: { post: InvestorPost }) {
   );
 }
 
-export function PersonalDashboardTabs({
-  profile,
+/** /profile/insights — what happened to your profile and posts. Read-only:
+ * editing lives on /profile. (Was PersonalDashboardTabs, minus "Saved",
+ * which never had a feature behind it, and "Settings".) */
+export function InsightsTabs({
   profileStats,
   vitality,
-  badgeEmbed,
-  advisorProfile,
-  memberships,
-  myCredentials,
   myPosts: initialPosts,
   initialTab,
 }: {
-  profile: InvestorProfile | null;
   profileStats: ProfileStats | null;
   vitality: Vitality | null;
-  badgeEmbed: BadgeEmbed | null;
-  advisorProfile: AdvisorProfile | null;
-  memberships: PersonMembershipWithSkills[];
-  myCredentials: PersonCredential[];
   myPosts: InvestorPost[];
-  initialTab?: PersonalTabId;
+  initialTab?: InsightsTabId;
 }) {
-  const [active, setActive] = useState<PersonalTabId>(initialTab ?? "kpis");
+  const [active, setActive] = useState<InsightsTabId>(initialTab ?? "kpis");
   const [prevInitialPosts, setPrevInitialPosts] = useState(initialPosts);
   const [myPosts, setMyPosts] = useState(initialPosts);
 
@@ -204,9 +163,9 @@ export function PersonalDashboardTabs({
     return () => window.removeEventListener("focus", onFocus);
   }, [active, refreshPosts]);
 
-  function selectTab(tabId: PersonalTabId) {
+  function selectTab(tabId: InsightsTabId) {
     setActive(tabId);
-    window.history.replaceState(null, "", `/profile?tab=${tabId}`);
+    window.history.replaceState(null, "", `/profile/insights?tab=${tabId}`);
     if (tabId === "posts") {
       void refreshPosts();
     }
@@ -268,54 +227,6 @@ export function PersonalDashboardTabs({
         </div>
       )}
 
-      {active === "saved" && (
-        <div className="border border-white/10 bg-white/[0.025] p-5 sm:p-7">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
-            Kept for later
-          </p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Saved posts.</h2>
-          <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
-            Posts you bookmark from the feed will show up here.
-          </p>
-          <div className="mt-5">
-            <EmptyPanel>
-              You haven&apos;t saved any posts yet. Bookmark one from the feed to keep it handy
-              here.
-            </EmptyPanel>
-          </div>
-          <Link href="/feed" className={`${btnPrimary} mt-5 w-fit`}>
-            Browse the feed
-          </Link>
-        </div>
-      )}
-
-      {active === "settings" && (
-        <div className="flex flex-col gap-5">
-          <div className="border border-white/10 bg-white/[0.025] p-5 sm:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
-              Profile
-            </p>
-            <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Settings.</h2>
-            <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
-              Update how you appear on Beedero. Experience stays on your main profile page.
-            </p>
-            <Link
-              href="/profile"
-              className="mt-4 inline-block text-xs font-bold text-beedero-yellow hover:underline"
-            >
-              ← Back to profile
-            </Link>
-          </div>
-          {badgeEmbed && vitality && (
-            <PersonBadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
-          )}
-          <ProfileForm profile={profile} />
-          <MembershipSkillsManager memberships={memberships} />
-          <ProfessionalCredentialsPanel credentials={myCredentials} />
-          <AdvisoryProfileForm profile={advisorProfile} />
-          <DeleteAccountPanel />
-        </div>
-      )}
     </div>
   );
 }

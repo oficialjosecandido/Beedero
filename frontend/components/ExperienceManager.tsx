@@ -40,7 +40,7 @@ import type { AffiliationSummary, OrgSummary } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
 import { OrgAutocomplete } from "./OrgAutocomplete";
-import { SkillsInput } from "./ProfileForm";
+import { SkillsInput } from "./profile/fields";
 
 export type Experience = {
   id: number;
@@ -305,7 +305,7 @@ function ExperienceFields({ experience }: { experience?: Experience }) {
           Skills <span className="normal-case tracking-normal text-white/25">(optional)</span>
         </p>
         <div className="mt-2">
-          <SkillsInput initial={experience?.skills ?? []} dark />
+          <SkillsInput initial={experience?.skills ?? []} />
         </div>
       </div>
     </>
@@ -830,7 +830,7 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
             Skills <span className="normal-case tracking-normal text-white/25">(optional)</span>
           </p>
           <div className="mt-2">
-            <SkillsInput initial={[]} dark />
+            <SkillsInput initial={[]} />
           </div>
         </div>
       </div>
@@ -851,10 +851,16 @@ export function ExperienceManager({
   experiences,
   affiliations,
   memberships = [],
+  showCapabilities = true,
+  headerAside,
 }: {
   experiences: Experience[];
   affiliations: AffiliationSummary[];
   memberships?: OrgMembershipExperience[];
+  /** e.g. the visibility pill for the record ("memberships"). */
+  headerAside?: React.ReactNode;
+  /** The one-page profile shows these in its Skills section instead. */
+  showCapabilities?: boolean;
 }) {
   // Free-text rows that duplicate a roster membership (same org name) stay
   // out of the list — the membership is the verified source of truth.
@@ -931,11 +937,14 @@ export function ExperienceManager({
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Experience.</h2>
         </div>
-        {!adding && (
-          <button type="button" onClick={() => setAdding(true)} className={btnPrimary}>
-            <Plus size={14} aria-hidden /> Add experience
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {headerAside}
+          {!adding && (
+            <button type="button" onClick={() => setAdding(true)} className={btnPrimary}>
+              <Plus size={14} aria-hidden /> Add experience
+            </button>
+          )}
+        </div>
       </div>
 
       {items.length > 0 && (
@@ -992,7 +1001,7 @@ export function ExperienceManager({
         </div>
       )}
 
-      <CapabilityRecord skills={capabilities} />
+      {showCapabilities && <CapabilityRecord skills={capabilities} />}
     </section>
   );
 }
