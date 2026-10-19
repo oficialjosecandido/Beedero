@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JobPostingJsonLd } from "@/components/jobs/JobPostingJsonLd";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { CredibilityBadge } from "@/components/CredibilityBadge";
@@ -99,12 +100,12 @@ export default async function PublicJobPage({
       <JobPostingJsonLd job={job} />
       <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
         <div className="flex w-full max-w-3xl flex-col gap-8">
-          <nav aria-label="Breadcrumb" className="text-xs text-zinc-500">
-            <Link href="/jobs" className="font-semibold underline hover:text-beedero-black">
-              Open roles
-            </Link>{" "}
-            / {job.title}
-          </nav>
+          <Breadcrumbs
+            items={[
+              { href: "/jobs", label: "Open roles" },
+              { label: job.title },
+            ]}
+          />
 
           <header className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-3">

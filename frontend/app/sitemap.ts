@@ -16,9 +16,11 @@ function staticEntries(lastModified: Date): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/startups`, lastModified, changeFrequency: "daily", priority: 0.95 },
     { url: `${SITE_URL}/jobs`, lastModified, changeFrequency: "daily", priority: 0.95 },
     { url: `${SITE_URL}/register`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/cases`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/cookies`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/disputes`, lastModified, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_URL}/about`, lastModified, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/about`, lastModified, changeFrequency: "yearly", priority: 0.35 },
     { url: `${SITE_URL}/terms`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.2 },
   ];

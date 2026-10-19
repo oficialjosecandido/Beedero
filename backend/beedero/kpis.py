@@ -97,10 +97,16 @@ def kpis_view(request):
     today_local = now().astimezone(LISBON).date()
     day_start = datetime.combine(today_local, time.min, tzinfo=LISBON)
 
-    new_users_today = _count_since(User, "date_joined", day_start)
+    # Pessoas = contas reais. Staff e contas marcadas `is_internal` (testes,
+    # equipa) ficam fora de todos os números sobre utilizadores.
+    people = User.objects.filter(is_staff=False, is_internal=False)
+
+    new_users_today = people.filter(date_joined__gte=day_start).count()
     new_orgs_today = _count_since(Organization, "created_at", day_start, status=live)
     posts_today = _count_since(Activity, "created_at", day_start)
-    logins_today = _count_since(User, "last_login", day_start)
+    # last_seen_at, não last_login: a autenticação por token (Firebase) nunca
+    # chama login(), por isso last_login só mexe com logins no /admin.
+    active_today = people.filter(last_seen_at__gte=day_start).count()
     new_connections_today = _count_since(Connection, "created_at", day_start)
 
     # ---------- REDE ----------
@@ -108,14 +114,16 @@ def kpis_view(request):
     orgs_draft = Organization.objects.filter(status=draft).count()
     orgs_new = _count_since(Organization, "created_at", since, status=live)
 
-    users_total = User.objects.count()
-    users_new = _count_since(User, "date_joined", since)
-    users_new_30d = _count_since(User, "date_joined", now() - timedelta(days=30))
-    users_active_7d = _count_since(User, "last_login", since)
+    users_total = people.count()
+    users_new = people.filter(date_joined__gte=since).count()
+    users_new_30d = people.filter(date_joined__gte=now() - timedelta(days=30)).count()
+    users_active_7d = people.filter(last_seen_at__gte=since).count()
+    # O número que importa: quem já cá estava antes desta semana e voltou.
+    users_returning_7d = people.filter(last_seen_at__gte=since, date_joined__lt=since).count()
     # is_email_verified é uma @property (deriva de email_verified_at), não um
     # campo de BD — filtra pelo campo real.
-    users_email_ok = User.objects.filter(email_verified_at__isnull=False).count()
-    investors_ready = User.objects.filter(investorprofile__is_verified=True).count()
+    users_email_ok = people.filter(email_verified_at__isnull=False).count()
+    investors_ready = people.filter(investorprofile__is_verified=True).count()
     # "Follows" aqui é só follow de organizações (OrgFollow) — pessoas
     # ligam-se por Connection, não incluído por agora.
     follows_new = _count_since(OrgFollow, "created_at", since)
@@ -191,7 +199,7 @@ def kpis_view(request):
         _card("New users", new_users_today, "Today", highlight=True),
         _card("New orgs", new_orgs_today, "Today", highlight=True),
         _card("Posts", posts_today, "Today", highlight=True),
-        _card("Logins", logins_today, "Today", highlight=True),
+        _card("Active people", active_today, "Today", highlight=True),
         _card("New connections", new_connections_today, "Today", highlight=True),
         # -- Network --
         _card("Live orgs", orgs_live, "Network", orgs_new),
@@ -199,6 +207,7 @@ def kpis_view(request):
         _card("Users", users_total, "Network", users_new),
         _card("New users (30d)", users_new_30d, "Network"),
         _card("Active (7d)", users_active_7d, "Network"),
+        _card("Returning (7d)", users_returning_7d, "Network", highlight=True),
         _card("Email verified", users_email_ok, "Network"),
         _card("Ready investors", investors_ready, "Network"),
         _card("New follows", follows_new, "Network") if follows_new is not None else None,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PublicJobCard } from "@/components/jobs/PublicJobCard";
 import { WelcomeNudge } from "@/components/onboarding/WelcomeNudge";
 import { PublicJobFilters } from "@/components/jobs/PublicJobFilters";
@@ -126,7 +127,8 @@ export default async function PublicJobsPage({
               outside the (app) group that mounts the nudge for the others. */}
           <WelcomeNudge tone="light" spacing="" />
           <div className="max-w-2xl">
-            <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
+            <Breadcrumbs items={[{ label: "Open roles" }]} />
+            <p className="mb-2 mt-6 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
               Open roles
             </p>
             <h1 className="text-3xl font-extrabold tracking-tight text-zinc-950 sm:text-4xl">

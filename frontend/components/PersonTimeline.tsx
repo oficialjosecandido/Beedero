@@ -7,6 +7,7 @@ type TimelineMilestone = { id: number; title: string; occurred_at: string };
 export type TimelineBand = {
   org_name: string;
   org_slug: string | null;
+  kind?: "work" | "education";
   role: string;
   title: string;
   started_on: string;
@@ -63,6 +64,11 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                     </Link>
                   ) : (
                     <span className="font-bold">{band.org_name}</span>
+                  )}
+                  {band.kind === "education" && (
+                    <span className="ml-1.5 rounded-full bg-zinc-100 px-2 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-zinc-500">
+                      Education
+                    </span>
                   )}
                   {band.role && (
                     <>

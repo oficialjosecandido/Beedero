@@ -5,6 +5,7 @@ import { ProfileAside } from "@/components/dashboard/ProfileAside";
 import { ProfileHeaderCard } from "@/components/dashboard/ProfileHeaderCard";
 import type { Experience, OrgMembershipExperience } from "@/components/ExperienceManager";
 import { ExperienceManager } from "@/components/ExperienceManager";
+import { LinkedInImport } from "@/components/LinkedInImport";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel";
 import { ProfileForm } from "@/components/ProfileForm";
@@ -179,11 +180,14 @@ export default async function DashboardPage({
         </div>
       ) : (
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
-          <ExperienceManager
-            experiences={experiences}
-            affiliations={affiliations}
-            memberships={experienceMemberships}
-          />
+          <div className="flex min-w-0 flex-col gap-5">
+            <LinkedInImport />
+            <ExperienceManager
+              experiences={experiences}
+              affiliations={affiliations}
+              memberships={experienceMemberships}
+            />
+          </div>
           {aside}
         </div>
       )}

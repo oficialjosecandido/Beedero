@@ -158,3 +158,32 @@ class DailySiteStats(models.Model):
 
     def __str__(self):
         return f"site:{self.date} ({self.unique_visitors} visitors)"
+
+
+class UserActiveDay(models.Model):
+    """One row per person per day (Europe/Lisbon) on which they made at least
+    one authenticated request. The raw material for retention: "of the people
+    who joined in week N, how many were back in week N+1, N+2…" needs every
+    active day, which `User.last_seen_at` alone (the latest one) can't give.
+
+    At most one row per user per day, so it stays small: 1,000 daily users is
+    ~365k rows a year. Deleted with the user (CASCADE)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="active_days", on_delete=models.CASCADE
+    )
+    day = models.DateField()
+    # True = reconstructed by `backfill_active_days` from actions already in
+    # the database (posts, messages, views…) for days before tracking existed.
+    # A lower bound: a day someone only browsed left no trace. False = observed
+    # directly by accounts.activity.record_presence().
+    inferred = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "day"], name="uniq_user_active_day"),
+        ]
+        indexes = [models.Index(fields=["day"])]
+
+    def __str__(self):
+        return f"active:{self.user_id}:{self.day}{' (inferred)' if self.inferred else ''}"

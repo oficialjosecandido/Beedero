@@ -40,6 +40,7 @@ import { SkillsInput } from "./ProfileForm";
 
 export type Experience = {
   id: number;
+  kind?: "work" | "education";
   org_name: string;
   role?: string;
   started_on: string;
@@ -78,6 +79,7 @@ const SELF_DECLARED = "self_declared";
 const FILTERS: { value: string; label: string; types: string[] }[] = [
   { value: "all", label: "All", types: [] },
   { value: "work", label: "Work", types: ["founder", "employee"] },
+  // Self-declared education (SelfDeclaredExperience.kind = "education").
   { value: "academic", label: "Academic", types: ["academic"] },
   { value: "volunteer", label: "Volunteer", types: ["volunteer"] },
   { value: "project", label: "Project", types: ["contractor"] },
@@ -241,9 +243,22 @@ function RecordRow({
   );
 }
 
+function KindSelect({ defaultValue = "work" }: { defaultValue?: Experience["kind"] }) {
+  return (
+    <label className={`sm:col-span-2 ${labelDark}`}>
+      Type
+      <select name="kind" defaultValue={defaultValue} className={`mt-2 ${inputDark} bg-app-elevated`}>
+        <option value="work">Work</option>
+        <option value="education">Education</option>
+      </select>
+    </label>
+  );
+}
+
 function ExperienceFields({ experience }: { experience?: Experience }) {
   return (
     <>
+      <KindSelect defaultValue={experience?.kind ?? "work"} />
       <label className={`sm:col-span-2 ${labelDark}`}>
         Organisation
         <input
@@ -302,9 +317,11 @@ function ExperienceRecord({ experience, isLast }: { experience: Experience; isLa
   const [deleteError, deleteAction, deletePending] = useActionState(deleteExperienceAction, null);
   useActionToast(deleteError, deletePending, { successMessage: "Experience removed." });
 
+  const icon = experience.kind === "education" ? GraduationCap : BriefcaseBusiness;
+
   if (editing) {
     return (
-      <RecordRow icon={BriefcaseBusiness} isLast={isLast}>
+      <RecordRow icon={icon} isLast={isLast}>
         <form action={formAction} className="border border-white/15 bg-white/[0.02] p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-sm font-black tracking-[-0.02em]">Edit experience</h3>
@@ -330,11 +347,12 @@ function ExperienceRecord({ experience, isLast }: { experience: Experience; isLa
   }
 
   return (
-    <RecordRow icon={BriefcaseBusiness} isLast={isLast}>
+    <RecordRow icon={icon} isLast={isLast}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
-            Self-declared · {formatPeriod(experience.started_on, experience.ended_on)}
+            Self-declared{experience.kind === "education" ? " · Education" : ""} ·{" "}
+            {formatPeriod(experience.started_on, experience.ended_on)}
           </p>
           <h3 className="mt-1 text-base font-bold">{experience.role || experience.org_name}</h3>
           {experience.role && <p className="mt-1 text-sm text-white/55">{experience.org_name}</p>}
@@ -603,14 +621,18 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
             </p>
           </>
         ) : (
-          <label className={`sm:col-span-2 ${labelDark}`}>
-            Role <span className="normal-case tracking-normal text-white/25">(optional)</span>
-            <input
-              name="role"
-              placeholder="e.g. Founder, Engineer, Advisor"
-              className={`mt-2 ${inputDark} placeholder:text-white/35`}
-            />
-          </label>
+          <>
+            <KindSelect />
+            <label className={`sm:col-span-2 ${labelDark}`}>
+              Role or degree{" "}
+              <span className="normal-case tracking-normal text-white/25">(optional)</span>
+              <input
+                name="role"
+                placeholder="e.g. Founder, Engineer, MSc Management"
+                className={`mt-2 ${inputDark} placeholder:text-white/35`}
+              />
+            </label>
+          </>
         )}
 
         <label className={labelDark}>
@@ -640,9 +662,9 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
 }
 
 type ExperienceListItem =
-  | { kind: "experience"; startedOn: string; type: string; experience: Experience }
-  | { kind: "affiliation"; startedOn: string; type: string; affiliation: AffiliationSummary }
-  | { kind: "membership"; startedOn: string; type: string; membership: OrgMembershipExperience };
+  | { kind: "experience"; startedOn: string; types: string[]; experience: Experience }
+  | { kind: "affiliation"; startedOn: string; types: string[]; affiliation: AffiliationSummary }
+  | { kind: "membership"; startedOn: string; types: string[]; membership: OrgMembershipExperience };
 
 export function ExperienceManager({
   experiences,
@@ -673,19 +695,20 @@ export function ExperienceManager({
     ...memberships.map((membership): ExperienceListItem => ({
       kind: "membership",
       startedOn: membership.started_on,
-      type: MEMBERSHIP_FILTER_TYPES[membership.role] ?? "employee",
+      types: [MEMBERSHIP_FILTER_TYPES[membership.role] ?? "employee"],
       membership,
     })),
     ...visibleExperiences.map((experience): ExperienceListItem => ({
       kind: "experience",
       startedOn: experience.started_on,
-      type: SELF_DECLARED,
+      // Education is still self-declared, so it answers to both chips.
+      types: experience.kind === "education" ? [SELF_DECLARED, "academic"] : [SELF_DECLARED],
       experience,
     })),
     ...visibleAffiliations.map((affiliation): ExperienceListItem => ({
       kind: "affiliation",
       startedOn: affiliation.started_on,
-      type: affiliation.role,
+      types: [affiliation.role],
       affiliation,
     })),
   ].sort((a, b) => (a.startedOn < b.startedOn ? 1 : a.startedOn > b.startedOn ? -1 : 0));
@@ -696,7 +719,7 @@ export function ExperienceManager({
   const visible =
     activeFilter === "all"
       ? items
-      : items.filter((item) => activeTypes.includes(item.type));
+      : items.filter((item) => item.types.some((type) => activeTypes.includes(type)));
 
   // Aggregated over every record, not just the filtered ones: the capability
   // row answers "what can this person do", which a type filter shouldn't crop.

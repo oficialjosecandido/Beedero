@@ -3,6 +3,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from beedero.firebase import get_firebase_app
 
+from .activity import record_presence
 from .provisioning import get_or_provision_firebase_user
 
 
@@ -60,7 +61,11 @@ class FirebaseIDTokenAuthentication(BaseAuthentication):
         if not claims.get("email_verified"):
             raise AuthenticationFailed("Firebase account has no verified email address.")
 
-        return (get_or_provision_firebase_user(claims), token)
+        user = get_or_provision_firebase_user(claims)
+        # This runs twice per API request (RLSViewerMiddleware, then DRF);
+        # the second call re-reads the row it just updated and writes nothing.
+        record_presence(user)
+        return (user, token)
 
     def authenticate_header(self, request):
         return self.keyword

@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { InstallPwaPrompt } from "@/components/InstallPwaPrompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteFooterGate } from "@/components/SiteFooterGate";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { SitePageViewBeacon } from "@/components/SitePageViewBeacon";
 import { siteMetadata } from "@/lib/site-metadata";
 import "./globals.css";
@@ -43,6 +44,7 @@ export default function RootLayout({
       className={`${clashGrotesk.variable} ${clashGrotesk.className} h-full antialiased`}
     >
       <body className="flex min-h-full w-full flex-col overflow-x-hidden bg-beedero-white text-beedero-black">
+        <GoogleAnalytics />
         <SitePageViewBeacon />
         <ServiceWorkerRegistration />
         <ForegroundPushListener />

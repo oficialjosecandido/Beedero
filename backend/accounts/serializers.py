@@ -141,7 +141,7 @@ class SelfDeclaredExperienceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SelfDeclaredExperience
-        fields = ["id", "org_name", "role", "started_on", "ended_on", "skills"]
+        fields = ["id", "kind", "org_name", "role", "started_on", "ended_on", "skills"]
         read_only_fields = ["id"]
 
     def validate_skills(self, value):

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ApiError, apiFetch, publicFetch, safeFetch } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 import { noIndexMetadata } from "@/lib/site-metadata";
@@ -90,12 +91,13 @@ export default async function ApplyPage({
     <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
       <div className="flex w-full max-w-2xl flex-col gap-6">
         <div>
-          <nav aria-label="Breadcrumb" className="text-xs text-zinc-500">
-            <Link href={`/jobs/${job.id}`} className="font-semibold underline hover:text-beedero-black">
-              {job.title}
-            </Link>{" "}
-            / Apply
-          </nav>
+          <Breadcrumbs
+            items={[
+              { href: "/jobs", label: "Open roles" },
+              { href: `/jobs/${job.id}`, label: job.title },
+              { label: "Apply" },
+            ]}
+          />
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-zinc-950 sm:text-3xl">
             Apply to {job.org.name}
           </h1>

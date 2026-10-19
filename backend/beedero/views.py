@@ -38,6 +38,9 @@ def run_management_job(request):
         "send_investor_alerts": ("send_investor_alerts", []),
         "expire_jobs": ("expire_jobs", []),
         "team_invite_upkeep": ("team_invite_upkeep", []),
+        # One-off (re-runnable): reconstructs active days from before presence
+        # tracking existed. Triggered by hand from manual-backfill-active-days.yml.
+        "backfill_active_days": ("backfill_active_days", []),
     }
     if job not in allowed:
         return JsonResponse({"detail": "Unknown job"}, status=400)

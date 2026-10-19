@@ -52,6 +52,7 @@ export default async function RegisterPage({
           signupRef={signupRef}
           submitLabel="Email me a sign-up code"
           initialError={authErrorMessage(error)}
+          thanksPath="/thanks"
         />
         <p className="text-center text-sm text-zinc-600">
           Already have an account?{" "}

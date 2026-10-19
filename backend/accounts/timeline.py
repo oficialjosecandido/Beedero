@@ -55,6 +55,7 @@ def person_timeline(profile, viewer) -> list[dict]:
             {
                 "org_name": membership.org.name,
                 "org_slug": membership.org.slug if org_is_live else None,
+                "kind": "work",
                 "role": membership.get_role_display(),
                 "title": membership.title,
                 "started_on": membership.started_on.isoformat(),
@@ -84,6 +85,7 @@ def person_timeline(profile, viewer) -> list[dict]:
             {
                 "org_name": experience.org_name,
                 "org_slug": None,
+                "kind": experience.kind,
                 "role": experience.role,
                 "title": "",
                 "started_on": experience.started_on.isoformat(),
@@ -111,6 +113,7 @@ def person_timeline(profile, viewer) -> list[dict]:
             {
                 "org_name": affiliation.org.name,
                 "org_slug": affiliation.org.slug,
+                "kind": "work",
                 "role": affiliation.get_role_display(),
                 "title": affiliation.title,
                 "started_on": affiliation.started_on.isoformat(),

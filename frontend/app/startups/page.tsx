@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StartupDirectory } from "@/components/StartupDirectory";
 import { StartupDirectoryJsonLd } from "@/components/StartupDirectoryJsonLd";
 import { publicFetch } from "@/lib/api";
@@ -89,7 +90,8 @@ export default async function StartupsPage({
       <main className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
         <div className="flex w-full max-w-5xl flex-col gap-8">
           <div className="max-w-2xl">
-            <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
+            <Breadcrumbs items={[{ label: "Startups" }]} />
+            <p className="mb-2 mt-6 text-sm font-bold uppercase tracking-[0.2em] text-beedero-black">
               Startup directory
             </p>
             <h1 className="text-3xl font-extrabold tracking-tight text-zinc-950 sm:text-4xl">

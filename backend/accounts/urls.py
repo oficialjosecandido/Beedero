@@ -1,8 +1,10 @@
 from django.urls import path
 
-from . import onboarding_views, public_views, signin_link, views
+from . import linkedin_views, onboarding_views, public_views, signin_link, views
 
 urlpatterns = [
+    path("profile/import/linkedin/preview/", linkedin_views.LinkedInImportPreviewView.as_view()),
+    path("profile/import/linkedin/apply/", linkedin_views.LinkedInImportApplyView.as_view()),
     path("auth/signin-link/", signin_link.SignInLinkView.as_view()),
     path("auth/signin-code/verify/", signin_link.SignInCodeVerifyView.as_view()),
     path("auth/me/", views.MeView.as_view()),

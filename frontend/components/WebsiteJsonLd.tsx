@@ -28,11 +28,27 @@ const organizationJsonLd = {
   legalName: LEGAL_ENTITY.legalName,
   url: SITE_URL,
   logo: `${SITE_URL}/og.png`,
+  email: LEGAL_ENTITY.contactEmail,
   taxID: LEGAL_ENTITY.nif,
   address: {
     "@type": "PostalAddress",
-    streetAddress: LEGAL_ENTITY.address,
+    streetAddress: "Rua da Fontainha 7",
+    postalCode: "2640-019",
+    addressLocality: "Santo Isidoro",
     addressCountry: "PT",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: LEGAL_ENTITY.contactEmail,
+    availableLanguage: ["English", "Portuguese"],
+    hoursAvailable: {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "09:00",
+      closes: "18:00",
+    },
+    description: "We reply within 24 hours on business days.",
   },
 };
 

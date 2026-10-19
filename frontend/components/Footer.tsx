@@ -7,7 +7,9 @@ const PRODUCT_LINKS = [
   // On every page, which is how a crawler finds /jobs without waiting for the
   // sitemap — and how a visitor who came for a company finds the roles.
   { href: "/jobs", label: "Open roles" },
-  { href: "/#how-it-works", label: "How it works" },
+  { href: "/cases", label: "Cases & results" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/#product", label: "How it works" },
 ] as const;
 
 const LEGAL_LINKS = [
@@ -20,6 +22,7 @@ const LEGAL_LINKS = [
 
 const COMPANY_LINKS = [
   { href: "/about", label: "About" },
+  { href: "/faq", label: "Support (24h reply)" },
   { href: `mailto:${COMPANY.contactEmail}`, label: "Contact", external: false },
   {
     href: "https://www.livroreclamacoes.pt/inicio",

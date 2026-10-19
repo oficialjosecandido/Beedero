@@ -41,6 +41,7 @@ export async function createExperienceAction(_prevState: string | null, formData
     await apiFetch("/experience/", {
       method: "POST",
       body: {
+        kind: String(formData.get("kind") ?? "work") === "education" ? "education" : "work",
         org_name: orgName,
         role,
         started_on: startedOn,
@@ -85,6 +86,7 @@ export async function updateExperienceAction(_prevState: string | null, formData
     await apiFetch(`/experience/${id}/`, {
       method: "PATCH",
       body: {
+        kind: String(formData.get("kind") ?? "work") === "education" ? "education" : "work",
         org_name: orgName,
         role: String(formData.get("role") ?? "").trim(),
         started_on: startedOn,

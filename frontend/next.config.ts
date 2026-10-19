@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
       { source: "/litigios", destination: "/disputes", permanent: true },
       { source: "/termos", destination: "/terms", permanent: true },
       { source: "/privacidade", destination: "/privacy", permanent: true },
+      { source: "/perguntas", destination: "/faq", permanent: true },
+      { source: "/casos", destination: "/cases", permanent: true },
+      { source: "/obrigado", destination: "/thanks", permanent: true },
       { source: "/pricing", destination: "/", permanent: false },
     ];
   },

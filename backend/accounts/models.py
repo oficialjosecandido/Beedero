@@ -24,6 +24,17 @@ class User(AbstractUser):
     # which is the common case for anyone who typed the address in directly.
     signup_source = models.CharField(max_length=40, blank=True, db_index=True)
     signup_ref = models.CharField(max_length=120, blank=True)
+    # Last authenticated API request, written at most once an hour (see
+    # accounts/activity.py). This — not `last_login` — is what "active" means:
+    # bearer-token auth never calls django.contrib.auth.login(), so
+    # `last_login` only moves when someone signs in to /admin.
+    last_seen_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Test and team accounts. Kept out of every product metric (KPIs, cohorts,
+    # the acquisition funnel) so the numbers describe real users.
+    is_internal = models.BooleanField(
+        default=False,
+        help_text="Test or team account — excluded from KPIs and retention metrics.",
+    )
 
     @property
     def is_email_verified(self) -> bool:
@@ -152,7 +163,14 @@ class SelfDeclaredExperience(models.Model):
     dashed/light band on the timeline, distinct from verified OrgMembership
     bands (see accounts/timeline.py)."""
 
+    class Kind(models.TextChoices):
+        WORK = "work", "Work"
+        EDUCATION = "education", "Education"
+
     user = models.ForeignKey(User, related_name="self_declared_experiences", on_delete=models.CASCADE)
+    # Education rows reuse the same shape (institution, degree, dates) so they
+    # sit on the same timeline, labelled — added for the LinkedIn import.
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.WORK)
     org_name = models.CharField(max_length=200)
     role = models.CharField(max_length=120, blank=True)
     started_on = models.DateField()

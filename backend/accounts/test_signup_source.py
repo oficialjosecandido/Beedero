@@ -11,9 +11,11 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from accounts.acquisition import acquisition_funnel
+from accounts.activity import local_day
 from accounts.models import InvestorProfile, User
 from accounts.provisioning import get_or_provision_firebase_user
 from accounts.signup_source import claim_ref, parse_ref, stash_ref
+from analytics.models import UserActiveDay
 from orgs.models import OrgFollow, Organization
 
 
@@ -144,13 +146,15 @@ def test_no_ref_is_not_an_error():
 # --- the funnel -------------------------------------------------------------
 
 
-def _person(email, *, source="", ref="", complete=False, last_login_days=None):
+def _person(email, *, source="", ref="", complete=False, active_after_days=None):
     user = User.objects.create_user(username=email.split("@")[0], email=email, password="x")
     user.signup_source = source
     user.signup_ref = ref
-    if last_login_days is not None:
-        user.last_login = user.date_joined + timezone.timedelta(days=last_login_days)
     user.save()
+    if active_after_days is not None:
+        UserActiveDay.objects.create(
+            user=user, day=local_day(user.date_joined) + timezone.timedelta(days=active_after_days)
+        )
     fields = (
         {
             "full_name": "Ada Lovelace",
@@ -217,12 +221,34 @@ def test_top_refs_show_the_detail_half():
 
 @pytest.mark.django_db
 def test_returned_within_7_days_is_a_window_not_a_floor():
-    _person("same@example.com", source="job", last_login_days=0)  # same day
-    _person("week@example.com", source="job", last_login_days=3)  # came back
-    _person("late@example.com", source="job", last_login_days=20)  # too late
+    _person("same@example.com", source="job", active_after_days=0)  # same day
+    _person("week@example.com", source="job", active_after_days=3)  # came back
+    _person("late@example.com", source="job", active_after_days=20)  # too late
 
     row = next(r for r in acquisition_funnel()["rows"] if r["label"] == "job")
     assert row["returned"] == 1
+
+
+@pytest.mark.django_db
+def test_returning_later_does_not_erase_a_first_week_return():
+    """The old last_login proxy forgot anyone who kept coming back."""
+    user = _person("loyal@example.com", source="job", active_after_days=2)
+    UserActiveDay.objects.create(
+        user=user, day=local_day(user.date_joined) + timezone.timedelta(days=25)
+    )
+    row = next(r for r in acquisition_funnel()["rows"] if r["label"] == "job")
+    assert row["returned"] == 1
+
+
+@pytest.mark.django_db
+def test_internal_and_staff_accounts_are_not_a_channel():
+    _person("real@example.com", source="job")
+    tester = _person("tester@example.com", source="job")
+    tester.is_internal = True
+    tester.save()
+    User.objects.create_user(username="staff", email="s@example.com", password="x", is_staff=True)
+
+    assert acquisition_funnel()["total"]["registered"] == 1
 
 
 @pytest.mark.django_db

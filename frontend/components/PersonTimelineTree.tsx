@@ -11,7 +11,7 @@ const YEAR_COLUMN = 58;
 const MIN_BRANCH_WIDTH = 120;
 const GAP = 8;
 
-type Category = "work" | "advisory" | "volunteer" | "project" | "declared";
+type Category = "work" | "education" | "advisory" | "volunteer" | "project" | "declared";
 
 const CATEGORIES: Record<Category, { label: string; bar: string; accent: string; dot: string }> = {
   work: {
@@ -19,6 +19,12 @@ const CATEGORIES: Record<Category, { label: string; bar: string; accent: string;
     bar: "border-l-beedero-yellow",
     accent: "text-amber-700",
     dot: "bg-beedero-yellow",
+  },
+  education: {
+    label: "Education",
+    bar: "border-l-indigo-300",
+    accent: "text-indigo-700",
+    dot: "bg-indigo-300",
   },
   advisory: {
     label: "Advisory",
@@ -46,7 +52,7 @@ const CATEGORIES: Record<Category, { label: string; bar: string; accent: string;
   },
 };
 
-const CATEGORY_ORDER: Category[] = ["work", "advisory", "project", "volunteer", "declared"];
+const CATEGORY_ORDER: Category[] = ["work", "education", "advisory", "project", "volunteer", "declared"];
 
 /**
  * Roles arrive as display strings from three different models, so the group
@@ -54,6 +60,7 @@ const CATEGORY_ORDER: Category[] = ["work", "advisory", "project", "volunteer", 
  * to the record's verification state, which is the one fact always present.
  */
 function categoryOf(band: TimelineBand): Category {
+  if (band.kind === "education") return "education";
   const role = band.role.toLowerCase();
   if (role.includes("volunteer")) return "volunteer";
   if (role.includes("advisor") || role.includes("board") || role.includes("fractional")) {

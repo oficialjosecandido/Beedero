@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
 
 import {
   confirmSignInAction,
@@ -25,9 +26,22 @@ type Props = {
   /** Surfaced by the callback route via ?error= when a link fails before any
    * form is submitted. */
   initialError?: string | null;
+  /** Skip straight to the code step (e.g. /thanks after the email left). */
+  initialSentEmail?: string | null;
+  /** After a successful send, navigate here for conversion measurement. */
+  thanksPath?: string;
 };
 
-export function EmailLinkForm({ mode, next, signupRef, submitLabel, initialError }: Props) {
+export function EmailLinkForm({
+  mode,
+  next,
+  signupRef,
+  submitLabel,
+  initialError,
+  initialSentEmail,
+  thanksPath,
+}: Props) {
+  const router = useRouter();
   const action = mode === "confirm" ? confirmSignInAction : sendSignInLinkAction;
   const [state, formAction, pending] = useActionState<SignInState, FormData>(action, null);
   const [codeState, codeAction, codePending] = useActionState<SignInState, FormData>(
@@ -35,16 +49,36 @@ export function EmailLinkForm({ mode, next, signupRef, submitLabel, initialError
     null
   );
 
+  useEffect(() => {
+    if (!thanksPath || !state?.sent) return;
+    const params = new URLSearchParams({ email: state.sent });
+    if (next && next !== "/feed") params.set("next", next);
+    if (signupRef) params.set("ref", signupRef);
+    router.replace(`${thanksPath}?${params.toString()}`);
+  }, [thanksPath, state?.sent, next, signupRef, router]);
+
   // A fresh submission's own result always wins over the stale query-string
   // error that brought the user here.
   const error =
     state?.error ?? (state === null && codeState === null ? initialError : null);
 
+  const sentEmail = state?.sent ?? initialSentEmail ?? null;
+
   // Second step: the email is out, and the code is what finishes the job. It
   // beats the link on every device and is the only thing that works inside an
   // installed iOS app, where a tapped link opens Safari — a different cookie
   // jar from the app, so it would sign in the wrong place.
-  if (state?.sent) {
+  if (sentEmail) {
+    // While redirecting to /thanks, keep a quiet loading state instead of
+    // flashing the code form twice.
+    if (thanksPath && state?.sent && !initialSentEmail) {
+      return (
+        <p className="rounded-2xl border-2 border-beedero-border px-4 py-4 text-sm text-zinc-600">
+          Sending you to the next step…
+        </p>
+      );
+    }
+
     return (
       <form action={codeAction} className="flex flex-col gap-3">
         <input type="hidden" name="next" value={next} />
@@ -52,7 +86,7 @@ export function EmailLinkForm({ mode, next, signupRef, submitLabel, initialError
         <div className="rounded-2xl border-2 border-beedero-black bg-beedero-yellow/20 px-4 py-4">
           <p className="text-sm font-bold">Check your inbox</p>
           <p className="mt-1 text-sm text-zinc-700">
-            We sent a 6-digit code to <span className="font-semibold">{state.sent}</span>. Enter it
+            We sent a 6-digit code to <span className="font-semibold">{sentEmail}</span>. Enter it
             below — it expires in 10 minutes.
           </p>
         </div>

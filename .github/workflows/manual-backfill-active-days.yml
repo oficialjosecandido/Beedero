@@ -1,0 +1,19 @@
+name: Backfill active days (manual)
+
+# Run once, by hand, after the deploy that adds UserActiveDay. Safe to re-run:
+# it only adds missing inferred days and never touches observed ones.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run backfill_active_days
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: backfill_active_days"

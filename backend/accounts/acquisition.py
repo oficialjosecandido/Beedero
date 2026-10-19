@@ -112,27 +112,37 @@ def connected_user_ids(user_ids) -> set[int]:
     return connected & set(user_ids)
 
 
-def _returned_within_7_days(user) -> bool:
-    """Did they come back on a later day, within the first week?
+def returned_user_ids(users) -> set[int]:
+    """Who came back on a later day within their first week: an active day
+    (analytics.UserActiveDay) between day 1 and day 7 after the day they
+    joined, both in Lisbon time.
 
-    A proxy, and worth being honest about: there is no session log, only
-    `last_login`. So this asks whether the most recent login is at least a day
-    after joining and no more than seven — which undercounts anyone who came
-    back in week one and has been using Beedero ever since (their `last_login`
-    has moved past the window). That bias is the safe direction for a metric
-    used to decide where to spend time: it never flatters a channel.
+    This used to read `last_login`, which bearer-token auth never updates —
+    it only moves on an /admin sign-in — so the step read ~0 for everyone.
+    Active days are written on every authenticated request
+    (accounts/activity.py), plus a backfill for the time before.
     """
-    if user.last_login is None:
-        return False
-    delta = user.last_login - user.date_joined
-    return timedelta(days=1) <= delta <= timedelta(days=7)
+    from analytics.models import UserActiveDay
+
+    from .activity import local_day
+
+    joined = {u.id: local_day(u.date_joined) for u in users}
+    if not joined:
+        return set()
+    returned = set()
+    for user_id, day in UserActiveDay.objects.filter(user_id__in=joined).values_list(
+        "user_id", "day"
+    ):
+        if timedelta(days=1) <= day - joined[user_id] <= timedelta(days=7):
+            returned.add(user_id)
+    return returned
 
 
-def _funnel_row(label, users, profile_ok, connected) -> dict:
+def _funnel_row(label, users, profile_ok, connected, returned_ids) -> dict:
     registered = len(users)
     with_profile = sum(1 for u in users if u.id in profile_ok)
     with_connection = sum(1 for u in users if u.id in connected)
-    returned = sum(1 for u in users if _returned_within_7_days(u))
+    returned = sum(1 for u in users if u.id in returned_ids)
     # Activated, per §0: all three, not any of them.
     activated = sum(
         1 for u in users if u.id in profile_ok and u.id in connected
@@ -165,7 +175,11 @@ def acquisition_funnel(*, window_days: int = WINDOW_DAYS) -> dict:
     since = now() - timedelta(days=window_days)
     # No `.only()`: profile_completion reads eight InvestorProfile fields, and
     # deferring any of them would turn this into a query per user.
-    users = list(User.objects.filter(date_joined__gte=since).select_related("investorprofile"))
+    # Staff and accounts marked internal (tests, the team) are not a channel.
+    users = list(
+        User.objects.filter(date_joined__gte=since, is_staff=False, is_internal=False)
+        .select_related("investorprofile")
+    )
 
     profile_ok = set()
     for user in users:
@@ -174,6 +188,7 @@ def acquisition_funnel(*, window_days: int = WINDOW_DAYS) -> dict:
             profile_ok.add(user.id)
 
     connected = connected_user_ids([u.id for u in users])
+    returned_ids = returned_user_ids(users)
 
     by_source: dict[str, list] = {}
     for user in users:
@@ -184,7 +199,7 @@ def acquisition_funnel(*, window_days: int = WINDOW_DAYS) -> dict:
         by_source.setdefault(user.signup_source or "direct/unknown", []).append(user)
 
     rows = [
-        _funnel_row(source, cohort, profile_ok, connected)
+        _funnel_row(source, cohort, profile_ok, connected, returned_ids)
         for source, cohort in sorted(
             by_source.items(), key=lambda kv: (-len(kv[1]), kv[0])
         )
@@ -205,6 +220,6 @@ def acquisition_funnel(*, window_days: int = WINDOW_DAYS) -> dict:
         "window_days": window_days,
         "profile_threshold": PROFILE_THRESHOLD,
         "rows": rows,
-        "total": _funnel_row("All origins", users, profile_ok, connected),
+        "total": _funnel_row("All origins", users, profile_ok, connected, returned_ids),
         "top_refs": top_refs,
     }

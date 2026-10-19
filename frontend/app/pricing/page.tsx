@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getAccessToken, getRefreshToken } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
 
@@ -37,7 +38,8 @@ export default async function PricingPage() {
       </header>
 
       <section className="mx-auto max-w-[1280px] py-16 sm:py-24">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
+        <Breadcrumbs items={[{ label: "Pricing" }]} tone="light" />
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
           Simple by design
         </p>
         <h1 className="mt-6 max-w-4xl text-[clamp(3.5rem,8vw,7.5rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]">

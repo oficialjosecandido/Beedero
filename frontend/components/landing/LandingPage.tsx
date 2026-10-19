@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { CASE_STUDIES } from "@/lib/cases-content";
+import { FAQ_ITEMS, SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
+import { COMPANY } from "@/lib/legal-content";
+
 const PEOPLE = {
   founders: {
     tab: "Founders",
@@ -61,12 +65,13 @@ type Props = {
 export function LandingPage({ primaryHref, primaryLabel }: Props) {
   const [person, setPerson] = useState<PersonKey>("founders");
   const [access, setAccess] = useState<"Public" | "Verified only" | "Private">("Verified only");
-  const [showTop, setShowTop] = useState(false);
+  const [showStickyCta, setShowStickyCta] = useState(false);
   const current = PEOPLE[person];
 
   useEffect(() => {
     function onScroll() {
-      setShowTop(window.scrollY > 560);
+      // After the hero CTA leaves the viewport, keep a mobile conversion bar.
+      setShowStickyCta(window.scrollY > 420);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -85,8 +90,11 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
           <a href="#product" className="hover:text-white">
             How it works
           </a>
-          <Link href="/pricing" className="hover:text-white">
-            Pricing
+          <Link href="/cases" className="hover:text-white">
+            Cases
+          </Link>
+          <Link href="/faq" className="hover:text-white">
+            FAQ
           </Link>
         </nav>
         <Link
@@ -124,7 +132,9 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
                 It’s free to start
               </Link>
             </div>
-            <p className="mt-5 text-sm text-white/45">Free to join. Built for the next step.</p>
+            <p className="mt-5 text-sm text-white/45">
+              Free to join. {SUPPORT_RESPONSE_SLA}
+            </p>
           </div>
 
           <div className="border border-beedero-yellow/45 bg-beedero-yellow p-3 text-beedero-black">
@@ -271,6 +281,81 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
         </div>
       </section>
 
+      <section id="cases" className="scroll-mt-8 border-t border-white/10 px-5 py-20 sm:px-8">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
+                Results
+              </p>
+              <h2 className="mt-4 max-w-xl text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-5xl">
+                Cases with outcomes.
+              </h2>
+            </div>
+            <Link href="/cases" className="text-xs font-black uppercase text-beedero-yellow hover:text-white">
+              All cases →
+            </Link>
+          </div>
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+            {CASE_STUDIES.map((study) => (
+              <Link
+                key={study.slug}
+                href={`/cases#${study.slug}`}
+                className="border border-white/15 bg-white/[0.03] p-5 transition hover:border-beedero-yellow"
+              >
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-beedero-yellow">
+                  {study.role}
+                </p>
+                <h3 className="mt-3 text-lg font-black tracking-[-0.03em]">{study.headline}</h3>
+                <p className="mt-3 text-sm leading-6 text-white/55">{study.summary}</p>
+                <p className="mt-6 text-2xl font-black text-beedero-yellow">{study.metric}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
+                  {study.metricLabel}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="scroll-mt-8 border-t border-white/10 px-5 py-20 sm:px-8">
+        <div className="mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
+              FAQ
+            </p>
+            <h2 className="mt-4 text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-5xl">
+              Straight answers.
+            </h2>
+            <p className="mt-5 max-w-sm text-sm leading-6 text-white/55">
+              {SUPPORT_RESPONSE_SLA}{" "}
+              <a href={`mailto:${COMPANY.contactEmail}`} className="text-beedero-yellow hover:underline">
+                {COMPANY.contactEmail}
+              </a>
+            </p>
+            <Link
+              href="/faq"
+              className="mt-6 inline-block text-xs font-black uppercase text-beedero-yellow hover:text-white"
+            >
+              Full FAQ →
+            </Link>
+          </div>
+          <div className="divide-y divide-white/10 border-y border-white/10">
+            {FAQ_ITEMS.slice(0, 5).map((item) => (
+              <details key={item.question} className="group py-4">
+                <summary className="cursor-pointer list-none text-sm font-bold marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-start justify-between gap-3">
+                    {item.question}
+                    <span className="text-white/35 transition group-open:rotate-45">+</span>
+                  </span>
+                </summary>
+                <p className="mt-2 text-sm leading-6 text-white/55">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="bg-beedero-yellow px-5 py-16 text-beedero-black sm:px-8">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-end justify-between gap-8">
           <div>
@@ -292,44 +377,53 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
         </div>
       </section>
 
-      <footer className="px-5 py-9 sm:px-8">
+      <footer className="px-5 py-9 pb-28 sm:px-8 md:pb-9">
         <div className="mx-auto grid max-w-[1440px] gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <p className="text-lg font-black uppercase tracking-[-0.07em]">Beedero</p>
             <p className="mt-2 text-xs text-white/45">
-              A professional network built to move people forward.
+              A professional network built to move people forward. {SUPPORT_RESPONSE_SLA}
             </p>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-3 text-[11px] font-bold uppercase text-white/55">
-            <Link href="/pricing" className="hover:text-white">
-              Pricing
+            <Link href="/startups" className="hover:text-white">
+              Discover
             </Link>
-            <Link href="/privacy" className="hover:text-white">
-              Privacy policy
+            <Link href="/jobs" className="hover:text-white">
+              Open roles
             </Link>
-            <Link href="/terms" className="hover:text-white">
-              Terms of use
+            <Link href="/cases" className="hover:text-white">
+              Cases
             </Link>
-            <Link href="/cookies" className="hover:text-white">
-              Cookie policy
+            <Link href="/faq" className="hover:text-white">
+              FAQ
             </Link>
             <Link href="/about" className="hover:text-white">
-              Legal information
+              About
+            </Link>
+            <Link href="/privacy" className="hover:text-white">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-white">
+              Terms
             </Link>
           </div>
         </div>
       </footer>
 
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        aria-label="Back to top"
-        className={`fixed bottom-5 right-5 z-30 grid h-12 w-12 place-items-center rounded-full border border-beedero-yellow/70 bg-black text-lg text-beedero-yellow shadow-xl transition-all ${
-          showTop ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+      <div
+        className={`fixed inset-x-0 bottom-0 z-30 border-t border-beedero-yellow/40 bg-[#070806]/95 p-3 backdrop-blur transition-all md:hidden ${
+          showStickyCta ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
         }`}
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
-        ↑
-      </button>
+        <Link
+          href={primaryHref}
+          className="flex w-full items-center justify-center rounded-full bg-beedero-yellow py-3.5 text-xs font-black uppercase text-beedero-black"
+        >
+          {primaryLabel === "Enter Beedero" ? "Enter Beedero" : "Join free"} →
+        </Link>
+      </div>
     </main>
   );
 }
