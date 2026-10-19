@@ -1,14 +1,15 @@
-"""Weekly posting cadence for a person — Europe/Lisbon ISO weeks, not UTC.
+"""Week cadence — one personal post per Lisbon calendar day.
 
-Same calendar rule as orgs/posting/limits.py: a person's week is the week they
-actually live in, so a Sunday-night post counts for that Sunday's week and not
-the next one.
+Same calendar rule as orgs/posting/limits.py: a person's day is the day they
+actually live in (Europe/Lisbon), so a late-night post still counts for that
+local date.
 
-This is a streak, not a checklist item, and the distinction is the reason this
-module exists. A tick that stays green forever after one post would be a lie;
-a tick that goes out every Monday inside something called a "ladder" would be
-incoherent, because a ladder does not go down. Consecutive weeks say the true
-thing: the record is being kept up, or it lapsed and started again.
+This is a streak of consecutive days, not a checklist item. A tick that stays
+green forever after one post would be a lie; consecutive days say the true
+thing: the record is being kept up daily, or it lapsed and started again.
+
+The UI shows the current ISO week (Mon–Sun) as seven day slots — "Week
+cadence" — while the streak itself is counted in days.
 """
 
 from datetime import date, datetime, time, timedelta
@@ -20,36 +21,21 @@ from orgs.models import Activity
 
 LISBON = ZoneInfo("Europe/Lisbon")
 
-# A personal post is an Activity with no org — the same definition
-# accounts/completeness.py uses for `first_post`.
-Week = tuple[int, int]
+
+def _day_of(moment: datetime) -> date:
+    return moment.astimezone(LISBON).date()
 
 
-def _week_of(moment: datetime) -> Week:
-    """ISO (year, week) of a datetime, read on the Lisbon calendar."""
-    year, week, _ = moment.astimezone(LISBON).date().isocalendar()
-    return year, week
-
-
-def _shift(week: Week, weeks: int) -> Week:
-    """Step whole ISO weeks through a real date, so neither 52- nor 53-week
-    years need special-casing."""
-    year, number = week
-    monday = date.fromisocalendar(year, number, 1) + timedelta(weeks=weeks)
-    shifted_year, shifted_week, _ = monday.isocalendar()
-    return shifted_year, shifted_week
-
-
-def _longest_run(weeks: set[Week]) -> int:
+def _longest_run(days: set[date]) -> int:
     best = 0
-    for week in weeks:
-        if _shift(week, -1) in weeks:
-            continue  # not the start of a run — it will be counted from there
+    for day in days:
+        if (day - timedelta(days=1)) in days:
+            continue
         length = 0
-        cursor = week
-        while cursor in weeks:
+        cursor = day
+        while cursor in days:
             length += 1
-            cursor = _shift(cursor, 1)
+            cursor += timedelta(days=1)
         best = max(best, length)
     return best
 
@@ -58,31 +44,34 @@ def posting_cadence(user) -> dict:
     posted_at = list(
         Activity.objects.filter(author=user, org__isnull=True).values_list("created_at", flat=True)
     )
-    weeks = {_week_of(moment) for moment in posted_at}
+    days = {_day_of(moment) for moment in posted_at}
 
     now_lisbon = timezone.now().astimezone(LISBON)
-    this_week = _week_of(timezone.now())
-    posted_this_week = this_week in weeks
+    today = now_lisbon.date()
+    posted_today = today in days
 
-    # The count starts from the last week that is already over. Measuring from
-    # the current week instead would break every streak on Monday morning,
-    # before the person had any chance to post; this week only adds to the
-    # total once it actually has a post in it.
-    cursor = this_week if posted_this_week else _shift(this_week, -1)
+    # Count from yesterday when today is still empty — otherwise every streak
+    # would read zero every morning before the person has had a chance to post.
+    cursor = today if posted_today else today - timedelta(days=1)
     streak = 0
-    while cursor in weeks:
+    while cursor in days:
         streak += 1
-        cursor = _shift(cursor, -1)
+        cursor -= timedelta(days=1)
 
-    monday = now_lisbon.date() - timedelta(days=now_lisbon.weekday())
-    next_monday = datetime.combine(monday + timedelta(days=7), time.min, tzinfo=LISBON)
+    monday = today - timedelta(days=today.weekday())
+    week_days = [(monday + timedelta(days=offset)) in days for offset in range(7)]
+
+    tomorrow = datetime.combine(today + timedelta(days=1), time.min, tzinfo=LISBON)
+    hours_left = max(0, int((tomorrow - now_lisbon).total_seconds() // 3600))
 
     return {
-        "posted_this_week": posted_this_week,
-        "streak_weeks": streak,
-        "best_streak_weeks": _longest_run(weeks),
-        "weeks_posted": len(weeks),
+        "posted_today": posted_today,
+        "streak_days": streak,
+        "best_streak_days": _longest_run(days),
+        "days_posted": len(days),
         "week_started_on": monday.isoformat(),
-        "days_left": (next_monday - now_lisbon).days + 1,
+        "week_days": week_days,
+        "today_index": today.weekday(),  # Mon=0 … Sun=6 on the Lisbon calendar
+        "hours_left": hours_left,
         "last_post_at": max(posted_at).isoformat() if posted_at else None,
     }

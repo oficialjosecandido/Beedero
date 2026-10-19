@@ -1,5 +1,4 @@
-import { FeedComposer } from "./FeedComposer";
-import { FeedList } from "./FeedList";
+import { FeedHome } from "./FeedHome";
 import { FeedRightColumn } from "./FeedRightColumn";
 import type { FeedItem } from "./types";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
@@ -114,20 +113,18 @@ export default async function FeedPage() {
         </div>
       </div>
 
-      <div className="mt-7">
-        <FeedComposer
-          name={displayName}
-          profilePicture={profile?.profile_picture}
-          profileComplete={profileComplete}
-          hasPostedToday={hasPostedToday}
-          completeness={vitality?.completeness ?? 0}
-          checklist={vitality?.checklist ?? []}
-        />
-      </div>
-
-      <div className="mt-5">
-        <FeedList initialItems={items} initialCursor={next_cursor} />
-      </div>
+      <FeedHome
+        initialItems={items}
+        initialCursor={next_cursor}
+        composer={{
+          name: displayName,
+          profilePicture: profile?.profile_picture,
+          profileComplete,
+          hasPostedToday,
+          completeness: vitality?.completeness ?? 0,
+          checklist: vitality?.checklist ?? [],
+        }}
+      />
 
       <FeedRightColumn organizations={recommendations.organizations} events={events} />
     </>

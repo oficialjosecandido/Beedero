@@ -444,8 +444,9 @@ export function LinkedInImport({
         </form>
 
         <p className={t.note}>
-          We only read your profile, positions, education and skills. Your connections and messages
-          are never opened, and the file isn&apos;t stored.
+          We only read your profile, positions, education and skills — your connections and messages
+          are never opened. The file is read in memory, never written to our disks, and discarded the
+          moment we finish reading it. We keep no copy.
         </p>
       </div>
     );
@@ -483,6 +484,17 @@ export function LinkedInImport({
       </div>
 
       <MissingFilesNote tone={tone} filesRead={preview.files_read} />
+
+      {/*
+        The upload is already gone by the time this screen renders — it lived
+        in memory for one request. Saying so here, where the person can see
+        their own data on screen and reasonably wonder where the file went, is
+        what makes the promise on the upload screen worth anything.
+      */}
+      <p className={t.note}>
+        Your file has already been discarded — it was read in memory, never written to our disks, and
+        no copy was kept. What you see here came from it; only the items you tick get saved.
+      </p>
 
       {(showName || p.headline.imported || p.bio.imported || showCountry) && (
         <section className="flex flex-col gap-2">

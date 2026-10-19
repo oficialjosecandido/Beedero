@@ -428,6 +428,46 @@ def test_link_preview_degrades_gracefully_on_fetch_failure(api, outsider, monkey
 
 
 @pytest.mark.django_db
+def test_link_preview_retries_failed_after_cooldown(api, outsider, monkeypatch):
+    from django.utils import timezone
+    from datetime import timedelta
+
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append(params["url"])
+        if len(calls) == 1:
+            raise RuntimeError("unreachable")
+        return _FakeResponse(
+            {
+                "status": "success",
+                "data": {
+                    "title": "Recovered",
+                    "description": "ok",
+                    "image": {"url": "https://img.example.com/x.png"},
+                    "publisher": "Example",
+                },
+            }
+        )
+
+    monkeypatch.setattr(unfurl_module.requests, "get", fake_get)
+    api.force_authenticate(outsider)
+
+    first = api.get("/api/links/preview/?url=https://flaky.example.com/story")
+    assert first.data == {"status": "unavailable"}
+
+    preview = LinkPreview.objects.get()
+    preview.fetched_at = timezone.now() - timedelta(minutes=20)
+    preview.save(update_fields=["fetched_at"])
+
+    second = api.get("/api/links/preview/?url=https://flaky.example.com/story")
+    assert second.status_code == 200
+    assert second.data["status"] == "ready"
+    assert second.data["title"] == "Recovered"
+    assert len(calls) == 2
+
+
+@pytest.mark.django_db
 def test_link_preview_rejects_non_http_scheme(api, outsider):
     api.force_authenticate(outsider)
     res = api.get("/api/links/preview/?url=javascript:alert(1)")

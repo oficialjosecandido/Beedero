@@ -4,7 +4,7 @@
  * accounts/vitality.py):
  *
  *   `ladder`     — only what somebody else confirmed. Never goes down.
- *   `cadence`    — the weekly posting duty, measured as a streak.
+ *   `cadence`    — the daily posting duty (shown as the current week), as a streak.
  *   `completion` — the self-declared fields.
  *
  * `completeness`/`checklist` are the older strength meter: they still feed
@@ -34,12 +34,16 @@ export type VerificationLadder = {
 };
 
 export type PostingCadence = {
-  posted_this_week: boolean;
-  streak_weeks: number;
-  best_streak_weeks: number;
-  weeks_posted: number;
+  posted_today: boolean;
+  streak_days: number;
+  best_streak_days: number;
+  days_posted: number;
   week_started_on: string;
-  days_left: number;
+  /** Mon–Sun of the current Lisbon week — true when that day has a personal post. */
+  week_days: boolean[];
+  /** Mon=0 … Sun=6 on the Lisbon calendar. */
+  today_index: number;
+  hours_left: number;
   last_post_at: string | null;
 };
 

@@ -7,6 +7,7 @@ size guards); we only ever talk to api.microlink.io ourselves.
 """
 
 import logging
+from datetime import timedelta
 from urllib.parse import urlparse
 
 import requests
@@ -18,8 +19,12 @@ from .models import LinkPreview
 logger = logging.getLogger(__name__)
 
 MICROLINK_ENDPOINT = "https://api.microlink.io"
-REQUEST_TIMEOUT_SECONDS = 4
+# Paywalled publishers (FT, etc.) often need longer than a tight 4s budget.
+REQUEST_TIMEOUT_SECONDS = 10
 ALLOWED_SCHEMES = ("http", "https")
+# Transient Microlink/timeout failures should be retried — permanent READY
+# and recent FAILED rows stay cached so we don't hammer the unfurl service.
+FAILED_RETRY_AFTER = timedelta(minutes=15)
 
 
 def _valid_url(url: str) -> bool:
@@ -30,21 +35,29 @@ def _valid_url(url: str) -> bool:
     return parsed.scheme in ALLOWED_SCHEMES and bool(parsed.netloc)
 
 
+def _should_refetch(existing: LinkPreview) -> bool:
+    if existing.status == LinkPreview.Status.READY:
+        return False
+    if existing.status != LinkPreview.Status.FAILED:
+        return False
+    if not existing.fetched_at:
+        return True
+    return timezone.now() - existing.fetched_at >= FAILED_RETRY_AFTER
+
+
 def get_or_fetch_preview(url: str) -> LinkPreview | None:
-    """Cache-first by url_hash: returns the cached LinkPreview if this URL
-    was already resolved (success or failure — a broken link isn't retried
-    on every view), otherwise fetches it synchronously via Microlink. No
-    task queue exists in this backend, so this is deliberately a bounded,
-    on-demand call rather than a background job."""
+    """Cache-first by url_hash: returns READY immediately; retries FAILED
+    after a short cooldown (timeouts / paywalls shouldn't brick a URL forever).
+    No task queue exists in this backend, so this is a bounded on-demand call."""
     if not _valid_url(url):
         return None
 
     url_hash = LinkPreview.hash_for(url)
     existing = LinkPreview.objects.filter(url_hash=url_hash).first()
-    if existing is not None:
+    if existing is not None and not _should_refetch(existing):
         return existing
 
-    preview = LinkPreview(url=url, url_hash=url_hash)
+    preview = existing or LinkPreview(url=url, url_hash=url_hash)
     try:
         response = requests.get(
             MICROLINK_ENDPOINT, params={"url": url}, timeout=REQUEST_TIMEOUT_SECONDS
@@ -63,6 +76,10 @@ def get_or_fetch_preview(url: str) -> LinkPreview | None:
     except Exception:
         logger.info("link preview fetch failed for %s", url, exc_info=True)
         preview.status = LinkPreview.Status.FAILED
+        preview.title = ""
+        preview.description = ""
+        preview.image_url = ""
+        preview.site_name = ""
     preview.fetched_at = timezone.now()
 
     try:

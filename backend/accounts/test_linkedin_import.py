@@ -1,4 +1,5 @@
 import io
+import os
 import zipfile
 from datetime import date
 from unittest.mock import patch
@@ -8,7 +9,10 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
+from accounts import linkedin_views
 from accounts.linkedin_import import (
+    MAX_UPLOAD_BYTES,
+    OVERSIZE_MESSAGE,
     LinkedInImportError,
     parse_linkedin_date,
     parse_linkedin_export,
@@ -67,6 +71,19 @@ def _full_export(**overrides):
     }
     files.update(overrides)
     return _zip(files)
+
+
+def _padded_export(padding: bytes) -> SimpleUploadedFile:
+    """A real export plus one big member we never read — stored, not
+    deflated, so the upload is genuinely as large as `padding`."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("Profile.csv", PROFILE_CSV)
+        zf.writestr("Positions.csv", POSITIONS_CSV)
+        zf.writestr(zipfile.ZipInfo("Media/photo.bin"), padding)
+    return SimpleUploadedFile(
+        "Basic_LinkedInDataExport_10-19-2026.zip", buf.getvalue(), content_type="application/zip"
+    )
 
 
 # ---------------------------------------------------------------- parser
@@ -240,6 +257,45 @@ def test_preview_returns_review_data_and_writes_nothing(api, ana):
     # Preview is read-only.
     assert SelfDeclaredExperience.objects.filter(user=ana).count() == 1
     assert InvestorProfile.objects.get(user=ana).headline == "Builder"
+
+
+@pytest.mark.django_db
+def test_upload_is_never_written_to_disk_and_is_freed_before_responding(api, settings):
+    """The panel tells people the file isn't stored. Django would spool
+    anything over FILE_UPLOAD_MAX_MEMORY_SIZE into a temp file, so this pins
+    the memory-only handler and the explicit close."""
+    upload = _padded_export(os.urandom(3 * 1024 * 1024))
+    assert upload.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE
+
+    seen = {}
+    real = linkedin_views.parse_linkedin_export
+
+    def spy(uploads):
+        seen["type"] = type(uploads[0]).__name__
+        seen["on_disk"] = hasattr(uploads[0], "temporary_file_path")
+        seen["closed_during"] = uploads[0].closed
+        result = real(uploads)
+        seen["uploads"] = uploads
+        return result
+
+    with patch.object(linkedin_views, "parse_linkedin_export", spy):
+        res = _preview(api, upload)
+
+    assert res.status_code == 200
+    assert seen["type"] == "InMemoryUploadedFile"
+    assert seen["on_disk"] is False
+    assert seen["closed_during"] is False
+    # …and closed by the time the response goes out.
+    assert all(f.closed for f in seen["uploads"])
+
+
+@pytest.mark.django_db
+def test_body_over_the_cap_is_refused_with_the_oversize_message(api):
+    # Too big for the memory-only handler, which leaves request.FILES empty.
+    big = SimpleUploadedFile("export.zip", b"0" * (MAX_UPLOAD_BYTES + 1), content_type="application/zip")
+    res = _preview(api, big)
+    assert res.status_code == 400
+    assert res.json()["detail"] == OVERSIZE_MESSAGE
 
 
 @pytest.mark.django_db

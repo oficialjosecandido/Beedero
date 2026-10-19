@@ -5,7 +5,7 @@ worth, just broken out so the UI can say exactly which field is missing).
 
 `WEIGHTS` is a ranking input, not a verification ladder: nothing in it is
 confirmed by anybody. What another party attested lives in accounts/ladder.py
-and the weekly-post duty in accounts/cadence.py; `profile_completion` below is
+and the daily-post duty in accounts/cadence.py; `profile_completion` below is
 the third of those three, the plain "fill in your profile" list, and it is
 scored by count rather than by `WEIGHTS` so that changing the copy here can
 never move anyone's search position.

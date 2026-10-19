@@ -117,27 +117,32 @@ function VerificationLadderCard({ ladder }: { ladder: VerificationLadder }) {
 
 /* --------------------------------------------------------------- 2. cadence */
 
-/** Seven dots, oldest week first, the current one last. */
-function StreakDots({ cadence }: { cadence: PostingCadence }) {
-  const shown = 7;
-  const filledFromEnd = cadence.posted_this_week ? cadence.streak_weeks : cadence.streak_weeks + 1;
+const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+/** Seven slots for the current Lisbon week (Mon → Sun). */
+function WeekDayDots({ cadence }: { cadence: PostingCadence }) {
+  const todayIndex = Math.min(6, Math.max(0, cadence.today_index ?? 0));
+  const days = cadence.week_days?.length === 7 ? cadence.week_days : Array(7).fill(false);
+
   return (
-    <div className="mt-4 flex gap-1.5" aria-hidden>
-      {Array.from({ length: shown }, (_, index) => {
-        const weeksAgo = shown - 1 - index;
-        const isCurrent = weeksAgo === 0;
-        const posted = weeksAgo < filledFromEnd && !(isCurrent && !cadence.posted_this_week);
+    <div className="mt-4 grid grid-cols-7 gap-1.5" aria-hidden>
+      {days.map((posted, index) => {
+        const isToday = index === todayIndex;
         return (
-          <span
-            key={weeksAgo}
-            className={`h-6 flex-1 ${
-              posted
-                ? "bg-emerald-400"
-                : isCurrent
-                  ? "border border-dashed border-beedero-yellow"
-                  : "bg-white/10"
-            }`}
-          />
+          <div key={index} className="flex flex-col items-center gap-1">
+            <span
+              className={`h-6 w-full ${
+                posted
+                  ? "bg-emerald-400"
+                  : isToday
+                    ? "border border-dashed border-beedero-yellow"
+                    : "bg-white/10"
+              }`}
+            />
+            <span className={`text-[9px] font-black ${isToday ? "text-beedero-yellow" : "text-white/30"}`}>
+              {WEEKDAY_LABELS[index]}
+            </span>
+          </div>
         );
       })}
     </div>
@@ -145,24 +150,24 @@ function StreakDots({ cadence }: { cadence: PostingCadence }) {
 }
 
 function PostingCadenceCard({ cadence }: { cadence: PostingCadence }) {
-  const weekLabel = cadence.streak_weeks === 1 ? "week" : "weeks";
+  const dayLabel = cadence.streak_days === 1 ? "day" : "days";
   return (
     <section className={panelClass}>
       <CardHeading
         Icon={CalendarCheck}
         iconClass="text-emerald-400"
-        title="Weekly cadence"
-        note="One post a week, every week. This is the one thing the record asks of you."
+        title="Week cadence"
+        note="One post a day, every day. This is the one thing the record asks of you."
       />
 
       <div className="mt-5 flex items-end justify-between gap-3">
         <div>
-          <b className="text-3xl font-black tabular-nums">{cadence.streak_weeks}</b>
-          <span className="ml-1.5 text-xs text-white/45">{weekLabel} running</span>
+          <b className="text-3xl font-black tabular-nums">{cadence.streak_days}</b>
+          <span className="ml-1.5 text-xs text-white/45">{dayLabel} running</span>
         </div>
-        {cadence.posted_this_week ? (
+        {cadence.posted_today ? (
           <span className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-400">
-            This week done
+            Today done
           </span>
         ) : (
           <Link
@@ -174,19 +179,21 @@ function PostingCadenceCard({ cadence }: { cadence: PostingCadence }) {
         )}
       </div>
 
-      <StreakDots cadence={cadence} />
+      <WeekDayDots cadence={cadence} />
 
       <p className="mt-3 text-[10px] leading-4 text-white/40">
-        {cadence.posted_this_week
-          ? `Next week opens in ${cadence.days_left} ${cadence.days_left === 1 ? "day" : "days"}.`
-          : cadence.streak_weeks > 0
-            ? `${cadence.days_left} ${cadence.days_left === 1 ? "day" : "days"} left to keep a ${cadence.streak_weeks}-${weekLabel} run alive.`
-            : `${cadence.days_left} ${cadence.days_left === 1 ? "day" : "days"} left in this week.`}
+        {cadence.posted_today
+          ? cadence.hours_left <= 1
+            ? "Tomorrow opens in under an hour."
+            : `Tomorrow opens in ${cadence.hours_left} hours.`
+          : cadence.streak_days > 0
+            ? `Post today to keep a ${cadence.streak_days}-${dayLabel} run alive.`
+            : "Post today to start the run."}
       </p>
 
-      {cadence.best_streak_weeks > cadence.streak_weeks && (
+      {cadence.best_streak_days > cadence.streak_days && (
         <p className="mt-4 border-t border-white/10 pt-4 text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
-          Best run {cadence.best_streak_weeks} weeks · {cadence.weeks_posted} weeks posted
+          Best run {cadence.best_streak_days} days · {cadence.days_posted} days posted
         </p>
       )}
     </section>
@@ -274,7 +281,7 @@ export function NextStepStrip({ completion }: { completion: ProfileCompletion | 
 
 /**
  * The aside of the one-page profile: insights link, what others confirmed,
- * the weekly cadence, and what's left to fill in. "Who sees what" is gone —
+ * the week cadence, and what's left to fill in. "Who sees what" is gone —
  * every section now carries its own audience pill.
  */
 export function ProfileAside({

@@ -55,46 +55,35 @@ def test_fresh_profile_is_at_level_zero(person):
     ladder = verification_ladder(person)
     assert ladder["level"] == 0
     assert ladder["done_count"] == 0
-    assert ladder["total_count"] == 7
+    assert ladder["total_count"] == 5
+    keys = {item["key"] for item in ladder["rungs"]}
+    assert "credential_verified" not in keys
+    assert "beedero_verified" not in keys
 
 
 @pytest.mark.django_db
 def test_level_counts_only_consecutive_rungs(person):
-    """Verified by Beedero without a confirmed email is done_count 1, level 0 —
-    the ladder refuses to claim a height that was skipped."""
-    person.is_verified = True
+    """A later fact without earlier rungs must not inflate level — e.g. a
+    public handle without a confirmed email stays at level 0."""
+    person.handle = "ada"
     person.save()
     ladder = verification_ladder(person)
+    assert rung(ladder, "public_address")["done"] is True
     assert ladder["done_count"] == 1
     assert ladder["level"] == 0
 
     person.user.email_verified_at = timezone.now()
     person.user.save()
-    assert verification_ladder(person)["level"] == 1
+    assert verification_ladder(person)["level"] == 2
 
 
 @pytest.mark.django_db
-def test_credential_reaches_its_rung_without_any_organisation(person):
-    """The point of the split: an independent professional climbs the ladder
-    without ever belonging to an org."""
-    ProfessionalCredential.objects.create(
-        user=person.user,
-        status=ProfessionalCredential.Status.VERIFIED,
-        title="Psychotherapist",
-        issuer="Ordem dos Psicólogos",
-        identifier="12345",
-        verified_at=timezone.now(),
-    )
-    credential_rung = rung(verification_ladder(person), "credential_verified")
-    assert credential_rung["done"] is True
-    assert credential_rung["attested_by"] == "Ordem dos Psicólogos"
-    assert credential_rung["detail"] == "Psychotherapist · 12345"
-    assert rung(verification_ladder(person), "role_confirmed")["done"] is False
+def test_credential_warning_still_computed_for_later_rungs(person):
+    """Rungs 6–7 are deferred from the UI, but credential expiry copy stays
+    covered so it is ready when those rungs ship."""
+    from accounts.ladder import _credential_warning
 
-
-@pytest.mark.django_db
-def test_expiring_credential_warns_before_the_date(person):
-    ProfessionalCredential.objects.create(
+    active = ProfessionalCredential.objects.create(
         user=person.user,
         status=ProfessionalCredential.Status.VERIFIED,
         title="Psychotherapist",
@@ -103,21 +92,11 @@ def test_expiring_credential_warns_before_the_date(person):
         verified_at=timezone.now(),
         valid_until=timezone.now() + timedelta(days=20),
     )
-    assert "Expires in 20 days" in rung(verification_ladder(person), "credential_verified")["warning"]
+    assert "Expires in 20 days" in _credential_warning(active)
 
-
-@pytest.mark.django_db
-def test_expired_credential_says_so(person):
-    ProfessionalCredential.objects.create(
-        user=person.user,
-        status=ProfessionalCredential.Status.VERIFIED,
-        title="Psychotherapist",
-        issuer="Ordem dos Psicólogos",
-        identifier="12345",
-        verified_at=timezone.now(),
-        valid_until=timezone.now() - timedelta(days=3),
-    )
-    assert "has expired" in rung(verification_ladder(person), "credential_verified")["warning"]
+    active.valid_until = timezone.now() - timedelta(days=3)
+    active.save(update_fields=["valid_until"])
+    assert "has expired" in _credential_warning(active)
 
 
 @pytest.mark.django_db
@@ -174,71 +153,71 @@ def test_handle_rung_shows_the_public_address(person):
 @pytest.mark.django_db
 def test_no_posts_means_no_streak(person):
     cadence = posting_cadence(person.user)
-    assert cadence["posted_this_week"] is False
-    assert cadence["streak_weeks"] == 0
+    assert cadence["posted_today"] is False
+    assert cadence["streak_days"] == 0
     assert cadence["last_post_at"] is None
+    assert len(cadence["week_days"]) == 7
+    assert cadence["week_days"] == [False] * 7
 
 
 @pytest.mark.django_db
-def test_a_post_this_week_opens_a_streak(person):
+def test_a_post_today_opens_a_streak(person):
     post_at(person.user, timezone.now())
     cadence = posting_cadence(person.user)
-    assert cadence["posted_this_week"] is True
-    assert cadence["streak_weeks"] == 1
-    assert cadence["weeks_posted"] == 1
+    assert cadence["posted_today"] is True
+    assert cadence["streak_days"] == 1
+    assert cadence["days_posted"] == 1
 
 
 @pytest.mark.django_db
-def test_consecutive_weeks_accumulate(person):
+def test_consecutive_days_accumulate(person):
     now = timezone.now()
-    for weeks_ago in range(4):
-        post_at(person.user, now - timedelta(weeks=weeks_ago))
+    for days_ago in range(4):
+        post_at(person.user, now - timedelta(days=days_ago))
     cadence = posting_cadence(person.user)
-    assert cadence["streak_weeks"] == 4
-    assert cadence["best_streak_weeks"] == 4
+    assert cadence["streak_days"] == 4
+    assert cadence["best_streak_days"] == 4
 
 
 @pytest.mark.django_db
-def test_two_posts_in_one_week_are_one_week(person):
+def test_two_posts_in_one_day_are_one_day(person):
     now = timezone.now()
-    monday = now - timedelta(days=now.astimezone(LISBON).weekday())
-    post_at(person.user, monday)
-    post_at(person.user, monday + timedelta(hours=2))
-    assert posting_cadence(person.user)["weeks_posted"] == 1
-    assert posting_cadence(person.user)["streak_weeks"] == 1
+    post_at(person.user, now)
+    post_at(person.user, now - timedelta(hours=2))
+    assert posting_cadence(person.user)["days_posted"] == 1
+    assert posting_cadence(person.user)["streak_days"] == 1
 
 
 @pytest.mark.django_db
-def test_streak_survives_a_week_that_has_not_ended_yet(person):
-    """Monday morning must not wipe out a streak before the person has had any
-    chance to post — the count runs from the last week that is over."""
-    post_at(person.user, timezone.now() - timedelta(weeks=1))
+def test_streak_survives_a_day_that_has_not_ended_yet(person):
+    """Morning must not wipe out a streak before the person has had any chance
+    to post — the count runs from yesterday when today is still empty."""
+    post_at(person.user, timezone.now() - timedelta(days=1))
     cadence = posting_cadence(person.user)
-    assert cadence["posted_this_week"] is False
-    assert cadence["streak_weeks"] == 1
+    assert cadence["posted_today"] is False
+    assert cadence["streak_days"] == 1
 
 
 @pytest.mark.django_db
-def test_a_missed_week_breaks_the_streak_but_not_the_best(person):
+def test_a_missed_day_breaks_the_streak_but_not_the_best(person):
     now = timezone.now()
-    for weeks_ago in (3, 4, 5):
-        post_at(person.user, now - timedelta(weeks=weeks_ago))
+    for days_ago in (3, 4, 5):
+        post_at(person.user, now - timedelta(days=days_ago))
     cadence = posting_cadence(person.user)
-    assert cadence["streak_weeks"] == 0
-    assert cadence["best_streak_weeks"] == 3
+    assert cadence["streak_days"] == 0
+    assert cadence["best_streak_days"] == 3
 
 
 @pytest.mark.django_db
-def test_sunday_night_in_lisbon_counts_for_that_week(person):
-    """23:30 Sunday Lisbon in summer is 22:30 UTC Sunday, but a naive UTC
-    reading of a 00:30 Monday Lisbon post would move it into the next week."""
-    sunday_late = datetime(2026, 7, 5, 23, 30, tzinfo=LISBON)  # a Sunday
+def test_late_night_in_lisbon_stays_on_that_local_day(person):
+    """23:30 Lisbon must not roll into the next UTC day for the cadence calendar."""
+    sunday_late = datetime(2026, 7, 5, 23, 30, tzinfo=LISBON)
     post_at(person.user, sunday_late)
-    monday_early = datetime(2026, 7, 6, 0, 30, tzinfo=LISBON)  # the next Monday
+    monday_early = datetime(2026, 7, 6, 0, 30, tzinfo=LISBON)
     post_at(person.user, monday_early)
     cadence = posting_cadence(person.user)
-    assert cadence["weeks_posted"] == 2
-    assert cadence["best_streak_weeks"] == 2
+    assert cadence["days_posted"] == 2
+    assert cadence["best_streak_days"] == 2
 
 
 @pytest.mark.django_db
@@ -252,13 +231,13 @@ def test_org_posts_do_not_count_as_personal_cadence(person):
         occurred_at=timezone.now(),
     )
     assert activity.org_id is not None
-    assert posting_cadence(person.user)["streak_weeks"] == 0
+    assert posting_cadence(person.user)["streak_days"] == 0
 
 
 @pytest.mark.django_db
-def test_days_left_is_within_the_week(person):
-    days_left = posting_cadence(person.user)["days_left"]
-    assert 1 <= days_left <= 7
+def test_hours_left_is_within_the_day(person):
+    hours_left = posting_cadence(person.user)["hours_left"]
+    assert 0 <= hours_left <= 24
 
 
 @pytest.mark.django_db
@@ -320,8 +299,8 @@ def test_ranking_weights_are_untouched_by_the_split():
 def test_vitality_endpoint_serves_all_three(api, person):
     api.force_authenticate(person.user)
     body = api.get("/api/investors/me/vitality/").json()
-    assert body["ladder"]["total_count"] == 7
-    assert body["cadence"]["streak_weeks"] == 0
+    assert body["ladder"]["total_count"] == 5
+    assert body["cadence"]["streak_days"] == 0
     assert body["completion"]["total_count"] == 8
     # Still there for the onboarding wizard and the posting gate.
     assert "completeness" in body and "checklist" in body

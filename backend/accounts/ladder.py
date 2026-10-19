@@ -5,7 +5,7 @@ Deliberately separate from accounts/completeness.py. That module is a strength
 meter over self-declared fields (and feeds discovery ranking); a rung here is a
 fact another party attested: the organisation, a company registry, an issuing
 body, another member, or Beedero. That is why a ladder can only ever go up,
-and why the weekly-post requirement lives in accounts/cadence.py instead — a
+and why the daily-post requirement lives in accounts/cadence.py instead — a
 recurring duty is a streak, not a rung.
 
 Belonging to an organisation is not required: a confirmed role is *one* route
@@ -14,6 +14,10 @@ organisation at all.
 
 Every rung names its attestor, including the two whose attestor is the person
 themselves. Saying so out loud is the point of splitting these cards up.
+
+Rungs 6–7 (credential + Beedero verified) are built but deferred from the
+public ladder until those product surfaces ship — flip DEFERRED_RUNG_KEYS
+empty to bring them back.
 """
 
 import math
@@ -33,6 +37,9 @@ from .models import SelfDeclaredExperience
 EXPIRY_WARNING_DAYS = 60
 
 ATTESTED_BY_SELF = "You"
+
+# Hide until credential review + Beedero verification are ready to show.
+DEFERRED_RUNG_KEYS = frozenset({"credential_verified", "beedero_verified"})
 
 
 def _role_detail(affiliation) -> str:
@@ -155,18 +162,20 @@ def verification_ladder(profile) -> dict:
         },
     ]
 
+    visible = [rung for rung in rungs if rung["key"] not in DEFERRED_RUNG_KEYS]
+
     # `level` is how far up you climbed without skipping: the UI says "Level 4
-    # of 7", which is a different (and more honest) number than done_count
-    # when someone is verified by Beedero but never claimed a handle.
+    # of 5", which is a different (and more honest) number than done_count
+    # when someone finished a later rung but never claimed a handle.
     level = 0
-    for rung in rungs:
+    for rung in visible:
         if not rung["done"]:
             break
         level += 1
 
     return {
-        "rungs": rungs,
-        "done_count": sum(1 for rung in rungs if rung["done"]),
-        "total_count": len(rungs),
+        "rungs": visible,
+        "done_count": sum(1 for rung in visible if rung["done"]),
+        "total_count": len(visible),
         "level": level,
     }

@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type ChangeEvent } from "react";
 import { Image as ImageIcon, Link2, Send, Video, X } from "lucide-react";
+import { toast } from "sonner";
 
-import { createInvestorPostAction } from "@/app/(app)/dashboard/actions";
+import {
+  publishFeedPostAction,
+  type CreatedInvestorPost,
+} from "@/app/(app)/dashboard/actions";
+import { LinkPreviewCard, prefetchLinkPreview } from "@/components/LinkPreviewCard";
 import { MentionTextarea } from "@/components/MentionTextarea";
-import { useActionToast } from "@/lib/use-action-toast";
+
+import type { FeedItem } from "./types";
 
 type ChecklistItem = { key: string; done: boolean; hint: string; weight: number };
 
@@ -18,7 +24,36 @@ type FeedComposerProps = {
   hasPostedToday: boolean;
   completeness?: number;
   checklist?: ChecklistItem[];
+  onPublished?: (item: FeedItem) => void;
 };
+
+function toFeedItem(
+  post: CreatedInvestorPost,
+  author: { name: string; profilePicture?: string | null }
+): FeedItem {
+  return {
+    id: post.id,
+    type: "person",
+    author: {
+      id: 0,
+      name: post.author_name || author.name,
+      profile_picture: author.profilePicture ?? null,
+    },
+    kind: post.kind,
+    value: {
+      title: post.title,
+      body: post.body ?? "",
+      image: post.image ?? null,
+      occurred_at: post.occurred_at,
+      ends_at: post.ends_at ?? null,
+    },
+    reaction_count: post.reaction_count ?? 0,
+    reaction_counts: post.reaction_counts ?? { like: 0, insight: 0, congrats: 0 },
+    comment_count: 0,
+    viewer_reaction: null,
+    created_at: post.created_at,
+  };
+}
 
 const REQUIRED_KEYS = ["full_name", "headline", "country"];
 const FIELD_LABELS: Record<string, string> = {
@@ -45,7 +80,7 @@ function titleFromBody(text: string) {
   const firstLine = text.trim().split(/\n/)[0] ?? "";
   const cleaned = firstLine.replace(/@\[[^\]]+\]/g, "").trim();
   if (!cleaned) return "Update";
-  return cleaned.length > 80 ? `${cleaned.slice(0, 77)}…` : cleaned;
+  return cleaned.length > 80 ? `${cleaned.slice(0, 77)}...` : cleaned;
 }
 
 function Avatar({
@@ -85,15 +120,11 @@ export function FeedComposer({
   hasPostedToday,
   completeness = 0,
   checklist = [],
+  onPublished,
 }: FeedComposerProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const photoFilesRef = useRef<File[]>([]);
-  const [error, formAction, pending] = useActionState(async (prev: string | null, formData: FormData) => {
-    const file = photoFilesRef.current[0];
-    if (file) formData.set("image", file);
-    return createInvestorPostAction(prev, formData);
-  }, null);
+  const [pending, startTransition] = useTransition();
   const [body, setBody] = useState("");
   const [mediaMode, setMediaMode] = useState<"photos" | "video" | null>(null);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -101,14 +132,8 @@ export function FeedComposer({
   const [videoName, setVideoName] = useState<string | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
-  const prevPending = useRef(false);
   const words = wordCount(body);
   const over = words > 100;
-  useActionToast(error, pending, { successMessage: "Post published!" });
-
-  useEffect(() => {
-    photoFilesRef.current = photoFiles;
-  }, [photoFiles]);
 
   function closeComposer() {
     setExpanded(false);
@@ -123,23 +148,6 @@ export function FeedComposer({
   }
 
   useEffect(() => {
-    const justFinished = prevPending.current && !pending;
-    prevPending.current = pending;
-    if (justFinished && error === null) {
-      setExpanded(false);
-      setBody("");
-      setMediaMode(null);
-      setPhotoPreviews((prev) => {
-        prev.forEach((url) => URL.revokeObjectURL(url));
-        return [];
-      });
-      setPhotoFiles([]);
-      setVideoName(null);
-      router.refresh();
-    }
-  }, [pending, error, router]);
-
-  useEffect(() => {
     if (!expanded) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") closeComposer();
@@ -147,6 +155,28 @@ export function FeedComposer({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [expanded]);
+
+  useEffect(() => {
+    if (!body.trim()) return;
+    const handle = window.setTimeout(() => prefetchLinkPreview(body), 400);
+    return () => window.clearTimeout(handle);
+  }, [body]);
+
+  function publish(formData: FormData) {
+    const file = photoFiles[0];
+    if (file) formData.set("image", file);
+    startTransition(async () => {
+      const result = await publishFeedPostAction(formData);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      onPublished?.(toFeedItem(result.post, { name, profilePicture }));
+      toast.success("Post published!");
+      closeComposer();
+      router.refresh();
+    });
+  }
 
   function handlePhotos(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []).slice(0, 5 - photoFiles.length);
@@ -246,7 +276,7 @@ export function FeedComposer({
         className="flex w-full items-center gap-4 border border-white/10 bg-white/[0.035] p-4 text-left text-base text-white/45 transition hover:border-beedero-yellow/60"
       >
         <Avatar name={name} profilePicture={profilePicture} />
-        Share an update with the people who matter…
+        Share an update with the people who matter...
       </button>
 
       {expanded && (
@@ -274,7 +304,7 @@ export function FeedComposer({
               </button>
             </div>
 
-            <form action={formAction} className="p-6">
+            <form action={publish} className="p-6">
               <input type="hidden" name="kind" value="update" />
               <input type="hidden" name="title" value={titleFromBody(body)} />
 
@@ -292,7 +322,7 @@ export function FeedComposer({
                 autoFocus
                 rows={5}
                 onValueChange={setBody}
-                placeholder="What is worth sharing today? Links go here too — keep it under 100 words."
+                placeholder="What is worth sharing today? Links go here too � keep it under 100 words."
                 className={`h-32 w-full resize-none border bg-white/5 p-3 text-base text-white outline-none placeholder:text-white/30 ${
                   over ? "border-red-500/70" : "border-white/10 focus:border-beedero-yellow"
                 }`}
@@ -303,6 +333,9 @@ export function FeedComposer({
                 }`}
               >
                 {words} / 100 words
+              </div>
+              <div className="mt-3 [&_a]:pointer-events-none">
+                <LinkPreviewCard body={body} tone="dark" />
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
@@ -411,7 +444,7 @@ export function FeedComposer({
                 <div className="mt-3 flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
                   <Video size={13} className="text-beedero-yellow" aria-hidden />
                   <span className="flex-1 truncate">{videoName}</span>
-                  <span className="text-[10px] text-white/35">Preview only — video upload soon</span>
+                  <span className="text-[10px] text-white/35">Preview only � video upload soon</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -433,7 +466,7 @@ export function FeedComposer({
                   className="flex items-center gap-2 bg-beedero-yellow px-5 py-2.5 text-sm font-black text-beedero-black transition disabled:opacity-40"
                 >
                   <Send size={13} aria-hidden />
-                  {pending ? "Publishing…" : "Publish"}
+                  {pending ? "Publishing..." : "Publish"}
                 </button>
               </div>
             </form>

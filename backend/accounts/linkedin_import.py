@@ -15,7 +15,9 @@ Rules this module keeps:
   irrelevant here; they are skipped by name, never read.
 * Nothing is stored. The upload is parsed in memory, the parsed result goes
   back to the person for review, and only what they confirm is saved (by the
-  apply endpoint, through the normal serializers).
+  apply endpoint, through the normal serializers). It never reaches the
+  filesystem either: the preview view installs a memory-only upload handler
+  and closes the upload before it answers.
 * Untrusted input: archive size, entry count, per-file size and row counts
   are all capped before anything is decompressed or parsed.
 * Tolerant: file and column names match case-insensitively, any file may be
@@ -41,6 +43,13 @@ MAX_HEADLINE = 200
 MAX_NAME = 200
 MAX_ORG_NAME = 200
 MAX_ROLE = 120
+
+# Said in two places: here, and by the view when the body is refused before
+# parsing (see linkedin_views._MemoryOnlyUploadHandler).
+OVERSIZE_MESSAGE = (
+    "That file is too large. Unzip the archive and choose only Profile.csv, "
+    "Positions.csv, Education.csv and Skills.csv — those are the four we read."
+)
 
 # basename (lowercase) -> the header columns that identify the real header row
 WANTED_FILES = {
@@ -189,10 +198,7 @@ def _collect_files(uploads) -> dict[str, str]:
     if not uploads:
         raise LinkedInImportError("Choose the ZIP file LinkedIn sent you.")
     if sum(getattr(u, "size", 0) or 0 for u in uploads) > MAX_UPLOAD_BYTES:
-        raise LinkedInImportError(
-            "That file is too large. Unzip the archive and choose only Profile.csv, "
-            "Positions.csv, Education.csv and Skills.csv — those are the four we read."
-        )
+        raise LinkedInImportError(OVERSIZE_MESSAGE)
 
     found: dict[str, str] = {}
     for upload in uploads:

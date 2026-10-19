@@ -20,7 +20,10 @@ function actionErrorMessage(err: unknown, fallback: string): string {
 }
 
 /** Parses the person's LinkedIn export on the backend and returns it for
- * review. Nothing is saved and the file isn't kept. */
+ * review. Nothing is saved and the file isn't kept: Next holds the upload in
+ * memory for this request and forwards the bytes straight through, and the
+ * backend keeps it in memory too (accounts/linkedin_views.py). Nothing here
+ * ever touches disk, so there is nothing to purge afterwards. */
 export async function previewLinkedInImportAction(
   formData: FormData
 ): Promise<{ preview: LinkedInImportPreview } | { error: string }> {

@@ -4,7 +4,9 @@ Two steps, so nothing lands on a profile unseen:
 
 1. POST /api/profile/import/linkedin/preview/ (multipart, `files`): parse the
    export in memory and return what we found next to what the profile
-   already has. Nothing is written and the file is not kept.
+   already has. Nothing is written and the file is not kept — see
+   _MemoryOnlyUploadHandler for why it never even reaches our disk, which is
+   the promise the import panel makes to the person.
 2. POST /api/profile/import/linkedin/apply/ (JSON): save exactly what the
    person ticked on the review screen, through the same serializers the
    profile and experience forms use.
@@ -16,6 +18,7 @@ registry certificate.
 
 from datetime import date
 
+from django.core.files.uploadhandler import MemoryFileUploadHandler
 from django.db import transaction
 from django.db.models.functions import Lower
 from rest_framework import permissions, serializers, status
@@ -27,7 +30,12 @@ from beedero.ratelimit import enforce_rate_limit
 from orgs.models import Organization, OrgMembership
 
 from .handles import ensure_profile_handle
-from .linkedin_import import LinkedInImportError, parse_linkedin_export
+from .linkedin_import import (
+    MAX_UPLOAD_BYTES,
+    OVERSIZE_MESSAGE,
+    LinkedInImportError,
+    parse_linkedin_export,
+)
 from .models import InvestorProfile, SelfDeclaredExperience
 from .serializers import InvestorProfileSerializer, SelfDeclaredExperienceSerializer
 from .skills import MAX_SKILLS, normalize_skills
@@ -60,15 +68,64 @@ def _key(kind, org_name, started_on):
     return (kind, (org_name or "").strip().lower(), started_on)
 
 
+class _MemoryOnlyUploadHandler(MemoryFileUploadHandler):
+    """Holds the export in memory for the request, whatever its size.
+
+    Django's default handlers spool anything over FILE_UPLOAD_MAX_MEMORY_SIZE
+    (2.5 MB) into a temporary file on the server's disk, unlinked only when
+    the file object is closed or collected. We accept up to 5 MB, so part of
+    what we accept would spend the request lying on a filesystem we don't
+    control — someone's whole LinkedIn profile. Keeping it in RAM is what
+    makes "the file is never stored" literally true, and 5 MB for the length
+    of one request is cheap.
+
+    Above MAX_UPLOAD_BYTES this handler stays off and there is no second
+    handler to catch the bytes: they are read and dropped, request.FILES
+    comes back empty, and the view answers with OVERSIZE_MESSAGE. That
+    ceiling is what stops a deliberately huge POST from filling memory.
+    """
+
+    def handle_raw_input(self, input_data, META, content_length, boundary, encoding=None):
+        super().handle_raw_input(input_data, META, content_length, boundary, encoding)
+        if not self.activated:
+            self.activated = bool(content_length) and content_length <= MAX_UPLOAD_BYTES
+
+
+def _declared_body_size(request) -> int:
+    try:
+        return int(request.META.get("CONTENT_LENGTH") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 class LinkedInImportPreviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    def initialize_request(self, request, *args, **kwargs):
+        # Django only lets the handlers be swapped before anything reads the
+        # body, and authentication already reads it (the CSRF check looks in
+        # request.POST), so this is the last safe moment.
+        request.upload_handlers = [_MemoryOnlyUploadHandler(request)]
+        return super().initialize_request(request, *args, **kwargs)
+
     def post(self, request):
         enforce_rate_limit(f"linkedin-preview:{request.user.id}", limit=20, window_seconds=3600)
+        uploads = request.FILES.getlist("files")
+        if not uploads and _declared_body_size(request) > MAX_UPLOAD_BYTES:
+            # The handler refused it, so there is no file to report on: say
+            # what happened instead of "choose the ZIP LinkedIn sent you".
+            return Response({"detail": OVERSIZE_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            parsed = parse_linkedin_export(request.FILES.getlist("files"))
+            parsed = parse_linkedin_export(uploads)
         except LinkedInImportError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            # Nothing below needs the upload again: free it here rather than
+            # whenever the request is collected. For an in-memory upload that
+            # drops the buffer; should the handler above ever change, this is
+            # what unlinks the temp file.
+            for upload in uploads:
+                upload.close()
 
         profile = InvestorProfile.objects.filter(user=request.user).first()
         current_skills = list(profile.skills) if profile else []

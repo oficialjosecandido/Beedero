@@ -3,7 +3,7 @@
 Three separate ideas, deliberately not merged into one list:
 
   `ladder`     — what somebody else confirmed (accounts/ladder.py). Only goes up.
-  `cadence`    — the weekly posting duty, as a streak (accounts/cadence.py).
+  `cadence`    — the daily posting duty (week view), as a streak (accounts/cadence.py).
   `completion` — the self-declared fields (accounts/completeness.py).
 
 `completeness`/`checklist` stay as they were: they are the ranking input and

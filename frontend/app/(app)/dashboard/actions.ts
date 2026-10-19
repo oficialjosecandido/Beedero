@@ -457,7 +457,21 @@ export async function removeMemberAction(_prevState: string | null, formData: Fo
   return null;
 }
 
-export async function createInvestorPostAction(_prevState: string | null, formData: FormData) {
+export type CreatedInvestorPost = {
+  id: number;
+  kind: string;
+  title: string;
+  body?: string;
+  image?: string | null;
+  occurred_at: string;
+  ends_at?: string | null;
+  created_at: string;
+  author_name?: string;
+  reaction_count?: number;
+  reaction_counts?: { like: number; insight: number; congrats: number };
+};
+
+async function postInvestorUpdate(formData: FormData): Promise<CreatedInvestorPost> {
   const kind = String(formData.get("kind"));
   const body = new FormData();
   body.set("kind", kind);
@@ -470,9 +484,12 @@ export async function createInvestorPostAction(_prevState: string | null, formDa
       body.set("image", image);
     }
   }
+  return apiFetch<CreatedInvestorPost>("/investors/me/posts/", { method: "POST", body });
+}
 
+export async function createInvestorPostAction(_prevState: string | null, formData: FormData) {
   try {
-    await apiFetch("/investors/me/posts/", { method: "POST", body });
+    await postInvestorUpdate(formData);
   } catch (err) {
     return firstErrorMessage(err, "Could not publish your post.");
   }
@@ -480,6 +497,21 @@ export async function createInvestorPostAction(_prevState: string | null, formDa
   revalidatePath("/dashboard");
   revalidatePath("/feed");
   return null;
+}
+
+/** Feed composer — returns the created post so the client can prepend it immediately. */
+export async function publishFeedPostAction(
+  formData: FormData
+): Promise<{ ok: true; post: CreatedInvestorPost } | { error: string }> {
+  try {
+    const post = await postInvestorUpdate(formData);
+    revalidatePath("/profile");
+    revalidatePath("/dashboard");
+    revalidatePath("/feed");
+    return { ok: true, post };
+  } catch (err) {
+    return { error: firstErrorMessage(err, "Could not publish your post.") };
+  }
 }
 
 export async function createGrantAction(formData: FormData) {

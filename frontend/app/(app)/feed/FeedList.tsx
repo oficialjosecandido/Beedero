@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 import { Building2, Repeat2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { EventParticipationBar } from "@/components/EventParticipationBar";
 import { LinkPreviewCard } from "@/components/LinkPreviewCard";
@@ -14,6 +15,7 @@ import { SECTION_LABELS } from "@/lib/types";
 import { loadMoreFeedAction } from "./actions";
 import { CommentThread } from "./CommentThread";
 import { ReactionBar } from "./ReactionBar";
+import { feedPostShareUrl, shareFeedPost } from "./share-post";
 import type { FeedItem } from "./types";
 
 const BODY_TRUNCATE_THRESHOLD = 220;
@@ -34,8 +36,33 @@ function initialsFrom(name: string) {
 function FeedCard({ item }: { item: FeedItem }) {
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const isLongBody = (item.value.body?.length ?? 0) > BODY_TRUNCATE_THRESHOLD;
   const isOrg = item.type === "org";
+
+  async function handleShare() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const result = await shareFeedPost(item);
+      if (result === "copied") toast.success("Post link copied");
+      else if (result === "shared") toast.success("Shared");
+    } catch {
+      toast.error("Could not share this post.");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(feedPostShareUrl(item.id));
+      toast.success("Post link copied");
+    } catch {
+      toast.error("Could not copy the link.");
+    }
+    setMenuOpen(false);
+  }
 
   const dateLabel =
     item.kind === "events" && item.value.occurred_at && item.value.ends_at
@@ -92,6 +119,7 @@ function FeedCard({ item }: { item: FeedItem }) {
 
   return (
     <article
+      id={`post-${item.id}`}
       className={
         isOrg
           ? "border border-beedero-yellow/20 bg-beedero-yellow/[0.03]"
@@ -131,23 +159,20 @@ function FeedCard({ item }: { item: FeedItem }) {
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-9 z-20 w-44 border border-white/15 bg-app-elevated py-1 shadow-2xl">
-                {["Copy link", "Report post"].map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      if (label === "Copy link" && typeof window !== "undefined") {
-                        void navigator.clipboard.writeText(window.location.href);
-                      }
-                      setMenuOpen(false);
-                    }}
-                    className={`block w-full px-4 py-2.5 text-left text-xs hover:bg-white/5 ${
-                      label === "Report post" ? "text-red-400" : "text-white/70"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => void handleCopyLink()}
+                  className="block w-full px-4 py-2.5 text-left text-xs text-white/70 hover:bg-white/5"
+                >
+                  Copy link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="block w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-white/5"
+                >
+                  Report post
+                </button>
               </div>
             )}
           </div>
@@ -175,7 +200,7 @@ function FeedCard({ item }: { item: FeedItem }) {
               </button>
             )}
             <div className="mt-2 [&_a]:text-beedero-yellow">
-              <LinkPreviewCard body={item.value.body} />
+              <LinkPreviewCard body={item.value.body} tone="dark" />
             </div>
           </>
         )}
@@ -232,14 +257,12 @@ function FeedCard({ item }: { item: FeedItem }) {
           />
           <button
             type="button"
-            onClick={() => {
-              if (typeof window === "undefined") return;
-              void navigator.clipboard.writeText(window.location.href);
-            }}
-            className="flex items-center gap-1 text-sm font-bold text-white/45 transition hover:text-white"
+            onClick={() => void handleShare()}
+            disabled={sharing}
+            className="flex items-center gap-1 text-sm font-bold text-white/45 transition hover:text-white disabled:opacity-50"
           >
             <Repeat2 size={15} aria-hidden />
-            Share
+            {sharing ? "…" : "Share"}
           </button>
         </div>
       </div>
@@ -248,16 +271,32 @@ function FeedCard({ item }: { item: FeedItem }) {
 }
 
 export function FeedList({
-  initialItems,
-  initialCursor,
+  items,
+  setItems,
+  cursor,
+  setCursor,
 }: {
-  initialItems: FeedItem[];
-  initialCursor: string | null;
+  items: FeedItem[];
+  setItems: Dispatch<SetStateAction<FeedItem[]>>;
+  cursor: string | null;
+  setCursor: Dispatch<SetStateAction<string | null>>;
 }) {
-  const [items, setItems] = useState(initialItems);
-  const [cursor, setCursor] = useState(initialCursor);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const postId = new URLSearchParams(window.location.search).get("post");
+    if (!postId) return;
+    const node = document.getElementById(`post-${postId}`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+    node.classList.add("ring-1", "ring-beedero-yellow/60");
+    const timer = window.setTimeout(() => {
+      node.classList.remove("ring-1", "ring-beedero-yellow/60");
+    }, 2400);
+    return () => window.clearTimeout(timer);
+  }, [items]);
 
   function loadMore() {
     if (!cursor) return;
