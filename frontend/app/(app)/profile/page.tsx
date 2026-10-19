@@ -54,6 +54,7 @@ type PersonMembership = {
   role: string;
   role_label?: string;
   title?: string;
+  description?: string;
   started_on?: string;
   ended_on?: string | null;
   details_status?: "confirmed" | "pending";
@@ -137,6 +138,7 @@ export default async function ProfilePage({
       role: m.role,
       roleLabel: m.role_label,
       title: m.title,
+      description: m.description ?? "",
       started_on: m.started_on!,
       ended_on: m.ended_on ?? null,
       details_status: m.details_status ?? "confirmed",

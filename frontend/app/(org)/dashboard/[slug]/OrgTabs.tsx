@@ -896,6 +896,13 @@ function OverviewTab({
   confirmedTeam: number;
   awaitingTeam: number;
 }) {
+  // Draft orgs already see the publish gate under the hero — don't repeat it.
+  if (onboarding.status === "draft") {
+    return canManage ? (
+      <TeamOnBeederoPanel confirmed={confirmedTeam} awaiting={awaitingTeam} />
+    ) : null;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <OnboardingPanel slug={slug} onboarding={onboarding} canManage={canManage} />

@@ -193,6 +193,7 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
             "handle",
             "role",
             "title",
+            "description",
             "started_on",
             "ended_on",
             "details_status",

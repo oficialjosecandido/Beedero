@@ -53,15 +53,19 @@ def test_member_edit_demotes_details_and_notifies_admins(api, org, owner, member
         {
             "as_member": True,
             "title": "Senior Engineer",
+            "description": "Built the payments stack.",
             "started_on": "2023-06-01",
             "ended_on": None,
+            "skills": ["Python", "React"],
         },
         format="json",
     )
     assert res.status_code == 200
     membership.refresh_from_db()
     assert membership.title == "Senior Engineer"
+    assert membership.description == "Built the payments stack."
     assert membership.details_status == OrgMembership.DetailsStatus.PENDING
+    assert set(membership.skills_used.values_list("skill", flat=True)) == {"Python", "React"}
     assert Notification.objects.filter(
         user=owner, aggregate_key=f"membership_details:{membership.id}"
     ).exists()

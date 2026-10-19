@@ -68,10 +68,12 @@ export function OrgCard({
   children,
   className = "",
   tone = "white",
+  id,
 }: {
   children: ReactNode;
   className?: string;
   tone?: "white" | "cream" | "yellow" | "ink";
+  id?: string;
 }) {
   const tones = {
     white: "bg-white text-org-ink",
@@ -80,7 +82,7 @@ export function OrgCard({
     ink: "bg-org-ink text-white",
   };
   return (
-    <section className={`${orgBrutalBorder} ${tones[tone]} p-5 sm:p-6 ${className}`}>
+    <section id={id} className={`${orgBrutalBorder} ${tones[tone]} p-5 sm:p-6 ${className}`}>
       {children}
     </section>
   );

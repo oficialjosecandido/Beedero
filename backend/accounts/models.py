@@ -173,6 +173,7 @@ class SelfDeclaredExperience(models.Model):
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.WORK)
     org_name = models.CharField(max_length=200)
     role = models.CharField(max_length=120, blank=True)
+    description = models.TextField(blank=True, default="")  # short "what I did" blurb
     started_on = models.DateField()
     ended_on = models.DateField(null=True, blank=True)  # None = ongoing
     skills = models.JSONField(default=list, blank=True)  # always "declared" tier — no org to confirm

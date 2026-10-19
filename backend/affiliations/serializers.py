@@ -10,6 +10,7 @@ class AffiliationDeclareSerializer(serializers.Serializer):
     org_slug = serializers.SlugField()
     role = serializers.ChoiceField(choices=RoleType.choices)
     title = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    description = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
     started_on = BoundedDateField()
     ended_on = BoundedDateField(required=False, allow_null=True, default=None)
     skills = serializers.ListField(child=serializers.CharField(), required=False, default=list)
@@ -42,6 +43,7 @@ def affiliation_summary(affiliation: Affiliation) -> dict:
         "person": _person_summary(affiliation.user),
         "role": affiliation.role,
         "title": affiliation.title,
+        "description": affiliation.description,
         "started_on": affiliation.started_on.isoformat(),
         "ended_on": affiliation.ended_on.isoformat() if affiliation.ended_on else None,
         "skills": affiliation.skills,

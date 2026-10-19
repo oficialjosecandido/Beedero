@@ -22,8 +22,13 @@ export async function updateMyMembershipDetailsAction(
   const slug = String(formData.get("org_slug") ?? "").trim();
   const memberId = String(formData.get("membership_id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
   const startedOn = String(formData.get("started_on") ?? "");
   const endedOn = String(formData.get("ended_on") ?? "");
+  const skills = formData
+    .getAll("skills")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
 
   if (!slug || !memberId || !startedOn) {
     return "Organisation and start date are required.";
@@ -39,8 +44,10 @@ export async function updateMyMembershipDetailsAction(
       body: {
         as_member: true,
         title,
+        description,
         started_on: startedOn,
         ended_on: endedOn || null,
+        skills,
       },
     });
   } catch (err) {
@@ -84,6 +91,7 @@ export async function updateAffiliationDetailsAction(
 ) {
   const id = String(formData.get("affiliation_id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
   const startedOn = String(formData.get("started_on") ?? "");
   const endedOn = String(formData.get("ended_on") ?? "");
   const skills = formData
@@ -102,6 +110,7 @@ export async function updateAffiliationDetailsAction(
       method: "PATCH",
       body: {
         title,
+        description,
         started_on: startedOn,
         ended_on: endedOn || null,
         skills,

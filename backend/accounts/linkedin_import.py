@@ -190,7 +190,8 @@ def _collect_files(uploads) -> dict[str, str]:
         raise LinkedInImportError("Choose the ZIP file LinkedIn sent you.")
     if sum(getattr(u, "size", 0) or 0 for u in uploads) > MAX_UPLOAD_BYTES:
         raise LinkedInImportError(
-            "That file is too large. Request only your Profile data from LinkedIn, not the full archive."
+            "That file is too large. Unzip the archive and choose only Profile.csv, "
+            "Positions.csv, Education.csv and Skills.csv — those are the four we read."
         )
 
     found: dict[str, str] = {}

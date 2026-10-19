@@ -62,6 +62,7 @@ export async function createAffiliationAction(_prevState: string | null, formDat
         org_slug: orgSlug,
         role,
         title: String(formData.get("title") ?? "").trim(),
+        description: String(formData.get("description") ?? "").trim(),
         started_on: startedOn,
         ended_on: endedOn || null,
         skills: parseSkills(formData),

@@ -49,7 +49,7 @@ def _has_active_claim(user, org, role) -> bool:
 
 @transaction.atomic
 def declare_affiliation(
-    user, org, *, role, title="", started_on, ended_on=None, skills=None
+    user, org, *, role, title="", description="", started_on, ended_on=None, skills=None
 ) -> Affiliation:
     if org.status != Organization.Status.LIVE:
         raise ValidationError({"org": "Only live organizations can be affiliated with."})
@@ -62,6 +62,7 @@ def declare_affiliation(
         org=org,
         role=role,
         title=title,
+        description=str(description or "").strip()[:500],
         started_on=started_on,
         ended_on=ended_on,
         skills=skills or [],
@@ -120,7 +121,16 @@ def org_add_affiliation(
 
 
 @transaction.atomic
-def update_affiliation(affiliation: Affiliation, by_user, *, title, started_on, ended_on, skills=None) -> Affiliation:
+def update_affiliation(
+    affiliation: Affiliation,
+    by_user,
+    *,
+    title,
+    started_on,
+    ended_on,
+    description=None,
+    skills=None,
+) -> Affiliation:
     """Person edits their own affiliation. Org-verified rows fall back to
     pending until an admin confirms again; registry founders become
     self_declared (org confirmation cannot re-verify founders)."""
@@ -130,6 +140,8 @@ def update_affiliation(affiliation: Affiliation, by_user, *, title, started_on, 
         raise ValidationError({"status": "A disputed affiliation can't be edited."})
 
     affiliation.title = (title or "")[:120]
+    if description is not None:
+        affiliation.description = str(description or "").strip()[:500]
     affiliation.started_on = started_on
     affiliation.ended_on = ended_on
     if skills is not None:
@@ -162,7 +174,7 @@ def update_affiliation(affiliation: Affiliation, by_user, *, title, started_on, 
         affiliation.verified_at = None
         demoted = True
 
-    update_fields = ["title", "started_on", "ended_on", "skills"]
+    update_fields = ["title", "description", "started_on", "ended_on", "skills"]
     if demoted:
         update_fields.extend(["status", "verified_via", "verified_at", "created_by"])
     affiliation.save(update_fields=update_fields)

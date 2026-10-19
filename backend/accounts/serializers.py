@@ -141,13 +141,16 @@ class SelfDeclaredExperienceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SelfDeclaredExperience
-        fields = ["id", "kind", "org_name", "role", "started_on", "ended_on", "skills"]
+        fields = ["id", "kind", "org_name", "role", "description", "started_on", "ended_on", "skills"]
         read_only_fields = ["id"]
 
     def validate_skills(self, value):
         if not isinstance(value, list):
             raise serializers.ValidationError("Skills must be a list.")
         return normalize_skills(value)
+
+    def validate_description(self, value):
+        return str(value or "").strip()[:500]
 
     def validate(self, attrs):
         started_on = attrs.get("started_on", getattr(self.instance, "started_on", None))
@@ -196,6 +199,7 @@ class MeSerializer(serializers.ModelSerializer):
                 "role": m.role,
                 "role_label": m.get_role_display(),
                 "title": m.title,
+                "description": m.description,
                 "started_on": m.started_on.isoformat(),
                 "ended_on": m.ended_on.isoformat() if m.ended_on else None,
                 "details_status": m.details_status,

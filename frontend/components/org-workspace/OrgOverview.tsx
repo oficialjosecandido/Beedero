@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { useActionState } from "react";
+import { ArrowUpRight, Check, Plus } from "lucide-react";
 
+import { activateOrgAction } from "@/app/(app)/dashboard/actions";
 import { formatCompactCurrency, formatRelativeTime } from "@/lib/format";
 import { SECTION_LABELS } from "@/lib/types";
+import { useActionToast } from "@/lib/use-action-toast";
 
 import type { OrgTabId } from "./tabs";
 import {
@@ -17,6 +20,41 @@ import {
 } from "./ui";
 
 export type LadderRung = { key: string; label: string; hint: string; done: boolean };
+export type PublishChecklistItem = { key: string; done: boolean; hint: string; weight: number };
+
+/** Must match backend `orgs.completeness.ACTIVATION_REQUIREMENTS`. */
+const PUBLISH_REQUIRED_KEYS = [
+  "logo",
+  "one_liner",
+  "stage",
+  "sector",
+  "geo",
+  "about",
+  "team",
+  "products",
+] as const;
+
+const PUBLISH_LABELS: Record<string, string> = {
+  logo: "Logo",
+  one_liner: "One-liner",
+  stage: "Stage",
+  sector: "Sector",
+  geo: "Based in",
+  about: "About (summary, mission, vision, values)",
+  team: "Team",
+  products: "Products",
+};
+
+const PUBLISH_TAB: Record<string, OrgTabId> = {
+  logo: "profile",
+  one_liner: "profile",
+  stage: "profile",
+  sector: "profile",
+  geo: "profile",
+  about: "profile",
+  products: "profile",
+  team: "team",
+};
 export type SignalItem = {
   id: number;
   kind: string;
@@ -93,9 +131,12 @@ export function OrgHero({
 
         <div className="flex flex-wrap gap-2">
           {isDraft ? (
-            <span className="border border-white/25 px-4 py-2.5 text-xs font-black text-white/70">
-              Not published yet
-            </span>
+            <a
+              href="#publish-checklist"
+              className="border border-beedero-yellow bg-beedero-yellow px-4 py-2.5 text-xs font-black text-org-ink transition hover:bg-white"
+            >
+              Draft — see what&apos;s missing
+            </a>
           ) : (
             <span className="border border-beedero-yellow bg-beedero-yellow px-4 py-2.5 text-xs font-black text-org-ink">
               Live
@@ -131,6 +172,120 @@ export function OrgHero({
         ))}
       </div>
     </div>
+  );
+}
+
+/* -------------------------------------------------------- publish gate */
+
+export function OrgPublishGate({
+  slug,
+  orgName,
+  publishReady,
+  checklist,
+  canManage,
+  onSelect,
+}: {
+  slug: string;
+  orgName: string;
+  publishReady: boolean;
+  checklist: PublishChecklistItem[];
+  canManage: boolean;
+  onSelect: (tab: OrgTabId) => void;
+}) {
+  const [error, formAction, pending] = useActionState(activateOrgAction, null);
+  useActionToast(error, pending, { successMessage: "Organization published!" });
+
+  const required = PUBLISH_REQUIRED_KEYS.map((key) => {
+    const item = checklist.find((entry) => entry.key === key);
+    return {
+      key,
+      done: Boolean(item?.done),
+      hint: item?.hint ?? "",
+      label: PUBLISH_LABELS[key] ?? key,
+      tab: PUBLISH_TAB[key] ?? ("profile" as OrgTabId),
+    };
+  });
+  const doneCount = required.filter((item) => item.done).length;
+  const missing = required.filter((item) => !item.done);
+
+  return (
+    <OrgCard tone="yellow" className="mt-5 min-w-0" id="publish-checklist">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <OrgCardHeading eyebrow="Not live yet" title={`Finish these to publish ${orgName}.`} />
+        <span className="shrink-0 border border-black bg-org-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+          {doneCount} / {required.length} required
+        </span>
+      </div>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-black/70">
+        Partners only see a public page after you publish. Market thesis is optional; everything
+        below is required.
+      </p>
+
+      <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+        {required.map((item) => (
+          <li key={item.key}>
+            {item.done ? (
+              <div className="flex min-h-[4.5rem] items-start gap-3 border border-black bg-white p-3 text-black">
+                <span
+                  className="grid size-7 shrink-0 place-items-center bg-org-ink text-white"
+                  aria-hidden
+                >
+                  <Check size={14} strokeWidth={3} />
+                </span>
+                <div className="min-w-0">
+                  <b className="block text-xs line-through decoration-black/40">{item.label}</b>
+                  <small className="mt-1 block text-[10px] leading-4 text-black/45">Done</small>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSelect(item.tab)}
+                className="flex min-h-[4.5rem] w-full items-start gap-3 border border-black bg-beedero-yellow p-3 text-left text-black transition hover:bg-white"
+              >
+                <span
+                  className="grid size-7 shrink-0 place-items-center border border-black text-xs font-black"
+                  aria-hidden
+                >
+                  !
+                </span>
+                <div className="min-w-0">
+                  <b className="block text-xs">{item.label}</b>
+                  <small className="mt-1 block text-[10px] leading-4 text-black/60">
+                    {item.hint || "Required to publish"}
+                  </small>
+                </div>
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {canManage ? (
+        <form action={formAction} className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input type="hidden" name="slug" value={slug} />
+          <button
+            type="submit"
+            disabled={pending || !publishReady}
+            className="bg-org-ink px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {pending ? "Publishing…" : publishReady ? "Publish organisation" : "Publish when ready"}
+          </button>
+          {!publishReady && (
+            <p className="text-xs font-medium text-black/60">
+              {missing.length} left — open each item to fill it in. Publishing is free.
+            </p>
+          )}
+          {publishReady && (
+            <p className="text-xs font-medium text-black/60">All required fields are in. Publishing is free.</p>
+          )}
+        </form>
+      ) : (
+        <p className="mt-6 text-xs font-medium text-black/60">
+          Ask an owner or admin to publish once the required fields are complete.
+        </p>
+      )}
+    </OrgCard>
   );
 }
 

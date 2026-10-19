@@ -100,11 +100,13 @@ class AffiliationDetailView(APIView):
                 detail = getattr(exc, "detail", None) or str(exc)
                 return Response({"ended_on": detail}, status=400)
         skills = request.data.get("skills", affiliation.skills)
+        description = request.data.get("description", affiliation.description)
         try:
             affiliation = update_affiliation(
                 affiliation,
                 request.user,
                 title=title,
+                description=str(description or "").strip()[:500],
                 started_on=started_on,
                 ended_on=ended_on,
                 skills=skills if isinstance(skills, list) else affiliation.skills,

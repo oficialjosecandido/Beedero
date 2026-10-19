@@ -10,6 +10,7 @@ export type TimelineBand = {
   kind?: "work" | "education";
   role: string;
   title: string;
+  description?: string;
   started_on: string;
   ended_on: string | null;
   verified: boolean;
@@ -121,6 +122,10 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                   />
                 ))}
               </div>
+
+              {band.description && (
+                <p className="mt-2.5 max-w-2xl text-sm leading-6 text-zinc-600">{band.description}</p>
+              )}
 
               {band.skills.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">

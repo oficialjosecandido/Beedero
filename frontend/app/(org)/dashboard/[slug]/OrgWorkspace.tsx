@@ -6,9 +6,11 @@ import {
   OrgCredibilityLadder,
   OrgHero,
   OrgNarrative,
+  OrgPublishGate,
   OrgSignalLog,
   type LadderRung,
   type NarrativeContent,
+  type PublishChecklistItem,
   type SignalItem,
 } from "@/components/org-workspace/OrgOverview";
 import { OrgWorkspaceNav } from "@/components/org-workspace/OrgWorkspaceNav";
@@ -51,6 +53,9 @@ export function OrgWorkspace({
     window.history.replaceState(null, "", `/dashboard/${tabs.slug}?tab=${tab}`);
   }
 
+  const showPublishGate = hero.isDraft && active === "overview";
+  const publishChecklist: PublishChecklistItem[] = tabs.onboarding.checklist;
+
   return (
     <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[252px_minmax(0,1fr)]">
       <OrgWorkspaceNav {...identity} counts={counts} active={active} onSelect={selectTab} />
@@ -58,16 +63,34 @@ export function OrgWorkspace({
       <section className="min-w-0 p-4 sm:p-6 lg:p-8">
         <OrgHero {...hero} />
 
+        {showPublishGate && (
+          <OrgPublishGate
+            slug={tabs.slug}
+            orgName={hero.name}
+            publishReady={tabs.onboarding.publish_ready}
+            checklist={publishChecklist}
+            canManage={tabs.canManage}
+            onSelect={selectTab}
+          />
+        )}
+
         {active === "overview" && (
           <>
-            <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
+            <div
+              className={`mt-5 grid gap-5 ${
+                !hero.isDraft && ladder.length > 0
+                  ? "xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]"
+                  : ""
+              }`}
+            >
               <OrgNarrative
                 name={hero.name}
                 content={narrative}
                 canManage={tabs.canManage}
                 onSelect={selectTab}
               />
-              {ladder.length > 0 && (
+              {/* Credibility ladder is post-publish proof — while draft, the publish gate owns the checklist. */}
+              {!hero.isDraft && ladder.length > 0 && (
                 <OrgCredibilityLadder name={hero.name} rungs={ladder} onSelect={selectTab} />
               )}
             </div>

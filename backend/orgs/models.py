@@ -64,6 +64,7 @@ class OrgMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     title = models.CharField(max_length=120, blank=True, default="")
+    description = models.TextField(blank=True, default="")  # short "what I did" blurb
     # Relationship window shown on the person's timeline (accounts/timeline.py).
     # Removing a member still hard-deletes (see delete()); setting ended_on is
     # the way to mark an engagement concluded while keeping it in the timeline.

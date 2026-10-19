@@ -36,6 +36,7 @@ class Affiliation(models.Model):
     org = models.ForeignKey(Organization, related_name="affiliations", on_delete=models.CASCADE)
     role = models.CharField(max_length=12, choices=RoleType.choices)
     title = models.CharField(max_length=120, blank=True, default="")
+    description = models.TextField(blank=True, default="")  # short "what I did" blurb
     started_on = models.DateField()
     ended_on = models.DateField(null=True, blank=True)
     skills = models.JSONField(default=list, blank=True)

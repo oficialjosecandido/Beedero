@@ -196,6 +196,7 @@ export type AffiliationSummary = {
   person: AffiliationPerson;
   role: "founder" | "employee" | "contractor" | "volunteer" | "advisor";
   title: string;
+  description?: string;
   started_on: string;
   ended_on: string | null;
   skills: string[];

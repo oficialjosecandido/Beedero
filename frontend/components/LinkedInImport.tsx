@@ -118,6 +118,32 @@ type Review = {
   skills: Set<string>;
 };
 
+/**
+ * LinkedIn splits the export across one file per section, and the fast
+ * "Profile" download often carries profile.csv alone. Without this note the
+ * review screen just has no Experience on it, which reads like we can't
+ * import experience at all.
+ */
+const EXPECTED_FILES = [
+  { file: "positions.csv", label: "Experience" },
+  { file: "education.csv", label: "Education" },
+  { file: "skills.csv", label: "Skills" },
+];
+
+function MissingFilesNote({ tone, filesRead }: { tone: Tone; filesRead: string[] }) {
+  const read = new Set(filesRead.map((name) => name.toLowerCase()));
+  const missing = EXPECTED_FILES.filter((expected) => !read.has(expected.file));
+  if (missing.length === 0) return null;
+  return (
+    <p className={TONES[tone].note}>
+      <b>{missing.map((entry) => entry.label).join(", ")}</b>{" "}
+      {missing.length === 1 ? "isn't" : "aren't"} in what you uploaded — it only had{" "}
+      {filesRead.join(", ")}. LinkedIn keeps those in <b>Download larger data archive</b>, which it
+      emails you separately. Import that archive here when it arrives, or add them by hand below.
+    </p>
+  );
+}
+
 const STATUS_NOTE: Record<Exclude<ImportEntry["status"], "new">, string> = {
   already_on_profile: "Already on your profile",
   missing_start: "No start date on LinkedIn — add this one by hand",
@@ -388,12 +414,13 @@ export function LinkedInImport({
             (Settings &amp; Privacy → Data privacy).
           </li>
           <li>
-            Choose <b>“Want something in particular?”</b>, tick <b>Profile</b> and request the
-            archive. LinkedIn emails you when it&apos;s ready — usually within about 10 minutes.
+            Choose <b>“Download larger data archive”</b> and request it. That one carries your
+            positions, education and skills; LinkedIn emails it separately and it can take a few
+            hours. The quick <b>Profile</b> tick-box usually brings only your headline and About.
           </li>
           <li>
-            Download the ZIP and choose it below. If your computer unzipped it, select the CSV files
-            inside instead.
+            Unzip it and choose <b>Profile.csv</b>, <b>Positions.csv</b>, <b>Education.csv</b> and{" "}
+            <b>Skills.csv</b> below — those four are all we read. A small ZIP works too.
           </li>
         </ol>
 
@@ -454,6 +481,8 @@ export function LinkedInImport({
           Cancel
         </button>
       </div>
+
+      <MissingFilesNote tone={tone} filesRead={preview.files_read} />
 
       {(showName || p.headline.imported || p.bio.imported || showCountry) && (
         <section className="flex flex-col gap-2">

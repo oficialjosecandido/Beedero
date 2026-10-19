@@ -534,6 +534,7 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             if not is_self:
                 return Response({"detail": "Not found."}, status=404)
             title = str(request.data.get("title", member.title) or "").strip()[:120]
+            description = str(request.data.get("description", member.description) or "").strip()[:500]
             started_raw = request.data.get("started_on", member.started_on.isoformat())
             started_on = parse_date(str(started_raw or ""))
             if not started_on:
@@ -553,6 +554,9 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
                     assert_date_in_bounds(ended_on)
                 except serializers.ValidationError as exc:
                     return Response({"ended_on": exc.detail}, status=400)
+            skills = request.data.get("skills")
+            if skills is not None and not isinstance(skills, list):
+                return Response({"skills": "Skills must be a list."}, status=400)
             from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
             from rest_framework.exceptions import ValidationError as DRFValidationError
 
@@ -561,8 +565,10 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
                     member,
                     request.user,
                     title=title,
+                    description=description,
                     started_on=started_on,
                     ended_on=ended_on,
+                    skills=skills,
                 )
             except (DRFPermissionDenied, DRFValidationError) as exc:
                 return Response(getattr(exc, "detail", str(exc)), status=400)

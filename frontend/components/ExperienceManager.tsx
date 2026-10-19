@@ -47,6 +47,7 @@ export type Experience = {
   kind?: "work" | "education";
   org_name: string;
   role?: string;
+  description?: string;
   started_on: string;
   ended_on?: string | null;
   skills?: string[];
@@ -61,6 +62,7 @@ export type OrgMembershipExperience = {
   role: string;
   roleLabel?: string;
   title?: string;
+  description?: string;
   started_on: string;
   ended_on?: string | null;
   details_status?: "confirmed" | "pending";
@@ -283,6 +285,18 @@ function ExperienceFields({ experience }: { experience?: Experience }) {
           className={`mt-2 ${inputDark} placeholder:text-white/35`}
         />
       </label>
+      <label className={`sm:col-span-2 ${labelDark}`}>
+        What you did{" "}
+        <span className="normal-case tracking-normal text-white/25">(short description)</span>
+        <textarea
+          name="description"
+          defaultValue={experience?.description ?? ""}
+          rows={3}
+          maxLength={500}
+          placeholder="A few lines on what you worked on and shipped."
+          className={`mt-2 ${inputDark} min-h-[5.5rem] resize-y placeholder:text-white/35`}
+        />
+      </label>
       <label className={labelDark}>
         Started
         <DateInput
@@ -361,6 +375,9 @@ function ExperienceRecord({ experience, isLast }: { experience: Experience; isLa
           </p>
           <h3 className="mt-1 text-base font-bold">{experience.role || experience.org_name}</h3>
           {experience.role && <p className="mt-1 text-sm text-white/55">{experience.org_name}</p>}
+          {experience.description && (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{experience.description}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StatusChip label="Self-declared" className={STATUS_STYLES.self_declared} />
@@ -458,6 +475,18 @@ function MembershipRecord({
                 className={`mt-2 ${inputDark} placeholder:text-white/35`}
               />
             </label>
+            <label className={`sm:col-span-2 ${labelDark}`}>
+              What you did{" "}
+              <span className="normal-case tracking-normal text-white/25">(short description)</span>
+              <textarea
+                name="description"
+                defaultValue={membership.description ?? ""}
+                rows={3}
+                maxLength={500}
+                placeholder="A few lines on what you worked on and shipped."
+                className={`mt-2 ${inputDark} min-h-[5.5rem] resize-y placeholder:text-white/35`}
+              />
+            </label>
             <label className={labelDark}>
               Started
               <DateInput
@@ -475,6 +504,14 @@ function MembershipRecord({
                 className={`mt-2 ${inputDark}`}
               />
             </label>
+            <div className="sm:col-span-2">
+              <p className={labelDark}>
+                Skills <span className="normal-case tracking-normal text-white/25">(optional)</span>
+              </p>
+              <div className="mt-2">
+                <SkillsInput initial={membership.skills.map((skill) => skill.skill)} max={10} />
+              </div>
+            </div>
           </div>
           <button type="submit" disabled={pending} className={`${btnPrimary} mt-4`}>
             {pending ? "Saving…" : "Save changes"}
@@ -501,6 +538,9 @@ function MembershipRecord({
           </p>
           <h3 className="mt-1 text-base font-bold">{headline}</h3>
           <p className="mt-1 text-sm text-white/55">{membership.orgName}</p>
+          {membership.description && (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{membership.description}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StatusChip label={statusLabel} className={statusClass} />
@@ -600,9 +640,6 @@ function AffiliationRecord({
             </p>
           )}
           <input type="hidden" name="affiliation_id" value={affiliation.id} />
-          {affiliation.skills.map((skill) => (
-            <input key={skill} type="hidden" name="skills" value={skill} />
-          ))}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={`sm:col-span-2 ${labelDark}`}>
               Title
@@ -610,6 +647,18 @@ function AffiliationRecord({
                 name="title"
                 defaultValue={affiliation.title}
                 className={`mt-2 ${inputDark} placeholder:text-white/35`}
+              />
+            </label>
+            <label className={`sm:col-span-2 ${labelDark}`}>
+              What you did{" "}
+              <span className="normal-case tracking-normal text-white/25">(short description)</span>
+              <textarea
+                name="description"
+                defaultValue={affiliation.description ?? ""}
+                rows={3}
+                maxLength={500}
+                placeholder="A few lines on what you worked on and shipped."
+                className={`mt-2 ${inputDark} min-h-[5.5rem] resize-y placeholder:text-white/35`}
               />
             </label>
             <label className={labelDark}>
@@ -629,6 +678,14 @@ function AffiliationRecord({
                 className={`mt-2 ${inputDark}`}
               />
             </label>
+            <div className="sm:col-span-2">
+              <p className={labelDark}>
+                Skills <span className="normal-case tracking-normal text-white/25">(optional)</span>
+              </p>
+              <div className="mt-2">
+                <SkillsInput initial={affiliation.skills} />
+              </div>
+            </div>
           </div>
           <button type="submit" disabled={editPending} className={`${btnPrimary} mt-4`}>
             {editPending ? "Saving…" : "Save changes"}
@@ -654,6 +711,9 @@ function AffiliationRecord({
             {affiliation.title || roleTypeLabel(affiliation.role)}
           </h3>
           <p className="mt-1 text-sm text-white/55">{affiliation.org.name}</p>
+          {affiliation.description && (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{affiliation.description}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StatusChip label={statusText} className={STATUS_STYLES[affiliation.status]} />
@@ -815,6 +875,18 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
             </label>
           </>
         )}
+
+        <label className={`sm:col-span-2 ${labelDark}`}>
+          What you did{" "}
+          <span className="normal-case tracking-normal text-white/25">(short description)</span>
+          <textarea
+            name="description"
+            rows={3}
+            maxLength={500}
+            placeholder="A few lines on what you worked on and shipped."
+            className={`mt-2 ${inputDark} min-h-[5.5rem] resize-y placeholder:text-white/35`}
+          />
+        </label>
 
         <label className={labelDark}>
           Started

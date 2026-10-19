@@ -1,4 +1,4 @@
-"""Person-side edits to roster title/dates — demote verification until org confirms."""
+"""Person-side edits to roster title/dates/description/skills — demote verification until org confirms."""
 
 from __future__ import annotations
 
@@ -8,12 +8,16 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from django.utils import timezone
 
+from accounts.skills import normalize_skills
 from notifications.models import Notification
 from notifications.services import notify
 
-from .models import OrgMembership
+from .models import MembershipSkill, OrgMembership
 
 User = get_user_model()
+
+MEMBERSHIP_SKILLS_CAP = 10
+DESCRIPTION_MAX = 500
 
 
 def org_admins(org):
@@ -30,21 +34,50 @@ def _display_name(user) -> str:
     return user.email.split("@", 1)[0]
 
 
+def sync_membership_skills(membership: OrgMembership, skills: list[str] | None) -> None:
+    """Replace the member's declared skill list while preserving confirmations on kept names."""
+    if skills is None:
+        return
+    desired = normalize_skills(skills)[:MEMBERSHIP_SKILLS_CAP]
+    existing = {row.skill.lower(): row for row in membership.skills_used.all()}
+    desired_keys = {skill.lower() for skill in desired}
+    for key, row in list(existing.items()):
+        if key not in desired_keys:
+            row.delete()
+    for skill in desired:
+        if skill.lower() not in existing:
+            MembershipSkill.objects.create(membership=membership, skill=skill)
+
+
 @transaction.atomic
-def member_update_details(membership: OrgMembership, by_user, *, title, started_on, ended_on) -> OrgMembership:
-    """Apply the member's own title/date edits and park details as pending.
+def member_update_details(
+    membership: OrgMembership,
+    by_user,
+    *,
+    title,
+    started_on,
+    ended_on,
+    description="",
+    skills=None,
+) -> OrgMembership:
+    """Apply the member's own title/date/description edits and park details as pending.
 
     Org admins are notified (including the editor when they are an admin) so
-    the pending confirmation is visible on the Team tab.
+    the pending confirmation is visible on the Team tab. Skills sync in the
+    same save without requiring a separate request.
     """
     if membership.user_id != by_user.id:
         raise PermissionDenied("You can only edit your own team record.")
 
     membership.title = (title or "")[:120]
+    membership.description = str(description or "").strip()[:DESCRIPTION_MAX]
     membership.started_on = started_on
     membership.ended_on = ended_on
     membership.details_status = OrgMembership.DetailsStatus.PENDING
-    membership.save(update_fields=["title", "started_on", "ended_on", "details_status"])
+    membership.save(
+        update_fields=["title", "description", "started_on", "ended_on", "details_status"]
+    )
+    sync_membership_skills(membership, skills)
 
     person_name = _display_name(by_user)
     role_label = membership.title or membership.get_role_display()
