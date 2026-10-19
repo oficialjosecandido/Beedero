@@ -44,6 +44,7 @@ type PersonMembership = {
   title?: string;
   started_on?: string;
   ended_on?: string | null;
+  details_status?: "confirmed" | "pending";
   skills: MembershipSkill[];
 };
 type Me = { email: string; investor_profile: InvestorProfile | null; memberships: PersonMembership[] };
@@ -142,6 +143,7 @@ export default async function DashboardPage({
       title: m.title,
       started_on: m.started_on!,
       ended_on: m.ended_on ?? null,
+      details_status: m.details_status ?? "confirmed",
       skills: m.skills,
     }));
 

@@ -17,6 +17,8 @@ export type NotificationItem = {
     suggestion_title?: string;
     suggestion_body?: string;
     affiliation_id?: number;
+    membership_id?: number;
+    org_slug?: string;
     can_accept?: boolean;
   };
 };

@@ -51,6 +51,7 @@ def person_timeline(profile, viewer) -> list[dict]:
     )
     for membership in memberships:
         org_is_live = membership.org.status == Organization.Status.LIVE
+        details_confirmed = membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
         bands.append(
             {
                 "org_name": membership.org.name,
@@ -60,8 +61,8 @@ def person_timeline(profile, viewer) -> list[dict]:
                 "title": membership.title,
                 "started_on": membership.started_on.isoformat(),
                 "ended_on": membership.ended_on.isoformat() if membership.ended_on else None,
-                "verified": True,
-                "verified_via": "org_membership",
+                "verified": details_confirmed,
+                "verified_via": "org_membership" if details_confirmed else None,
                 "skills": [
                     {"skill": s.skill, "status": s.status} for s in membership.skills_used.all()
                 ],
@@ -137,7 +138,9 @@ def verified_facts_count(user) -> int:
     from credibility.models import ProfessionalCredential
 
     memberships = OrgMembership.objects.filter(
-        user_id=user.id, org__status=Organization.Status.LIVE
+        user_id=user.id,
+        org__status=Organization.Status.LIVE,
+        details_status=OrgMembership.DetailsStatus.CONFIRMED,
     ).count()
     verified_affiliations = Affiliation.objects.filter(
         user=user, org__status=Organization.Status.LIVE, status=Affiliation.Status.VERIFIED

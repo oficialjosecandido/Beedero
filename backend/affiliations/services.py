@@ -120,6 +120,70 @@ def org_add_affiliation(
 
 
 @transaction.atomic
+def update_affiliation(affiliation: Affiliation, by_user, *, title, started_on, ended_on, skills=None) -> Affiliation:
+    """Person edits their own affiliation. Org-verified rows fall back to
+    pending until an admin confirms again; registry founders become
+    self_declared (org confirmation cannot re-verify founders)."""
+    if affiliation.user_id != by_user.id:
+        raise PermissionDenied("This affiliation doesn't belong to you.")
+    if affiliation.status == Affiliation.Status.DISPUTED:
+        raise ValidationError({"status": "A disputed affiliation can't be edited."})
+
+    affiliation.title = (title or "")[:120]
+    affiliation.started_on = started_on
+    affiliation.ended_on = ended_on
+    if skills is not None:
+        affiliation.skills = skills
+
+    was_org_verified = (
+        affiliation.status == Affiliation.Status.VERIFIED
+        and affiliation.verified_via == Affiliation.VerifiedVia.ORG
+    )
+    was_registry_verified = (
+        affiliation.status == Affiliation.Status.VERIFIED
+        and affiliation.verified_via == Affiliation.VerifiedVia.REGISTRY
+    )
+    demoted = False
+
+    if was_org_verified or affiliation.status == Affiliation.Status.PENDING:
+        if affiliation.role == RoleType.FOUNDER:
+            affiliation.status = Affiliation.Status.SELF_DECLARED
+            affiliation.verified_via = ""
+            affiliation.verified_at = None
+        else:
+            affiliation.status = Affiliation.Status.PENDING
+            affiliation.verified_via = ""
+            affiliation.verified_at = None
+            affiliation.created_by = by_user
+        demoted = True
+    elif was_registry_verified:
+        affiliation.status = Affiliation.Status.SELF_DECLARED
+        affiliation.verified_via = ""
+        affiliation.verified_at = None
+        demoted = True
+
+    update_fields = ["title", "started_on", "ended_on", "skills"]
+    if demoted:
+        update_fields.extend(["status", "verified_via", "verified_at", "created_by"])
+    affiliation.save(update_fields=update_fields)
+
+    if affiliation.status == Affiliation.Status.PENDING and affiliation.role != RoleType.FOUNDER:
+        person_name = _display_name(by_user)
+        role_label = affiliation.title or affiliation.get_role_display()
+        for admin in org_admins(affiliation.org):
+            notify(
+                admin,
+                kind=Notification.Kind.AFFILIATION_REQUEST,
+                aggregate_key=f"affiliation_request:{affiliation.id}",
+                title="Affiliation update to confirm",
+                body=f"{person_name} updated their {role_label} affiliation with {affiliation.org.name}.",
+                link=f"/dashboard/{affiliation.org.slug}",
+                payload={"affiliation_id": affiliation.id, "can_accept": False},
+            )
+    return affiliation
+
+
+@transaction.atomic
 def confirm_affiliation(affiliation: Affiliation, by_admin) -> Affiliation:
     if affiliation.role == RoleType.FOUNDER:
         raise ValidationError({"role": "Founder status cannot be confirmed by the organization."})

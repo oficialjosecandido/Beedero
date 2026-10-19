@@ -24,6 +24,10 @@ import {
   deleteExperienceAction,
   updateExperienceAction,
 } from "@/app/(app)/dashboard/experience-actions";
+import {
+  updateAffiliationDetailsAction,
+  updateMyMembershipDetailsAction,
+} from "@/app/(app)/dashboard/membership-actions";
 import { btnPrimary, inputDark, labelDark } from "@/components/app-shell/ui";
 import { DateInput } from "@/components/DateInput";
 import { affiliationStatusLabel, ROLE_TYPE_OPTIONS, roleTypeLabel } from "@/lib/affiliation-options";
@@ -48,7 +52,7 @@ export type Experience = {
   skills?: string[];
 };
 
-/** Platform OrgMembership — already roster-confirmed by the organisation. */
+/** Platform OrgMembership — roster fact; details may await org re-confirmation. */
 export type OrgMembershipExperience = {
   id: number;
   org: string;
@@ -59,6 +63,7 @@ export type OrgMembershipExperience = {
   title?: string;
   started_on: string;
   ended_on?: string | null;
+  details_status?: "confirmed" | "pending";
   skills: { id: number; skill: string; status: string }[];
 };
 
@@ -403,19 +408,111 @@ function MembershipRecord({
   membership: OrgMembershipExperience;
   isLast: boolean;
 }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [error, formAction, pending] = useActionState(updateMyMembershipDetailsAction, null);
+  useActionToast(error, pending, {
+    successMessage: "Saved — waiting for the organisation to confirm.",
+    onSuccess: () => {
+      setEditing(false);
+      router.refresh();
+    },
+  });
+
+  const confirmed = membership.details_status !== "pending";
   const headline = membership.title || membership.roleLabel || membership.role;
   const period = formatPeriod(membership.started_on, membership.ended_on);
+  const statusLabel = confirmed ? "Verified by organisation" : "Pending confirmation";
+  const statusClass = confirmed ? STATUS_STYLES.verified : STATUS_STYLES.pending;
+
+  if (editing) {
+    return (
+      <RecordRow
+        icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness}
+        isLast={isLast}
+      >
+        <form action={formAction} className="border border-white/15 bg-white/[0.02] p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-black tracking-[-0.02em]">Edit {membership.orgName}</h3>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-white/45 transition hover:text-white"
+              aria-label="Cancel editing"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-white/45">
+            Saving removes the verified badge until {membership.orgName} confirms your changes.
+          </p>
+          <input type="hidden" name="org_slug" value={membership.org} />
+          <input type="hidden" name="membership_id" value={membership.id} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={`sm:col-span-2 ${labelDark}`}>
+              Role / title
+              <input
+                name="title"
+                defaultValue={membership.title ?? ""}
+                placeholder="e.g. Founder, Engineer"
+                className={`mt-2 ${inputDark} placeholder:text-white/35`}
+              />
+            </label>
+            <label className={labelDark}>
+              Started
+              <DateInput
+                name="started_on"
+                defaultValue={membership.started_on}
+                required
+                className={`mt-2 ${inputDark}`}
+              />
+            </label>
+            <label className={labelDark}>
+              Ended <span className="normal-case tracking-normal text-white/25">(blank = ongoing)</span>
+              <DateInput
+                name="ended_on"
+                defaultValue={membership.ended_on ?? ""}
+                className={`mt-2 ${inputDark}`}
+              />
+            </label>
+          </div>
+          <button type="submit" disabled={pending} className={`${btnPrimary} mt-4`}>
+            {pending ? "Saving…" : "Save changes"}
+          </button>
+        </form>
+      </RecordRow>
+    );
+  }
+
   return (
-    <RecordRow icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness} isLast={isLast}>
+    <RecordRow
+      icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness}
+      isLast={isLast}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-400/80">
-            Verified by organisation{period ? ` · ${period}` : ""}
+          <p
+            className={`text-[10px] font-black uppercase tracking-[0.14em] ${
+              confirmed ? "text-emerald-400/80" : "text-sky-300/80"
+            }`}
+          >
+            {statusLabel}
+            {period ? ` · ${period}` : ""}
           </p>
           <h3 className="mt-1 text-base font-bold">{headline}</h3>
           <p className="mt-1 text-sm text-white/55">{membership.orgName}</p>
         </div>
-        <StatusChip label="Verified by organisation" className={STATUS_STYLES.verified} />
+        <div className="flex items-center gap-2">
+          <StatusChip label={statusLabel} className={statusClass} />
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className={iconButtonClass}
+            aria-label={`Edit ${headline} at ${membership.orgName}`}
+          >
+            <Pencil size={12} aria-hidden />
+          </button>
+        </div>
       </div>
       <SkillChips
         skills={membership.skills.map((skill) => skill.skill)}
@@ -434,12 +531,25 @@ function AffiliationRecord({
   isLast: boolean;
 }) {
   const router = useRouter();
+  const [editing, setEditing] = useState(false);
   const [error, deleteAction, pending] = useActionState(withdrawAffiliationAction, null);
+  const [editError, editAction, editPending] = useActionState(updateAffiliationDetailsAction, null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   useActionToast(error, pending, { successMessage: "Affiliation withdrawn." });
+  useActionToast(editError, editPending, {
+    successMessage:
+      affiliation.status === "verified"
+        ? "Saved — waiting for the organisation to confirm."
+        : "Affiliation updated.",
+    onSuccess: () => {
+      setEditing(false);
+      router.refresh();
+    },
+  });
   const canWithdraw = affiliation.status !== "verified";
   const canAccept = affiliation.status === "pending" && affiliation.is_org_added;
+  const canEdit = affiliation.status !== "disputed";
 
   function accept() {
     startTransition(async () => {
@@ -469,6 +579,65 @@ function AffiliationRecord({
   const statusText = affiliationStatusText(affiliation);
   const verified = affiliation.status === "verified";
 
+  if (editing) {
+    return (
+      <RecordRow icon={ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness} isLast={isLast}>
+        <form action={editAction} className="border border-white/15 bg-white/[0.02] p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-black tracking-[-0.02em]">Edit affiliation</h3>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-white/45 transition hover:text-white"
+              aria-label="Cancel editing"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          </div>
+          {verified && (
+            <p className="mb-4 text-xs text-white/45">
+              Saving removes the verified badge until {affiliation.org.name} confirms your changes.
+            </p>
+          )}
+          <input type="hidden" name="affiliation_id" value={affiliation.id} />
+          {affiliation.skills.map((skill) => (
+            <input key={skill} type="hidden" name="skills" value={skill} />
+          ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={`sm:col-span-2 ${labelDark}`}>
+              Title
+              <input
+                name="title"
+                defaultValue={affiliation.title}
+                className={`mt-2 ${inputDark} placeholder:text-white/35`}
+              />
+            </label>
+            <label className={labelDark}>
+              Started
+              <DateInput
+                name="started_on"
+                defaultValue={affiliation.started_on}
+                required
+                className={`mt-2 ${inputDark}`}
+              />
+            </label>
+            <label className={labelDark}>
+              Ended <span className="normal-case tracking-normal text-white/25">(blank = ongoing)</span>
+              <DateInput
+                name="ended_on"
+                defaultValue={affiliation.ended_on ?? ""}
+                className={`mt-2 ${inputDark}`}
+              />
+            </label>
+          </div>
+          <button type="submit" disabled={editPending} className={`${btnPrimary} mt-4`}>
+            {editPending ? "Saving…" : "Save changes"}
+          </button>
+        </form>
+      </RecordRow>
+    );
+  }
+
   return (
     <RecordRow icon={ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness} isLast={isLast}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -486,7 +655,19 @@ function AffiliationRecord({
           </h3>
           <p className="mt-1 text-sm text-white/55">{affiliation.org.name}</p>
         </div>
-        <StatusChip label={statusText} className={STATUS_STYLES[affiliation.status]} />
+        <div className="flex items-center gap-2">
+          <StatusChip label={statusText} className={STATUS_STYLES[affiliation.status]} />
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className={iconButtonClass}
+              aria-label={`Edit ${affiliation.title || affiliation.role}`}
+            >
+              <Pencil size={12} aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
       <SkillChips
         skills={affiliation.skills}

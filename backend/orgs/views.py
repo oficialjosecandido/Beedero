@@ -63,6 +63,7 @@ from .models import (
     Visibility,
     VisibilityGrant,
 )
+from .membership_details import confirm_membership_details, member_update_details
 from .permissions import IsOrgMember, IsOrgOwnerOrAdmin, IsVerifiedInvestor, OrgLookupMixin
 from .posting.constants import ACTIVITY_TO_POST_KIND
 from .posting.services import (
@@ -492,9 +493,14 @@ class OrgMembersView(OrgLookupMixin, APIView):
 
 
 class OrgMemberDetailView(OrgLookupMixin, APIView):
-    """PATCH (role change) / DELETE (remove) — owner/admin only. Guards the last owner."""
+    """PATCH membership details / DELETE remove.
 
-    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    Owner/admin can change role and details (details stay confirmed).
+    The member themselves can PATCH title/dates only — that parks details as
+    pending until an admin confirms.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
 
     def _protect_last_owner(self, org, member):
         if member.role != OrgMembership.Role.OWNER:
@@ -506,9 +512,65 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             return Response({"detail": "An organization needs at least one owner."}, status=400)
         return None
 
+    def _is_org_admin(self, org, user) -> bool:
+        return OrgMembership.objects.filter(
+            org=org,
+            user=user,
+            role__in=[OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN],
+        ).exists()
+
     def patch(self, request, slug, member_id):
         org = self.get_org()
         member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        is_admin = self._is_org_admin(org, request.user)
+        is_self = member.user_id == request.user.id
+        if not is_admin and not is_self:
+            return Response({"detail": "Not found."}, status=404)
+
+        # Profile ExperienceManager sends as_member=true so even org owners
+        # demote their own card to pending and notify the rest of the team.
+        as_member = bool(request.data.get("as_member")) or (is_self and not is_admin)
+        if as_member:
+            if not is_self:
+                return Response({"detail": "Not found."}, status=404)
+            title = str(request.data.get("title", member.title) or "").strip()[:120]
+            started_raw = request.data.get("started_on", member.started_on.isoformat())
+            started_on = parse_date(str(started_raw or ""))
+            if not started_on:
+                return Response({"detail": "Invalid started_on date."}, status=400)
+            try:
+                assert_date_in_bounds(started_on)
+            except serializers.ValidationError as exc:
+                return Response({"started_on": exc.detail}, status=400)
+            raw_ended = request.data.get("ended_on", member.ended_on)
+            if raw_ended in (None, ""):
+                ended_on = None
+            else:
+                ended_on = parse_date(str(raw_ended))
+                if not ended_on:
+                    return Response({"detail": "Invalid ended_on date."}, status=400)
+                try:
+                    assert_date_in_bounds(ended_on)
+                except serializers.ValidationError as exc:
+                    return Response({"ended_on": exc.detail}, status=400)
+            from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+
+            try:
+                member = member_update_details(
+                    member,
+                    request.user,
+                    title=title,
+                    started_on=started_on,
+                    ended_on=ended_on,
+                )
+            except (DRFPermissionDenied, DRFValidationError) as exc:
+                return Response(getattr(exc, "detail", str(exc)), status=400)
+            return Response(OrgMembershipSerializer(member).data)
+
+        if not is_admin:
+            return Response({"detail": "Not found."}, status=404)
+
         updated_fields = []
 
         if "title" in request.data:
@@ -556,10 +618,17 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
         if not updated_fields:
             return Response({"detail": "Nothing to update."}, status=400)
 
+        # Admin edits re-attest the details.
+        if "title" in updated_fields or "started_on" in updated_fields or "ended_on" in updated_fields:
+            member.details_status = OrgMembership.DetailsStatus.CONFIRMED
+            updated_fields.append("details_status")
+
         member.save(update_fields=updated_fields)
         return Response(OrgMembershipSerializer(member).data)
 
     def delete(self, request, slug, member_id):
+        if not self._is_org_admin(self.get_org(), request.user):
+            return Response({"detail": "Not found."}, status=404)
         org = self.get_org()
         member = get_object_or_404(OrgMembership, org=org, id=member_id)
         blocked = self._protect_last_owner(org, member)
@@ -567,6 +636,26 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             return blocked
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OrgMemberDetailsConfirmView(OrgLookupMixin, APIView):
+    """POST /api/orgs/<slug>/members/<id>/confirm-details/ — restore verified badge."""
+
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug, member_id):
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
+        org = self.get_org()
+        member = get_object_or_404(OrgMembership, org=org, id=member_id)
+        try:
+            member = confirm_membership_details(member, request.user)
+        except DRFPermissionDenied:
+            return Response({"detail": "Not found."}, status=404)
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=400)
+        return Response(OrgMembershipSerializer(member).data)
 
 
 MEMBERSHIP_SKILLS_CAP = 10

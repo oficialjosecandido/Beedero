@@ -54,6 +54,12 @@ class OrgMembership(models.Model):
         BOARD = "board", "Board member"
         FRACTIONAL = "fractional", "Fractional executive"
 
+    class DetailsStatus(models.TextChoices):
+        # Org-attested title/dates (or freshly created by the org).
+        CONFIRMED = "confirmed"
+        # Member edited their own title/dates — badge stays off until an admin confirms.
+        PENDING = "pending"
+
     org = models.ForeignKey(Organization, related_name="members", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
@@ -63,6 +69,12 @@ class OrgMembership(models.Model):
     # the way to mark an engagement concluded while keeping it in the timeline.
     started_on = models.DateField(default=date.today)
     ended_on = models.DateField(null=True, blank=True)
+    details_status = models.CharField(
+        max_length=12,
+        choices=DetailsStatus.choices,
+        default=DetailsStatus.CONFIRMED,
+        db_index=True,
+    )
 
     class Meta:
         unique_together = ("org", "user")

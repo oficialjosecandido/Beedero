@@ -9,6 +9,7 @@ import {
   acceptAffiliationAction,
   withdrawAffiliationByIdAction,
 } from "@/app/(app)/dashboard/affiliation-actions";
+import { confirmMembershipDetailsByIds } from "@/app/(app)/dashboard/membership-actions";
 import {
   PageHeading,
   Shimmer,
@@ -22,6 +23,7 @@ import {
   type NotificationPreferences,
   useNotifications,
 } from "@/lib/notifications-context";
+
 
 /**
  * The design paints the bell yellow for notifications that carry a deadline or
@@ -81,10 +83,13 @@ function AffiliationRequestActions({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const affiliationId = item.payload?.affiliation_id;
+  const membershipId = item.payload?.membership_id;
+  const orgSlug = item.payload?.org_slug;
 
-  if (!affiliationId || !item.payload?.can_accept) return null;
+  if (!item.payload?.can_accept) return null;
+  if (!affiliationId && !(membershipId && orgSlug)) return null;
 
-  function run(action: typeof acceptAffiliationAction | typeof withdrawAffiliationByIdAction) {
+  function runAffiliation(action: typeof acceptAffiliationAction | typeof withdrawAffiliationByIdAction) {
     startTransition(async () => {
       const result = await action(affiliationId!);
       if ("error" in result) {
@@ -97,13 +102,42 @@ function AffiliationRequestActions({
     });
   }
 
+  function confirmMembership() {
+    startTransition(async () => {
+      const result = await confirmMembershipDetailsByIds(orgSlug!, membershipId!);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      onResolved();
+      router.refresh();
+    });
+  }
+
+  if (membershipId && orgSlug) {
+    return (
+      <div className="mt-3 flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={confirmMembership}
+          className="bg-beedero-yellow px-3 py-1.5 text-xs font-black text-beedero-black transition hover:opacity-90 disabled:cursor-default disabled:opacity-40"
+        >
+          {isPending ? "…" : "Confirm details"}
+        </button>
+        {error && <p className="text-xs text-beedero-yellow">{error}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           disabled={isPending}
-          onClick={() => run(acceptAffiliationAction)}
+          onClick={() => runAffiliation(acceptAffiliationAction)}
           className="bg-beedero-yellow px-3 py-1.5 text-xs font-black text-beedero-black transition hover:opacity-90 disabled:cursor-default disabled:opacity-40"
         >
           {isPending ? "…" : "Accept"}
@@ -111,7 +145,7 @@ function AffiliationRequestActions({
         <button
           type="button"
           disabled={isPending}
-          onClick={() => run(withdrawAffiliationByIdAction)}
+          onClick={() => runAffiliation(withdrawAffiliationByIdAction)}
           className="border border-white/15 px-3 py-1.5 text-xs font-bold text-white/65 transition hover:border-white/30 hover:text-white disabled:cursor-default disabled:opacity-40"
         >
           Withdraw
@@ -175,7 +209,11 @@ function NotificationRow({
   // a link — the Accept/Withdraw buttons would sit inside it.
   const actionable =
     item.kind === "affiliation_request" &&
-    Boolean(item.payload?.can_accept && item.payload?.affiliation_id);
+    Boolean(
+      item.payload?.can_accept &&
+        (item.payload?.affiliation_id ||
+          (item.payload?.membership_id && item.payload?.org_slug))
+    );
 
   const className = `group relative flex gap-4 px-4 py-5 transition hover:bg-white/[0.025] sm:px-5 ${
     item.read ? "" : "bg-white/[0.025]"

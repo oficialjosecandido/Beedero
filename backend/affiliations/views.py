@@ -25,6 +25,7 @@ from .services import (
     declare_affiliation,
     dispute_affiliation,
     org_add_affiliation,
+    update_affiliation,
     withdraw_affiliation,
 )
 from .team_invites import (
@@ -68,9 +69,51 @@ class AffiliationMineView(APIView):
 
 
 class AffiliationDetailView(APIView):
-    """DELETE /api/affiliations/<id>/ — withdraw; owner-only."""
+    """PATCH / DELETE /api/affiliations/<id>/ — owner-only."""
 
     permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, affiliation_id):
+        from beedero.date_bounds import assert_date_in_bounds
+        from django.utils.dateparse import parse_date
+
+        affiliation = get_object_or_404(Affiliation, pk=affiliation_id)
+        title = str(request.data.get("title", affiliation.title) or "").strip()
+        started_on = parse_date(str(request.data.get("started_on", affiliation.started_on.isoformat()) or ""))
+        if not started_on:
+            return Response({"started_on": "Invalid start date."}, status=400)
+        try:
+            assert_date_in_bounds(started_on)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response({"started_on": detail}, status=400)
+        raw_ended = request.data.get("ended_on", affiliation.ended_on)
+        if raw_ended in (None, ""):
+            ended_on = None
+        else:
+            ended_on = parse_date(str(raw_ended))
+            if not ended_on:
+                return Response({"ended_on": "Invalid end date."}, status=400)
+            try:
+                assert_date_in_bounds(ended_on)
+            except Exception as exc:
+                detail = getattr(exc, "detail", None) or str(exc)
+                return Response({"ended_on": detail}, status=400)
+        skills = request.data.get("skills", affiliation.skills)
+        try:
+            affiliation = update_affiliation(
+                affiliation,
+                request.user,
+                title=title,
+                started_on=started_on,
+                ended_on=ended_on,
+                skills=skills if isinstance(skills, list) else affiliation.skills,
+            )
+        except PermissionDenied:
+            return Response({"detail": "Not found."}, status=404)
+        except ValidationError as exc:
+            return Response(exc.detail, status=400)
+        return Response(affiliation_summary(affiliation))
 
     def delete(self, request, affiliation_id):
         affiliation = get_object_or_404(Affiliation, pk=affiliation_id)

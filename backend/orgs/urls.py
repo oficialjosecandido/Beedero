@@ -30,6 +30,10 @@ urlpatterns = [
     path("orgs/<slug:slug>/members/", views.OrgMembersView.as_view()),
     path("orgs/<slug:slug>/members/<int:member_id>/", views.OrgMemberDetailView.as_view()),
     path(
+        "orgs/<slug:slug>/members/<int:member_id>/confirm-details/",
+        views.OrgMemberDetailsConfirmView.as_view(),
+    ),
+    path(
         "orgs/<slug:slug>/members/<int:member_id>/skills/",
         views.MembershipSkillListCreateView.as_view(),
     ),

@@ -17,6 +17,7 @@ import {
   updateOrgProfileAction,
   upsertFieldAction,
 } from "@/app/(app)/dashboard/actions";
+import { confirmMembershipDetailsAction } from "@/app/(app)/dashboard/membership-actions";
 import { confirmMembershipSkillAction } from "@/app/(app)/dashboard/membership-skills-actions";
 import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
@@ -81,6 +82,7 @@ type Member = {
   handle?: string | null;
   role: string;
   title?: string;
+  details_status?: "confirmed" | "pending";
   skills?: MembershipSkill[];
 };
 type Invite = {
@@ -1082,9 +1084,21 @@ function TeamSection({ slug, members, canManage }: { slug: string; members: Memb
 
 function MemberRow({ slug, member, canManage }: { slug: string; member: Member; canManage: boolean }) {
   const [removeError, removeAction, removePending] = useActionState(removeMemberAction, null);
+  const [confirmError, confirmAction, confirmPending] = useActionState(
+    confirmMembershipDetailsAction,
+    null
+  );
   useActionToast(removeError, removePending, { successMessage: "Member removed." });
+  useActionToast(confirmError, confirmPending, { successMessage: "Details confirmed." });
+  const pendingDetails = member.details_status === "pending";
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-beedero-border bg-zinc-50/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={`flex flex-col gap-2 rounded-xl border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between ${
+        pendingDetails
+          ? "border-beedero-yellow/60 bg-beedero-yellow/10"
+          : "border-beedero-border bg-zinc-50/80"
+      }`}
+    >
       <div className="flex min-w-0 items-center gap-2.5">
         <TeamMemberAvatar name={member.full_name} profilePicture={member.profile_picture} />
         <div className="min-w-0">
@@ -1102,12 +1116,26 @@ function MemberRow({ slug, member, canManage }: { slug: string; member: Member; 
           )}
           <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
             {membershipAccessLabel(member.role)}
+            {pendingDetails ? " · Details pending confirmation" : ""}
           </p>
           <MemberSkills slug={slug} member={member} canManage={canManage} />
         </div>
       </div>
       {canManage ? (
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {pendingDetails && (
+            <form action={confirmAction}>
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="member_id" value={member.id} />
+              <button
+                type="submit"
+                disabled={confirmPending}
+                className="rounded-lg bg-beedero-yellow px-2.5 py-1.5 text-xs font-bold text-beedero-black hover:opacity-90 disabled:opacity-50"
+              >
+                {confirmPending ? "Confirming…" : "Confirm details"}
+              </button>
+            </form>
+          )}
           <form action={updateMemberTitleAction} className="flex min-w-[12rem] flex-1 sm:flex-none">
             <input type="hidden" name="slug" value={slug} />
             <input type="hidden" name="member_id" value={member.id} />
