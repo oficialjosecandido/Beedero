@@ -4,7 +4,10 @@
  * chip row where the same skill across several records adds up.
  *
  * Mirrors the backend's `aggregate_anchored_skills` (accounts/timeline.py):
- * sum the days of every record carrying the skill, then express that as years.
+ * the calendar time the records carrying a skill cover, expressed as years.
+ * Calendar time, not the sum of the rows — two roles held at once are two
+ * records but one stretch of time, and adding them is how a profile ends up
+ * claiming four years of a skill the person has had for two.
  */
 
 const DAY_MS = 86_400_000;
@@ -50,27 +53,59 @@ export function formatYears(years: number): string {
 
 export type AggregatedSkillTime = { skill: string; days: number; duration: string };
 
+type Period = [start: number, end: number];
+
+/** Days these periods cover between them, counting an overlap once. */
+export function mergedDays(periods: Period[]): number {
+  if (periods.length === 0) return 0;
+  const sorted = [...periods].sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let [currentStart, currentEnd] = sorted[0];
+  for (const [start, end] of sorted.slice(1)) {
+    if (start <= currentEnd) {
+      currentEnd = Math.max(currentEnd, end);
+    } else {
+      total += currentEnd - currentStart;
+      [currentStart, currentEnd] = [start, end];
+    }
+  }
+  total += currentEnd - currentStart;
+  return Math.max(Math.round(total / DAY_MS), 0);
+}
+
 /**
  * One chip per distinct skill, longest-practised first. Case-insensitive on
  * the key but the first spelling seen is the one displayed, so "React" and
  * "react" collapse into a single chip instead of two.
+ *
+ * Concurrent records count once (see `mergedDays`), so the aggregate is never
+ * larger than the span from the earliest record to today — which is what a
+ * reader takes "4 yrs" to mean.
  */
 export function aggregateSkillTime(records: SkillRecord[]): AggregatedSkillTime[] {
-  const bySkill = new Map<string, { skill: string; days: number }>();
+  const bySkill = new Map<string, { skill: string; periods: Period[] }>();
 
   for (const record of records) {
-    const days = recordDays(record.started_on, record.ended_on);
+    // A record whose dates don't parse, or that ends before it starts, is
+    // skipped rather than counted as zero: `formatDuration(0)` reads "1 mo",
+    // and inventing a month for a broken row is worse than leaving it out.
+    const start = new Date(record.started_on).getTime();
+    if (Number.isNaN(start)) continue;
+    const end = record.ended_on ? new Date(record.ended_on).getTime() : Date.now();
+    if (Number.isNaN(end) || end < start) continue;
+
     for (const skill of record.skills ?? []) {
       const name = skill.trim();
       if (!name) continue;
       const key = name.toLowerCase();
-      const entry = bySkill.get(key) ?? { skill: name, days: 0 };
-      entry.days += days;
+      const entry = bySkill.get(key) ?? { skill: name, periods: [] };
+      entry.periods.push([start, end]);
       bySkill.set(key, entry);
     }
   }
 
   return [...bySkill.values()]
+    .map((entry) => ({ skill: entry.skill, days: mergedDays(entry.periods) }))
     .sort((a, b) => b.days - a.days || a.skill.localeCompare(b.skill))
     .map((entry) => ({ ...entry, duration: formatDuration(entry.days) }));
 }

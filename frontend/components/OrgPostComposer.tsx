@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { postFeedAction } from "@/app/(app)/dashboard/actions";
+import { DateInput } from "@/components/DateInput";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { formatDateTime } from "@/lib/format";
 import { useActionToast } from "@/lib/use-action-toast";
@@ -190,19 +191,21 @@ export function OrgPostComposer({
           <div className="flex flex-wrap gap-2">
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
               Start
-              <input
+              <DateInput
                 type="datetime-local"
                 name="starts_at"
                 required
+                maxToday={false}
                 className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
               End
-              <input
+              <DateInput
                 type="datetime-local"
                 name="ends_at"
                 required
+                maxToday={false}
                 className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
               />
             </label>
@@ -253,8 +256,7 @@ export function OrgPostComposer({
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
             When it happened (optional)
-            <input
-              type="date"
+            <DateInput
               name="occurred_at"
               className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
             />

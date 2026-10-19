@@ -16,7 +16,8 @@ export function PersonSkillsSection({
     <section className="border-t border-zinc-100 pt-8">
       <h2 className={profileSectionHeadingClass}>Skills &amp; time in practice</h2>
       <p className="mt-2 text-sm text-zinc-500">
-        Time is taken from the records each skill is anchored to.
+        Time is taken from the records each skill is anchored to. Roles held at the same time count
+        once.
       </p>
 
       {aggregated.length > 0 && (

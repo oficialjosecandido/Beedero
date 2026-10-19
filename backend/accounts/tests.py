@@ -337,6 +337,33 @@ def test_self_declared_experience_rejects_ended_before_started(api, user):
 
 
 @pytest.mark.django_db
+def test_self_declared_experience_rejects_year_before_1950(api, user):
+    api.force_authenticate(user)
+    res = api.post(
+        "/api/experience/",
+        {"org_name": "Ancient Co", "started_on": "0004-01-01"},
+        format="json",
+    )
+    assert res.status_code == 400
+    assert "started_on" in res.data
+
+
+@pytest.mark.django_db
+def test_self_declared_experience_rejects_future_start(api, user):
+    from datetime import date, timedelta
+
+    api.force_authenticate(user)
+    future = (date.today() + timedelta(days=7)).isoformat()
+    res = api.post(
+        "/api/experience/",
+        {"org_name": "Future Co", "started_on": future},
+        format="json",
+    )
+    assert res.status_code == 400
+    assert "started_on" in res.data
+
+
+@pytest.mark.django_db
 def test_self_declared_experience_owner_only_edit(api, user):
     other = User.objects.create_user(username="other3", email="other3@example.com", password="x")
     api.force_authenticate(user)

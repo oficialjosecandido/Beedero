@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { DateInput } from "@/components/DateInput";
 import { useActionToast } from "@/lib/use-action-toast";
 
 import { addExperienceAction } from "./actions";
@@ -53,8 +54,7 @@ export function ExperienceStep() {
         <span className="text-sm font-semibold text-beedero-black">
           Started <span className="font-normal text-zinc-500">(optional)</span>
         </span>
-        <input
-          type="date"
+        <DateInput
           name="started_on"
           className="rounded-xl border-2 border-beedero-border bg-beedero-white px-3 py-2.5 text-sm"
         />

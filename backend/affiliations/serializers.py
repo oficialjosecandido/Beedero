@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from beedero.date_bounds import BoundedDateField
 from orgs.serializers import _org_summary
 
 from .models import Affiliation, RoleType, TeamInviteReport
@@ -9,8 +10,8 @@ class AffiliationDeclareSerializer(serializers.Serializer):
     org_slug = serializers.SlugField()
     role = serializers.ChoiceField(choices=RoleType.choices)
     title = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
-    started_on = serializers.DateField()
-    ended_on = serializers.DateField(required=False, allow_null=True, default=None)
+    started_on = BoundedDateField()
+    ended_on = BoundedDateField(required=False, allow_null=True, default=None)
     skills = serializers.ListField(child=serializers.CharField(), required=False, default=list)
 
 
@@ -18,8 +19,8 @@ class AffiliationAddSerializer(serializers.Serializer):
     handle = serializers.SlugField()
     role = serializers.ChoiceField(choices=RoleType.choices)
     title = serializers.CharField(max_length=100, required=True, allow_blank=False)
-    started_on = serializers.DateField()
-    ended_on = serializers.DateField(required=False, allow_null=True, default=None)
+    started_on = BoundedDateField()
+    ended_on = BoundedDateField(required=False, allow_null=True, default=None)
 
 
 def _person_summary(user) -> dict:
@@ -68,7 +69,7 @@ class TeamInviteCreateSerializer(serializers.Serializer):
     # founder status, and an invite must not be the way around that.
     role = serializers.ChoiceField(choices=RoleType.choices)
     title = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
-    started_on = serializers.DateField(required=False, allow_null=True, default=None)
+    started_on = BoundedDateField(required=False, allow_null=True, default=None)
 
 
 class TeamInviteDeclineSerializer(serializers.Serializer):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from beedero.date_bounds import BoundedDateField
 from orgs.serializers import _org_summary
 
 from .models import InvestmentRecord
@@ -10,7 +11,7 @@ class InvestorDeclareSerializer(serializers.Serializer):
     round = serializers.IntegerField(required=False, allow_null=True, default=None)
     amount_cents = serializers.IntegerField(min_value=1)
     currency = serializers.CharField(max_length=3, required=False, default="EUR")
-    invested_on = serializers.DateField()
+    invested_on = BoundedDateField()
     instrument = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
     investor_public_intent = serializers.BooleanField(required=False, default=False)
     amount_public_intent = serializers.BooleanField(required=False, default=False)
@@ -22,7 +23,7 @@ class StartupDeclareSerializer(serializers.Serializer):
     round = serializers.IntegerField(required=False, allow_null=True, default=None)
     amount_cents = serializers.IntegerField(min_value=1)
     currency = serializers.CharField(max_length=3, required=False, default="EUR")
-    invested_on = serializers.DateField()
+    invested_on = BoundedDateField()
     instrument = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
     amount_public_intent = serializers.BooleanField(required=False, default=False)
 

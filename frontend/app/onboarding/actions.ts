@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { ApiError, apiFetch } from "@/lib/api";
+import { dateBoundsError } from "@/lib/date-bounds";
 import { firstScreenUrl } from "@/lib/onboarding";
 import type { OnboardingState } from "@/lib/types";
 
@@ -89,6 +90,8 @@ export async function addExperienceAction(_prev: string | null, formData: FormDa
   if (!orgName || !role) {
     return "Add the company and your role, or skip this step.";
   }
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
 
   try {
     await apiFetch("/experience/", {

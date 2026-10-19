@@ -25,6 +25,7 @@ import {
   updateExperienceAction,
 } from "@/app/(app)/dashboard/experience-actions";
 import { btnPrimary, inputDark, labelDark } from "@/components/app-shell/ui";
+import { DateInput } from "@/components/DateInput";
 import { affiliationStatusLabel, ROLE_TYPE_OPTIONS, roleTypeLabel } from "@/lib/affiliation-options";
 import {
   aggregateSkillTime,
@@ -150,7 +151,8 @@ function CapabilityRecord({ skills }: { skills: AggregatedSkillTime[] }) {
           <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Skills.</h2>
         </div>
         <p className="max-w-xs text-[11px] leading-5 text-white/40 sm:text-right">
-          Time reflects the experience where each skill was developed.
+          Time reflects the experience where each skill was developed. Roles held at the same time
+          count once.
         </p>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
@@ -234,8 +236,7 @@ function ExperienceFields({ experience }: { experience?: Experience }) {
       </label>
       <label className={labelDark}>
         Started
-        <input
-          type="date"
+        <DateInput
           name="started_on"
           defaultValue={experience?.started_on}
           required
@@ -244,8 +245,7 @@ function ExperienceFields({ experience }: { experience?: Experience }) {
       </label>
       <label className={labelDark}>
         Ended <span className="normal-case tracking-normal text-white/25">(blank = ongoing)</span>
-        <input
-          type="date"
+        <DateInput
           name="ended_on"
           defaultValue={experience?.ended_on ?? ""}
           className={`mt-2 ${inputDark}`}
@@ -552,11 +552,11 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
 
         <label className={labelDark}>
           Started
-          <input type="date" name="started_on" required className={`mt-2 ${inputDark}`} />
+          <DateInput name="started_on" required className={`mt-2 ${inputDark}`} />
         </label>
         <label className={labelDark}>
           Ended <span className="normal-case tracking-normal text-white/25">(blank = ongoing)</span>
-          <input type="date" name="ended_on" className={`mt-2 ${inputDark}`} />
+          <DateInput name="ended_on" className={`mt-2 ${inputDark}`} />
         </label>
 
         <div className="sm:col-span-2">

@@ -123,6 +123,31 @@ def verified_facts_count(user) -> int:
     return memberships + verified_affiliations + verified_credentials
 
 
+def merged_days(periods) -> int:
+    """Calendar days these periods cover, counting an overlap once.
+
+    Two roles held at the same time are two records but one stretch of
+    time: somebody who founded one company in January 2024 and another in
+    May 2025 has been practising the skills they share for the calendar
+    span since 2024, not for the sum of both rows. Adding the rows up is
+    how a profile ends up claiming four years of a skill the person has
+    had for two — a number nobody can defend when asked about it.
+    """
+    total = 0
+    current_start = current_end = None
+    for start, end in sorted(periods):
+        if current_end is None:
+            current_start, current_end = start, end
+        elif start <= current_end:
+            current_end = max(current_end, end)
+        else:
+            total += (current_end - current_start).days
+            current_start, current_end = start, end
+    if current_end is not None:
+        total += (current_end - current_start).days
+    return max(total, 0)
+
+
 def aggregate_anchored_skills(profile) -> list[dict]:
     """Server-side "React — used at 2 orgs over 4 years" aggregation across
     every LIVE-org membership the person has — one source of truth, not
@@ -140,13 +165,13 @@ def aggregate_anchored_skills(profile) -> list[dict]:
                 {
                     "skill": membership_skill.skill,
                     "org_count": 0,
-                    "days": 0,
+                    "periods": [],
                     "confirmed": False,
                 },
             )
             entry["org_count"] += 1
             end = membership.ended_on or date.today()
-            entry["days"] += (end - membership.started_on).days
+            entry["periods"].append((membership.started_on, end))
             if membership_skill.status == membership_skill.Status.ORG_CONFIRMED:
                 entry["confirmed"] = True
 
@@ -156,7 +181,8 @@ def aggregate_anchored_skills(profile) -> list[dict]:
             {
                 "skill": entry["skill"],
                 "org_count": entry["org_count"],
-                "years": round(entry["days"] / 365, 1),
+                # Calendar time, not the sum of the rows — see merged_days.
+                "years": round(merged_days(entry["periods"]) / 365, 1),
                 "confirmed": entry["confirmed"],
             }
         )

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { dateBoundsError } from "@/lib/date-bounds";
 import type { OrgSummary } from "@/lib/types";
 
 function firstErrorMessage(err: unknown, fallback: string): string {
@@ -49,6 +50,10 @@ export async function createAffiliationAction(_prevState: string | null, formDat
   if (!orgSlug || !role || !startedOn) {
     return "Organization, role, and start date are required.";
   }
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
+  const endedErr = dateBoundsError(endedOn, "End date");
+  if (endedErr) return endedErr;
 
   try {
     await apiFetch("/affiliations/", {
@@ -150,6 +155,8 @@ export async function inviteTeamMemberAction(_prevState: string | null, formData
   const startedOn = String(formData.get("started_on") ?? "");
 
   if (!email || !title) return "Email and role are required.";
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
 
   let result: { kind: "invite" | "affiliation" };
   try {
@@ -188,6 +195,10 @@ export async function addTeamMemberAction(_prevState: string | null, formData: F
   if (!handle || !title || !startedOn) {
     return "Username, role, and start date are required.";
   }
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
+  const endedErr = dateBoundsError(endedOn, "End date");
+  if (endedErr) return endedErr;
 
   try {
     await apiFetch(`/orgs/${slug}/affiliations/`, {

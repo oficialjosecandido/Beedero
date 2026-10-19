@@ -3,6 +3,8 @@
 from django.utils import timezone
 from rest_framework import serializers
 
+from beedero.date_bounds import DATE_YEAR_MIN, BoundedDateField
+
 from .constants import PostKind
 from .imaging import PostImageValidationMixin
 
@@ -28,6 +30,10 @@ class EventPayloadSerializer(PostImageValidationMixin, serializers.Serializer):
     def validate(self, data):
         if data["ends_at"] <= data["starts_at"]:
             raise serializers.ValidationError({"ends_at": "End time must be after the start time."})
+        if data["starts_at"].year < DATE_YEAR_MIN:
+            raise serializers.ValidationError(
+                {"starts_at": f"Date must be on or after 1 January {DATE_YEAR_MIN}."}
+            )
         if data["starts_at"] < timezone.now():
             raise serializers.ValidationError(
                 {"starts_at": "Past events should be published as an update or milestone."}
@@ -41,7 +47,7 @@ class MilestonePayloadSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=120)
     body = serializers.CharField(max_length=2000, required=False, allow_blank=True, default="")
     category = serializers.ChoiceField(choices=CATEGORY_CHOICES)
-    occurred_at = serializers.DateField(required=False, allow_null=True)
+    occurred_at = BoundedDateField(required=False, allow_null=True)
     image = serializers.ImageField(required=False, allow_null=True)
 
     def validate(self, attrs):

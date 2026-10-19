@@ -8,6 +8,7 @@ import {
   disputeAffiliationAction,
   inviteTeamMemberAction,
 } from "@/app/(app)/dashboard/affiliation-actions";
+import { DateInput } from "@/components/DateInput";
 import { EmptyState } from "@/components/EmptyState";
 import { affiliationStatusLabel, roleTypeLabel } from "@/lib/affiliation-options";
 import { formatDate } from "@/lib/format";
@@ -317,14 +318,14 @@ function AddTeamMemberForm({ slug }: { slug: string }) {
       <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
           <span className="min-h-10">Started</span>
-          <input type="date" name="started_on" required className={fieldClass} />
+          <DateInput name="started_on" required className={fieldClass} />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-700">
           <span className="min-h-10">
             Ended{" "}
             <span className="font-normal text-subtle">(blank = ongoing)</span>
           </span>
-          <input type="date" name="ended_on" className={fieldClass} />
+          <DateInput name="ended_on" className={fieldClass} />
         </label>
       </div>
       <p className="text-xs text-zinc-500">
@@ -450,7 +451,7 @@ function InviteByEmailForm({ slug, quota }: { slug: string; quota: TeamInviteQuo
           <span className="min-h-10">
             Started <span className="font-normal text-subtle">(optional)</span>
           </span>
-          <input type="date" name="started_on" className={fieldClass} />
+          <DateInput name="started_on" className={fieldClass} />
         </label>
       </div>
       <p className="text-xs text-zinc-500">

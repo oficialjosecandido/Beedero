@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { dateBoundsError } from "@/lib/date-bounds";
 
 import { createAffiliationAction } from "./affiliation-actions";
 
@@ -31,6 +32,10 @@ export async function createExperienceAction(_prevState: string | null, formData
   if (!orgName || !startedOn) {
     return "Organization name and start date are required.";
   }
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
+  const endedErr = dateBoundsError(endedOn, "End date");
+  if (endedErr) return endedErr;
 
   try {
     await apiFetch("/experience/", {
@@ -71,6 +76,10 @@ export async function updateExperienceAction(_prevState: string | null, formData
   if (!orgName || !startedOn) {
     return "Organization name and start date are required.";
   }
+  const startedErr = dateBoundsError(startedOn, "Start date");
+  if (startedErr) return startedErr;
+  const endedErr = dateBoundsError(endedOn, "End date");
+  if (endedErr) return endedErr;
 
   try {
     await apiFetch(`/experience/${id}/`, {

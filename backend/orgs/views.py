@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 from accounts.models import InvestorProfile
 from analytics.models import InterestSignal, ProfileView
 from analytics.services import record_feed_impressions
+from beedero.date_bounds import assert_date_in_bounds
 from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
@@ -519,6 +520,10 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
             started_on = parse_date(str(request.data.get("started_on") or ""))
             if not started_on:
                 return Response({"detail": "Invalid started_on date."}, status=400)
+            try:
+                assert_date_in_bounds(started_on)
+            except serializers.ValidationError as exc:
+                return Response({"started_on": exc.detail}, status=400)
             member.started_on = started_on
             updated_fields.append("started_on")
 
@@ -530,6 +535,10 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
                 ended_on = parse_date(str(raw_ended_on))
                 if not ended_on:
                     return Response({"detail": "Invalid ended_on date."}, status=400)
+                try:
+                    assert_date_in_bounds(ended_on)
+                except serializers.ValidationError as exc:
+                    return Response({"ended_on": exc.detail}, status=400)
                 member.ended_on = ended_on
             updated_fields.append("ended_on")
 

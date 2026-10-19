@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from beedero.date_bounds import BoundedDateField
 from orgs.posting.imaging import PostImageValidationMixin, process_logo_image
 
 from .cities import clean_city
@@ -135,6 +136,9 @@ class InvestorPostSerializer(PostImageValidationMixin, serializers.Serializer):
 
 
 class SelfDeclaredExperienceSerializer(serializers.ModelSerializer):
+    started_on = BoundedDateField()
+    ended_on = BoundedDateField(required=False, allow_null=True)
+
     class Meta:
         model = SelfDeclaredExperience
         fields = ["id", "org_name", "role", "started_on", "ended_on", "skills"]
