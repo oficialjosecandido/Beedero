@@ -84,7 +84,10 @@ export function OpenSectionButton({
       className={className}
       onClick={() => {
         if (!request(section)) return;
-        document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Wait a frame so the section expands into edit mode before scrolling.
+        requestAnimationFrame(() => {
+          document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       }}
     >
       {children}

@@ -133,7 +133,7 @@ function WeekDayDots({ cadence }: { cadence: PostingCadence }) {
             <span
               className={`h-6 w-full ${
                 posted
-                  ? "bg-emerald-400"
+                  ? "bg-beedero-yellow"
                   : isToday
                     ? "border border-dashed border-beedero-yellow"
                     : "bg-white/10"
@@ -155,7 +155,7 @@ function PostingCadenceCard({ cadence }: { cadence: PostingCadence }) {
     <section className={panelClass}>
       <CardHeading
         Icon={CalendarCheck}
-        iconClass="text-emerald-400"
+        iconClass="text-beedero-yellow"
         title="Week cadence"
         note="One post a day, every day. This is the one thing the record asks of you."
       />
@@ -166,7 +166,7 @@ function PostingCadenceCard({ cadence }: { cadence: PostingCadence }) {
           <span className="ml-1.5 text-xs text-white/45">{dayLabel} running</span>
         </div>
         {cadence.posted_today ? (
-          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-400">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-beedero-yellow">
             Today done
           </span>
         ) : (
@@ -208,45 +208,70 @@ function PostingCadenceCard({ cadence }: { cadence: PostingCadence }) {
  */
 function ProfileCompletionCard({ completion }: { completion: ProfileCompletion }) {
   const missing = completion.items.filter((item) => !item.done);
+  const done = completion.items.filter((item) => item.done);
+  const left = missing.length;
+
   return (
     <section className={panelClass}>
-      <CardHeading
-        Icon={SlidersHorizontal}
-        iconClass="text-white/40"
-        title="Complete your profile"
-        note="Self-declared — it decides how you turn up in search, not how trusted you are."
-      />
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal size={16} className="text-white/40" aria-hidden />
+        <h2 className="text-xl font-black tracking-[-0.03em]">
+          {left === 0 ? "Profile complete" : "Still to fill in"}
+        </h2>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-white/45">
+        {left === 0
+          ? "All 8 profile fields are filled. This is what search uses — separate from verification."
+          : `${completion.done_count} of ${completion.total_count} fields done · ${left} left. Tap Add to jump to each one.`}
+      </p>
 
       <div className="mt-4 flex items-center gap-3">
         <div className="h-1.5 flex-1 bg-white/10">
-          <div className="h-full bg-white/50" style={{ width: `${completion.percent}%` }} />
+          <div
+            className="h-full bg-beedero-yellow"
+            style={{ width: `${completion.percent}%` }}
+          />
         </div>
-        <span className="text-[10px] font-black tabular-nums text-white/45">
+        <span className="text-[10px] font-black tabular-nums text-white/55">
           {completion.percent}%
         </span>
       </div>
 
-      {missing.length === 0 ? (
-        <p className="mt-4 text-xs text-white/45">Every field is filled in.</p>
+      {left === 0 ? (
+        <p className="mt-4 text-xs text-white/45">Nothing left on this list.</p>
       ) : (
-        <ul className="mt-4 space-y-2">
-          {missing.map((item) => (
-            <li key={item.key} className="flex items-baseline justify-between gap-3">
+        <ol className="mt-4 space-y-2.5">
+          {missing.map((item, index) => (
+            <li
+              key={item.key}
+              className="flex items-center justify-between gap-3 border border-white/10 bg-white/[0.03] px-3 py-2.5"
+            >
               <span className="min-w-0">
-                <b className="block text-xs">{item.label}</b>
-                <small className="mt-0.5 block text-[10px] leading-4 text-white/40">
+                <span className="flex items-center gap-2">
+                  <span className="grid size-5 shrink-0 place-items-center border border-beedero-yellow/50 text-[10px] font-black text-beedero-yellow">
+                    {index + 1}
+                  </span>
+                  <b className="text-xs text-white">{item.label}</b>
+                </span>
+                <small className="mt-1 block pl-7 text-[10px] leading-4 text-white/45">
                   {item.hint}
                 </small>
               </span>
               <OpenSectionButton
                 section={SECTION_FOR[item.key] ?? "identity"}
-                className="shrink-0 px-2 py-1 text-[10px] font-bold text-beedero-yellow hover:underline"
+                className="shrink-0 bg-beedero-yellow px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-beedero-black hover:opacity-90"
               >
                 Add
               </OpenSectionButton>
             </li>
           ))}
-        </ul>
+        </ol>
+      )}
+
+      {done.length > 0 && left > 0 && (
+        <p className="mt-4 border-t border-white/10 pt-3 text-[10px] leading-4 text-white/35">
+          Already filled: {done.map((item) => item.label).join(", ")}.
+        </p>
       )}
     </section>
   );
@@ -260,13 +285,18 @@ function ProfileCompletionCard({ completion }: { completion: ProfileCompletion }
  * under the `xl` breakpoint).
  */
 export function NextStepStrip({ completion }: { completion: ProfileCompletion | null }) {
-  const next = completion?.items.find((item) => !item.done);
+  const missing = completion?.items.filter((item) => !item.done) ?? [];
+  const next = missing[0];
   if (!completion || !next) return null;
   return (
     <div className="flex items-center gap-3 border border-beedero-yellow/40 bg-beedero-yellow/[0.06] px-4 py-3 xl:hidden">
-      <span className="text-[10px] font-black tabular-nums text-beedero-yellow">{completion.percent}%</span>
+      <span className="text-[10px] font-black tabular-nums text-beedero-yellow">
+        {completion.done_count}/{completion.total_count}
+      </span>
       <span className="min-w-0 flex-1 text-xs">
-        <b className="block">{next.label}</b>
+        <b className="block">
+          {missing.length === 1 ? "1 field left" : `${missing.length} fields left`} · next: {next.label}
+        </b>
         <span className="text-white/50">{next.hint}</span>
       </span>
       <OpenSectionButton
