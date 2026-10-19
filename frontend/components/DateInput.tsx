@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ComponentProps, type FormEvent } from "react";
+import { useMemo, type ComponentProps } from "react";
 
 import {
   DATE_INPUT_MIN,
@@ -66,7 +66,7 @@ export function DateInput({
         applyRangeMessage(event.currentTarget, maxToday);
         onInvalid?.(event);
       }}
-      onInput={(event: FormEvent<HTMLInputElement>) => {
+      onInput={(event) => {
         event.currentTarget.setCustomValidity("");
         onInput?.(event);
       }}
