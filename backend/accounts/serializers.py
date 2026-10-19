@@ -191,7 +191,13 @@ class MeSerializer(serializers.ModelSerializer):
             {
                 "id": m.id,
                 "org": m.org.slug,
+                "org_name": m.org.name,
+                "org_status": m.org.status,
                 "role": m.role,
+                "role_label": m.get_role_display(),
+                "title": m.title,
+                "started_on": m.started_on.isoformat(),
+                "ended_on": m.ended_on.isoformat() if m.ended_on else None,
                 "skills": [{"id": s.id, "skill": s.skill, "status": s.status} for s in m.skills_used.all()],
             }
             for m in obj.orgmembership_set.select_related("org").prefetch_related("skills_used")

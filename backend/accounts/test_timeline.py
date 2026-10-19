@@ -7,7 +7,7 @@ from affiliations.models import Affiliation, RoleType
 from credibility.models import ProfessionalCredential
 from orgs.models import MembershipSkill, Organization, OrgMembership
 
-from .timeline import aggregate_anchored_skills, merged_days, verified_facts_count
+from .timeline import aggregate_anchored_skills, merged_days, person_timeline, verified_facts_count
 
 
 @pytest.fixture
@@ -71,6 +71,49 @@ class TestVerifiedFactsCount:
         OrgMembership.objects.create(org=draft_org, user=user, role=OrgMembership.Role.MEMBER)
 
         assert verified_facts_count(user) == 0
+
+
+@pytest.mark.django_db
+class TestPersonTimeline:
+    def test_draft_membership_shows_as_verified_without_public_slug(self, user):
+        profile, _ = InvestorProfile.objects.get_or_create(user=user)
+        draft_org = Organization.objects.create(
+            slug="bidroom", name="BidRoom", status=Organization.Status.DRAFT
+        )
+        OrgMembership.objects.create(
+            org=draft_org,
+            user=user,
+            role=OrgMembership.Role.OWNER,
+            title="Founder",
+            started_on=date(2024, 1, 1),
+        )
+
+        bands = person_timeline(profile, viewer=user)
+
+        assert len(bands) == 1
+        assert bands[0]["org_name"] == "BidRoom"
+        assert bands[0]["title"] == "Founder"
+        assert bands[0]["verified"] is True
+        assert bands[0]["verified_via"] == "org_membership"
+        assert bands[0]["org_slug"] is None
+
+    def test_self_declared_duplicate_of_membership_is_hidden(self, user):
+        from accounts.models import SelfDeclaredExperience
+
+        profile, _ = InvestorProfile.objects.get_or_create(user=user)
+        org = Organization.objects.create(slug="bidroom", name="BidRoom", status=Organization.Status.LIVE)
+        OrgMembership.objects.create(
+            org=org, user=user, role=OrgMembership.Role.OWNER, started_on=date(2024, 1, 1)
+        )
+        SelfDeclaredExperience.objects.create(
+            user=user, org_name="BidRoom", role="Founder", started_on=date(2024, 1, 1)
+        )
+
+        bands = person_timeline(profile, viewer=user)
+
+        assert len(bands) == 1
+        assert bands[0]["verified"] is True
+        assert bands[0]["verified_via"] == "org_membership"
 
 
 class TestMergedDays:

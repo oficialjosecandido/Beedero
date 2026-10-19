@@ -34,15 +34,25 @@ def platform_attestations(profile) -> list[dict]:
         )
         for membership in memberships:
             org = membership.org
-            if org.status != Organization.Status.LIVE:
+            if org.status not in (Organization.Status.LIVE, Organization.Status.DRAFT):
                 continue
-            level = credibility_level(org)
+            role_label = membership.title or membership.get_role_display()
+            if org.status == Organization.Status.LIVE:
+                level = credibility_level(org)
+                detail = (
+                    f"Verified by {org.name} · credibility level {level}"
+                    if level
+                    else f"Verified by {org.name}"
+                )
+            else:
+                detail = f"Verified by {org.name} (organisation not published yet)"
             items.append(
                 {
                     "kind": "org_membership",
-                    "label": f"{membership.get_role_display()} at {org.name}",
-                    "detail": f"Org credibility level {level}" if level else "Organization member",
-                    "org_slug": org.slug,
+                    "label": f"{role_label} at {org.name}",
+                    "detail": detail,
+                    # Only link when the public org page exists.
+                    "org_slug": org.slug if org.status == Organization.Status.LIVE else None,
                     "org_name": org.name,
                     "org_logo": _org_logo_url(org),
                 }

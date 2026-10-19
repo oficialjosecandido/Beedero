@@ -47,6 +47,20 @@ export type Experience = {
   skills?: string[];
 };
 
+/** Platform OrgMembership — already roster-confirmed by the organisation. */
+export type OrgMembershipExperience = {
+  id: number;
+  org: string;
+  orgName: string;
+  orgStatus?: string;
+  role: string;
+  roleLabel?: string;
+  title?: string;
+  started_on: string;
+  ended_on?: string | null;
+  skills: { id: number; skill: string; status: string }[];
+};
+
 /** The design's record icons, mapped onto this platform's role types. */
 const ROLE_ICONS: Record<string, LucideIcon> = {
   founder: Landmark,
@@ -100,10 +114,25 @@ function formatPeriod(startedOn: string, endedOn?: string | null) {
 
 function affiliationStatusText(affiliation: AffiliationSummary) {
   if (affiliation.status === "verified") {
-    return affiliation.verified_via === "registry" ? "Verified · registry" : "Verified · company";
+    return affiliation.verified_via === "registry"
+      ? "Verified by registry"
+      : "Verified by organisation";
   }
   return affiliationStatusLabel(affiliation.status);
 }
+
+function normalizeOrgKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const MEMBERSHIP_FILTER_TYPES: Record<string, string> = {
+  owner: "founder",
+  admin: "employee",
+  member: "employee",
+  advisor: "advisor",
+  board: "advisor",
+  fractional: "employee",
+};
 
 /**
  * Each skill carries the span of the record it sits on — the design's point
@@ -349,6 +378,36 @@ function ExperienceRecord({ experience, isLast }: { experience: Experience; isLa
   );
 }
 
+function MembershipRecord({
+  membership,
+  isLast,
+}: {
+  membership: OrgMembershipExperience;
+  isLast: boolean;
+}) {
+  const headline = membership.title || membership.roleLabel || membership.role;
+  const period = formatPeriod(membership.started_on, membership.ended_on);
+  return (
+    <RecordRow icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness} isLast={isLast}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-400/80">
+            Verified by organisation{period ? ` · ${period}` : ""}
+          </p>
+          <h3 className="mt-1 text-base font-bold">{headline}</h3>
+          <p className="mt-1 text-sm text-white/55">{membership.orgName}</p>
+        </div>
+        <StatusChip label="Verified by organisation" className={STATUS_STYLES.verified} />
+      </div>
+      <SkillChips
+        skills={membership.skills.map((skill) => skill.skill)}
+        startedOn={membership.started_on}
+        endedOn={membership.ended_on}
+      />
+    </RecordRow>
+  );
+}
+
 function AffiliationRecord({
   affiliation,
   isLast,
@@ -389,12 +448,19 @@ function AffiliationRecord({
     });
   }
 
+  const statusText = affiliationStatusText(affiliation);
+  const verified = affiliation.status === "verified";
+
   return (
     <RecordRow icon={ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness} isLast={isLast}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
-            {roleTypeLabel(affiliation.role)} ·{" "}
+          <p
+            className={`text-[10px] font-black uppercase tracking-[0.14em] ${
+              verified ? "text-emerald-400/80" : "text-white/35"
+            }`}
+          >
+            {verified ? statusText : roleTypeLabel(affiliation.role)} ·{" "}
             {formatPeriod(affiliation.started_on, affiliation.ended_on)}
           </p>
           <h3 className="mt-1 text-base font-bold">
@@ -402,10 +468,7 @@ function AffiliationRecord({
           </h3>
           <p className="mt-1 text-sm text-white/55">{affiliation.org.name}</p>
         </div>
-        <StatusChip
-          label={affiliationStatusText(affiliation)}
-          className={STATUS_STYLES[affiliation.status]}
-        />
+        <StatusChip label={statusText} className={STATUS_STYLES[affiliation.status]} />
       </div>
       <SkillChips
         skills={affiliation.skills}
@@ -578,23 +641,48 @@ function AddExperienceForm({ onClose }: { onClose: () => void }) {
 
 type ExperienceListItem =
   | { kind: "experience"; startedOn: string; type: string; experience: Experience }
-  | { kind: "affiliation"; startedOn: string; type: string; affiliation: AffiliationSummary };
+  | { kind: "affiliation"; startedOn: string; type: string; affiliation: AffiliationSummary }
+  | { kind: "membership"; startedOn: string; type: string; membership: OrgMembershipExperience };
 
 export function ExperienceManager({
   experiences,
   affiliations,
+  memberships = [],
 }: {
   experiences: Experience[];
   affiliations: AffiliationSummary[];
+  memberships?: OrgMembershipExperience[];
 }) {
+  // Free-text rows that duplicate a roster membership (same org name) stay
+  // out of the list — the membership is the verified source of truth.
+  const membershipOrgKeys = new Set(memberships.map((m) => normalizeOrgKey(m.orgName)));
+  const membershipSlugs = new Set(memberships.map((m) => m.org));
+  const visibleExperiences = experiences.filter(
+    (experience) => !membershipOrgKeys.has(normalizeOrgKey(experience.org_name))
+  );
+  // Founder affiliations stay self_declared until registry review, but an
+  // Owner/Admin membership on that same org already proves the relationship.
+  const visibleAffiliations = affiliations.filter((affiliation) => {
+    if (membershipSlugs.has(affiliation.org.slug) && affiliation.role === "founder") {
+      return false;
+    }
+    return true;
+  });
+
   const items: ExperienceListItem[] = [
-    ...experiences.map((experience): ExperienceListItem => ({
+    ...memberships.map((membership): ExperienceListItem => ({
+      kind: "membership",
+      startedOn: membership.started_on,
+      type: MEMBERSHIP_FILTER_TYPES[membership.role] ?? "employee",
+      membership,
+    })),
+    ...visibleExperiences.map((experience): ExperienceListItem => ({
       kind: "experience",
       startedOn: experience.started_on,
       type: SELF_DECLARED,
       experience,
     })),
-    ...affiliations.map((affiliation): ExperienceListItem => ({
+    ...visibleAffiliations.map((affiliation): ExperienceListItem => ({
       kind: "affiliation",
       startedOn: affiliation.started_on,
       type: affiliation.role,
@@ -613,15 +701,21 @@ export function ExperienceManager({
   // Aggregated over every record, not just the filtered ones: the capability
   // row answers "what can this person do", which a type filter shouldn't crop.
   const capabilities = aggregateSkillTime(
-    items.map((item) =>
-      item.kind === "experience"
-        ? item.experience
-        : {
-            skills: item.affiliation.skills,
-            started_on: item.affiliation.started_on,
-            ended_on: item.affiliation.ended_on,
-          }
-    )
+    items.map((item) => {
+      if (item.kind === "experience") return item.experience;
+      if (item.kind === "membership") {
+        return {
+          skills: item.membership.skills.map((skill) => skill.skill),
+          started_on: item.membership.started_on,
+          ended_on: item.membership.ended_on,
+        };
+      }
+      return {
+        skills: item.affiliation.skills,
+        started_on: item.affiliation.started_on,
+        ended_on: item.affiliation.ended_on,
+      };
+    })
   );
 
   return (
@@ -665,13 +759,25 @@ export function ExperienceManager({
         <div className="mt-7">
           {visible.map((item, index) => {
             const isLast = index === visible.length - 1;
-            return item.kind === "experience" ? (
-              <ExperienceRecord
-                key={`experience-${item.experience.id}`}
-                experience={item.experience}
-                isLast={isLast}
-              />
-            ) : (
+            if (item.kind === "membership") {
+              return (
+                <MembershipRecord
+                  key={`membership-${item.membership.id}`}
+                  membership={item.membership}
+                  isLast={isLast}
+                />
+              );
+            }
+            if (item.kind === "experience") {
+              return (
+                <ExperienceRecord
+                  key={`experience-${item.experience.id}`}
+                  experience={item.experience}
+                  isLast={isLast}
+                />
+              );
+            }
+            return (
               <AffiliationRecord
                 key={`affiliation-${item.affiliation.id}`}
                 affiliation={item.affiliation}

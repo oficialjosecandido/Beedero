@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { AdvisorProfile } from "@/components/AdvisoryProfileForm";
 import { ProfileAside } from "@/components/dashboard/ProfileAside";
 import { ProfileHeaderCard } from "@/components/dashboard/ProfileHeaderCard";
-import type { Experience } from "@/components/ExperienceManager";
+import type { Experience, OrgMembershipExperience } from "@/components/ExperienceManager";
 import { ExperienceManager } from "@/components/ExperienceManager";
 import type { PersonalKpiStats } from "@/components/PersonalKpiPanel";
 import type { PersonCredential } from "@/components/ProfessionalCredentialsPanel";
@@ -33,7 +33,18 @@ type InvestorProfile = {
   is_verified?: boolean;
 };
 type MembershipSkill = { id: number; skill: string; status: string };
-type PersonMembership = { id: number; org: string; role: string; skills: MembershipSkill[] };
+type PersonMembership = {
+  id: number;
+  org: string;
+  org_name?: string;
+  org_status?: string;
+  role: string;
+  role_label?: string;
+  title?: string;
+  started_on?: string;
+  ended_on?: string | null;
+  skills: MembershipSkill[];
+};
 type Me = { email: string; investor_profile: InvestorProfile | null; memberships: PersonMembership[] };
 type InvestorPost = {
   id: number;
@@ -116,8 +127,22 @@ export default async function DashboardPage({
   const profileComplete = Boolean(me.investor_profile?.is_complete);
   const memberships = me.memberships.map((m) => ({
     ...m,
-    orgName: orgs.find((o) => o.slug === m.org)?.name ?? m.org,
+    orgName: m.org_name ?? orgs.find((o) => o.slug === m.org)?.name ?? m.org,
   }));
+  const experienceMemberships: OrgMembershipExperience[] = me.memberships
+    .filter((m) => Boolean(m.started_on))
+    .map((m) => ({
+      id: m.id,
+      org: m.org,
+      orgName: m.org_name ?? orgs.find((o) => o.slug === m.org)?.name ?? m.org,
+      orgStatus: m.org_status,
+      role: m.role,
+      roleLabel: m.role_label,
+      title: m.title,
+      started_on: m.started_on!,
+      ended_on: m.ended_on ?? null,
+      skills: m.skills,
+    }));
 
   const aside = (
     <ProfileAside
@@ -154,7 +179,11 @@ export default async function DashboardPage({
         </div>
       ) : (
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
-          <ExperienceManager experiences={experiences} affiliations={affiliations} />
+          <ExperienceManager
+            experiences={experiences}
+            affiliations={affiliations}
+            memberships={experienceMemberships}
+          />
           {aside}
         </div>
       )}

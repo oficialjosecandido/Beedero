@@ -38,16 +38,23 @@ def person_timeline(profile, viewer) -> list[dict]:
 
     bands = []
 
-    memberships = (
-        OrgMembership.objects.filter(user_id=profile.user_id, org__status=Organization.Status.LIVE)
+    # Draft memberships are still platform-attested facts (the person really
+    # sits on that team's roster). Public org pages may be unpublished, so we
+    # only expose the slug when the org is live.
+    memberships = list(
+        OrgMembership.objects.filter(
+            user_id=profile.user_id,
+            org__status__in=(Organization.Status.LIVE, Organization.Status.DRAFT),
+        )
         .select_related("org")
         .prefetch_related("skills_used")
     )
     for membership in memberships:
+        org_is_live = membership.org.status == Organization.Status.LIVE
         bands.append(
             {
                 "org_name": membership.org.name,
-                "org_slug": membership.org.slug,
+                "org_slug": membership.org.slug if org_is_live else None,
                 "role": membership.get_role_display(),
                 "title": membership.title,
                 "started_on": membership.started_on.isoformat(),
@@ -61,7 +68,18 @@ def person_timeline(profile, viewer) -> list[dict]:
             }
         )
 
+    membership_org_keys = {
+        "".join(ch for ch in membership.org.name.lower() if ch.isalnum())
+        for membership in memberships
+    }
+    membership_slugs = {membership.org.slug for membership in memberships}
+
     for experience in profile.user.self_declared_experiences.all():
+        experience_key = "".join(ch for ch in experience.org_name.lower() if ch.isalnum())
+        # Skip free-text rows that duplicate a roster membership — the
+        # membership is the verified source of truth on the public profile.
+        if experience_key in membership_org_keys:
+            continue
         bands.append(
             {
                 "org_name": experience.org_name,
@@ -77,7 +95,7 @@ def person_timeline(profile, viewer) -> list[dict]:
             }
         )
 
-    from affiliations.models import Affiliation
+    from affiliations.models import Affiliation, RoleType
 
     affiliations = (
         profile.user.affiliations.filter(org__status=Organization.Status.LIVE)
@@ -85,6 +103,10 @@ def person_timeline(profile, viewer) -> list[dict]:
         .select_related("org")
     )
     for affiliation in affiliations:
+        # Owner membership already proves the relationship; keep that band
+        # and drop a still-self-declared founder claim for the same org.
+        if affiliation.role == RoleType.FOUNDER and affiliation.org.slug in membership_slugs:
+            continue
         bands.append(
             {
                 "org_name": affiliation.org.name,

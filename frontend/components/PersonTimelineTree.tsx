@@ -110,7 +110,13 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
         title: band.title || band.role || band.org_name,
         subtitle: band.title || band.role ? band.org_name : "",
         range: ongoing ? `${startYear} — present` : `${startYear} — ${endYear}`,
-        status: ongoing ? "Ongoing" : "Completed",
+        status: band.verified
+          ? band.verified_via === "registry"
+            ? "Verified by registry"
+            : "Verified by organisation"
+          : ongoing
+            ? "Self-declared · ongoing"
+            : "Self-declared",
         ongoing,
         verified: band.verified,
         milestones: band.milestones.length,

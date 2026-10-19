@@ -71,10 +71,23 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                     </>
                   )}
                 </p>
-                <p className="shrink-0 text-xs tabular-nums text-zinc-400 sm:text-right">
-                  {formatDate(band.started_on)} –{" "}
-                  {band.ended_on ? formatDate(band.ended_on) : "Present"}
-                </p>
+                <div className="shrink-0 text-right">
+                  <p className="text-xs tabular-nums text-zinc-400">
+                    {formatDate(band.started_on)} –{" "}
+                    {band.ended_on ? formatDate(band.ended_on) : "Present"}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                      band.verified ? "text-emerald-600" : "text-zinc-400"
+                    }`}
+                  >
+                    {band.verified
+                      ? band.verified_via === "registry"
+                        ? "Verified by registry"
+                        : "Verified by organisation"
+                      : "Self-declared"}
+                  </p>
+                </div>
               </div>
 
               <div className="relative mt-3 h-4 w-full rounded-full bg-zinc-200/90" aria-hidden>
@@ -85,7 +98,13 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
                       : "absolute top-0.5 bottom-0.5 min-w-1.5 rounded-[6px] border-2 border-dashed border-zinc-400 bg-white"
                   }
                   style={{ left, width }}
-                  title={band.verified ? "Verified via Beedero" : "Self-declared"}
+                  title={
+                    band.verified
+                      ? band.verified_via === "registry"
+                        ? "Verified by registry"
+                        : "Verified by organisation"
+                      : "Self-declared"
+                  }
                 />
                 {band.milestones.map((milestone) => (
                   <span
@@ -114,7 +133,7 @@ export function PersonTimeline({ bands }: { bands: TimelineBand[] }) {
         })}
       </div>
       <p className="mt-5 text-[11px] leading-relaxed text-zinc-400">
-        Solid bars are verified via Beedero organizations. Dashed bars are self-declared.
+        Solid bars are verified by the organisation on Beedero. Dashed bars are self-declared.
       </p>
     </section>
   );

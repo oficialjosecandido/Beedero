@@ -177,7 +177,9 @@ const STATUS_STYLES: Record<AffiliationSummary["status"], string> = {
 
 function statusText(affiliation: AffiliationSummary) {
   if (affiliation.status === "verified") {
-    return affiliation.verified_via === "registry" ? "Verified via registry" : "Verified by company";
+    return affiliation.verified_via === "registry"
+      ? "Verified by registry"
+      : "Verified by organisation";
   }
   return affiliationStatusLabel(affiliation.status);
 }
