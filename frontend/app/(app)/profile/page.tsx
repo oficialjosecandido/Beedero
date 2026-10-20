@@ -9,14 +9,11 @@ import type { Experience, OrgMembershipExperience } from "@/components/Experienc
 import { ExperienceManager } from "@/components/ExperienceManager";
 import { LinkedInImport } from "@/components/LinkedInImport";
 import { AccountSection } from "@/components/profile/AccountSection";
-import { CredentialsSection } from "@/components/profile/CredentialsSection";
 import { ProfileEditorProvider } from "@/components/profile/ProfileEditorContext";
 import {
   AboutSection,
-  AdvisorySection,
   IdentitySection,
   InvestmentFocusSection,
-  PreferencesSection,
   SkillsSection,
   type EditableProfile,
 } from "@/components/profile/sections";
@@ -24,26 +21,11 @@ import { VisibilityPill } from "@/components/profile/VisibilityPill";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import type { Vitality } from "@/lib/person-vitality";
 import { aggregateSkillTime } from "@/lib/skill-duration";
-import type {
-  AdvisorProfile,
-  AffiliationSummary,
-  IntentOption,
-  OnboardingState,
-  PersonCredential,
-} from "@/lib/types";
+import type { AffiliationSummary, OnboardingState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const SECTIONS = [
-  "identity",
-  "about",
-  "experience",
-  "skills",
-  "investing",
-  "advisory",
-  "credentials",
-  "preferences",
-];
+const SECTIONS = ["identity", "about", "experience", "skills", "investing"];
 
 type MembershipSkill = { id: number; skill: string; status: string };
 type PersonMembership = {
@@ -88,34 +70,25 @@ export default async function ProfilePage({
   let vitality: Vitality | null = null;
   let experiences: Experience[] = [];
   let affiliations: AffiliationSummary[] = [];
-  let credentials: PersonCredential[] = [];
-  let advisor: AdvisorProfile | null = null;
   let onboarding: OnboardingState | null = null;
-  let intentOptions: IntentOption[] = [];
   let badgeEmbed: { html: string; profile_url: string; badge_url: string; json_url: string } | null = null;
   try {
     let affiliationsRes: { items: AffiliationSummary[] };
-    let intentsRes: { items: IntentOption[] };
-    [me, orgs, vitality, experiences, affiliationsRes, credentials, advisor, onboarding, intentsRes, badgeEmbed] =
-      await Promise.all([
-        apiFetch<Me>("/auth/me/"),
-        safeFetch(apiFetch<{ slug: string; name: string }[]>("/orgs/"), []),
-        safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
-        safeFetch(apiFetch<Experience[]>("/experience/"), [] as Experience[]),
-        safeFetch(apiFetch<{ items: AffiliationSummary[] }>("/affiliations/mine/"), { items: [] }),
-        safeFetch(apiFetch<PersonCredential[]>("/credentials/mine/"), [] as PersonCredential[]),
-        safeFetch(apiFetch<AdvisorProfile>("/advisory/me/"), null),
-        safeFetch(apiFetch<OnboardingState>("/onboarding/"), null),
-        safeFetch(apiFetch<{ items: IntentOption[] }>("/onboarding/intents/"), { items: [] }),
-        safeFetch(
-          apiFetch<{ html: string; profile_url: string; badge_url: string; json_url: string }>(
-            "/investors/me/badge-embed/"
-          ),
-          null
+    [me, orgs, vitality, experiences, affiliationsRes, onboarding, badgeEmbed] = await Promise.all([
+      apiFetch<Me>("/auth/me/"),
+      safeFetch(apiFetch<{ slug: string; name: string }[]>("/orgs/"), []),
+      safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
+      safeFetch(apiFetch<Experience[]>("/experience/"), [] as Experience[]),
+      safeFetch(apiFetch<{ items: AffiliationSummary[] }>("/affiliations/mine/"), { items: [] }),
+      safeFetch(apiFetch<OnboardingState>("/onboarding/"), null),
+      safeFetch(
+        apiFetch<{ html: string; profile_url: string; badge_url: string; json_url: string }>(
+          "/investors/me/badge-embed/"
         ),
-      ]);
+        null
+      ),
+    ]);
     affiliations = affiliationsRes.items;
-    intentOptions = intentsRes.items;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;
@@ -202,9 +175,6 @@ export default async function ProfilePage({
           </div>
           <SkillsSection profile={profile} practised={practised} memberships={memberships} />
           {invests && <InvestmentFocusSection profile={profile} />}
-          <AdvisorySection advisor={advisor} />
-          <CredentialsSection credentials={credentials} visibility={profile.visibility?.credentials} />
-          <PreferencesSection profile={profile} intents={intents} intentOptions={intentOptions} />
           <AccountSection email={me.email} />
         </div>
         <ProfileAside
