@@ -58,9 +58,20 @@ class RLSViewerMiddleware:
         if request.path.startswith(_RLS_EXEMPT_PATH_PREFIXES):
             return self.get_response(request)
         viewer_id = _viewer_id(request)
+        # /admin/ is session-authenticated, so _viewer_id() is 0 there and every
+        # FORCE-RLS table reads as empty to staff. Harmless while browsing, fatal
+        # on delete: Django emulates cascade in Python, that DELETE obeys the
+        # policies and removes nothing, and the parent delete then breaks the
+        # foreign key at COMMIT. The `staff_bypass` policies read this GUC.
+        user = getattr(request, "user", None)
+        is_staff = bool(user and user.is_authenticated and user.is_staff)
         with transaction.atomic():
             with connection.cursor() as cursor:
                 cursor.execute("SET LOCAL beedero.viewer_id = %s", [viewer_id])
+                cursor.execute(
+                    "SELECT set_config('beedero.is_staff', %s, true)",
+                    ["1" if is_staff else "0"],
+                )
             response = self.get_response(request)
         return response
 
