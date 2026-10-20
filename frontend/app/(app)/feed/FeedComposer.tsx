@@ -322,7 +322,7 @@ export function FeedComposer({
                 autoFocus
                 rows={5}
                 onValueChange={setBody}
-                placeholder="What is worth sharing today? Links go here too — keep it under 100 words."
+                placeholder="What is worth sharing today? Links go here too â€” keep it under 100 words."
                 className={`h-32 w-full resize-none border bg-white/5 p-3 text-base text-white outline-none placeholder:text-white/30 ${
                   over ? "border-red-500/70" : "border-white/10 focus:border-beedero-yellow"
                 }`}
@@ -444,7 +444,7 @@ export function FeedComposer({
                 <div className="mt-3 flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
                   <Video size={13} className="text-beedero-yellow" aria-hidden />
                   <span className="flex-1 truncate">{videoName}</span>
-                  <span className="text-[10px] text-white/35">Preview only — video upload soon</span>
+                  <span className="text-[10px] text-white/35">Preview only â€” video upload soon</span>
                   <button
                     type="button"
                     onClick={() => {
