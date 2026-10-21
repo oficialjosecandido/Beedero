@@ -16,6 +16,7 @@ typed by hand. Verification still only comes from an org confirming or a
 registry certificate.
 """
 
+from contextlib import suppress
 from datetime import date
 
 from django.core.files.uploadhandler import MemoryFileUploadHandler
@@ -98,15 +99,43 @@ def _declared_body_size(request) -> int:
         return 0
 
 
+def _purge_uploads(request) -> None:
+    """Close every upload this request parsed, if any.
+
+    Reads `_files` directly on purpose: touching request.FILES would *parse*
+    a body that never got read (a 401, say), building the very buffers we are
+    here to destroy.
+    """
+    files = getattr(request, "_files", None)
+    if not files:
+        return
+    for _field, uploads in files.lists():
+        for upload in uploads:
+            with suppress(OSError, ValueError):
+                upload.close()
+
+
 class LinkedInImportPreviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def initialize_request(self, request, *args, **kwargs):
         # Django only lets the handlers be swapped before anything reads the
-        # body, and authentication already reads it (the CSRF check looks in
-        # request.POST), so this is the last safe moment.
+        # body. Today nothing upstream does — Firebase ID tokens arrive in a
+        # header, so there is no CSRF check reaching into request.POST — but
+        # here is the one place that holds whatever runs before the view.
         request.upload_handlers = [_MemoryOnlyUploadHandler(request)]
         return super().initialize_request(request, *args, **kwargs)
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        finally:
+            # However this request ended — parsed, rate-limited, rejected as
+            # a bad ZIP, or blown up by a bug — the export goes now, not
+            # whenever the garbage collector gets to it. Freeing an in-memory
+            # upload drops the buffer; should the handler above ever change,
+            # this is also what unlinks the temp file.
+            _purge_uploads(request)
 
     def post(self, request):
         enforce_rate_limit(f"linkedin-preview:{request.user.id}", limit=20, window_seconds=3600)
@@ -119,13 +148,6 @@ class LinkedInImportPreviewView(APIView):
             parsed = parse_linkedin_export(uploads)
         except LinkedInImportError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        finally:
-            # Nothing below needs the upload again: free it here rather than
-            # whenever the request is collected. For an in-memory upload that
-            # drops the buffer; should the handler above ever change, this is
-            # what unlinks the temp file.
-            for upload in uploads:
-                upload.close()
 
         profile = InvestorProfile.objects.filter(user=request.user).first()
         current_skills = list(profile.skills) if profile else []

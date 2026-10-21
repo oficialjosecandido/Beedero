@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.exceptions import Throttled
 from rest_framework.test import APIClient
 
 from accounts import linkedin_views
@@ -257,6 +258,56 @@ def test_preview_returns_review_data_and_writes_nothing(api, ana):
     # Preview is read-only.
     assert SelfDeclaredExperience.objects.filter(user=ana).count() == 1
     assert InvestorProfile.objects.get(user=ana).headline == "Builder"
+
+
+@pytest.fixture
+def uploads_seen(monkeypatch):
+    """Every upload the view's handler built, so a test can check it was
+    closed whichever way the request ended."""
+    seen = []
+    real = linkedin_views._MemoryOnlyUploadHandler.file_complete
+
+    def spy(self, file_size):
+        upload = real(self, file_size)
+        if upload is not None:
+            seen.append(upload)
+        return upload
+
+    monkeypatch.setattr(linkedin_views._MemoryOnlyUploadHandler, "file_complete", spy)
+    return seen
+
+
+@pytest.mark.django_db
+def test_upload_is_freed_even_when_the_import_fails(api, uploads_seen):
+    """"Purged when the import finishes" has to mean every ending, not just
+    the happy one."""
+    res = _preview(api, SimpleUploadedFile("export.zip", b"nope", content_type="application/zip"))
+    assert res.status_code == 400
+    assert len(uploads_seen) == 1
+    assert uploads_seen[0].closed
+
+
+@pytest.mark.django_db
+def test_rate_limited_request_leaves_no_live_upload(api, uploads_seen):
+    """Throttled fires before the view touches request.FILES, so the body is
+    never even parsed and there is nothing to free. Pinned because the thing
+    that matters is the same either way: no buffer outlives the request."""
+    with patch.object(
+        linkedin_views, "enforce_rate_limit", side_effect=Throttled(detail="Too many requests.")
+    ):
+        res = _preview(api, _full_export())
+    assert res.status_code == 429
+    assert all(upload.closed for upload in uploads_seen)
+
+
+@pytest.mark.django_db
+def test_upload_is_freed_when_the_view_blows_up(api, uploads_seen):
+    # A bug, not a handled error: the export still goes with the request.
+    with patch.object(linkedin_views, "parse_linkedin_export", side_effect=RuntimeError("boom")):
+        with pytest.raises(RuntimeError):
+            _preview(api, _full_export())
+    assert len(uploads_seen) == 1
+    assert uploads_seen[0].closed
 
 
 @pytest.mark.django_db

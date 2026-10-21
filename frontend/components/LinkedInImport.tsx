@@ -9,6 +9,7 @@ import {
   previewLinkedInImportAction,
 } from "@/app/(app)/dashboard/linkedin-import-actions";
 import { btnGhost, btnPrimary } from "@/components/app-shell/ui";
+import { ArchiveError, keepOnlyWantedFiles } from "@/lib/linkedin-archive";
 import {
   countryFromLocation,
   countryName,
@@ -176,7 +177,11 @@ function initialReview(preview: LinkedInImportPreview): Review {
       country: Boolean(country && !profile.location.current_country),
     },
     entries: new Set(entries.filter((e) => e.status === "new").map((e) => e.key)),
-    skills: new Set(skills.imported.slice(0, room)),
+    // Pre-ticking is a convenience, not a guess. LinkedIn's skill order is
+    // its own — on a real export it put art history and cosmetics first and
+    // left Python, SQL and Django past the 30th — so when there are more
+    // skills than slots, any set we pick would be arbitrary. The person picks.
+    skills: new Set(skills.imported.length <= room ? skills.imported : []),
   };
 }
 
@@ -321,7 +326,26 @@ export function LinkedInImport({
   function readFile(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const response = await previewLinkedInImportAction(formData);
+      // The ZIP is opened here, in the browser, and only the four CSVs we
+      // read are uploaded — the messages and connections in it never leave
+      // this computer. See lib/linkedin-archive.ts.
+      const selected = formData
+        .getAll("files")
+        .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+      let body: FormData;
+      try {
+        body = new FormData();
+        for (const file of await keepOnlyWantedFiles(selected)) body.append("files", file, file.name);
+      } catch (err) {
+        setError(
+          err instanceof ArchiveError
+            ? err.message
+            : "We couldn't read that file. Please try again."
+        );
+        return;
+      }
+
+      const response = await previewLinkedInImportAction(body);
       if ("error" in response) {
         setError(response.error);
         return;
@@ -419,8 +443,9 @@ export function LinkedInImport({
             hours. The quick <b>Profile</b> tick-box usually brings only your headline and About.
           </li>
           <li>
-            Unzip it and choose <b>Profile.csv</b>, <b>Positions.csv</b>, <b>Education.csv</b> and{" "}
-            <b>Skills.csv</b> below — those four are all we read. A small ZIP works too.
+            Choose the ZIP below, as it came. Your browser opens it here and uploads only{" "}
+            <b>Profile.csv</b>, <b>Positions.csv</b>, <b>Education.csv</b> and <b>Skills.csv</b> —
+            picking those four unzipped works just as well.
           </li>
         </ol>
 
@@ -444,9 +469,10 @@ export function LinkedInImport({
         </form>
 
         <p className={t.note}>
-          We only read your profile, positions, education and skills — your connections and messages
-          are never opened. The file is read in memory, never written to our disks, and discarded the
-          moment we finish reading it. We keep no copy.
+          The archive also holds your messages, connections and invitations. Your browser opens it on
+          this computer and uploads only the four files above — the rest is never sent, so Beedero
+          can&apos;t read it even if it wanted to. What does arrive is read in memory, never written
+          to our disks, and discarded the moment we finish with it.
         </p>
       </div>
     );
@@ -492,8 +518,9 @@ export function LinkedInImport({
         what makes the promise on the upload screen worth anything.
       */}
       <p className={t.note}>
-        Your file has already been discarded — it was read in memory, never written to our disks, and
-        no copy was kept. What you see here came from it; only the items you tick get saved.
+        Only {preview.files_read.join(", ")} left your computer, and they have already been
+        discarded — read in memory, never written to our disks, no copy kept. What you see here came
+        from them; only the items you tick get saved.
       </p>
 
       {(showName || p.headline.imported || p.bio.imported || showCountry) && (
@@ -582,6 +609,13 @@ export function LinkedInImport({
               );
             })}
           </div>
+          {room > 0 && preview.skills.imported.length > room && (
+            <p className={t.rowMuted}>
+              LinkedIn sent {preview.skills.imported.length} skills and your profile has {room} free
+              slot{room === 1 ? "" : "s"} — pick the ones worth keeping. None are ticked for you:
+              LinkedIn&apos;s order isn&apos;t an order of importance.
+            </p>
+          )}
           {room === 0 && (
             <p className={t.rowMuted}>Your profile already has the maximum of {preview.skills.max} skills.</p>
           )}
