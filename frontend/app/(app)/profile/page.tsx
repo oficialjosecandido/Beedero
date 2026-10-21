@@ -32,6 +32,7 @@ type PersonMembership = {
   id: number;
   org: string;
   org_name?: string;
+  org_logo?: string | null;
   org_status?: string;
   role: string;
   role_label?: string;
@@ -107,6 +108,7 @@ export default async function ProfilePage({
       id: m.id,
       org: m.org,
       orgName: orgNameOf(m),
+      orgLogo: m.org_logo ?? null,
       orgStatus: m.org_status,
       role: m.role,
       roleLabel: m.role_label,

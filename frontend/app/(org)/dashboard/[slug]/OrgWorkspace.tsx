@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentProps } from "react";
+import { useLayoutEffect, useState, useSyncExternalStore, type ComponentProps } from "react";
 
 import {
   OrgCredibilityLadder,
@@ -21,6 +21,15 @@ import { OrgTabs } from "./OrgTabs";
 type TabsProps = Omit<ComponentProps<typeof OrgTabs>, "active">;
 type IdentityProps = Omit<ComponentProps<typeof OrgWorkspaceNav>, "active" | "onSelect" | "counts">;
 
+function subscribeHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+function readPublishHash() {
+  return window.location.hash === "#publish-checklist";
+}
+
 /**
  * The organisation workspace shell: it owns the active section so the sidebar
  * and the panels stay in step without a round-trip to the server on every
@@ -39,7 +48,7 @@ export function OrgWorkspace({
 }: {
   initialTab: OrgTabId;
   identity: IdentityProps;
-  hero: ComponentProps<typeof OrgHero>;
+  hero: Omit<ComponentProps<typeof OrgHero>, "onOpenPublishChecklist">;
   narrative: NarrativeContent;
   ladder: LadderRung[];
   signals: SignalItem[];
@@ -47,21 +56,45 @@ export function OrgWorkspace({
   tabs: TabsProps;
 }) {
   const [active, setActive] = useState<OrgTabId>(initialTab);
+  // `#publish-checklist` is the draft gate on overview — honour it even when
+  // `?tab=` still points at profile from an earlier click.
+  const hashWantsPublish = useSyncExternalStore(subscribeHash, readPublishHash, () => false);
+  const effectiveActive =
+    hashWantsPublish && hero.isDraft ? ("overview" as const) : active;
 
   function selectTab(tab: OrgTabId) {
     setActive(tab);
     window.history.replaceState(null, "", `/dashboard/${tabs.slug}?tab=${tab}`);
   }
 
-  const showPublishGate = hero.isDraft && active === "overview";
+  function openPublishChecklist() {
+    setActive("overview");
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${tabs.slug}?tab=overview#publish-checklist`
+    );
+    // replaceState does not fire hashchange — nudge subscribers manually.
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+
+  useLayoutEffect(() => {
+    if (!hashWantsPublish || !hero.isDraft || effectiveActive !== "overview") return;
+    document.getElementById("publish-checklist")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [hashWantsPublish, hero.isDraft, effectiveActive]);
+
+  const showPublishGate = hero.isDraft && effectiveActive === "overview";
   const publishChecklist: PublishChecklistItem[] = tabs.onboarding.checklist;
 
   return (
     <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[252px_minmax(0,1fr)]">
-      <OrgWorkspaceNav {...identity} counts={counts} active={active} onSelect={selectTab} />
+      <OrgWorkspaceNav {...identity} counts={counts} active={effectiveActive} onSelect={selectTab} />
 
       <section className="min-w-0 p-4 sm:p-6 lg:p-8">
-        <OrgHero {...hero} />
+        <OrgHero {...hero} onOpenPublishChecklist={openPublishChecklist} />
 
         {showPublishGate && (
           <OrgPublishGate
@@ -74,7 +107,7 @@ export function OrgWorkspace({
           />
         )}
 
-        {active === "overview" && (
+        {effectiveActive === "overview" && (
           <>
             <div
               className={`mt-5 grid gap-5 ${
@@ -99,7 +132,7 @@ export function OrgWorkspace({
         )}
 
         <div className="mt-6 min-w-0">
-          <OrgTabs {...tabs} active={active} />
+          <OrgTabs {...tabs} active={effectiveActive} />
         </div>
       </section>
     </div>

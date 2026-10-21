@@ -33,7 +33,7 @@ WEIGHTS = {
 
 REFUND_REQUIREMENTS = ["logo", "about", "team", "products", "market"]
 
-# Gates the Overview "Publish organization" action. Market thesis stays optional.
+# Gates the Overview "Publish organization" action. Products and market thesis stay optional.
 ACTIVATION_REQUIREMENTS = [
     "logo",
     "one_liner",
@@ -42,7 +42,6 @@ ACTIVATION_REQUIREMENTS = [
     "geo",
     "about",
     "team",
-    "products",
 ]
 
 CHECKLIST_HINTS = {
@@ -61,6 +60,7 @@ CHECKLIST_HINTS = {
 # Overview checklist — profile setup, plus staying active. Credibility is a separate product.
 PROFILE_STRENGTH_CHECKLIST = [
     *ACTIVATION_REQUIREMENTS,
+    "products",
     "market",
     "activity",
 ]

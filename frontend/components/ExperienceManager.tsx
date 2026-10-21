@@ -58,6 +58,7 @@ export type OrgMembershipExperience = {
   id: number;
   org: string;
   orgName: string;
+  orgLogo?: string | null;
   orgStatus?: string;
   role: string;
   roleLabel?: string;
@@ -226,10 +227,13 @@ function StatusChip({ label, className }: { label: string; className: string }) 
  */
 function RecordRow({
   icon: Icon,
+  logoUrl,
   isLast,
   children,
 }: {
   icon: LucideIcon;
+  /** When set (verified org rows), replaces the generic role icon. */
+  logoUrl?: string | null;
   isLast: boolean;
   children: React.ReactNode;
 }) {
@@ -237,11 +241,16 @@ function RecordRow({
     <article className={`grid grid-cols-[28px_1fr] gap-4 ${isLast ? "" : "pb-8"}`}>
       <span
         aria-hidden
-        className={`grid size-7 place-items-center bg-[#252a34] text-beedero-yellow ${
+        className={`grid size-7 place-items-center overflow-hidden bg-[#252a34] text-beedero-yellow ${
           isLast ? "" : "record-line"
         }`}
       >
-        <Icon size={14} />
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="size-7 object-cover" />
+        ) : (
+          <Icon size={14} />
+        )}
       </span>
       <div className={`min-w-0 ${isLast ? "" : "border-b border-white/[0.08] pb-8"}`}>
         {children}
@@ -442,12 +451,13 @@ function MembershipRecord({
   const statusLabel = confirmed ? "Verified by organisation" : "Pending confirmation";
   const statusClass = confirmed ? STATUS_STYLES.verified : STATUS_STYLES.pending;
 
+  const membershipIcon =
+    ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness;
+  const membershipLogo = confirmed ? membership.orgLogo : null;
+
   if (editing) {
     return (
-      <RecordRow
-        icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness}
-        isLast={isLast}
-      >
+      <RecordRow icon={membershipIcon} logoUrl={membershipLogo} isLast={isLast}>
         <form action={formAction} className="border border-white/15 bg-white/[0.02] p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-sm font-black tracking-[-0.02em]">Edit {membership.orgName}</h3>
@@ -522,10 +532,7 @@ function MembershipRecord({
   }
 
   return (
-    <RecordRow
-      icon={ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness}
-      isLast={isLast}
-    >
+    <RecordRow icon={membershipIcon} logoUrl={membershipLogo} isLast={isLast}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p
@@ -618,10 +625,12 @@ function AffiliationRecord({
 
   const statusText = affiliationStatusText(affiliation);
   const verified = affiliation.status === "verified";
+  const affiliationIcon = ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness;
+  const affiliationLogo = verified ? affiliation.org.logo : null;
 
   if (editing) {
     return (
-      <RecordRow icon={ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness} isLast={isLast}>
+      <RecordRow icon={affiliationIcon} logoUrl={affiliationLogo} isLast={isLast}>
         <form action={editAction} className="border border-white/15 bg-white/[0.02] p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-sm font-black tracking-[-0.02em]">Edit affiliation</h3>
@@ -696,7 +705,7 @@ function AffiliationRecord({
   }
 
   return (
-    <RecordRow icon={ROLE_ICONS[affiliation.role] ?? BriefcaseBusiness} isLast={isLast}>
+    <RecordRow icon={affiliationIcon} logoUrl={affiliationLogo} isLast={isLast}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p

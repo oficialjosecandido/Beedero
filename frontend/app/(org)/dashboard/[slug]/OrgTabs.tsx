@@ -700,7 +700,8 @@ function OnboardingPanel({
           </button>
           {!onboarding.publish_ready && (
             <p className="mt-2 text-xs text-zinc-500">
-              Complete all required Profile fields before publishing. Market thesis is optional.
+              Complete all required Profile fields before publishing. Products and market thesis are
+              optional.
             </p>
           )}
           <p className="mt-2 text-xs text-subtle">Publishing is free.</p>
@@ -1691,6 +1692,7 @@ export function OrgTabs({
             title="Products"
             description="Help investors understand what you sell or offer."
             fields={PRODUCTS_FIELDS}
+            optional
           />
           <CuratedProfileSection
             slug={slug}

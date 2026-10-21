@@ -31,7 +31,6 @@ const PUBLISH_REQUIRED_KEYS = [
   "geo",
   "about",
   "team",
-  "products",
 ] as const;
 
 const PUBLISH_LABELS: Record<string, string> = {
@@ -84,6 +83,7 @@ export function OrgHero({
   capitalRaised,
   recordScore,
   verifiedSignals,
+  onOpenPublishChecklist,
 }: {
   name: string;
   logo: string | null;
@@ -97,6 +97,8 @@ export function OrgHero({
   capitalRaised: number | null;
   recordScore: number;
   verifiedSignals: number;
+  /** Draft CTA — switches to overview and scrolls to the publish checklist. */
+  onOpenPublishChecklist?: () => void;
 }) {
   const stats: { value: string; label: string }[] = [
     { value: String(teamCount), label: "Team members" },
@@ -131,12 +133,13 @@ export function OrgHero({
 
         <div className="flex flex-wrap gap-2">
           {isDraft ? (
-            <a
-              href="#publish-checklist"
+            <button
+              type="button"
+              onClick={onOpenPublishChecklist}
               className="border border-beedero-yellow bg-beedero-yellow px-4 py-2.5 text-xs font-black text-org-ink transition hover:bg-white"
             >
               Draft — see what&apos;s missing
-            </a>
+            </button>
           ) : (
             <span className="border border-beedero-yellow bg-beedero-yellow px-4 py-2.5 text-xs font-black text-org-ink">
               Live
@@ -217,8 +220,8 @@ export function OrgPublishGate({
         </span>
       </div>
       <p className="mt-3 max-w-xl text-sm leading-6 text-black/70">
-        Partners only see a public page after you publish. Market thesis is optional; everything
-        below is required.
+        Partners only see a public page after you publish. Products and market thesis are optional;
+        everything below is required.
       </p>
 
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">

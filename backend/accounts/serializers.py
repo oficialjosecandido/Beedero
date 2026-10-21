@@ -195,6 +195,7 @@ class MeSerializer(serializers.ModelSerializer):
                 "id": m.id,
                 "org": m.org.slug,
                 "org_name": m.org.name,
+                "org_logo": m.org.logo.url if m.org.logo else None,
                 "org_status": m.org.status,
                 "role": m.role,
                 "role_label": m.get_role_display(),

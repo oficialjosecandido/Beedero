@@ -19,7 +19,7 @@
 
   /* Organisation workspace (Figma) — the light brutalist context that
      /(org) routes use instead of the dark app shell. */
-  --color-org-ground: #f4df68;
+  --color-org-ground: #f9de4a; /* same as beedero-yellow — one yellow across workspace + footer */
   --color-org-ink: #17191f;
   --color-org-cream: #fffdf2;
   --color-org-gold: #b08a00;
