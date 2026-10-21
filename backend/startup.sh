@@ -19,6 +19,10 @@ if [ -n "$MIGRATE_DATABASE_URL" ]; then
   export DATABASE_URL="$RUNTIME_DATABASE_URL"
 fi
 
+# Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
+# Idempotent upsert — safe on every boot. Needs the runtime DB role (writes).
+python manage.py ensure_lighthouse_demo_person
+
 exec gunicorn beedero.wsgi \
   --bind="0.0.0.0:${PORT}" \
   --workers=3 \
