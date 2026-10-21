@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { FeedComposer } from "./FeedComposer";
 import { FeedList } from "./FeedList";
@@ -12,6 +12,9 @@ type ChecklistItem = { key: string; done: boolean; hint: string; weight: number 
  * Owns feed list state so a fresh publish appears immediately. `router.refresh()`
  * alone is not enough: FeedList used to keep the first `useState(initialItems)`
  * and ignore the RSC props that arrive after revalidation.
+ *
+ * When RSC props change, adjust state during render (same pattern as InsightsTabs)
+ * rather than syncing in an effect — avoids react-hooks/set-state-in-effect.
  */
 export function FeedHome({
   initialItems,
@@ -31,20 +34,24 @@ export function FeedHome({
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
-  const [postedToday, setPostedToday] = useState(composer.hasPostedToday);
+  const [prevInitialItems, setPrevInitialItems] = useState(initialItems);
+  const [prevInitialCursor, setPrevInitialCursor] = useState(initialCursor);
+  const [postedOverride, setPostedOverride] = useState(false);
 
-  useEffect(() => {
+  if (initialItems !== prevInitialItems) {
+    setPrevInitialItems(initialItems);
     setItems(initialItems);
+  }
+  if (initialCursor !== prevInitialCursor) {
+    setPrevInitialCursor(initialCursor);
     setCursor(initialCursor);
-  }, [initialItems, initialCursor]);
+  }
 
-  useEffect(() => {
-    setPostedToday(composer.hasPostedToday);
-  }, [composer.hasPostedToday]);
+  const postedToday = postedOverride || composer.hasPostedToday;
 
   function handlePublished(item: FeedItem) {
     setItems((prev) => [item, ...prev.filter((row) => !(row.type === item.type && row.id === item.id))]);
-    setPostedToday(true);
+    setPostedOverride(true);
   }
 
   return (

@@ -17,7 +17,6 @@ tests: pytest's own connection is a superuser, and a superuser bypasses RLS
 even with FORCE, so asserting through the ORM here would pass with or without
 the migration -- a false green.
 """
-import pytest
 
 from accounts.models import User
 from connections.models import Connection

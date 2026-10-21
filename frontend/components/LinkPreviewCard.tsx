@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { extractFirstUrl } from "@/lib/richtext";
 
 type PreviewState =
-  | { status: "idle" }
   | { status: "loading" }
   | { status: "unavailable" }
   | {
@@ -54,15 +53,16 @@ export function LinkPreviewCard({
   tone?: "light" | "dark";
 }) {
   const url = extractFirstUrl(body);
-  const [state, setState] = useState<PreviewState>(url ? { status: "loading" } : { status: "idle" });
+  if (!url) return null;
+  // Remount when the URL changes so loading state resets without syncing in an effect.
+  return <LinkPreviewCardInner key={url} url={url} tone={tone} />;
+}
+
+function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dark" }) {
+  const [state, setState] = useState<PreviewState>({ status: "loading" });
 
   useEffect(() => {
-    if (!url) {
-      setState({ status: "idle" });
-      return;
-    }
     let cancelled = false;
-    setState({ status: "loading" });
 
     void (async () => {
       try {
@@ -83,7 +83,7 @@ export function LinkPreviewCard({
     };
   }, [url]);
 
-  if (!url || state.status === "idle" || state.status === "unavailable") return null;
+  if (state.status === "unavailable") return null;
 
   if (state.status === "loading") {
     return (
