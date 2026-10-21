@@ -1,18 +1,22 @@
 """Read a person's own LinkedIn data export ("Get a copy of your data").
 
 Why the export and not the LinkedIn API: Sign In with LinkedIn (OpenID
-Connect) only returns name, email and photo. Positions, education and skills
-are reserved for LinkedIn's partner programs, and scraping profiles breaks
+Connect) only returns name, email and photo. Positions and education are
+reserved for LinkedIn's partner programs, and scraping profiles breaks
 LinkedIn's terms. The export is the person exercising their own right to a
 copy of their data (GDPR art. 20) and handing it to us — structured CSV, in
 full, no guessing at a PDF layout.
 
+Skills stay out of this path on purpose: LinkedIn's skill list is noisy and
+unordered, and Beedero skills are chosen by hand on the profile.
+
 Rules this module keeps:
 
-* Only the four files that describe the person's own profile are ever
-  opened: Profile, Positions, Education, Skills. Connections, messages,
-  invitations and everything else in the archive are other people's data or
-  irrelevant here; they are skipped by name, never read.
+* Only the three files that describe the person's own profile are ever
+  opened: Profile, Positions, Education. Skills.csv is ignored even if
+  present. Connections, messages, invitations and everything else in the
+  archive are other people's data or irrelevant here; they are skipped by
+  name, never read.
 * Nothing is stored. The upload is parsed in memory, the parsed result goes
   back to the person for review, and only what they confirm is saved (by the
   apply endpoint, through the normal serializers). It never reaches the
@@ -37,18 +41,18 @@ MAX_ZIP_ENTRIES = 2000
 MAX_FILE_BYTES = 2 * 1024 * 1024  # uncompressed, per CSV we actually read
 MAX_POSITIONS = 100
 MAX_EDUCATION = 50
-MAX_SKILLS_READ = 200
 MAX_SUMMARY = 2600  # LinkedIn's own "About" limit
 MAX_HEADLINE = 200
 MAX_NAME = 200
 MAX_ORG_NAME = 200
 MAX_ROLE = 120
+MAX_DESCRIPTION = 500  # matches SelfDeclaredExperienceSerializer.validate_description
 
 # Said in two places: here, and by the view when the body is refused before
 # parsing (see linkedin_views._MemoryOnlyUploadHandler).
 OVERSIZE_MESSAGE = (
     "That file is too large. Unzip the archive and choose only Profile.csv, "
-    "Positions.csv, Education.csv and Skills.csv — those are the four we read."
+    "Positions.csv and Education.csv — those are the three we read."
 )
 
 # basename (lowercase) -> the header columns that identify the real header row
@@ -56,7 +60,6 @@ WANTED_FILES = {
     "profile.csv": {"first name", "last name"},
     "positions.csv": {"company name", "title"},
     "education.csv": {"school name"},
-    "skills.csv": {"name"},
 }
 
 
@@ -71,6 +74,7 @@ class ParsedEntry:
     started_on: date | None
     ended_on: date | None
     kind: str  # "work" | "education"
+    description: str = ""
 
 
 @dataclass
@@ -81,14 +85,13 @@ class ParsedExport:
     location: str = ""  # free text, e.g. "Lisbon, Portugal" — the client maps it to a country
     positions: list[ParsedEntry] = field(default_factory=list)
     education: list[ParsedEntry] = field(default_factory=list)
-    skills: list[str] = field(default_factory=list)
     files_read: list[str] = field(default_factory=list)
 
     @property
     def is_empty(self) -> bool:
         return not (
             self.full_name or self.headline or self.summary
-            or self.positions or self.education or self.skills
+            or self.positions or self.education
         )
 
 
@@ -269,6 +272,7 @@ def parse_linkedin_export(uploads) -> ParsedExport:
                     started_on=parse_linkedin_date(row.get("started on", "")),
                     ended_on=parse_linkedin_date(row.get("finished on", "")),
                     kind="work",
+                    description=_clip(row.get("description", ""), MAX_DESCRIPTION),
                 )
             )
 
@@ -287,16 +291,9 @@ def parse_linkedin_export(uploads) -> ParsedExport:
                     started_on=parse_linkedin_date(row.get("start date", "")),
                     ended_on=parse_linkedin_date(row.get("end date", "")),
                     kind="education",
+                    description=_clip(row.get("notes", ""), MAX_DESCRIPTION),
                 )
             )
-
-    if "skills.csv" in files:
-        seen = set()
-        for row in _rows(files["skills.csv"], WANTED_FILES["skills.csv"], MAX_SKILLS_READ):
-            skill = row.get("name", "").strip()
-            if skill and skill.lower() not in seen:
-                seen.add(skill.lower())
-                result.skills.append(skill)
 
     if result.is_empty:
         raise LinkedInImportError("Those files don't contain any profile information we can import.")

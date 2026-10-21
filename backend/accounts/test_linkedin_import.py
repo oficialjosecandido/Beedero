@@ -43,7 +43,7 @@ EDUCATION_CSV = (
     "Coursera,2024,2099,,Data Science,\n"
     "Old School,1940,1944,,,\n"
 )
-SKILLS_CSV = "Name\nProduct Management\nFintech\nfintech\nPython\n"
+SKILLS_CSV = "Name\nProduct Management\nFintech\nfintech\nPython\n"  # present in real exports; ignored
 CONNECTIONS_CSV = (
     "Notes:\n"
     '"When exporting your connection data, you may notice that some of the email addresses are missing."\n'
@@ -111,27 +111,26 @@ def test_parse_linkedin_date(raw, expected):
     assert parse_linkedin_date(raw) == expected
 
 
-def test_parses_profile_positions_education_and_skills():
+def test_parses_profile_positions_and_education():
     parsed = parse_linkedin_export([_full_export()])
 
     assert parsed.full_name == "Ana Silva"
     assert parsed.headline == "Founder at Acme | Fintech"
     assert parsed.summary == "I build payment tools.\n\nPreviously at Northwind."
     assert parsed.location == "Lisbon, Portugal"
-    assert [(p.org_name, p.role, p.started_on, p.ended_on) for p in parsed.positions] == [
-        ("Acme", "Founder & CEO", date(2023, 3, 1), None),
-        ("Northwind", "Product Manager", date(2019, 6, 1), date(2023, 2, 1)),
-        ("Mystery Co", "Advisor", None, None),
+    assert [(p.org_name, p.role, p.started_on, p.ended_on, p.description) for p in parsed.positions] == [
+        ("Acme", "Founder & CEO", date(2023, 3, 1), None, "Started it, still here."),
+        ("Northwind", "Product Manager", date(2019, 6, 1), date(2023, 2, 1), ""),
+        ("Mystery Co", "Advisor", None, None, ""),
     ]
     assert [(e.org_name, e.role, e.kind) for e in parsed.education] == [
         ("Nova SBE", "MSc Management", "education"),
         ("Coursera", "Data Science", "education"),
         ("Old School", "", "education"),
     ]
-    assert parsed.skills == ["Product Management", "Fintech", "Python"]
 
 
-def test_never_opens_connections_or_messages():
+def test_never_opens_connections_messages_or_skills():
     upload = _full_export()  # built before the spy, which would see the writes
     opened = []
     real_open = zipfile.ZipFile.open
@@ -143,20 +142,19 @@ def test_never_opens_connections_or_messages():
     with patch.object(zipfile.ZipFile, "open", spy):
         parsed = parse_linkedin_export([upload])
 
-    assert sorted(opened) == ["Education.csv", "Positions.csv", "Profile.csv", "Skills.csv"]
-    assert parsed.files_read == ["education.csv", "positions.csv", "profile.csv", "skills.csv"]
+    assert sorted(opened) == ["Education.csv", "Positions.csv", "Profile.csv"]
+    assert parsed.files_read == ["education.csv", "positions.csv", "profile.csv"]
 
 
 def test_loose_csvs_work_when_the_zip_was_unzipped():
     files = [
-        SimpleUploadedFile("Positions.csv", POSITIONS_CSV.encode()),
-        SimpleUploadedFile("Skills.csv", ("﻿" + SKILLS_CSV).encode()),  # BOM
+        SimpleUploadedFile("Positions.csv", ("\ufeff" + POSITIONS_CSV).encode()),  # BOM
+        SimpleUploadedFile("Skills.csv", SKILLS_CSV.encode()),  # ignored — skills are manual
         SimpleUploadedFile("Connections.csv", CONNECTIONS_CSV.encode()),
     ]
     parsed = parse_linkedin_export(files)
     assert len(parsed.positions) == 3
-    assert parsed.skills[0] == "Product Management"
-    assert parsed.files_read == ["positions.csv", "skills.csv"]
+    assert parsed.files_read == ["positions.csv"]
 
 
 def test_header_matching_is_case_insensitive_and_files_may_be_nested():
@@ -241,12 +239,13 @@ def test_preview_returns_review_data_and_writes_nothing(api, ana):
     assert body["profile"]["headline"] == {"imported": "Founder at Acme | Fintech", "current": "Builder"}
     assert body["profile"]["full_name"]["imported"] == "Ana Silva"
     assert body["profile"]["location"] == {"imported": "Lisbon, Portugal", "current_country": ""}
-    # Already-held skills (case-insensitive) aren't offered again.
-    assert body["skills"]["imported"] == ["Product Management", "Fintech"]
+    assert "skills" not in body
     by_org = {e["org_name"]: e for e in body["entries"]}
     assert by_org["Acme"]["status"] == "new"
+    assert by_org["Acme"]["description"] == "Started it, still here."
     assert by_org["Acme"]["beedero_org"] == {"slug": "acme", "name": "ACME"}
-    assert by_org["Northwind"]["status"] == "already_on_profile"
+    assert by_org["Northwind"]["status"] == "update"
+    assert by_org["Northwind"]["current_description"] == ""
     assert by_org["Mystery Co"]["status"] == "missing_start"
     assert by_org["Nova SBE"]["kind"] == "education"
     assert by_org["Nova SBE"]["beedero_org"] is None
@@ -367,8 +366,22 @@ def _apply(api, **payload):
 
 
 ENTRIES = [
-    {"kind": "work", "org_name": "Acme", "role": "Founder & CEO", "started_on": "2023-03-01", "ended_on": None},
-    {"kind": "education", "org_name": "Nova SBE", "role": "MSc Management", "started_on": "2014-01-01", "ended_on": "2018-01-01"},
+    {
+        "kind": "work",
+        "org_name": "Acme",
+        "role": "Founder & CEO",
+        "description": "Started it, still here.",
+        "started_on": "2023-03-01",
+        "ended_on": None,
+    },
+    {
+        "kind": "education",
+        "org_name": "Nova SBE",
+        "role": "MSc Management",
+        "description": "",
+        "started_on": "2014-01-01",
+        "ended_on": "2018-01-01",
+    },
 ]
 
 
@@ -380,14 +393,13 @@ def test_apply_saves_only_what_was_sent_and_is_idempotent(api, ana):
         headline="Founder at Acme | Fintech",
         bio="I build payment tools.",
         country="PT",
-        skills=["Fintech", "Python"],
         entries=ENTRIES,
     )
     assert res.status_code == 200, res.content
     assert res.json() == {
         "profile_fields_updated": ["bio", "country", "full_name", "headline"],
-        "skills_added": 2,
         "entries_created": 2,
+        "entries_updated": 0,
         "entries_skipped": 0,
     }
     profile = InvestorProfile.objects.get(user=ana)
@@ -396,26 +408,62 @@ def test_apply_saves_only_what_was_sent_and_is_idempotent(api, ana):
     assert profile.is_complete
     assert profile.handle  # a public handle is assigned like any profile save
     assert list(
-        SelfDeclaredExperience.objects.filter(user=ana).order_by("started_on").values_list("kind", "org_name")
-    ) == [("education", "Nova SBE"), ("work", "Acme")]
+        SelfDeclaredExperience.objects.filter(user=ana)
+        .order_by("started_on")
+        .values_list("kind", "org_name", "description")
+    ) == [("education", "Nova SBE", ""), ("work", "Acme", "Started it, still here.")]
 
     again = _apply(api, entries=ENTRIES)
     assert again.json()["entries_created"] == 0
-    assert again.json()["entries_skipped"] == 2
+    assert again.json()["entries_updated"] == 2
+    assert again.json()["entries_skipped"] == 0
 
 
 @pytest.mark.django_db
-def test_apply_never_overwrites_a_name_and_keeps_existing_skills_first(api, ana):
-    existing = [f"skill {i}" for i in range(29)]
-    InvestorProfile.objects.create(user=ana, full_name="Ana S.", skills=existing)
+def test_apply_updates_existing_self_declared_description(api, ana):
+    SelfDeclaredExperience.objects.create(
+        user=ana,
+        kind="work",
+        org_name="Acme",
+        role="Founder",
+        description="",
+        started_on=date(2023, 3, 1),
+    )
 
-    res = _apply(api, full_name="Someone Else", skills=["New A", "New B", "New C"])
+    res = _apply(
+        api,
+        entries=[
+            {
+                "kind": "work",
+                "org_name": "Acme",
+                "role": "Founder & CEO",
+                "description": "Started it, still here.",
+                "started_on": "2023-03-01",
+                "ended_on": None,
+            }
+        ],
+    )
+
+    assert res.status_code == 200, res.content
+    assert res.json()["entries_created"] == 0
+    assert res.json()["entries_updated"] == 1
+    row = SelfDeclaredExperience.objects.get(user=ana, org_name="Acme")
+    assert row.role == "Founder & CEO"
+    assert row.description == "Started it, still here."
+    assert SelfDeclaredExperience.objects.filter(user=ana).count() == 1
+
+
+@pytest.mark.django_db
+def test_apply_never_overwrites_a_name(api, ana):
+    InvestorProfile.objects.create(user=ana, full_name="Ana S.", skills=["python"])
+
+    res = _apply(api, full_name="Someone Else", headline="New headline")
 
     assert res.status_code == 200
     profile = InvestorProfile.objects.get(user=ana)
     assert profile.full_name == "Ana S."
-    assert profile.skills == existing + ["New A"]  # cap of 30 trims imported ones only
-    assert res.json()["skills_added"] == 1
+    assert profile.headline == "New headline"
+    assert profile.skills == ["python"]  # skills are never imported via LinkedIn
 
 
 @pytest.mark.django_db

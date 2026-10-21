@@ -39,34 +39,39 @@ from .linkedin_import import (
 )
 from .models import InvestorProfile, SelfDeclaredExperience
 from .serializers import InvestorProfileSerializer, SelfDeclaredExperienceSerializer
-from .skills import MAX_SKILLS, normalize_skills
 
 MAX_APPLY_ENTRIES = 150
 
 
-def _existing_keys(user) -> set[tuple]:
-    """(kind, lowercased org name, start date) of everything already on the
-    timeline, so a second import — or one after typing things by hand —
-    doesn't double up."""
+def _key(kind, org_name, started_on):
+    return (kind, (org_name or "").strip().lower(), started_on)
+
+
+def _self_declared_by_key(user) -> dict[tuple, SelfDeclaredExperience]:
+    """Self-declared rows keyed so a second import can update them in place."""
+    return {
+        _key(e.kind, e.org_name, e.started_on): e
+        for e in SelfDeclaredExperience.objects.filter(user=user)
+    }
+
+
+def _confirmed_work_keys(user) -> set[tuple]:
+    """Affiliation / roster memberships — LinkedIn must not overwrite these."""
     from affiliations.models import Affiliation
 
     keys = {
-        (e.kind, e.org_name.strip().lower(), e.started_on)
-        for e in SelfDeclaredExperience.objects.filter(user=user)
+        ("work", org_name.strip().lower(), started_on)
+        for org_name, started_on in Affiliation.objects.filter(user=user).values_list(
+            "org__name", "started_on"
+        )
     }
-    for org_name, started_on in Affiliation.objects.filter(user=user).values_list(
-        "org__name", "started_on"
-    ):
-        keys.add(("work", org_name.strip().lower(), started_on))
-    for org_name, started_on in OrgMembership.objects.filter(
-        user=user, started_on__isnull=False
-    ).values_list("org__name", "started_on"):
-        keys.add(("work", org_name.strip().lower(), started_on))
+    keys.update(
+        ("work", org_name.strip().lower(), started_on)
+        for org_name, started_on in OrgMembership.objects.filter(
+            user=user, started_on__isnull=False
+        ).values_list("org__name", "started_on")
+    )
     return keys
-
-
-def _key(kind, org_name, started_on):
-    return (kind, (org_name or "").strip().lower(), started_on)
 
 
 class _MemoryOnlyUploadHandler(MemoryFileUploadHandler):
@@ -150,8 +155,8 @@ class LinkedInImportPreviewView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         profile = InvestorProfile.objects.filter(user=request.user).first()
-        current_skills = list(profile.skills) if profile else []
-        existing = _existing_keys(request.user)
+        self_declared = _self_declared_by_key(request.user)
+        confirmed = _confirmed_work_keys(request.user)
 
         work_names = {p.org_name.lower() for p in parsed.positions}
         orgs_on_beedero = {
@@ -167,6 +172,7 @@ class LinkedInImportPreviewView(APIView):
             # An end date in the future is an expected one (a degree still in
             # progress): on Beedero that is simply "ongoing".
             ended_on = entry.ended_on if entry.ended_on and entry.ended_on <= today else None
+            key = _key(entry.kind, entry.org_name, entry.started_on)
             if entry.started_on is None:
                 entry_status = "missing_start"
             elif (
@@ -176,26 +182,31 @@ class LinkedInImportPreviewView(APIView):
             ):
                 # Same bounds the experience form enforces (beedero/date_bounds.py).
                 entry_status = "invalid_dates"
-            elif _key(entry.kind, entry.org_name, entry.started_on) in existing:
+            elif key in confirmed:
+                # Org-confirmed rows stay as-is — LinkedIn is self-declared only.
                 entry_status = "already_on_profile"
+            elif key in self_declared:
+                entry_status = "update"
             else:
                 entry_status = "new"
+            current = self_declared.get(key)
             entries.append(
                 {
                     "key": f"e{index}",
                     "kind": entry.kind,
                     "org_name": entry.org_name,
                     "role": entry.role,
+                    "description": entry.description,
                     "started_on": entry.started_on.isoformat() if entry.started_on else None,
                     "ended_on": ended_on.isoformat() if ended_on else None,
                     "status": entry_status,
+                    "current_description": current.description if current else "",
                     "beedero_org": orgs_on_beedero.get(entry.org_name.lower())
                     if entry.kind == "work"
                     else None,
                 }
             )
 
-        current_lower = {s.lower() for s in current_skills}
         return Response(
             {
                 "files_read": parsed.files_read,
@@ -214,11 +225,6 @@ class LinkedInImportPreviewView(APIView):
                         "current_country": profile.country if profile else "",
                     },
                 },
-                "skills": {
-                    "imported": [s for s in parsed.skills if s.lower() not in current_lower],
-                    "current": current_skills,
-                    "max": MAX_SKILLS,
-                },
                 "entries": entries,
             }
         )
@@ -228,6 +234,7 @@ class _EntrySerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=SelfDeclaredExperience.Kind.choices)
     org_name = serializers.CharField(max_length=200)
     role = serializers.CharField(max_length=120, allow_blank=True, required=False, default="")
+    description = serializers.CharField(max_length=500, allow_blank=True, required=False, default="")
     started_on = serializers.DateField()
     ended_on = serializers.DateField(allow_null=True, required=False, default=None)
 
@@ -237,9 +244,6 @@ class _ApplySerializer(serializers.Serializer):
     headline = serializers.CharField(max_length=200, required=False, allow_blank=True)
     bio = serializers.CharField(max_length=2600, required=False, allow_blank=True)
     country = serializers.RegexField(r"^[A-Z]{2}$", required=False)
-    skills = serializers.ListField(
-        child=serializers.CharField(max_length=200), required=False, max_length=200
-    )
     entries = _EntrySerializer(many=True, required=False, max_length=MAX_APPLY_ENTRIES)
 
 
@@ -263,28 +267,39 @@ class LinkedInImportApplyView(APIView):
             for field in ("headline", "bio", "country"):
                 if data.get(field):
                     changes[field] = data[field]
-            skills_before = list(profile.skills)
-            if data.get("skills"):
-                # Existing skills first: the cap trims imported ones, never
-                # something the person already chose.
-                changes["skills"] = normalize_skills(skills_before + data["skills"])
 
             if changes:
                 profile_serializer = InvestorProfileSerializer(profile, data=changes, partial=True)
                 profile_serializer.is_valid(raise_exception=True)
                 profile_serializer.save()
 
-            existing = _existing_keys(request.user)
-            created, skipped = 0, 0
+            self_declared = _self_declared_by_key(request.user)
+            confirmed = _confirmed_work_keys(request.user)
+            created, updated, skipped = 0, 0, 0
             for entry in data.get("entries", []):
                 key = _key(entry["kind"], entry["org_name"], entry["started_on"])
-                if key in existing:
+                if key in confirmed:
                     skipped += 1
+                    continue
+                if key in self_declared:
+                    existing_row = self_declared[key]
+                    # Blank LinkedIn fields keep what the person already has.
+                    patch = {
+                        "role": entry.get("role") or existing_row.role,
+                        "description": entry.get("description") or existing_row.description,
+                        "ended_on": entry.get("ended_on"),
+                    }
+                    experience = SelfDeclaredExperienceSerializer(
+                        existing_row, data=patch, partial=True
+                    )
+                    experience.is_valid(raise_exception=True)
+                    experience.save()
+                    updated += 1
                     continue
                 experience = SelfDeclaredExperienceSerializer(data={**entry, "skills": []})
                 experience.is_valid(raise_exception=True)
                 experience.save(user=request.user)
-                existing.add(key)
+                self_declared[key] = experience.instance
                 created += 1
 
             ensure_profile_handle(profile)
@@ -292,9 +307,9 @@ class LinkedInImportApplyView(APIView):
         profile.refresh_from_db()
         return Response(
             {
-                "profile_fields_updated": sorted(k for k in changes if k != "skills"),
-                "skills_added": len(profile.skills) - len(skills_before),
+                "profile_fields_updated": sorted(changes),
                 "entries_created": created,
+                "entries_updated": updated,
                 "entries_skipped": skipped,
             },
             status=status.HTTP_200_OK,

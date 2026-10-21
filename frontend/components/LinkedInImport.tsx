@@ -40,7 +40,6 @@ const TONES: Record<
     row: (state: "on" | "off" | "disabled") => string;
     rowTitle: string;
     rowMuted: string;
-    chip: (on: boolean) => string;
     primary: string;
     ghost: string;
     error: string;
@@ -65,12 +64,6 @@ const TONES: Record<
       }`,
     rowTitle: "block font-bold text-white",
     rowMuted: "block text-xs text-white/50",
-    chip: (on) =>
-      `border px-2.5 py-1 text-[11px] font-bold transition disabled:cursor-not-allowed disabled:opacity-35 ${
-        on
-          ? "border-beedero-yellow bg-beedero-yellow text-beedero-black"
-          : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
-      }`,
     primary: btnPrimary,
     ghost: btnGhost,
     error: "text-sm text-red-300",
@@ -94,12 +87,6 @@ const TONES: Record<
       }`,
     rowTitle: "block font-bold text-beedero-black",
     rowMuted: "block text-xs text-zinc-500",
-    chip: (on) =>
-      `rounded-full border px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        on
-          ? "border-beedero-black bg-beedero-black text-beedero-yellow"
-          : "border-beedero-border bg-white text-zinc-700 hover:border-beedero-black"
-      }`,
     primary:
       "rounded-xl bg-beedero-black px-5 py-2.5 text-sm font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black disabled:opacity-60",
     ghost:
@@ -116,19 +103,17 @@ type Review = {
   country: string | null;
   profile: Record<ProfileKey, boolean>;
   entries: Set<string>;
-  skills: Set<string>;
 };
 
 /**
  * LinkedIn splits the export across one file per section, and the fast
  * "Profile" download often carries profile.csv alone. Without this note the
  * review screen just has no Experience on it, which reads like we can't
- * import experience at all.
+ * import experience at all. Skills are never imported — add them by hand.
  */
 const EXPECTED_FILES = [
   { file: "positions.csv", label: "Experience" },
   { file: "education.csv", label: "Education" },
-  { file: "skills.csv", label: "Skills" },
 ];
 
 function MissingFilesNote({ tone, filesRead }: { tone: Tone; filesRead: string[] }) {
@@ -146,7 +131,8 @@ function MissingFilesNote({ tone, filesRead }: { tone: Tone; filesRead: string[]
 }
 
 const STATUS_NOTE: Record<Exclude<ImportEntry["status"], "new">, string> = {
-  already_on_profile: "Already on your profile",
+  update: "Already on your profile — will refresh role, description and end date",
+  already_on_profile: "Already confirmed on your profile — left as is",
   missing_start: "No start date on LinkedIn — add this one by hand",
   invalid_dates: "These dates can't be used here — add this one by hand",
 };
@@ -163,9 +149,8 @@ function formatPeriod(entry: ImportEntry) {
 }
 
 function initialReview(preview: LinkedInImportPreview): Review {
-  const { profile, skills, entries } = preview;
+  const { profile, entries } = preview;
   const country = countryFromLocation(profile.location.imported);
-  const room = Math.max(0, skills.max - skills.current.length);
   return {
     preview,
     country,
@@ -176,12 +161,8 @@ function initialReview(preview: LinkedInImportPreview): Review {
       bio: Boolean(profile.bio.imported && !profile.bio.current),
       country: Boolean(country && !profile.location.current_country),
     },
-    entries: new Set(entries.filter((e) => e.status === "new").map((e) => e.key)),
-    // Pre-ticking is a convenience, not a guess. LinkedIn's skill order is
-    // its own — on a real export it put art history and cosmetics first and
-    // left Python, SQL and Django past the 30th — so when there are more
-    // skills than slots, any set we pick would be arbitrary. The person picks.
-    skills: new Set(skills.imported.length <= room ? skills.imported : []),
+    // New rows and updates of self-declared ones — confirmed org rows stay off.
+    entries: new Set(entries.filter((e) => e.status === "new" || e.status === "update").map((e) => e.key)),
   };
 }
 
@@ -270,24 +251,27 @@ function EntryList({
     <section className="flex flex-col gap-2">
       <h3 className={t.section}>{title}</h3>
       {entries.map((entry) => {
-        const blocked = entry.status !== "new";
+        const selectable = entry.status === "new" || entry.status === "update";
         return (
           <Row
             key={entry.key}
             tone={tone}
             checked={selected.has(entry.key)}
-            disabled={blocked}
+            disabled={!selectable}
             onChange={() => onToggle(entry.key)}
           >
             <span className={t.rowTitle}>{entry.org_name}</span>
             {entry.role && <span className={t.rowMuted}>{entry.role}</span>}
             <span className={t.rowMuted}>{formatPeriod(entry)}</span>
-            {blocked && (
+            {entry.description && (
+              <span className={`${t.rowMuted} mt-1 line-clamp-2`}>{entry.description}</span>
+            )}
+            {entry.status !== "new" && (
               <span className={`${t.rowMuted} mt-1 font-bold`}>
                 {STATUS_NOTE[entry.status as keyof typeof STATUS_NOTE]}
               </span>
             )}
-            {!blocked && entry.beedero_org && (
+            {selectable && entry.beedero_org && entry.status === "new" && (
               <span className={`${t.rowMuted} mt-1`}>
                 {entry.beedero_org.name} is on Beedero — after importing, you can ask them to confirm
                 this role so it shows as verified.
@@ -360,14 +344,14 @@ export function LinkedInImport({
     const payload: LinkedInImportApplyPayload = {
       entries: preview.entries
         .filter((e) => review.entries.has(e.key))
-        .map(({ kind, org_name, role, started_on, ended_on }) => ({
+        .map(({ kind, org_name, role, description, started_on, ended_on }) => ({
           kind,
           org_name,
           role,
+          description,
           started_on,
           ended_on,
         })),
-      skills: preview.skills.imported.filter((s) => review.skills.has(s)),
     };
     if (profile.full_name) payload.full_name = preview.profile.full_name.imported;
     if (profile.headline) payload.headline = preview.profile.headline.imported;
@@ -383,8 +367,9 @@ export function LinkedInImport({
       const { result } = response;
       const parts = [
         result.entries_created &&
-          `${result.entries_created} record${result.entries_created === 1 ? "" : "s"}`,
-        result.skills_added && `${result.skills_added} skill${result.skills_added === 1 ? "" : "s"}`,
+          `${result.entries_created} new record${result.entries_created === 1 ? "" : "s"}`,
+        result.entries_updated &&
+          `${result.entries_updated} updated`,
         result.profile_fields_updated.length && "your profile details",
       ].filter(Boolean);
       toast.success(parts.length ? `Imported ${parts.join(", ")}.` : "Nothing new to import.");
@@ -403,8 +388,8 @@ export function LinkedInImport({
           <p className={t.eyebrow}>Import</p>
           <h2 className={t.title}>From LinkedIn</h2>
           <p className={t.body}>
-            Bring your experience, education and skills from your own LinkedIn data. You review
-            everything before it&apos;s saved.
+            Bring your experience and education from your own LinkedIn data. You review everything
+            before it&apos;s saved. Skills stay manual on your profile.
           </p>
         </div>
         <button type="button" onClick={() => setOpen(true)} className={t.primary}>
@@ -439,13 +424,13 @@ export function LinkedInImport({
           </li>
           <li>
             Choose <b>“Download larger data archive”</b> and request it. That one carries your
-            positions, education and skills; LinkedIn emails it separately and it can take a few
-            hours. The quick <b>Profile</b> tick-box usually brings only your headline and About.
+            positions and education; LinkedIn emails it separately and it can take a few hours. The
+            quick <b>Profile</b> tick-box usually brings only your headline and About.
           </li>
           <li>
             Choose the ZIP below, as it came. Your browser opens it here and uploads only{" "}
-            <b>Profile.csv</b>, <b>Positions.csv</b>, <b>Education.csv</b> and <b>Skills.csv</b> —
-            picking those four unzipped works just as well.
+            <b>Profile.csv</b>, <b>Positions.csv</b> and <b>Education.csv</b> — picking those three
+            unzipped works just as well. Skills are not imported; add them on your profile.
           </li>
         </ol>
 
@@ -469,10 +454,10 @@ export function LinkedInImport({
         </form>
 
         <p className={t.note}>
-          The archive also holds your messages, connections and invitations. Your browser opens it on
-          this computer and uploads only the four files above — the rest is never sent, so Beedero
-          can&apos;t read it even if it wanted to. What does arrive is read in memory, never written
-          to our disks, and discarded the moment we finish with it.
+          The archive also holds your messages, connections, invitations and skills. Your browser
+          opens it on this computer and uploads only the three files above — the rest is never sent,
+          so Beedero can&apos;t read it even if it wanted to. What does arrive is read in memory,
+          never written to our disks, and discarded the moment we finish with it.
         </p>
       </div>
     );
@@ -481,14 +466,13 @@ export function LinkedInImport({
   const { preview } = review;
   const work = preview.entries.filter((e) => e.kind === "work");
   const education = preview.entries.filter((e) => e.kind === "education");
-  const room = Math.max(0, preview.skills.max - preview.skills.current.length);
   const p = preview.profile;
   const showName = Boolean(p.full_name.imported && !p.full_name.current);
   const showCountry = Boolean(review.country && review.country !== p.location.current_country);
   const selectedCount =
     review.entries.size +
-    review.skills.size +
-    Object.entries(review.profile).filter(([key, on]) => on && (key !== "country" || showCountry)).length;
+    Object.entries(review.profile).filter(([key, on]) => on && (key !== "country" || showCountry))
+      .length;
 
   const setProfile = (key: ProfileKey) =>
     setReview({ ...review, profile: { ...review.profile, [key]: !review.profile[key] } });
@@ -583,44 +567,6 @@ export function LinkedInImport({
         selected={review.entries}
         onToggle={(key) => setReview({ ...review, entries: toggle(review.entries, key) })}
       />
-
-      {preview.skills.imported.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className={t.section}>Skills</h3>
-            <span className={t.rowMuted}>
-              {review.skills.size} of {room} free slot{room === 1 ? "" : "s"}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {preview.skills.imported.map((skill) => {
-              const on = review.skills.has(skill);
-              return (
-                <button
-                  key={skill}
-                  type="button"
-                  aria-pressed={on}
-                  disabled={!on && review.skills.size >= room}
-                  onClick={() => setReview({ ...review, skills: toggle(review.skills, skill) })}
-                  className={t.chip(on)}
-                >
-                  {skill}
-                </button>
-              );
-            })}
-          </div>
-          {room > 0 && preview.skills.imported.length > room && (
-            <p className={t.rowMuted}>
-              LinkedIn sent {preview.skills.imported.length} skills and your profile has {room} free
-              slot{room === 1 ? "" : "s"} — pick the ones worth keeping. None are ticked for you:
-              LinkedIn&apos;s order isn&apos;t an order of importance.
-            </p>
-          )}
-          {room === 0 && (
-            <p className={t.rowMuted}>Your profile already has the maximum of {preview.skills.max} skills.</p>
-          )}
-        </section>
-      )}
 
       {error && (
         <p role="alert" className={t.error}>

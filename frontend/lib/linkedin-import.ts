@@ -1,15 +1,22 @@
 import { COUNTRIES } from "./countries";
 
-export type ImportEntryStatus = "new" | "already_on_profile" | "missing_start" | "invalid_dates";
+export type ImportEntryStatus =
+  | "new"
+  | "update"
+  | "already_on_profile"
+  | "missing_start"
+  | "invalid_dates";
 
 export type ImportEntry = {
   key: string;
   kind: "work" | "education";
   org_name: string;
   role: string;
+  description: string;
   started_on: string | null;
   ended_on: string | null;
   status: ImportEntryStatus;
+  current_description?: string;
   beedero_org: { slug: string; name: string } | null;
 };
 
@@ -21,7 +28,6 @@ export type LinkedInImportPreview = {
     bio: { imported: string; current: string };
     location: { imported: string; current_country: string };
   };
-  skills: { imported: string[]; current: string[]; max: number };
   entries: ImportEntry[];
 };
 
@@ -30,14 +36,13 @@ export type LinkedInImportApplyPayload = {
   headline?: string;
   bio?: string;
   country?: string;
-  skills?: string[];
-  entries?: Pick<ImportEntry, "kind" | "org_name" | "role" | "started_on" | "ended_on">[];
+  entries?: Pick<ImportEntry, "kind" | "org_name" | "role" | "description" | "started_on" | "ended_on">[];
 };
 
 export type LinkedInImportApplyResult = {
   profile_fields_updated: string[];
-  skills_added: number;
   entries_created: number;
+  entries_updated: number;
   entries_skipped: number;
 };
 

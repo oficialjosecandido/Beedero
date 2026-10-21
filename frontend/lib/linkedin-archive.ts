@@ -1,27 +1,29 @@
 import { unzip } from "fflate";
 
 /**
- * Opens the LinkedIn export in the browser and keeps only the four files the
+ * Opens the LinkedIn export in the browser and keeps only the three files the
  * importer reads, so the rest never leaves the person's computer.
  *
  * The archive LinkedIn sends holds everything: messages.csv (3.5 MB on a
- * modest account), Connections.csv, invitations, phone numbers, ad targeting.
- * The backend has always skipped those by name — but it still received them.
- * Stripping here turns "we don't read your messages" into "we never get
- * them", which is the only version of that promise that doesn't depend on
- * trusting us. The backend still filters by name too; this is not a reason to
- * stop doing it there.
+ * modest account), Connections.csv, invitations, phone numbers, ad targeting,
+ * and Skills.csv. The backend has always skipped most of those by name — but
+ * it still received them. Stripping here turns "we don't read your messages"
+ * into "we never get them", which is the only version of that promise that
+ * doesn't depend on trusting us. The backend still filters by name too; this
+ * is not a reason to stop doing it there.
+ *
+ * Skills stay on the profile form: LinkedIn's list is not imported.
  */
 
 /** Basenames, lowercased — mirrors WANTED_FILES in accounts/linkedin_import.py. */
-export const WANTED_FILES = ["profile.csv", "positions.csv", "education.csv", "skills.csv"];
+export const WANTED_FILES = ["profile.csv", "positions.csv", "education.csv"];
 
 /** Mirrors MAX_FILE_BYTES in the parser: no CSV we read is anywhere near this. */
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 /**
  * Unzipping needs the whole archive in memory, and a decade of messages can
- * run to hundreds of MB. Past this we ask for the four files instead, which
+ * run to hundreds of MB. Past this we ask for the three files instead, which
  * the picker and the backend both already accept.
  */
 const MAX_ARCHIVE_BYTES = 150 * 1024 * 1024;
@@ -54,7 +56,7 @@ function unzipWanted(data: Uint8Array): Promise<Record<string, Uint8Array>> {
 }
 
 /**
- * The files to upload: the four CSVs, whether they came inside a ZIP or were
+ * The files to upload: the three CSVs, whether they came inside a ZIP or were
  * picked loose. Anything else the person selected is dropped here.
  *
  * Throws ArchiveError with a message meant to be shown as-is.
@@ -67,7 +69,7 @@ export async function keepOnlyWantedFiles(selected: File[]): Promise<File[]> {
       if (file.size > MAX_ARCHIVE_BYTES) {
         throw new ArchiveError(
           "That archive is too big to open in the browser. Unzip it and choose Profile.csv, " +
-            "Positions.csv, Education.csv and Skills.csv — those are the four we read."
+            "Positions.csv and Education.csv — those are the three we read."
         );
       }
       let unzipped: Record<string, Uint8Array>;
@@ -94,7 +96,7 @@ export async function keepOnlyWantedFiles(selected: File[]): Promise<File[]> {
 
   if (kept.size === 0) {
     throw new ArchiveError(
-      "We couldn't find Profile.csv, Positions.csv, Education.csv or Skills.csv in what you chose. " +
+      "We couldn't find Profile.csv, Positions.csv or Education.csv in what you chose. " +
         "Pick the ZIP LinkedIn sent you, or those files on their own."
     );
   }
