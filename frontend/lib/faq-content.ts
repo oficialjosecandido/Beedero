@@ -14,7 +14,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Is Beedero free to join?",
     answer:
-      "Yes. Creating a personal profile and joining the network is free during early access. Organisation accounts are also free to start — see Pricing for what’s included.",
+      "Yes. Creating a personal profile and joining the network is free. Organisation accounts are €99 for the full first year (founding offer) — see Pricing for what’s included.",
   },
   {
     question: "How does verification work?",
