@@ -16,6 +16,7 @@ from rest_framework.test import APIClient
 
 from accounts.intents import Intent, clean_intents, primary_intent
 from accounts.models import InvestorProfile, User
+from accounts.testing import unlock
 from connections.models import Connection, ConnectionRequest
 from orgs.models import OrgFollow, OrgMembership, Organization
 
@@ -57,6 +58,8 @@ def _other(username, *, city="Lisboa", skills=None, verified=False, name=None):
         is_verified=verified,
         handle=username,
     )
+    # Suggested people must be past the ladder's gate (accounts/ladder.py).
+    profile = unlock(user)
     return user, profile
 
 

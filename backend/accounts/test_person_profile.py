@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
+from accounts.testing import unlock
 from analytics.models import PersonProfileView
 from orgs.models import Activity, Organization, OrgMembership
 
@@ -330,6 +331,7 @@ def test_discovery_ranks_complete_verified_first(api):
     viewer = User.objects.create_user(username="viewer", email="viewer@example.com", password="x")
     weak = User.objects.create_user(username="weak", email="weak@example.com", password="x")
     InvestorProfile.objects.create(user=weak, full_name="Zara Weak", headline="Operator", country="PT")
+    unlock(weak)  # both past the ladder's gate; ranking still decides the order
     strong = User.objects.create_user(username="strong", email="strong@example.com", password="x")
     InvestorProfile.objects.create(
         user=strong,
@@ -349,6 +351,7 @@ def test_discovery_ranks_complete_verified_first(api):
     )
     org = Organization.objects.create(slug="testco", name="TestCo", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=strong, role=OrgMembership.Role.OWNER)
+    unlock(strong)
 
     api.force_authenticate(viewer)
     res = api.get("/api/discovery/people/")

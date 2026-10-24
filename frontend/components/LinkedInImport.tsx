@@ -9,6 +9,7 @@ import {
   previewLinkedInImportAction,
 } from "@/app/(app)/dashboard/linkedin-import-actions";
 import { btnGhost, btnPrimary } from "@/components/app-shell/ui";
+import { COUNTRIES } from "@/lib/countries";
 import { ArchiveError, keepOnlyWantedFiles } from "@/lib/linkedin-archive";
 import {
   countryFromLocation,
@@ -40,6 +41,7 @@ const TONES: Record<
     row: (state: "on" | "off" | "disabled") => string;
     rowTitle: string;
     rowMuted: string;
+    select: string;
     primary: string;
     ghost: string;
     error: string;
@@ -64,6 +66,7 @@ const TONES: Record<
       }`,
     rowTitle: "block font-bold text-white",
     rowMuted: "block text-xs text-white/50",
+    select: "mt-1.5 w-full border border-white/15 bg-app-elevated px-2 py-1.5 text-sm text-white",
     primary: btnPrimary,
     ghost: btnGhost,
     error: "text-sm text-red-300",
@@ -87,6 +90,8 @@ const TONES: Record<
       }`,
     rowTitle: "block font-bold text-beedero-black",
     rowMuted: "block text-xs text-zinc-500",
+    select:
+      "mt-1.5 w-full rounded-lg border-2 border-beedero-border bg-white px-2 py-1.5 text-sm text-beedero-black",
     primary:
       "rounded-xl bg-beedero-black px-5 py-2.5 text-sm font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black disabled:opacity-60",
     ghost:
@@ -229,6 +234,79 @@ function ProfileRow({
         </span>
       )}
     </Row>
+  );
+}
+
+/**
+ * Country is the one imported field the person edits here instead of just
+ * accepting. LinkedIn gives a free-text location ("Lisboa e Região,
+ * Portugal"), so what we show is a guess off the last comma (see
+ * lib/linkedin-import.ts) — and where somebody lives is theirs to say, not
+ * LinkedIn's. The tick decides whether it gets saved; the dropdown decides
+ * what. Picking a country ticks the row, since picking one means wanting it.
+ */
+function CountryRow({
+  tone,
+  value,
+  guessedFrom,
+  current,
+  checked,
+  onToggle,
+  onPick,
+}: {
+  tone: Tone;
+  value: string;
+  guessedFrom: string;
+  current: string;
+  checked: boolean;
+  onToggle: () => void;
+  onPick: (code: string) => void;
+}) {
+  const t = TONES[tone];
+  return (
+    <div className={t.row(checked ? "on" : "off")}>
+      <input
+        id="linkedin-country"
+        type="checkbox"
+        checked={checked}
+        disabled={!value}
+        onChange={onToggle}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-beedero-yellow"
+      />
+      <span className="min-w-0 flex-1">
+        <label
+          htmlFor="linkedin-country"
+          className={`${t.rowMuted} font-bold uppercase tracking-wide`}
+        >
+          Country
+        </label>
+        <select
+          aria-label="Country"
+          value={value}
+          onChange={(event) => onPick(event.target.value)}
+          className={t.select}
+        >
+          <option value="">Select a country</option>
+          {COUNTRIES.map(([code, label]) => (
+            <option key={code} value={code}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <span className={`${t.rowMuted} mt-1`}>
+          {guessedFrom ? (
+            <>
+              LinkedIn says <i>{guessedFrom}</i>.{" "}
+            </>
+          ) : (
+            "LinkedIn didn't say where you are. "
+          )}
+          {current
+            ? `${checked ? "Replaces" : "Keeps"} your current: ${countryName(current)}`
+            : "Your profile has no country yet."}
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -468,7 +546,11 @@ export function LinkedInImport({
   const education = preview.entries.filter((e) => e.kind === "education");
   const p = preview.profile;
   const showName = Boolean(p.full_name.imported && !p.full_name.current);
-  const showCountry = Boolean(review.country && review.country !== p.location.current_country);
+  // Shown when there is something to decide: no country on the profile yet, or
+  // a guess that disagrees with the one already there.
+  const showCountry =
+    !p.location.current_country ||
+    Boolean(review.country && review.country !== p.location.current_country);
   const selectedCount =
     review.entries.size +
     Object.entries(review.profile).filter(([key, on]) => on && (key !== "country" || showCountry))
@@ -476,6 +558,13 @@ export function LinkedInImport({
 
   const setProfile = (key: ProfileKey) =>
     setReview({ ...review, profile: { ...review.profile, [key]: !review.profile[key] } });
+
+  const pickCountry = (code: string) =>
+    setReview({
+      ...review,
+      country: code || null,
+      profile: { ...review.profile, country: Boolean(code) },
+    });
 
   return (
     <div className={`${t.shell} flex flex-col gap-6`}>
@@ -540,14 +629,15 @@ export function LinkedInImport({
               onChange={() => setProfile("bio")}
             />
           )}
-          {showCountry && review.country && (
-            <ProfileRow
+          {showCountry && (
+            <CountryRow
               tone={tone}
-              label="Country"
-              imported={countryName(review.country)}
-              current={p.location.current_country ? countryName(p.location.current_country) : ""}
+              value={review.country ?? ""}
+              guessedFrom={p.location.imported}
+              current={p.location.current_country}
               checked={review.profile.country}
-              onChange={() => setProfile("country")}
+              onToggle={() => setProfile("country")}
+              onPick={pickCountry}
             />
           )}
         </section>

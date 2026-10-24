@@ -2,6 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
+from accounts.testing import unlock
 from orgs.models import Organization, OrgMembership
 
 from .discovery import find_advisors
@@ -16,8 +17,8 @@ def api():
 @pytest.fixture
 def person(db):
     user = User.objects.create_user(username="ada", email="ada@example.com", password="x")
-    InvestorProfile.objects.create(
-        user=user,
+    unlock(
+        user,
         full_name="Ada Lovelace",
         headline="Angel investor",
         country="GB",
@@ -74,13 +75,26 @@ def test_find_advisors_excludes_incomplete_profile(db):
 
 
 @pytest.mark.django_db
+def test_find_advisors_excludes_people_below_the_ladder_gate(db):
+    """Name and headline alone are not enough: advisors are listed by the same
+    rule as people in Discover (accounts/ladder.py, rungs 1–4)."""
+    user = User.objects.create_user(username="half", email="half@example.com", password="x")
+    InvestorProfile.objects.create(user=user, full_name="Half Done", headline="Advisor", country="PT")
+    AdvisorProfile.objects.create(user=user, is_available=True)
+    assert find_advisors(None, {})[0] == []
+
+    unlock(user)
+    assert [p.user_id for p in find_advisors(None, {})[0]] == [user.id]
+
+
+@pytest.mark.django_db
 def test_find_advisors_ranks_by_verified_gig_count(db):
     weak = User.objects.create_user(username="weak", email="weak@example.com", password="x")
-    InvestorProfile.objects.create(user=weak, full_name="Zara Weak", headline="Operator", country="PT")
+    unlock(weak, full_name="Zara Weak", headline="Operator", country="PT")
     AdvisorProfile.objects.create(user=weak, is_available=True)
 
     strong = User.objects.create_user(username="strong", email="strong@example.com", password="x")
-    InvestorProfile.objects.create(user=strong, full_name="Anna Strong", headline="Advisor", country="GB")
+    unlock(strong, full_name="Anna Strong", headline="Advisor", country="GB")
     AdvisorProfile.objects.create(user=strong, is_available=True)
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=strong, role=OrgMembership.Role.ADVISOR)

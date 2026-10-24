@@ -13,6 +13,7 @@ from orgs.models import Activity
 from social.mentions import resolve_mentions
 
 from .attestations import platform_attestations
+from .ladder import gate_state
 from .models import InvestorProfile
 from .timeline import aggregate_anchored_skills, person_timeline
 from .visibility import PersonVisibilityResolver
@@ -115,5 +116,8 @@ def public_person_profile(handle: str, viewer) -> dict:
             "can_message": connections_services.can_message_directly(viewer, profile.user),
             "connection_status": connections_services.connection_status(viewer, profile.user),
             "user_id": profile.user_id,
+            # Sending needs the viewer's ladder rungs 1–4 (accounts/ladder.py);
+            # the button explains that up front instead of failing after the note.
+            "can_request": gate_state(viewer)["unlocked"],
         }
     return payload

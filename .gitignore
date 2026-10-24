@@ -23,3 +23,7 @@ frontend/.env*.local
 .DS_Store
 .vscode/
 .idea/
+
+# Archives dropped in the working tree: LinkedIn exports, design hand-offs.
+# They are somebody's personal data or a one-off, and neither belongs in git.
+*.zip

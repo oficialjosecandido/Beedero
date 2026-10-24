@@ -4,6 +4,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
+from accounts.testing import unlock
 from orgs import discovery, views
 from orgs.constants import SectionKind
 from orgs.models import Organization, OrgField, OrgSection, VisibilityGrant
@@ -67,7 +68,7 @@ def test_discovery_no_more_pages_when_exact_fit(api, viewer):
 @pytest.mark.django_db
 def test_discover_people_search_by_name(api, viewer):
     target = User.objects.create_user(username="ada", email="ada@example.com", password="x")
-    InvestorProfile.objects.create(user=target, full_name="Ada Lovelace", headline="Angel investor")
+    unlock(target, full_name="Ada Lovelace", headline="Angel investor")
     api.force_authenticate(viewer)
     res = api.get("/api/discovery/people/?q=ada")
     assert res.status_code == 200
@@ -81,7 +82,7 @@ def test_connect_with_user_and_discover_people_reflects_connection(api, viewer):
     from connections.models import Connection
 
     target = User.objects.create_user(username="ada", email="ada@example.com", password="x")
-    InvestorProfile.objects.create(user=target, full_name="Ada Lovelace", headline="Angel investor")
+    unlock(target, full_name="Ada Lovelace", headline="Angel investor")
     api.force_authenticate(viewer)
 
     first, second = sorted([viewer, target], key=lambda u: u.id)
@@ -92,15 +93,10 @@ def test_connect_with_user_and_discover_people_reflects_connection(api, viewer):
     assert res.data["items"][0]["connection_status"] == "connected"
 
 
-def _person(username, name, city="", visibility=None):
+def _person(username, name, city="Porto", visibility=None):
+    """Someone listed in Discover — so past the ladder's gate (rungs 1–4)."""
     user = User.objects.create_user(username=username, email=f"{username}@example.com", password="x")
-    return InvestorProfile.objects.create(
-        user=user,
-        full_name=name,
-        headline="Builder",
-        city=city,
-        visibility=visibility or {},
-    )
+    return unlock(user, full_name=name, headline="Builder", city=city, visibility=visibility or {})
 
 
 @pytest.mark.django_db
@@ -212,3 +208,17 @@ def test_metric_filter_only_resolves_up_to_candidate_cap(db, viewer):
     with patch.object(discovery, "MAX_METRIC_CANDIDATES", 3):
         qs = discovery.discover(viewer, {"metric": "mrr", "metric_min": "500"})
         assert qs.count() == 3
+
+
+@pytest.mark.django_db
+def test_people_below_the_ladder_gate_are_not_listed_or_counted(api, viewer):
+    """Rungs 1–4 (accounts/ladder.py) decide who appears in Discover."""
+    InvestorProfile.objects.create(user=viewer, full_name="Viewer", city="Lisboa")
+    _person("ada", "Ada Lovelace", city="Lisboa")
+    half = User.objects.create_user(username="half", email="half@example.com", password="x")
+    InvestorProfile.objects.create(user=half, full_name="Half Done", headline="Builder", city="Lisboa")
+    api.force_authenticate(viewer)
+
+    res = api.get("/api/discovery/people/")
+    assert [item["name"] for item in res.data["items"]] == ["Ada Lovelace"]
+    assert res.data["city_summary"]["count"] == 1

@@ -126,6 +126,8 @@ export type OnboardingState = {
   headline: string;
   intents: string[];
   primary_intent: string;
+  /** Ladder rungs 1–4 done: listed in Discover, may send connection requests. */
+  can_connect: boolean;
 };
 
 export type IntentOption = { value: string; label: string };
@@ -160,6 +162,8 @@ export type OnboardingSuggestions = {
   is_local: boolean;
   orgs: SuggestedOrg[];
   people: SuggestedPerson[];
+  /** False for a profile still below the ladder's gate — almost everyone here. */
+  can_connect?: boolean;
 };
 
 export type ApplicantSummary = {

@@ -138,7 +138,7 @@ export default async function ProfilePage({
     <ProfileEditorProvider initialOpen={edit && SECTIONS.includes(edit) ? edit : null}>
       <div className="mx-auto grid max-w-5xl gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex min-w-0 flex-col gap-5">
-          <NextStepStrip completion={vitality?.completion ?? null} />
+          <NextStepStrip ladder={vitality?.ladder ?? null} />
           <IdentitySection
             profile={profile}
             email={me.email}
@@ -182,7 +182,6 @@ export default async function ProfilePage({
         <ProfileAside
           ladder={vitality?.ladder ?? null}
           cadence={vitality?.cadence ?? null}
-          completion={vitality?.completion ?? null}
         />
       </div>
     </ProfileEditorProvider>

@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import onboarding
+from .ladder import gate_state
 from .intents import Intent
 
 
@@ -121,5 +122,9 @@ class OnboardingSuggestionsView(APIView):
                 "is_local": data["is_local"],
                 "orgs": [_org_card(org, is_local) for org, is_local in data["orgs"]],
                 "people": [_person_card(profile) for profile in data["people"]],
+                # A brand-new profile is below the ladder's gate (accounts/
+                # ladder.py), so "Connect" would fail: the screen shows the
+                # people and says what is missing instead.
+                "can_connect": gate_state(request.user)["unlocked"],
             }
         )

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +26,10 @@ export function SuggestionsStep({ data }: { data: OnboardingSuggestions }) {
   const [finishing, startFinishing] = useTransition();
 
   const hasLocal = data.orgs.some((org) => org.is_local) || data.people.length > 0;
+  // A brand-new profile is below the ladder's gate (photo, a few lines, one
+  // role and three skills), so "Connect" would fail. The people still show —
+  // they are the reason to finish — with "View" instead.
+  const canConnect = data.can_connect ?? true;
 
   async function act(key: string, run: () => Promise<{ ok: true } | { error: string }>) {
     setBusy(key);
@@ -63,6 +67,13 @@ export function SuggestionsStep({ data }: { data: OnboardingSuggestions }) {
         </ul>
       )}
 
+      {data.people.length > 0 && !canConnect && (
+        <p className="rounded-2xl border-2 border-beedero-yellow bg-beedero-yellow/10 px-4 py-3 text-sm text-zinc-700">
+          You can ask people to connect once your profile has a photo, a few lines about your work
+          and three skills. Your profile page shows what&apos;s left.
+        </p>
+      )}
+
       {data.people.length > 0 && (
         <ul className="flex flex-col gap-3">
           {data.people.map((person) => (
@@ -71,6 +82,7 @@ export function SuggestionsStep({ data }: { data: OnboardingSuggestions }) {
               person={person}
               done={Boolean(done[`person:${person.handle}`])}
               busy={busy === `person:${person.handle}`}
+              canConnect={canConnect}
               onConnect={() =>
                 act(`person:${person.handle}`, () => connectWithPersonAction(person.user_id))
               }
@@ -119,11 +131,16 @@ function Card({
   return (
     <li className="flex items-center gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-4">
       {avatar ? (
-        <Image
+        // Plain <img>, as everywhere else that shows uploads: avatars live on
+        // the storage host, which next/image is not configured for — and since
+        // the ladder's gate, every suggested person has a photo.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={avatar}
           alt=""
           width={44}
           height={44}
+          loading="lazy"
           className={`size-11 shrink-0 object-cover ${rounded}`}
         />
       ) : (
@@ -194,11 +211,13 @@ function PersonCard({
   person,
   done,
   busy,
+  canConnect,
   onConnect,
 }: {
   person: SuggestedPerson;
   done: boolean;
   busy: boolean;
+  canConnect: boolean;
   onConnect: () => void;
 }) {
   return (
@@ -214,9 +233,15 @@ function PersonCard({
         ) : null
       }
       action={
-        <button type="button" onClick={onConnect} disabled={busy || done} className={ACTION_CLASS}>
-          {done ? "Requested" : busy ? "…" : "Connect"}
-        </button>
+        canConnect ? (
+          <button type="button" onClick={onConnect} disabled={busy || done} className={ACTION_CLASS}>
+            {done ? "Requested" : busy ? "…" : "Connect"}
+          </button>
+        ) : (
+          <Link href={`/p/${person.handle}`} target="_blank" className={ACTION_CLASS}>
+            View
+          </Link>
+        )
       }
     />
   );

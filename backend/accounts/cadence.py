@@ -40,10 +40,24 @@ def _longest_run(days: set[date]) -> int:
     return best
 
 
-def posting_cadence(user) -> dict:
-    posted_at = list(
+def _post_times(user) -> list[datetime]:
+    return list(
         Activity.objects.filter(author=user, org__isnull=True).values_list("created_at", flat=True)
     )
+
+
+def longest_daily_run(user) -> int:
+    """Longest run of consecutive Lisbon days with at least one personal post.
+
+    Lives here rather than in accounts/ladder.py so that "a day with a post"
+    means one thing in the app: the ladder's last rung and this card's streak
+    are the same count, read off the same calendar.
+    """
+    return _longest_run({_day_of(moment) for moment in _post_times(user)})
+
+
+def posting_cadence(user) -> dict:
+    posted_at = _post_times(user)
     days = {_day_of(moment) for moment in posted_at}
 
     now_lisbon = timezone.now().astimezone(LISBON)

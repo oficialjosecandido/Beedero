@@ -63,6 +63,8 @@ def _profile(user) -> InvestorProfile:
 
 def state(user) -> dict:
     """Everything the onboarding screens need, in one request."""
+    from .ladder import gate_state  # accounts.models imports this module
+
     profile = _profile(user)
     intents = clean_intents(profile.intents)
     return {
@@ -80,6 +82,10 @@ def state(user) -> dict:
         # Step 2 — private, and only ever sent back to the person themselves.
         "intents": intents,
         "primary_intent": primary_intent(intents),
+        # Rungs 1–4 of the ladder (accounts/ladder.py). The last screen sends
+        # people who are still short of the gate to their profile instead of
+        # the feed: nothing in Discover would work for them yet.
+        "can_connect": gate_state(user)["unlocked"],
     }
 
 
@@ -222,8 +228,10 @@ def _people_suggestions(user, *, city_key: str, skills: set[str], limit: int):
         ).values_list("requester_id", flat=True)
     )
 
+    from .ladder import discoverable
+
     candidates = (
-        InvestorProfile.objects.filter(city_key=city_key)
+        discoverable(InvestorProfile.objects.filter(city_key=city_key))
         .exclude(user_id__in=blocked)
         .exclude(handle="")
         .exclude(handle__isnull=True)

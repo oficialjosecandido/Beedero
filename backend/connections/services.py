@@ -25,14 +25,9 @@ logger = logging.getLogger(__name__)
 
 # The spec's 4-tier reputation system, mapped onto real signals: there is no
 # identity-verification flag distinct from investor verification today, so
-# email verification stands in for "verified_identity".
-REQUEST_LIMITS = {
-    "verified_investor": 50,
-    "verified_identity": 20,
-    "unverified": 8,
-    "unverified_new": 3,
-}
-
+# email verification stands in for "verified_identity". It now only ranks
+# requests and labels people; how many requests a day someone may send comes
+# from the ladder (LADDER_REQUEST_LIMITS below).
 NEW_ACCOUNT_WINDOW = timedelta(days=7)
 
 
@@ -47,8 +42,50 @@ def reputation_tier(user) -> str:
     return "unverified"
 
 
+# Requests per day by how far up the ladder the sender is (accounts/ladder.py).
+# Below the gate (rungs 1–4) there are none: an unfinished profile can be
+# found by its link and can accept requests, but cannot reach out.
+LADDER_REQUEST_LIMITS = {
+    "unlocked": 5,
+    "first_connection": 10,
+    "confirmed": 20,
+    "beedero_verified": 50,
+}
+
+
 def daily_request_limit(user) -> int:
-    return REQUEST_LIMITS[reputation_tier(user)]
+    from accounts.ladder import verification_ladder
+
+    profile = getattr(user, "investorprofile", None)
+    if profile is None:
+        return 0
+    ladder = verification_ladder(profile)
+    if not ladder["unlocked"]:
+        return 0
+    done = {rung["key"] for rung in ladder["rungs"] if rung["done"]}
+    for key in ("beedero_verified", "confirmed", "first_connection"):
+        if key in done:
+            return LADDER_REQUEST_LIMITS[key]
+    return LADDER_REQUEST_LIMITS["unlocked"]
+
+
+class ProfileLocked(PermissionDenied):
+    """Sending needs rungs 1–4. The frontend reads `code` and opens the
+    "finish these steps" sheet instead of showing a bare error."""
+
+    default_code = "profile_locked"
+
+
+def ensure_can_reach_out(user) -> None:
+    from accounts.ladder import is_unlocked
+
+    if not is_unlocked(getattr(user, "investorprofile", None)):
+        raise ProfileLocked(
+            {
+                "detail": "Finish the first four steps of your profile to send connection requests.",
+                "code": "profile_locked",
+            }
+        )
 
 
 # Numeric form of reputation_tier() — lower is more credible. Shared so
@@ -120,6 +157,7 @@ def send_request(requester, recipient, note="") -> ConnectionRequest:
     if existing is not None:
         raise ValidationError({"recipient_id": "There's already a pending request between you."})
 
+    ensure_can_reach_out(requester)
     enforce_rate_limit(
         f"connection-request:{requester.id}", limit=daily_request_limit(requester), window_seconds=86400
     )

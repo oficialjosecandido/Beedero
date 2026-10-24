@@ -13,7 +13,7 @@ the posting-gate explanation, and the onboarding wizard reads them.
 from .badge import person_badge_state
 from .cadence import posting_cadence
 from .completeness import profile_checklist, profile_completeness, profile_completion
-from .ladder import verification_ladder
+from .ladder import mark_unlock, verification_ladder
 from .presence import person_presence_signals
 
 
@@ -21,12 +21,14 @@ def person_vitality_state(profile) -> dict:
     checklist = profile_checklist(profile)
     done_count = sum(1 for item in checklist if item["done"])
     completeness = profile_completeness(profile)
+    ladder = verification_ladder(profile)
+    mark_unlock(profile, ladder)
     return {
         "completeness": completeness,
         "checklist": checklist,
         "done_count": done_count,
         "total_count": len(checklist),
-        "ladder": verification_ladder(profile),
+        "ladder": ladder,
         "cadence": posting_cadence(profile.user),
         "completion": profile_completion(profile),
         "presence": person_presence_signals(profile.user),

@@ -13,6 +13,7 @@ from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.ladder import discoverable, gate_state
 from accounts.models import InvestorProfile
 from analytics.models import InterestSignal, ProfileView
 from analytics.services import record_feed_impressions
@@ -1345,8 +1346,10 @@ class RecommendationView(APIView):
         )
 
         connected_ids = connections_services.connected_user_ids(request.user)
+        # Suggestions are a discovery surface: same gate as Discover (ladder
+        # rungs 1–4, accounts/ladder.py). Name search and @mentions stay open.
         people = (
-            InvestorProfile.objects.exclude(full_name="")
+            discoverable(InvestorProfile.objects.all())
             .exclude(user_id=request.user.id)
             .exclude(user_id__in=connected_ids)
             .select_related("user")
@@ -1493,6 +1496,8 @@ class DiscoverPeopleView(APIView):
                 ],
                 "next_offset": offset + limit if has_more else None,
                 "city_summary": people_in_viewer_city(request.user),
+                # Whether the viewer is listed here themselves (ladder rungs 1–4).
+                "viewer": gate_state(request.user),
             }
         )
 

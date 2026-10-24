@@ -162,9 +162,12 @@ def location_visible_q(viewer):
 
 
 def _people_base_qs(viewer):
+    from accounts.ladder import discoverable
     from accounts.models import InvestorProfile
 
-    qs = InvestorProfile.objects.exclude(full_name="").select_related("user")
+    # Only people past the ladder's gate (rungs 1–4) are listed or counted,
+    # and never an internal account.
+    qs = discoverable(InvestorProfile.objects.all()).select_related("user")
     if viewer is not None and viewer.is_authenticated:
         qs = qs.exclude(user_id=viewer.id)
     return qs

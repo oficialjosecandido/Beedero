@@ -80,6 +80,11 @@ class InvestorProfile(models.Model):
     # flag that meant "complete" would send someone back to onboarding every
     # time they opened the feed.
     onboarding_completed_at = models.DateTimeField(null=True, blank=True)
+    # First time rungs 1–4 of the ladder were all done (accounts/ladder.py).
+    # Visibility in Discover is computed live; this only records *when* it
+    # first opened — time-to-unlock is the activation metric — and makes the
+    # "You're in Discover" notification fire once.
+    discoverable_since = models.DateTimeField(null=True, blank=True)
     # Per-section visibility: public | verified_investors | private
     visibility = models.JSONField(default=dict, blank=True)
     # Opt-in for platform-attested facts shown on the public profile.

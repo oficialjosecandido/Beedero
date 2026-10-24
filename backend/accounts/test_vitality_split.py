@@ -48,41 +48,38 @@ def post_at(user, moment) -> Activity:
 
 
 # --------------------------------------------------------------- the ladder
+# The ladder itself — rungs, gate, limits — is covered in test_ladder.py.
+# These only check what this endpoint used to promise about attestors.
 
 
 @pytest.mark.django_db
-def test_fresh_profile_is_at_level_zero(person):
+def test_fresh_profile_has_nothing_on_the_ladder(person):
     ladder = verification_ladder(person)
     assert ladder["level"] == 0
     assert ladder["done_count"] == 0
-    assert ladder["total_count"] == 5
-    keys = {item["key"] for item in ladder["rungs"]}
-    assert "credential_verified" not in keys
-    assert "beedero_verified" not in keys
+    assert ladder["total_count"] == 8
+    assert ladder["unlocked"] is False
 
 
 @pytest.mark.django_db
-def test_level_counts_only_consecutive_rungs(person):
-    """A later fact without earlier rungs must not inflate level — e.g. a
-    public handle without a confirmed email stays at level 0."""
-    person.handle = "ada"
-    person.save()
-    ladder = verification_ladder(person)
-    assert rung(ladder, "public_address")["done"] is True
-    assert ladder["done_count"] == 1
-    assert ladder["level"] == 0
-
-    person.user.email_verified_at = timezone.now()
-    person.user.save()
-    assert verification_ladder(person)["level"] == 2
+def test_credential_confirms_without_any_organisation(person):
+    """An independent professional climbs without ever belonging to an org."""
+    ProfessionalCredential.objects.create(
+        user=person.user,
+        status=ProfessionalCredential.Status.VERIFIED,
+        title="Psychotherapist",
+        issuer="Ordem dos Psicólogos",
+        identifier="12345",
+        verified_at=timezone.now(),
+    )
+    confirmed = rung(verification_ladder(person), "confirmed")
+    assert confirmed["done"] is True
+    assert confirmed["attested_by"] == "Ordem dos Psicólogos"
+    assert confirmed["detail"] == "Psychotherapist · 12345"
 
 
 @pytest.mark.django_db
-def test_credential_warning_still_computed_for_later_rungs(person):
-    """Rungs 6–7 are deferred from the UI, but credential expiry copy stays
-    covered so it is ready when those rungs ship."""
-    from accounts.ladder import _credential_warning
-
+def test_credential_warning_rides_on_the_confirmed_rung(person):
     active = ProfessionalCredential.objects.create(
         user=person.user,
         status=ProfessionalCredential.Status.VERIFIED,
@@ -92,11 +89,11 @@ def test_credential_warning_still_computed_for_later_rungs(person):
         verified_at=timezone.now(),
         valid_until=timezone.now() + timedelta(days=20),
     )
-    assert "Expires in 20 days" in _credential_warning(active)
+    assert "expires in 20 days" in rung(verification_ladder(person), "confirmed")["warning"]
 
     active.valid_until = timezone.now() - timedelta(days=3)
     active.save(update_fields=["valid_until"])
-    assert "has expired" in _credential_warning(active)
+    assert "has expired" in rung(verification_ladder(person), "confirmed")["warning"]
 
 
 @pytest.mark.django_db
@@ -113,21 +110,20 @@ def test_registry_verified_founder_names_the_registry_as_attestor(person):
         verified_at=timezone.now(),
         created_by=person.user,
     )
-    role = rung(verification_ladder(person), "role_confirmed")
-    assert role["done"] is True
-    assert role["attested_by"] == "Company registry"
-    assert role["detail"] == "Co-founder at Alma Labs"
+    confirmed = rung(verification_ladder(person), "confirmed")
+    assert confirmed["done"] is True
+    assert confirmed["attested_by"] == "Company registry"
+    assert confirmed["detail"] == "Co-founder at Alma Labs"
 
 
 @pytest.mark.django_db
-def test_self_declared_experience_starts_the_record_but_confirms_nothing(person):
+def test_self_declared_experience_confirms_nothing(person):
     SelfDeclaredExperience.objects.create(
         user=person.user, org_name="Somewhere", role="Engineer", started_on=date(2020, 1, 1)
     )
     ladder = verification_ladder(person)
-    assert rung(ladder, "record_started")["done"] is True
     assert rung(ladder, "record_started")["attested_by"] == "You"
-    assert rung(ladder, "role_confirmed")["done"] is False
+    assert rung(ladder, "confirmed")["done"] is False
 
 
 @pytest.mark.django_db
@@ -141,10 +137,10 @@ def test_accepted_connection_is_its_own_rung(person):
 
 
 @pytest.mark.django_db
-def test_handle_rung_shows_the_public_address(person):
+def test_who_you_are_shows_the_public_address(person):
     person.handle = "adalovelace"
     person.save()
-    assert rung(verification_ladder(person), "public_address")["detail"] == "/p/adalovelace"
+    assert rung(verification_ladder(person), "who_you_are")["detail"] == "/p/adalovelace"
 
 
 # -------------------------------------------------------------- the cadence
@@ -299,7 +295,7 @@ def test_ranking_weights_are_untouched_by_the_split():
 def test_vitality_endpoint_serves_all_three(api, person):
     api.force_authenticate(person.user)
     body = api.get("/api/investors/me/vitality/").json()
-    assert body["ladder"]["total_count"] == 5
+    assert body["ladder"]["total_count"] == 8
     assert body["cadence"]["streak_days"] == 0
     assert body["completion"]["total_count"] == 8
     # Still there for the onboarding wizard and the posting gate.

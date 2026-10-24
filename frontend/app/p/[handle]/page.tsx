@@ -66,6 +66,8 @@ type PublicPerson = {
     can_message: boolean;
     connection_status: "none" | "pending_sent" | "pending_received" | "connected";
     user_id: number;
+    /** False while the viewer is below the ladder's gate (rungs 1–4). */
+    can_request?: boolean;
   };
 };
 
@@ -157,6 +159,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
                   name={person.full_name}
                   canMessage={viewer_actions.can_message}
                   connectionStatus={viewer_actions.connection_status}
+                  canRequest={viewer_actions.can_request ?? true}
                 />
               </div>
             )}

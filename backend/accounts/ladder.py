@@ -1,181 +1,362 @@
-"""Verification ladder — only the things somebody *other than the person*
-confirmed.
+"""The person's verification ladder — eight rungs, one path, one gate.
 
-Deliberately separate from accounts/completeness.py. That module is a strength
-meter over self-declared fields (and feeds discovery ranking); a rung here is a
-fact another party attested: the organisation, a company registry, an issuing
-body, another member, or Beedero. That is why a ladder can only ever go up,
-and why the daily-post requirement lives in accounts/cadence.py instead — a
-recurring duty is a streak, not a rung.
+Three bands, each rung naming who vouches for it:
 
-Belonging to an organisation is not required: a confirmed role is *one* route
-to rung 5, and a verified professional credential reaches rung 6 without any
-organisation at all.
+  1–4  You            — things a person can do alone, in minutes. All four
+                        together are 50% and unlock Discover + sending
+                        connection requests (`is_unlocked`).
+  5–7  Someone else   — another member, an organisation / registry / startup /
+                        issuing body, and Beedero.
+  8    Your record    — seven days in a row with a post.
 
-Every rung names its attestor, including the two whose attestor is the person
-themselves. Saying so out loud is the point of splitting these cards up.
+Why the gate sits exactly on the four "You" rungs: anything that needs another
+person (a connection, a confirmation) cannot be a condition for being found or
+for asking — that would lock newcomers out for good. And why the gate is "rungs
+1–4 done" rather than "any four rungs": an empty profile that happens to have a
+connection and a posting streak must still not show up in Discover.
 
-Rungs 6–7 (credential + Beedero verified) are built but deferred from the
-public ladder until those product surfaces ship — flip DEFERRED_RUNG_KEYS
-empty to bring them back.
+A rung, once climbed, stays climbed only while its fact is true: deleting the
+photo reopens rung 3 and takes the person out of Discover again. Rung 8 is the
+exception by design — "a week on the record" is something that happened, so it
+counts the longest run ever; keeping it up is the cadence card's job
+(accounts/cadence.py, which owns the Lisbon-day rule this rung reads).
+
+`is_unlocked()` (one profile) and `with_unlock()` (a queryset) encode the same
+rule twice — Python for a single check, SQL so Discover never loads profiles it
+then throws away. test_ladder.py holds them together. Listings go through
+`discoverable()`, which is the gate plus "not an internal account".
 """
 
 import math
 
-from django.db.models import Q
+from django.db.models import Exists, Func, IntegerField, OuterRef, Q
+from django.db.models.functions import Length, Trim
 from django.utils import timezone
 
 from affiliations.models import Affiliation
 from connections.models import Connection
 from credibility.models import ProfessionalCredential
+from investments.models import InvestmentRecord
+from orgs.models import OrgMembership
 
+from .cadence import longest_daily_run
 from .models import SelfDeclaredExperience
 
+MIN_BIO_CHARS = 80
+MIN_SKILLS = 3
+DAILY_STREAK_DAYS = 7
+UNLOCK_KEYS = ("email_confirmed", "who_you_are", "face_and_story", "record_started")
+
 # A credential inside this window is still valid but worth warning about —
-# renewing an expired licence is slower than renewing one that is about to
-# expire, so the warning has to arrive before the date, not on it.
+# renewing an expired licence is slower than renewing one about to expire.
 EXPIRY_WARNING_DAYS = 60
 
-ATTESTED_BY_SELF = "You"
 
-# Hide until credential review + Beedero verification are ready to show.
-DEFERRED_RUNG_KEYS = frozenset({"credential_verified", "beedero_verified"})
+# ----------------------------------------------------------- the four gates
 
 
-def _role_detail(affiliation) -> str:
-    role = affiliation.title or affiliation.get_role_display()
-    return f"{role} at {affiliation.org.name}"
+def _who_you_are(profile) -> bool:
+    # Country too: /p/<handle> answers 404 without it (InvestorProfile.is_complete),
+    # and a Discover card must never lead to a missing page.
+    return bool(
+        profile.full_name and profile.headline and profile.country and profile.city and profile.handle
+    )
 
 
-def _credential_warning(credential) -> str:
-    """Empty unless the licence is expired or close to it."""
-    if credential.valid_until is None:
-        return ""
-    seconds_left = (credential.valid_until - timezone.now()).total_seconds()
-    if seconds_left <= 0:
-        return "This credential has expired — renew it to keep this rung."
-    # Rounded up rather than truncated: a licence that runs out tomorrow
-    # morning has one day left, not zero.
-    days = math.ceil(seconds_left / 86_400)
-    if days > EXPIRY_WARNING_DAYS:
-        return ""
-    unit = "day" if days == 1 else "days"
-    return f"Expires in {days} {unit} — renew it to keep this rung."
+def _face_and_story(profile) -> bool:
+    return bool(profile.profile_picture) and len((profile.bio or "").strip()) >= MIN_BIO_CHARS
 
 
-def verification_ladder(profile) -> dict:
-    user = profile.user
+def _has_record(user) -> bool:
+    return (
+        SelfDeclaredExperience.objects.filter(user=user).exists()
+        or Affiliation.objects.filter(user=user).exists()
+        or OrgMembership.objects.filter(user=user).exists()
+    )
 
-    verified_affiliation = (
+
+def _skills_count(profile) -> int:
+    return len(profile.skills) if isinstance(profile.skills, list) else 0
+
+
+def _record_started(profile) -> bool:
+    return _skills_count(profile) >= MIN_SKILLS and _has_record(profile.user)
+
+
+def is_unlocked(profile) -> bool:
+    """Rungs 1–4 done: may appear in Discover and send connection requests."""
+    if profile is None:
+        return False
+    return (
+        profile.user.is_email_verified
+        and _who_you_are(profile)
+        and _face_and_story(profile)
+        and _record_started(profile)
+    )
+
+
+def gate_state(user) -> dict:
+    """The viewer's own side of the gate, for screens that need to say "finish
+    N steps first" before offering a Connect button that would fail."""
+    profile = getattr(user, "investorprofile", None)
+    if profile is None:
+        return {"unlocked": False, "steps_left": len(UNLOCK_KEYS) - int(user.is_email_verified)}
+    checks = (
+        user.is_email_verified,
+        _who_you_are(profile),
+        _face_and_story(profile),
+        _record_started(profile),
+    )
+    left = sum(1 for check in checks if not check)
+    return {"unlocked": left == 0, "steps_left": left}
+
+
+class _SkillsCount(Func):
+    """jsonb_array_length, but 0 for anything that is not an array."""
+
+    template = (
+        "CASE WHEN jsonb_typeof(%(expressions)s) = 'array' "
+        "THEN jsonb_array_length(%(expressions)s) ELSE 0 END"
+    )
+    output_field = IntegerField()
+
+
+def with_unlock(queryset):
+    """InvestorProfile queryset → only the unlocked ones (same rule as
+    `is_unlocked`, evaluated in the database)."""
+    return queryset.annotate(
+        _bio_len=Length(Trim("bio")),
+        _skills_n=_SkillsCount("skills"),
+        _has_exp=Exists(SelfDeclaredExperience.objects.filter(user_id=OuterRef("user_id"))),
+        _has_aff=Exists(Affiliation.objects.filter(user_id=OuterRef("user_id"))),
+        _has_mem=Exists(OrgMembership.objects.filter(user_id=OuterRef("user_id"))),
+    ).filter(
+        Q(user__email_verified_at__isnull=False)
+        & ~Q(full_name="")
+        & ~Q(headline="")
+        & ~Q(country="")
+        & ~Q(city="")
+        & Q(handle__isnull=False)
+        & ~Q(handle="")
+        & Q(profile_picture__isnull=False)
+        & ~Q(profile_picture="")
+        & Q(_bio_len__gte=MIN_BIO_CHARS)
+        & Q(_skills_n__gte=MIN_SKILLS)
+        & (Q(_has_exp=True) | Q(_has_aff=True) | Q(_has_mem=True))
+    )
+
+
+def discoverable(queryset):
+    """InvestorProfile queryset → the profiles a listing may show to other
+    people: past the gate, and not an internal account.
+
+    Internal accounts are the team's own logins and the fixtures (the
+    `lighthouse-demo` person, for instance), already excluded from the product
+    metrics by the same flag (accounts/models.py). They keep everything else:
+    their public page, their connections, their posts. What they must not do is
+    pad a list of people a member is asked to connect with.
+
+    Listings use this; the gate on its own (`with_unlock`) stays the answer to
+    "may this person be found and ask to connect", which an internal account
+    may do like anyone else.
+    """
+    return with_unlock(queryset).filter(user__is_internal=False)
+
+
+# --------------------------------------------------------------- rungs 5–8
+
+
+def _third_party_confirmation(user) -> tuple[str, str] | None:
+    """(attested_by, detail) for the first confirmation found, any route."""
+    affiliation = (
         Affiliation.objects.filter(user=user, status=Affiliation.Status.VERIFIED)
         .select_related("org")
         .order_by("-verified_at")
         .first()
     )
-    credential = (
-        ProfessionalCredential.objects.filter(
-            user=user, status=ProfessionalCredential.Status.VERIFIED
+    if affiliation:
+        via_registry = affiliation.verified_via == Affiliation.VerifiedVia.REGISTRY
+        role = affiliation.title or affiliation.get_role_display()
+        return (
+            "Company registry" if via_registry else affiliation.org.name,
+            f"{role} at {affiliation.org.name}",
         )
+    investment = (
+        InvestmentRecord.objects.filter(investor_user=user, status=InvestmentRecord.Status.CONFIRMED)
+        .select_related("org")
+        .order_by("-confirmed_at")
+        .first()
+    )
+    if investment:
+        return investment.org.name, f"Investment in {investment.org.name} confirmed"
+    credential = (
+        ProfessionalCredential.objects.filter(user=user, status=ProfessionalCredential.Status.VERIFIED)
         .order_by("-verified_at")
         .first()
     )
-    has_record = (
-        Affiliation.objects.filter(user=user).exists()
-        or SelfDeclaredExperience.objects.filter(user=user).exists()
+    if credential:
+        return credential.issuer, f"{credential.title} · {credential.identifier}"
+    return None
+
+
+def _credential_warning(user) -> str:
+    """Empty unless a verified licence is expired or close to it."""
+    credential = (
+        ProfessionalCredential.objects.filter(
+            user=user, status=ProfessionalCredential.Status.VERIFIED, valid_until__isnull=False
+        )
+        .order_by("valid_until")
+        .first()
     )
-    connection_count = Connection.objects.filter(Q(user_one=user) | Q(user_two=user)).count()
+    if credential is None:
+        return ""
+    seconds_left = (credential.valid_until - timezone.now()).total_seconds()
+    if seconds_left <= 0:
+        return f"{credential.title} has expired — renew it to keep it on your record."
+    # Rounded up: a licence that runs out tomorrow morning has one day left.
+    days = math.ceil(seconds_left / 86_400)
+    if days > EXPIRY_WARNING_DAYS:
+        return ""
+    unit = "day" if days == 1 else "days"
+    return f"{credential.title} expires in {days} {unit} — renew it to keep it on your record."
+
+
+# ------------------------------------------------------------------ ladder
+
+
+def verification_ladder(profile) -> dict:
+    user = profile.user
+    has_record = _has_record(user)
+    skills = _skills_count(profile)
+    connections = Connection.objects.filter(Q(user_one=user) | Q(user_two=user)).count()
+    confirmation = _third_party_confirmation(user)
+    run = longest_daily_run(user)
 
     rungs = [
         {
             "key": "email_confirmed",
+            "band": "you",
             "label": "Email confirmed",
-            "hint": "Sign in with an email link to confirm the address.",
+            "hint": "Sign in with an email link.",
             "done": user.is_email_verified,
             "attested_by": "Your email provider",
+            "action": None,
             "detail": user.email if user.is_email_verified else "",
-            "warning": "",
         },
         {
-            "key": "public_address",
-            "label": "Public address claimed",
-            "hint": "Claim your handle so your record has an address to point at.",
-            "done": profile.has_public_handle,
-            "attested_by": "Beedero",
+            "key": "who_you_are",
+            "band": "you",
+            "label": "Who you are",
+            "hint": "Your name, a one-line headline, and the city and country you work from.",
+            "done": _who_you_are(profile),
+            "attested_by": "You",
+            "action": "identity",
             "detail": f"/p/{profile.handle}" if profile.handle else "",
-            "warning": "",
+        },
+        {
+            "key": "face_and_story",
+            "band": "you",
+            "label": "Face and story",
+            "hint": f"A photo and two or three lines about your work ({MIN_BIO_CHARS}+ characters).",
+            "done": _face_and_story(profile),
+            "attested_by": "You",
+            "action": "identity" if not profile.profile_picture else "about",
+            "detail": "",
         },
         {
             "key": "record_started",
+            "band": "you",
             "label": "Record started",
-            "hint": "Add one past or present role — there is nothing to confirm yet.",
-            "done": has_record,
-            "attested_by": ATTESTED_BY_SELF,
+            # Skills are picked by hand here: the LinkedIn import brings roles
+            # and degrees, never the skill list (accounts/linkedin_import.py).
+            "hint": f"One role or degree, and at least {MIN_SKILLS} skills. "
+            "Importing from LinkedIn brings the roles.",
+            "done": has_record and skills >= MIN_SKILLS,
+            "attested_by": "You",
+            "action": "experience" if not has_record else "skills",
             "detail": "",
-            "warning": "",
         },
         {
             "key": "first_connection",
-            "label": "First connection accepted",
-            "hint": "Connect with someone who knows your work.",
-            "done": connection_count > 0,
+            "band": "others",
+            "label": "First connection",
+            "hint": "Someone who knows your work accepts your request — or sends you one.",
+            "done": connections > 0,
             "attested_by": "Another member",
-            "detail": (
-                f"{connection_count} connection{'s' if connection_count != 1 else ''}"
-                if connection_count
-                else ""
-            ),
-            "warning": "",
+            "action": "discover",
+            "detail": f"{connections} connection{'s' if connections != 1 else ''}" if connections else "",
         },
         {
-            "key": "role_confirmed",
-            "label": "Role confirmed",
-            "hint": "Ask an organisation you work with to confirm your role, "
-            "or prove founder status with a registry certificate.",
-            "done": verified_affiliation is not None,
-            "attested_by": (
-                "Company registry"
-                if verified_affiliation
-                and verified_affiliation.verified_via == Affiliation.VerifiedVia.REGISTRY
-                else "The organisation"
-            ),
-            "detail": _role_detail(verified_affiliation) if verified_affiliation else "",
-            "warning": "",
-        },
-        {
-            "key": "credential_verified",
-            "label": "Professional credential verified",
-            "hint": "Submit a licence or registration number for review. "
-            "No organisation needed.",
-            "done": credential is not None,
-            "attested_by": credential.issuer if credential else "The issuing body",
-            "detail": f"{credential.title} · {credential.identifier}" if credential else "",
-            "warning": _credential_warning(credential) if credential else "",
+            "key": "confirmed",
+            "band": "others",
+            "label": "Confirmed by someone else",
+            "hint": "An organisation confirms your role, a registry certificate proves you "
+            "founded it, a startup confirms your investment, or a licence is verified.",
+            "done": confirmation is not None,
+            "attested_by": confirmation[0] if confirmation else "An organisation or issuing body",
+            "action": "experience",
+            "detail": confirmation[1] if confirmation else "",
+            "warning": _credential_warning(user),
         },
         {
             "key": "beedero_verified",
+            "band": "others",
             "label": "Verified by Beedero",
-            "hint": "Granted once the record above holds up to review.",
+            "hint": "We review the record above and confirm it holds up.",
             "done": profile.is_verified,
             "attested_by": "Beedero",
+            "action": None,
             "detail": "",
-            "warning": "",
+        },
+        {
+            "key": "daily_week",
+            "band": "record",
+            "label": "A week on the record",
+            "hint": f"Post every day for {DAILY_STREAK_DAYS} days in a row.",
+            "done": run >= DAILY_STREAK_DAYS,
+            "attested_by": "Your record",
+            "action": "post",
+            "detail": "",
+            "progress": min(run, DAILY_STREAK_DAYS),
         },
     ]
+    for rung in rungs:
+        rung.setdefault("progress", None)
+        rung.setdefault("warning", "")
 
-    visible = [rung for rung in rungs if rung["key"] not in DEFERRED_RUNG_KEYS]
-
-    # `level` is how far up you climbed without skipping: the UI says "Level 4
-    # of 5", which is a different (and more honest) number than done_count
-    # when someone finished a later rung but never claimed a handle.
-    level = 0
-    for rung in visible:
-        if not rung["done"]:
-            break
-        level += 1
-
+    done = sum(1 for rung in rungs if rung["done"])
+    unlock_missing = [r["key"] for r in rungs if r["key"] in UNLOCK_KEYS and not r["done"]]
     return {
-        "rungs": visible,
-        "done_count": sum(1 for rung in visible if rung["done"]),
-        "total_count": len(visible),
-        "level": level,
+        "rungs": rungs,
+        "done_count": done,
+        "total_count": len(rungs),
+        # Floored, so it never overstates: 12, 25, 37, 50 … and exactly 50 at the gate.
+        "percent": 100 * done // len(rungs),
+        # True exactly when is_unlocked(profile) is — the same four checks.
+        "unlocked": not unlock_missing,
+        "unlock_missing": unlock_missing,
+        "next": next((rung["key"] for rung in rungs if not rung["done"]), None),
+        # Rungs 5–8 can be climbed in any order, so the level is the count.
+        "level": done,
     }
+
+
+def mark_unlock(profile, ladder: dict) -> None:
+    """First time the gate opens: stamp it (time-to-unlock is the activation
+    metric) and tell the person once. Called from the vitality endpoint, which
+    the profile page reloads after every save."""
+    if not ladder["unlocked"] or profile.discoverable_since:
+        return
+    from notifications.models import Notification
+    from notifications.services import notify
+
+    profile.discoverable_since = timezone.now()
+    profile.save(update_fields=["discoverable_since"])
+    notify(
+        profile.user,
+        kind=Notification.Kind.MILESTONE,
+        aggregate_key=f"unlocked:{profile.user_id}",
+        title="You're in Discover",
+        body="People can now find you, and you can send connection requests.",
+        link="/discovery",
+    )

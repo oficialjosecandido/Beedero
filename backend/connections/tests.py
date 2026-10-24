@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from accounts.testing import unlock
 from messaging.models import Conversation, UserBlock
 from notifications.models import Notification
 
@@ -36,17 +37,23 @@ def api():
 
 @pytest.fixture
 def alice(db):
-    return User.objects.create_user(username="alice", email="alice@example.com", password="x")
+    user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
+    unlock(user)  # past the ladder's gate: may be found and may reach out
+    return user
 
 
 @pytest.fixture
 def bob(db):
-    return User.objects.create_user(username="bob", email="bob@example.com", password="x")
+    user = User.objects.create_user(username="bob", email="bob@example.com", password="x")
+    unlock(user)  # past the ladder's gate: may be found and may reach out
+    return user
 
 
 @pytest.fixture
 def carol(db):
-    return User.objects.create_user(username="carol", email="carol@example.com", password="x")
+    user = User.objects.create_user(username="carol", email="carol@example.com", password="x")
+    unlock(user)  # past the ladder's gate: may be found and may reach out
+    return user
 
 
 @pytest.mark.django_db
@@ -94,7 +101,8 @@ def test_send_request_converts_db_race_to_clean_validation_error(alice, bob):
 
 @pytest.mark.django_db
 def test_send_request_enforces_daily_rate_limit(alice):
-    for i in range(3):
+    # A freshly unlocked profile gets 5 a day (connections/services.py).
+    for i in range(5):
         target = User.objects.create_user(username=f"t{i}", email=f"t{i}@example.com", password="x")
         send_request(alice, target)
     extra = User.objects.create_user(username="extra", email="extra@example.com", password="x")

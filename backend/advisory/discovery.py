@@ -8,11 +8,14 @@ from .models import AdvisorProfile
 
 
 def find_advisors(viewer, params: dict):
+    from accounts.ladder import discoverable
+    from accounts.models import InvestorProfile
     from orgs.models import OrgMembership, Organization
 
+    # Same gate as people in Discover: ladder rungs 1–4 (accounts/ladder.py).
+    listable = discoverable(InvestorProfile.objects.all()).values("user_id")
     qs = (
-        AdvisorProfile.objects.filter(is_available=True)
-        .exclude(user__investorprofile__full_name="")
+        AdvisorProfile.objects.filter(is_available=True, user_id__in=listable)
         .select_related("user", "user__investorprofile")
     )
     if viewer is not None and viewer.is_authenticated:

@@ -41,6 +41,9 @@ def run_management_job(request):
         # One-off (re-runnable): reconstructs active days from before presence
         # tracking existed. Triggered by hand from manual-backfill-active-days.yml.
         "backfill_active_days": ("backfill_active_days", []),
+        # Stable /p/lighthouse-demo for SEO/perf audits. Also runs from startup.sh;
+        # exposed here so ops can re-seed without restarting the app.
+        "ensure_lighthouse_demo_person": ("ensure_lighthouse_demo_person", []),
     }
     if job not in allowed:
         return JsonResponse({"detail": "Unknown job"}, status=400)

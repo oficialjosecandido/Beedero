@@ -110,7 +110,10 @@ export async function addExperienceAction(_prev: string | null, formData: FormDa
 }
 
 /**
- * Last step — mark the flow as seen and go to §6.4's first screen.
+ * Last step — mark the flow as seen and go to §6.4's first screen, unless the
+ * person is still short of the ladder's gate: then their profile is the only
+ * screen that can do anything for them, and it opens with the next step on it
+ * (components/dashboard/ProfileAside.tsx).
  *
  * The destination is read back from the API rather than from the form: the
  * intents were saved two steps ago, and a hidden field carrying them this far
@@ -130,6 +133,7 @@ export async function finishOnboardingAction() {
     if (err instanceof ApiError) redirect("/feed");
     throw err;
   }
+  if (!state.can_connect) redirect("/profile");
   redirect(firstScreenUrl(state.primary_intent, state.city));
 }
 

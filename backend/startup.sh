@@ -15,13 +15,15 @@ fi
 python manage.py createcachetable
 python manage.py migrate --noinput
 
+# Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
+# Runs on the migrate role when set — the runtime role may be read/write-
+# limited enough that INSERT into accounts_* fails silently after a partial
+# boot. Idempotent upsert; safe every start.
+python manage.py ensure_lighthouse_demo_person
+
 if [ -n "$MIGRATE_DATABASE_URL" ]; then
   export DATABASE_URL="$RUNTIME_DATABASE_URL"
 fi
-
-# Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
-# Idempotent upsert — safe on every boot. Needs the runtime DB role (writes).
-python manage.py ensure_lighthouse_demo_person
 
 exec gunicorn beedero.wsgi \
   --bind="0.0.0.0:${PORT}" \

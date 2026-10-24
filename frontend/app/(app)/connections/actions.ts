@@ -45,17 +45,29 @@ function actionErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/** 403 because the sender is below the ladder's gate (lib/connection-gate.ts). */
+function isProfileLocked(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    err.status === 403 &&
+    (err.body as { code?: string } | null)?.code === "profile_locked"
+  );
+}
+
 export async function sendConnectionRequestAction(
   recipientId: number,
   note: string
-): Promise<{ ok: true } | { error: string }> {
+): Promise<{ ok: true } | { error: string; locked?: boolean }> {
   try {
     await apiFetch("/connections/requests/", {
       method: "POST",
       body: { recipient_id: recipientId, note },
     });
   } catch (err) {
-    return { error: actionErrorMessage(err, "Could not send the connection request.") };
+    return {
+      error: actionErrorMessage(err, "Could not send the connection request."),
+      locked: isProfileLocked(err),
+    };
   }
   revalidatePath("/connections");
   revalidatePath("/network");
