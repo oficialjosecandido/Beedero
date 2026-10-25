@@ -3,31 +3,31 @@
 import { useLayoutEffect, useState, useSyncExternalStore, type ComponentProps } from "react";
 
 import {
-  OrgCredibilityLadder,
   OrgHero,
   OrgNarrative,
-  OrgPublishGate,
   OrgSignalLog,
-  type LadderRung,
+  OrgVerificationLadder,
   type NarrativeContent,
-  type PublishChecklistItem,
   type SignalItem,
 } from "@/components/org-workspace/OrgOverview";
 import { OrgWorkspaceNav } from "@/components/org-workspace/OrgWorkspaceNav";
 import type { OrgNavCounts, OrgTabId } from "@/components/org-workspace/tabs";
+import type { OrgLadder } from "@/lib/org-ladder";
 
 import { OrgTabs } from "./OrgTabs";
 
 type TabsProps = Omit<ComponentProps<typeof OrgTabs>, "active">;
 type IdentityProps = Omit<ComponentProps<typeof OrgWorkspaceNav>, "active" | "onSelect" | "counts">;
 
+const LADDER_HASH = "#verification-ladder";
+
 function subscribeHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
   return () => window.removeEventListener("hashchange", onChange);
 }
 
-function readPublishHash() {
-  return window.location.hash === "#publish-checklist";
+function readLadderHash() {
+  return window.location.hash === LADDER_HASH;
 }
 
 /**
@@ -48,87 +48,69 @@ export function OrgWorkspace({
 }: {
   initialTab: OrgTabId;
   identity: IdentityProps;
-  hero: Omit<ComponentProps<typeof OrgHero>, "onOpenPublishChecklist">;
+  hero: Omit<ComponentProps<typeof OrgHero>, "onOpenLadder">;
   narrative: NarrativeContent;
-  ladder: LadderRung[];
+  ladder: OrgLadder | null;
   signals: SignalItem[];
   counts: OrgNavCounts;
   tabs: TabsProps;
 }) {
   const [active, setActive] = useState<OrgTabId>(initialTab);
-  // `#publish-checklist` is the draft gate on overview — honour it even when
-  // `?tab=` still points at profile from an earlier click.
-  const hashWantsPublish = useSyncExternalStore(subscribeHash, readPublishHash, () => false);
-  const effectiveActive =
-    hashWantsPublish && hero.isDraft ? ("overview" as const) : active;
+  // The ladder lives on overview — honour the hash even when `?tab=` still
+  // points at profile from an earlier click.
+  const hashWantsLadder = useSyncExternalStore(subscribeHash, readLadderHash, () => false);
+  const effectiveActive = hashWantsLadder ? ("overview" as const) : active;
 
   function selectTab(tab: OrgTabId) {
     setActive(tab);
     window.history.replaceState(null, "", `/dashboard/${tabs.slug}?tab=${tab}`);
   }
 
-  function openPublishChecklist() {
+  function openLadder() {
     setActive("overview");
-    window.history.replaceState(
-      null,
-      "",
-      `/dashboard/${tabs.slug}?tab=overview#publish-checklist`
-    );
+    window.history.replaceState(null, "", `/dashboard/${tabs.slug}?tab=overview${LADDER_HASH}`);
     // replaceState does not fire hashchange — nudge subscribers manually.
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   }
 
   useLayoutEffect(() => {
-    if (!hashWantsPublish || !hero.isDraft || effectiveActive !== "overview") return;
-    document.getElementById("publish-checklist")?.scrollIntoView({
+    if (!hashWantsLadder || effectiveActive !== "overview") return;
+    document.getElementById("verification-ladder")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
-  }, [hashWantsPublish, hero.isDraft, effectiveActive]);
-
-  const showPublishGate = hero.isDraft && effectiveActive === "overview";
-  const publishChecklist: PublishChecklistItem[] = tabs.onboarding.checklist;
+  }, [hashWantsLadder, effectiveActive]);
 
   return (
     <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[252px_minmax(0,1fr)]">
       <OrgWorkspaceNav {...identity} counts={counts} active={effectiveActive} onSelect={selectTab} />
 
       <section className="min-w-0 p-4 sm:p-6 lg:p-8">
-        <OrgHero {...hero} onOpenPublishChecklist={openPublishChecklist} />
-
-        {showPublishGate && (
-          <OrgPublishGate
-            slug={tabs.slug}
-            orgName={hero.name}
-            publishReady={tabs.onboarding.publish_ready}
-            checklist={publishChecklist}
-            canManage={tabs.canManage}
-            onSelect={selectTab}
-          />
-        )}
+        <OrgHero {...hero} onOpenLadder={openLadder} />
 
         {effectiveActive === "overview" && (
-          <>
-            <div
-              className={`mt-5 grid gap-5 ${
-                !hero.isDraft && ladder.length > 0
-                  ? "xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]"
-                  : ""
-              }`}
-            >
+          // Narrative and signal log share the left column, so the taller
+          // ladder on the right never leaves a stretched, empty card beside it.
+          <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
+            <div className="flex min-w-0 flex-col gap-5">
               <OrgNarrative
                 name={hero.name}
                 content={narrative}
                 canManage={tabs.canManage}
                 onSelect={selectTab}
               />
-              {/* Credibility ladder is post-publish proof — while draft, the publish gate owns the checklist. */}
-              {!hero.isDraft && ladder.length > 0 && (
-                <OrgCredibilityLadder name={hero.name} rungs={ladder} onSelect={selectTab} />
-              )}
+              <OrgSignalLog signals={signals} onSelect={selectTab} />
             </div>
-            <OrgSignalLog signals={signals} onSelect={selectTab} />
-          </>
+            {ladder && (
+              <OrgVerificationLadder
+                name={hero.name}
+                slug={tabs.slug}
+                ladder={ladder}
+                canManage={tabs.canManage}
+                onSelect={selectTab}
+              />
+            )}
+          </div>
         )}
 
         <div className="mt-6 min-w-0">

@@ -3,8 +3,8 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from orgs.constants import SectionKind
-from orgs.models import OrgField, Organization, OrgMembership
+from orgs.models import Organization, OrgMembership
+from orgs.testing import unlock_org
 
 
 @pytest.fixture
@@ -18,16 +18,8 @@ def owner_unverified(db):
 
 
 def _make_publish_ready(org):
-    org.logo = "org_logos/acme.png"
-    org.stage = "seed"
-    org.sector = "fintech"
-    org.geo = "PT"
-    org.save(update_fields=["logo", "stage", "sector", "geo"])
-    about = org.sections.get(kind=SectionKind.ABOUT)
-    for key in ("summary", "mission", "vision", "values"):
-        OrgField.objects.create(section=about, key=key, value=key)
-    products = org.sections.get(kind=SectionKind.PRODUCTS)
-    OrgField.objects.create(section=products, key="overview", value="Product")
+    """Rungs 1–4 of the org's verification ladder (orgs/ladder.py)."""
+    unlock_org(org)
 
 
 @pytest.mark.django_db
@@ -91,7 +83,8 @@ def test_activate_requires_complete_profile(api, owner_unverified):
 
     res = api.post(f"/api/orgs/{org.slug}/activate/")
     assert res.status_code == 400
-    assert "required profile fields" in res.data["detail"]
+    assert "first four steps" in res.data["detail"]
+    assert res.data["missing"] == ["who_you_are", "what_you_do", "face_behind_it"]
 
 
 @pytest.mark.django_db

@@ -48,7 +48,10 @@ def _is_verified_investor(viewer) -> bool:
 
 
 def discover(viewer, params: dict):
-    qs = Organization.objects.filter(status=Organization.Status.LIVE)
+    from .ladder import listed_in_discover
+
+    # Live *and* past the ladder's gate (orgs/ladder.py, rungs 1–4).
+    qs = listed_in_discover(Organization.objects.all())
 
     query = (params.get("q") or "").strip()
     if query:
@@ -125,7 +128,9 @@ def discover_active_this_week(viewer, limit=12):
         .values_list("org_id", flat=True)
         .distinct()
     )
-    orgs = Organization.objects.filter(id__in=active_org_ids, status=Organization.Status.LIVE)
+    from .ladder import listed_in_discover
+
+    orgs = listed_in_discover(Organization.objects.filter(id__in=active_org_ids))
     candidates = [org for org in orgs if credibility_level(org) >= 1]
     candidates.sort(key=lambda org: (-discovery_score(org), org.name))
     return candidates[:limit]

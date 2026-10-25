@@ -17,8 +17,9 @@ export function OrgWorkspaceNav({
   slug,
   isVerified,
   myRole,
-  completeness,
-  verifiedSignals,
+  verification,
+  confirmations,
+  listed,
   counts,
   active,
   onSelect,
@@ -28,8 +29,10 @@ export function OrgWorkspaceNav({
   slug: string;
   isVerified: boolean;
   myRole: string;
-  completeness: number;
-  verifiedSignals: number;
+  /** Verification ladder, 0–100 (lib/org-ladder.ts). */
+  verification: number;
+  confirmations: number;
+  listed: boolean;
   counts: OrgNavCounts;
   active: OrgTabId;
   onSelect: (tab: OrgTabId) => void;
@@ -91,15 +94,16 @@ export function OrgWorkspaceNav({
           </p>
           <div className="mt-3 px-3">
             <div className="flex items-end justify-between">
-              <b className="text-3xl font-black">{completeness}</b>
-              <span className="text-[10px] font-bold text-org-gold">Record score</span>
+              <b className="text-3xl font-black">{verification}%</b>
+              <span className="text-[10px] font-bold text-org-gold">Verification</span>
             </div>
-            <div className="mt-2 h-1.5 bg-black/10">
-              <div className="h-full bg-beedero-yellow" style={{ width: `${completeness}%` }} />
+            <div className="relative mt-2 h-1.5 bg-black/10">
+              <div className="h-full bg-beedero-yellow" style={{ width: `${verification}%` }} />
+              <span aria-hidden className="absolute -top-1 left-1/2 h-3.5 w-px bg-black/50" />
             </div>
             <p className="mt-2 text-[10px] leading-4 text-black/45">
-              {verifiedSignals} verified {verifiedSignals === 1 ? "signal" : "signals"} ·{" "}
-              {100 - completeness}% to go
+              {listed ? "Listed in Discover" : "Discover at 50%"} · {confirmations}{" "}
+              {confirmations === 1 ? "confirmation" : "confirmations"}
             </p>
           </div>
         </div>

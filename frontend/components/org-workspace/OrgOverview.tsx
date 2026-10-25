@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, Plus } from "lucide-react";
 
 import { activateOrgAction } from "@/app/(app)/dashboard/actions";
 import { formatCompactCurrency, formatRelativeTime } from "@/lib/format";
+import type { OrgLadder, OrgLadderBand, OrgLadderRung } from "@/lib/org-ladder";
 import { SECTION_LABELS } from "@/lib/types";
 import { useActionToast } from "@/lib/use-action-toast";
 
@@ -19,41 +20,6 @@ import {
   orgBrutalBorder,
 } from "./ui";
 
-export type LadderRung = { key: string; label: string; hint: string; done: boolean };
-export type PublishChecklistItem = { key: string; done: boolean; hint: string; weight: number };
-
-/** Must match backend `orgs.completeness.ACTIVATION_REQUIREMENTS`. */
-const PUBLISH_REQUIRED_KEYS = [
-  "logo",
-  "one_liner",
-  "stage",
-  "sector",
-  "geo",
-  "about",
-  "team",
-] as const;
-
-const PUBLISH_LABELS: Record<string, string> = {
-  logo: "Logo",
-  one_liner: "One-liner",
-  stage: "Stage",
-  sector: "Sector",
-  geo: "Based in",
-  about: "About (summary, mission, vision, values)",
-  team: "Team",
-  products: "Products",
-};
-
-const PUBLISH_TAB: Record<string, OrgTabId> = {
-  logo: "profile",
-  one_liner: "profile",
-  stage: "profile",
-  sector: "profile",
-  geo: "profile",
-  about: "profile",
-  products: "profile",
-  team: "team",
-};
 export type SignalItem = {
   id: number;
   kind: string;
@@ -81,9 +47,9 @@ export function OrgHero({
   meta,
   teamCount,
   capitalRaised,
-  recordScore,
-  verifiedSignals,
-  onOpenPublishChecklist,
+  verification,
+  confirmations,
+  onOpenLadder,
 }: {
   name: string;
   logo: string | null;
@@ -95,16 +61,18 @@ export function OrgHero({
   meta: string[];
   teamCount: number;
   capitalRaised: number | null;
-  recordScore: number;
-  verifiedSignals: number;
-  /** Draft CTA — switches to overview and scrolls to the publish checklist. */
-  onOpenPublishChecklist?: () => void;
+  /** Verification ladder, 0–100 (lib/org-ladder.ts). */
+  verification: number;
+  /** Ladder rungs confirmed by someone outside the team. */
+  confirmations: number;
+  /** Draft CTA — switches to overview and scrolls to the verification ladder. */
+  onOpenLadder?: () => void;
 }) {
   const stats: { value: string; label: string }[] = [
     { value: String(teamCount), label: "Team members" },
     { value: formatCompactCurrency(capitalRaised), label: "Capital raised" },
-    { value: String(recordScore), label: "Record score" },
-    { value: String(verifiedSignals), label: "Verified signals" },
+    { value: `${verification}%`, label: "Verification" },
+    { value: String(confirmations), label: "Confirmed by others" },
   ];
 
   return (
@@ -135,7 +103,7 @@ export function OrgHero({
           {isDraft ? (
             <button
               type="button"
-              onClick={onOpenPublishChecklist}
+              onClick={onOpenLadder}
               className="border border-beedero-yellow bg-beedero-yellow px-4 py-2.5 text-xs font-black text-org-ink transition hover:bg-white"
             >
               Draft — see what&apos;s missing
@@ -175,120 +143,6 @@ export function OrgHero({
         ))}
       </div>
     </div>
-  );
-}
-
-/* -------------------------------------------------------- publish gate */
-
-export function OrgPublishGate({
-  slug,
-  orgName,
-  publishReady,
-  checklist,
-  canManage,
-  onSelect,
-}: {
-  slug: string;
-  orgName: string;
-  publishReady: boolean;
-  checklist: PublishChecklistItem[];
-  canManage: boolean;
-  onSelect: (tab: OrgTabId) => void;
-}) {
-  const [error, formAction, pending] = useActionState(activateOrgAction, null);
-  useActionToast(error, pending, { successMessage: "Organization published!" });
-
-  const required = PUBLISH_REQUIRED_KEYS.map((key) => {
-    const item = checklist.find((entry) => entry.key === key);
-    return {
-      key,
-      done: Boolean(item?.done),
-      hint: item?.hint ?? "",
-      label: PUBLISH_LABELS[key] ?? key,
-      tab: PUBLISH_TAB[key] ?? ("profile" as OrgTabId),
-    };
-  });
-  const doneCount = required.filter((item) => item.done).length;
-  const missing = required.filter((item) => !item.done);
-
-  return (
-    <OrgCard tone="yellow" className="mt-5 min-w-0" id="publish-checklist">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <OrgCardHeading eyebrow="Not live yet" title={`Finish these to publish ${orgName}.`} />
-        <span className="shrink-0 border border-black bg-org-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
-          {doneCount} / {required.length} required
-        </span>
-      </div>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-black/70">
-        Partners only see a public page after you publish. Products and market thesis are optional;
-        everything below is required.
-      </p>
-
-      <ul className="mt-6 grid gap-2 sm:grid-cols-2">
-        {required.map((item) => (
-          <li key={item.key}>
-            {item.done ? (
-              <div className="flex min-h-[4.5rem] items-start gap-3 border border-black bg-white p-3 text-black">
-                <span
-                  className="grid size-7 shrink-0 place-items-center bg-org-ink text-white"
-                  aria-hidden
-                >
-                  <Check size={14} strokeWidth={3} />
-                </span>
-                <div className="min-w-0">
-                  <b className="block text-xs line-through decoration-black/40">{item.label}</b>
-                  <small className="mt-1 block text-[10px] leading-4 text-black/45">Done</small>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onSelect(item.tab)}
-                className="flex min-h-[4.5rem] w-full items-start gap-3 border border-black bg-beedero-yellow p-3 text-left text-black transition hover:bg-white"
-              >
-                <span
-                  className="grid size-7 shrink-0 place-items-center border border-black text-xs font-black"
-                  aria-hidden
-                >
-                  !
-                </span>
-                <div className="min-w-0">
-                  <b className="block text-xs">{item.label}</b>
-                  <small className="mt-1 block text-[10px] leading-4 text-black/60">
-                    {item.hint || "Required to publish"}
-                  </small>
-                </div>
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {canManage ? (
-        <form action={formAction} className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input type="hidden" name="slug" value={slug} />
-          <button
-            type="submit"
-            disabled={pending || !publishReady}
-            className="bg-org-ink px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {pending ? "Publishing…" : publishReady ? "Publish organisation" : "Publish when ready"}
-          </button>
-          {!publishReady && (
-            <p className="text-xs font-medium text-black/60">
-              {missing.length} left — open each item to fill it in. Publishing is free.
-            </p>
-          )}
-          {publishReady && (
-            <p className="text-xs font-medium text-black/60">All required fields are in. Publishing is free.</p>
-          )}
-        </form>
-      ) : (
-        <p className="mt-6 text-xs font-medium text-black/60">
-          Ask an owner or admin to publish once the required fields are complete.
-        </p>
-      )}
-    </OrgCard>
   );
 }
 
@@ -389,62 +243,244 @@ export function OrgNarrative({
   );
 }
 
-/* ------------------------------------------------------- credibility ladder */
+/* ------------------------------------------------------ verification ladder */
 
-export function OrgCredibilityLadder({
+const BAND_TITLES: Record<OrgLadderBand, string> = {
+  team: "The team · unlocks Discover",
+  others: "Someone else confirms",
+  record: "Your record",
+};
+
+/** Workspace tab each rung opens; `personal_profile` leaves the workspace. */
+const ACTION_TAB: Partial<Record<NonNullable<OrgLadderRung["action"]>, OrgTabId>> = {
+  profile: "profile",
+  team: "affiliations",
+  registry: "affiliations",
+  activity: "activity",
+};
+
+const ACTION_LABEL: Record<NonNullable<OrgLadderRung["action"]>, string> = {
+  profile: "Add",
+  personal_profile: "Finish my profile",
+  team: "Ask the team",
+  registry: "Send code",
+  activity: "Post",
+};
+
+/** Only owners and admins edit the organisation; anyone on the team can post
+ *  or finish their own profile. */
+const MANAGER_ACTIONS = new Set(["profile", "team", "registry"]);
+
+// 44px tall on phones (touch target), compact from `sm` up.
+const actionClass =
+  "inline-flex min-h-11 shrink-0 items-center self-start border border-org-ink bg-white px-2.5 text-[10px] font-black text-org-ink transition hover:bg-org-ink hover:text-white sm:min-h-8";
+
+function RungAction({
+  rung,
+  canManage,
+  onSelect,
+}: {
+  rung: OrgLadderRung;
+  canManage: boolean;
+  onSelect: (tab: OrgTabId) => void;
+}) {
+  if (rung.done || rung.pending || !rung.action) return null;
+  if (MANAGER_ACTIONS.has(rung.action) && !canManage) return null;
+  if (rung.action === "personal_profile") {
+    return (
+      <Link href="/profile" className={actionClass}>
+        {ACTION_LABEL.personal_profile}
+      </Link>
+    );
+  }
+  const tab = ACTION_TAB[rung.action];
+  if (!tab) return null;
+  return (
+    <button type="button" onClick={() => onSelect(tab)} className={actionClass}>
+      {ACTION_LABEL[rung.action]}
+    </button>
+  );
+}
+
+function OrgRung({
+  rung,
+  index,
+  canManage,
+  onSelect,
+}: {
+  rung: OrgLadderRung;
+  index: number;
+  canManage: boolean;
+  onSelect: (tab: OrgTabId) => void;
+}) {
+  return (
+    <li className="flex gap-3">
+      <span
+        aria-hidden
+        className={`grid size-6 shrink-0 place-items-center text-[10px] font-black ${
+          rung.done ? "bg-org-ink text-white" : "border border-org-ink text-org-ink"
+        }`}
+      >
+        {rung.done ? <Check size={12} /> : index + 1}
+      </span>
+      <div className="min-w-0 flex-1">
+        <b className="block text-xs">
+          {rung.label}
+          <span className="sr-only">
+            {rung.done ? " — done" : rung.pending ? " — in review" : " — to do"}
+          </span>
+        </b>
+        {rung.done ? (
+          <small className="mt-0.5 block break-words text-[10px] leading-4 text-black/60">
+            {rung.detail ? `${rung.detail} · ` : ""}
+            {rung.attested_by === "The team" ? "added by the team" : `by ${rung.attested_by.toLowerCase()}`}
+          </small>
+        ) : (
+          <small className="mt-0.5 block text-[10px] leading-4 text-black/60">{rung.hint}</small>
+        )}
+        {rung.pending && (
+          <small className="mt-1 inline-block bg-org-ink px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-white">
+            In review
+          </small>
+        )}
+        {!rung.done && rung.progress !== null && (
+          <span className="mt-1.5 flex items-center gap-1" aria-label={`${rung.progress} of 7 days`}>
+            {Array.from({ length: 7 }, (_, day) => (
+              <span
+                key={day}
+                aria-hidden
+                className={`size-2 ${day < (rung.progress ?? 0) ? "bg-org-ink" : "bg-black/15"}`}
+              />
+            ))}
+            <span className="ml-1 text-[10px] tabular-nums text-black/55">{rung.progress}/7</span>
+          </span>
+        )}
+        {rung.warning && (
+          <small className="mt-1 block text-[10px] font-bold leading-4 text-[#b3261e]">{rung.warning}</small>
+        )}
+      </div>
+      <RungAction rung={rung} canManage={canManage} onSelect={onSelect} />
+    </li>
+  );
+}
+
+function PublishButton({ slug }: { slug: string }) {
+  const [error, formAction, pending] = useActionState(activateOrgAction, null);
+  useActionToast(error, pending, { successMessage: "Published. You're in Discover." });
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="slug" value={slug} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="min-h-11 bg-org-ink px-4 text-xs font-black text-white transition hover:bg-black disabled:opacity-60"
+      >
+        {pending ? "Publishing…" : "Publish"}
+      </button>
+    </form>
+  );
+}
+
+function ladderStatus(name: string, ladder: OrgLadder): string {
+  const left = ladder.unlock_missing.length;
+  const steps = `${left} ${left === 1 ? "step" : "steps"}`;
+  if (ladder.listed) return `${name} is live and listed in Discover.`;
+  if (ladder.status === "live") {
+    return `${name} is live, but hidden from Discover until ${steps} ${left === 1 ? "is" : "are"} done again.`;
+  }
+  if (ladder.can_publish) return `Ready to publish. Once live, ${name} is listed in Discover.`;
+  return `${steps} before ${name} can be published and listed in Discover.`;
+}
+
+/**
+ * Eight rungs in three bands. The first band is the gate: four things the
+ * team does alone, in minutes, that together are 50% and make the
+ * organisation publishable — and, once live, listed in Discover. Above that,
+ * every rung needs somebody outside the team, or a week of showing up.
+ */
+export function OrgVerificationLadder({
   name,
-  rungs,
+  slug,
+  ladder,
+  canManage,
   onSelect,
 }: {
   name: string;
-  rungs: LadderRung[];
+  slug: string;
+  ladder: OrgLadder;
+  canManage: boolean;
   onSelect: (tab: OrgTabId) => void;
 }) {
-  const done = rungs.filter((rung) => rung.done).length;
-
+  const bands: OrgLadderBand[] = ["team", "others", "record"];
   return (
-    <OrgCard tone="yellow" className="min-w-0">
+    <OrgCard tone="yellow" className="min-w-0" id="verification-ladder">
       <div className="flex items-start justify-between gap-4">
-        <OrgCardHeading eyebrow="Credibility ladder" title="Proof, not polish." />
+        <OrgCardHeading eyebrow="Verification ladder" title="Proof, not polish." />
         <span className="shrink-0 border border-black bg-org-ink px-2 py-1 text-[10px] font-black uppercase text-white">
-          {done} / {rungs.length} verified
+          {ladder.done_count} / {ladder.total_count}
         </span>
       </div>
-      <p className="mt-3 max-w-sm text-xs leading-5 text-black/65">
-        A visible record of the evidence behind {name}.
+
+      <div className="mt-5 flex items-baseline justify-between gap-3">
+        <b className="text-4xl font-black tabular-nums">{ladder.percent}%</b>
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-black/55">
+          {ladder.done_count} of {ladder.total_count} steps
+        </span>
+      </div>
+      <div
+        className="relative mt-2 h-2 border border-org-ink bg-white"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={ladder.percent}
+        aria-label="Verification"
+      >
+        <div className="h-full bg-org-ink" style={{ width: `${ladder.percent}%` }} />
+        <span aria-hidden className="absolute -top-1.5 left-1/2 h-4 w-0.5 bg-org-ink" />
+      </div>
+      <p aria-hidden className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.12em] text-black/55">
+        50% · Discover
       </p>
 
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
-        {rungs.map((rung, index) => (
-          <div
-            key={rung.key}
-            className={`flex min-h-20 gap-3 border p-3 ${
-              rung.done ? "border-black bg-white" : "border-black/30 bg-beedero-yellow"
-            } text-black`}
-          >
-            <span
-              className={`grid size-7 shrink-0 place-items-center text-xs font-black ${
-                rung.done ? "bg-org-ink text-white" : "border border-black text-black"
-              }`}
-              aria-hidden
-            >
-              {rung.done ? "✓" : index + 1}
-            </span>
-            <div className="min-w-0">
-              <b className="block text-xs">{rung.label}</b>
-              <small className="mt-1 block text-[10px] leading-4 text-black/60">{rung.hint}</small>
-            </div>
-          </div>
-        ))}
+      <div
+        className={`mt-4 flex flex-wrap items-center gap-3 border border-org-ink p-3 ${
+          ladder.listed ? "bg-white" : "bg-org-cream"
+        }`}
+      >
+        <p className="min-w-0 flex-1 text-xs font-bold leading-5">{ladderStatus(name, ladder)}</p>
+        {ladder.can_publish && canManage && <PublishButton slug={slug} />}
+        {ladder.can_publish && !canManage && (
+          <p className="text-[10px] text-black/55">An owner or admin can publish.</p>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => onSelect("insights")}
-        className="mt-5 flex w-full items-center justify-between bg-org-ink px-4 py-3 text-xs font-black text-white transition hover:bg-white hover:text-black"
-      >
-        View organisation insights <ArrowUpRight size={14} aria-hidden />
-      </button>
+      {bands.map((band) => {
+        const rungs = ladder.rungs
+          .map((rung, index) => ({ rung, index }))
+          .filter(({ rung }) => rung.band === band);
+        return (
+          <div key={band} className="mt-5">
+            <p className="text-[9px] font-black uppercase tracking-[0.15em] text-black/50">
+              {BAND_TITLES[band]}
+            </p>
+            <ol className="mt-3 space-y-3.5">
+              {rungs.map(({ rung, index }) => (
+                <OrgRung
+                  key={rung.key}
+                  rung={rung}
+                  index={index}
+                  canManage={canManage}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ol>
+          </div>
+        );
+      })}
+
+      <p className="mt-5 border-t border-black/20 pt-3 text-[10px] leading-4 text-black/55">
+        Each step names who vouches for it. Visible to the team only.
+      </p>
     </OrgCard>
   );
 }
@@ -466,7 +502,7 @@ export function OrgSignalLog({
   onSelect: (tab: OrgTabId) => void;
 }) {
   return (
-    <OrgCard className="mt-6 min-w-0">
+    <OrgCard className="min-w-0">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <OrgCardHeading eyebrow="Signal log" title="What is moving." />
         <button

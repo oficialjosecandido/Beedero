@@ -8,6 +8,7 @@ from accounts.testing import unlock
 from orgs import discovery, views
 from orgs.constants import SectionKind
 from orgs.models import Organization, OrgField, OrgSection, VisibilityGrant
+from orgs.testing import unlock_org
 
 
 @pytest.fixture
@@ -21,8 +22,11 @@ def viewer(db):
 
 
 def _make_orgs(n, prefix="org"):
+    """Live and past their ladder's gate (orgs/ladder.py) — what Discover lists."""
     return [
-        Organization.objects.create(slug=f"{prefix}{i}", name=f"{prefix}{i}", status=Organization.Status.LIVE)
+        unlock_org(
+            Organization.objects.create(slug=f"{prefix}{i}", name=f"{prefix}{i}", status=Organization.Status.LIVE)
+        )
         for i in range(n)
     ]
 

@@ -5,7 +5,6 @@ import { useActionState, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 import {
-  activateOrgAction,
   closeRoundAction,
   createInviteAction,
   deleteActivityAction,
@@ -19,15 +18,17 @@ import {
 } from "@/app/(app)/dashboard/actions";
 import { confirmMembershipDetailsAction } from "@/app/(app)/dashboard/membership-actions";
 import { confirmMembershipSkillAction } from "@/app/(app)/dashboard/membership-skills-actions";
-import { BadgeEmbedPanel, PresenceSignalsPanel, VitalityChecklistPanel } from "@/components/BadgePanels";
+import { BadgeEmbedPanel, PresenceSignalsPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
 import { JobsTab } from "@/components/jobs/JobsTab";
 import { AffiliationsTab } from "@/components/affiliations/AffiliationsTab";
+import { CompanyRegistryCard } from "@/components/org-workspace/CompanyRegistryCard";
 import type { OrgTabId } from "@/components/org-workspace/tabs";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
+import type { OrgLadder } from "@/lib/org-ladder";
 import { SITE_URL } from "@/lib/site-metadata";
 import type {
   AffiliationSummary,
@@ -101,6 +102,7 @@ type Onboarding = {
   publish_ready: boolean;
   checklist: { key: string; done: boolean; hint: string; weight: number }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
+  ladder?: OrgLadder;
 };
 type PostValue = {
   title?: string;
@@ -596,129 +598,6 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
   );
 }
 
-const CHECKLIST_LABELS: Record<string, string> = {
-  logo: "Logo",
-  one_liner: "One-liner",
-  stage: "Stage",
-  sector: "Sector",
-  geo: "Based in",
-  about: "About (summary, mission, vision, values)",
-  team: "Team",
-  products: "Products",
-  market: "Market thesis",
-  activity: "Weekly activity",
-};
-
-/** Profile setup items only — not blockers for posting (first post / credibility are boosts). */
-const PROFILE_SETUP_CHECKLIST_KEYS = new Set([
-  "logo",
-  "one_liner",
-  "stage",
-  "sector",
-  "geo",
-  "about",
-  "team",
-  "products",
-  "market",
-]);
-
-function OnboardingPanel({
-  slug,
-  onboarding,
-  canManage,
-}: {
-  slug: string;
-  onboarding: Onboarding;
-  canManage: boolean;
-}) {
-  const [error, formAction, pending] = useActionState(activateOrgAction, null);
-  useActionToast(error, pending, { successMessage: "Organization published!" });
-
-  return (
-    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-extrabold text-zinc-900">Profile strength</h3>
-        <span className="text-sm font-medium text-zinc-500">{onboarding.completeness}%</span>
-      </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
-        <div
-          className="h-2 rounded-full bg-beedero-yellow transition-all"
-          style={{ width: `${onboarding.completeness}%` }}
-        />
-      </div>
-      <div
-        className={`mt-4 grid gap-4 ${onboarding.status === "live" ? "lg:grid-cols-[minmax(0,1fr)_240px]" : ""}`}
-      >
-        {onboarding.checklist.some(
-          (item) => !item.done && PROFILE_SETUP_CHECKLIST_KEYS.has(item.key)
-        ) && (
-          <div className="rounded-xl border border-amber-200 bg-warning-surface px-3 py-2.5 lg:col-span-full">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-900">Still to do</p>
-            <ul className="mt-1.5 flex flex-col gap-1">
-              {onboarding.checklist
-                .filter((item) => !item.done && PROFILE_SETUP_CHECKLIST_KEYS.has(item.key))
-                .map((item) => (
-                  <li key={item.key} className="text-sm font-medium text-amber-950">
-                    {CHECKLIST_LABELS[item.key] ?? item.key}
-                    <span className="font-normal text-warning/80"> — {item.hint}</span>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        )}
-        <ul className="flex flex-col gap-1.5">
-          {onboarding.checklist.map((item) => (
-            <li key={item.key} className="flex items-start gap-2 text-sm">
-              <span>{item.done ? "✅" : "⬜"}</span>
-              <span className={item.done ? "text-subtle line-through" : "text-zinc-700"}>
-                {CHECKLIST_LABELS[item.key] ?? item.key}
-              </span>
-              <span className="text-xs font-semibold text-subtle">+{item.weight}%</span>
-              {!item.done && <span className="text-xs text-subtle">— {item.hint}</span>}
-              {item.key === "activity" && item.done && (
-                <span className="text-xs text-subtle">— resets if you go quiet for a week</span>
-              )}
-            </li>
-          ))}
-        </ul>
-        {onboarding.completeness < 100 && (
-          <p className="text-xs font-medium text-zinc-500 lg:col-span-full">
-            {100 - onboarding.completeness}% to go until your profile strength hits 100%.
-          </p>
-        )}
-        {onboarding.status === "live" && <PublicPageShare slug={slug} />}
-      </div>
-      {onboarding.status === "draft" && canManage ? (
-        <form action={formAction} className="mt-4">
-          <input type="hidden" name="slug" value={slug} />
-          <button
-            type="submit"
-            disabled={pending || !onboarding.publish_ready}
-            className="rounded-xl bg-beedero-yellow px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-          >
-            {pending ? "Publishing..." : "Publish organization"}
-          </button>
-          {!onboarding.publish_ready && (
-            <p className="mt-2 text-xs text-zinc-500">
-              Complete all required Profile fields before publishing. Products and market thesis are
-              optional.
-            </p>
-          )}
-          <p className="mt-2 text-xs text-subtle">Publishing is free.</p>
-        </form>
-      ) : onboarding.status === "live" ? (
-        <p className="mt-4 rounded-xl bg-beedero-yellow/25 px-3 py-2 text-sm font-semibold text-beedero-black">
-          Your organization is live and visible to investors 🎉
-        </p>
-      ) : (
-        <p className="mt-4 text-xs text-zinc-500">
-          Ask an owner or admin to publish once the required Profile fields are complete.
-        </p>
-      )}
-    </div>
-  );
-}
-
 function PublicProfileShareCard({ slug, members }: { slug: string; members: Member[] }) {
   const publicUrl = `${SITE_URL}/o/${slug}`;
   const [copied, setCopied] = useState(false);
@@ -884,6 +763,12 @@ function TeamOnBeederoPanel({ confirmed, awaiting }: { confirmed: number; awaiti
   );
 }
 
+/**
+ * What used to be "Profile strength" (a meter, a checklist and the Publish
+ * button) now lives in the verification ladder above, which is the one meter
+ * the workspace shows. What is left here is what the ladder does not say: the
+ * public page once it exists, and who on the team has answered.
+ */
 function OverviewTab({
   slug,
   onboarding,
@@ -897,16 +782,17 @@ function OverviewTab({
   confirmedTeam: number;
   awaitingTeam: number;
 }) {
-  // Draft orgs already see the publish gate under the hero — don't repeat it.
-  if (onboarding.status === "draft") {
-    return canManage ? (
-      <TeamOnBeederoPanel confirmed={confirmedTeam} awaiting={awaitingTeam} />
-    ) : null;
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      <OnboardingPanel slug={slug} onboarding={onboarding} canManage={canManage} />
+      {onboarding.status === "live" && (
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-extrabold text-zinc-900">Your public page</h3>
+            <p className="mt-1 text-sm text-zinc-500">Share it anywhere — it works for people without an account.</p>
+          </div>
+          <PublicPageShare slug={slug} />
+        </div>
+      )}
       {canManage && <TeamOnBeederoPanel confirmed={confirmedTeam} awaiting={awaitingTeam} />}
     </div>
   );
@@ -1634,6 +1520,7 @@ export function OrgTabs({
   const marketSection = sections.find((s) => s.kind === "market_thesis");
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
+  const registryRung = onboarding.ladder?.rungs.find((rung) => rung.key === "registry_confirmed");
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -1726,13 +1613,7 @@ export function OrgTabs({
             inviteQuota={inviteQuota}
             canManage={canManage}
           />
-          {canManage && vitality && (
-            <VitalityChecklistPanel
-              items={vitality.items}
-              doneCount={vitality.done_count}
-              totalCount={vitality.total_count}
-            />
-          )}
+          {canManage && registryRung && <CompanyRegistryCard slug={slug} rung={registryRung} />}
         </div>
       )}
 

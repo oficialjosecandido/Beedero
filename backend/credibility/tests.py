@@ -436,8 +436,10 @@ class TestDiscoveryCredibilityFilter:
     def test_min_credibility_filters_out_unverified_orgs(self, api, owner):
         from orgs import discovery
 
-        Organization.objects.create(slug="low", name="Low", status=Organization.Status.LIVE)
-        high = Organization.objects.create(slug="high", name="High", status=Organization.Status.LIVE)
+        from orgs.testing import unlock_org
+
+        unlock_org(Organization.objects.create(slug="low", name="Low", status=Organization.Status.LIVE))
+        high = unlock_org(Organization.objects.create(slug="high", name="High", status=Organization.Status.LIVE))
         _verify(high, VerificationType.COMPANY_REGISTRY)
         _verify(high, VerificationType.FOUNDER_ROLE)
 

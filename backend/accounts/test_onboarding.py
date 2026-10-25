@@ -19,6 +19,7 @@ from accounts.models import InvestorProfile, User
 from accounts.testing import unlock
 from connections.models import Connection, ConnectionRequest
 from orgs.models import OrgFollow, OrgMembership, Organization
+from orgs.testing import unlock_org
 
 
 @pytest.fixture
@@ -69,7 +70,8 @@ def _live_org(slug, *, name=None, verified=False, member=None):
     )
     if member is not None:
         OrgMembership.objects.create(org=org, user=member, role=OrgMembership.Role.MEMBER)
-    return org
+    # Suggested organisations must be past their ladder's gate (orgs/ladder.py).
+    return unlock_org(org)
 
 
 # --- the vocabulary: unknown values must not become routing instructions -----

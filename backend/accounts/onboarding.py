@@ -191,10 +191,11 @@ def _org_suggestions(user, *, city_key: str, limit: int):
     org means its members declared this city. That is also the more useful
     claim: it is a company with people the person could actually meet.
     """
+    from orgs.ladder import listed_in_discover
     from orgs.models import OrgFollow, Organization
 
     followed = OrgFollow.objects.filter(user=user).values_list("org_id", flat=True)
-    qs = Organization.objects.filter(status=Organization.Status.LIVE).exclude(id__in=followed)
+    qs = listed_in_discover(Organization.objects.all()).exclude(id__in=followed)
     if city_key:
         qs = qs.filter(members__user__investorprofile__city_key=city_key)
     # .distinct() because the members__ join returns one row per matching

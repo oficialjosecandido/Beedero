@@ -2,8 +2,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { OrgWorkspaceHeader } from "@/components/org-workspace/OrgWorkspaceHeader";
 import { parseOrgTab } from "@/components/org-workspace/tabs";
-import type { LadderRung, SignalItem } from "@/components/org-workspace/OrgOverview";
+import type { SignalItem } from "@/components/org-workspace/OrgOverview";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
+import { confirmationsCount, type OrgLadder } from "@/lib/org-ladder";
 import { OrgWorkspace } from "./OrgWorkspace";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatDateTime } from "@/lib/format";
@@ -70,6 +71,8 @@ type Onboarding = {
   publish_ready: boolean;
   checklist: { key: string; done: boolean; hint: string; weight: number }[];
   fee: { amount_cents: number; status: string; refund_as_credit: boolean } | null;
+  /** The verification ladder; publishing needs its first four rungs. */
+  ladder?: OrgLadder;
 };
 type OrgActivity = {
   id: number;
@@ -291,21 +294,11 @@ export default async function DashboardOrgPage({
   const aboutSection = sections.find((section) => section.kind === "about");
   const productsSection = sections.find((section) => section.kind === "products");
 
-  // The ladder is the real evidence list when the viewer can see it; everyone
-  // else gets the profile checklist, which is the same idea at a lower tier.
-  const ladder: LadderRung[] = vitality
-    ? vitality.items.map((item) => ({
-        key: item.key,
-        label: item.label,
-        hint: item.hint,
-        done: item.done,
-      }))
-    : onboardingData.checklist.map((item) => ({
-        key: item.key,
-        label: item.key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
-        hint: item.hint,
-        done: item.done,
-      }));
+  // One meter for the whole workspace — the nav, the hero and the Overview
+  // card all read the verification ladder (orgs/ladder.py).
+  const ladder = onboardingData.ladder ?? null;
+  const verification = ladder?.percent ?? 0;
+  const confirmations = confirmationsCount(ladder);
 
   const signals: SignalItem[] = activities.slice(0, 5).map((activity) => ({
     id: activity.id,
@@ -339,8 +332,9 @@ export default async function DashboardOrgPage({
           slug,
           isVerified: profile.org.is_verified,
           myRole: myRoleLabel(myMembership?.title, myRole),
-          completeness: onboardingData.completeness,
-          verifiedSignals: vitality?.done_count ?? 0,
+          verification,
+          confirmations,
+          listed: ladder?.listed ?? false,
         }}
         hero={{
           name: profile.org.name,
@@ -358,8 +352,8 @@ export default async function DashboardOrgPage({
           ].filter(Boolean),
           teamCount: members.length,
           capitalRaised: capitalRaised > 0 ? capitalRaised : null,
-          recordScore: onboardingData.completeness,
-          verifiedSignals: vitality?.done_count ?? 0,
+          verification,
+          confirmations,
         }}
         narrative={{
           mission: sectionText(aboutSection, "mission"),

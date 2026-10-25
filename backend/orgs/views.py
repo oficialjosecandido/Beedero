@@ -33,10 +33,10 @@ from social.services import (
 
 from .completeness import (
     completeness,
-    is_publish_ready,
     is_refund_eligible,
     profile_strength_checklist,
 )
+from .ladder import gate_missing, listed_in_discover, org_verification_ladder
 from .constants import FUNDRAISE_KINDS, SectionKind
 from connections import services as connections_services
 
@@ -316,12 +316,15 @@ class OrgOnboardingView(OrgLookupMixin, APIView):
         org = self.get_org()
         fee = getattr(org, "commitment_fee", None)
         checklist = profile_strength_checklist(org)
+        ladder = org_verification_ladder(org)
         return Response(
             {
                 "status": org.status,
                 "completeness": completeness(org),
                 "refund_eligible": is_refund_eligible(org),
-                "publish_ready": is_publish_ready(org),
+                # Publishing needs the ladder's gate (orgs/ladder.py, rungs 1–4).
+                "publish_ready": ladder["unlocked"],
+                "ladder": ladder,
                 "checklist": checklist,
                 "fee": (
                     {"amount_cents": fee.amount_cents, "status": fee.status, "refund_as_credit": True}
@@ -432,9 +435,13 @@ class OrgActivateView(OrgLookupMixin, APIView):
                 {"detail": "Verify your email before publishing.", "action": "verify_email"},
                 status=403,
             )
-        if not is_publish_ready(org):
+        missing = gate_missing(org)
+        if missing:
             return Response(
-                {"detail": "Complete all required profile fields before publishing."},
+                {
+                    "detail": "Finish the first four steps of the verification ladder before publishing.",
+                    "missing": missing,
+                },
                 status=400,
             )
         # Domain-match verification only counts once the owner's email is
@@ -443,6 +450,9 @@ class OrgActivateView(OrgLookupMixin, APIView):
         if not org.is_verified and _owner_email_verifies_org(request.user.email, org.name):
             org.is_verified = True
             update_fields.append("is_verified")
+        if org.discoverable_since is None:
+            org.discoverable_since = timezone.now()
+            update_fields.append("discoverable_since")
         org.status = Organization.Status.LIVE
         org.save(update_fields=update_fields)
         return Response({"slug": org.slug, "status": org.status})
@@ -1339,15 +1349,15 @@ class RecommendationView(APIView):
 
     def get(self, request):
         followed_org_ids = OrgFollow.objects.filter(user=request.user).values_list("org_id", flat=True)
+        # Same gate as Discover for both lists (orgs/ladder.py, accounts/ladder.py).
         orgs = (
-            Organization.objects.filter(status=Organization.Status.LIVE)
+            listed_in_discover(Organization.objects.all())
             .exclude(id__in=followed_org_ids)
             .order_by("-is_verified", "name")[:6]
         )
 
         connected_ids = connections_services.connected_user_ids(request.user)
-        # Suggestions are a discovery surface: same gate as Discover (ladder
-        # rungs 1–4, accounts/ladder.py). Name search and @mentions stay open.
+        # Name search and @mentions stay open; suggestions do not.
         people = (
             discoverable(InvestorProfile.objects.all())
             .exclude(user_id=request.user.id)

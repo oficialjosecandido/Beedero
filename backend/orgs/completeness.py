@@ -33,7 +33,8 @@ WEIGHTS = {
 
 REFUND_REQUIREMENTS = ["logo", "about", "team", "products", "market"]
 
-# Gates the Overview "Publish organization" action. Products and market thesis stay optional.
+# The profile fields the strength meter lists first. Publishing no longer reads
+# this list — it needs the verification ladder's gate (orgs/ladder.py).
 ACTIVATION_REQUIREMENTS = [
     "logo",
     "one_liner",
@@ -136,7 +137,3 @@ def completeness(org) -> int:
 
 def is_refund_eligible(org) -> bool:
     return all(_has(org, key) for key in REFUND_REQUIREMENTS)
-
-
-def is_publish_ready(org) -> bool:
-    return all(_has(org, key) for key in ACTIVATION_REQUIREMENTS)

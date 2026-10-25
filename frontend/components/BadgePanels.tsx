@@ -145,41 +145,6 @@ export function PresenceSignalsPanel({
   );
 }
 
-export function VitalityChecklistPanel({
-  items,
-  doneCount,
-  totalCount,
-}: {
-  items: { key: string; label: string; done: boolean; hint: string }[];
-  doneCount: number;
-  totalCount: number;
-}) {
-  return (
-    <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-extrabold text-zinc-900">Startup vitality</h3>
-        <span className="text-sm font-medium text-zinc-500">
-          {doneCount}/{totalCount}
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-zinc-500">Private checklist — is your presence up to date?</p>
-      <ul className="mt-4 flex flex-col gap-2">
-        {items.map((item) => (
-          <li key={item.key} className="flex items-start gap-2 text-sm">
-            <span>{item.done ? "✅" : "⬜"}</span>
-            <div>
-              <p className={item.done ? "text-zinc-500 line-through" : "font-medium text-zinc-800"}>
-                {item.label}
-              </p>
-              {!item.done && <p className="text-xs text-subtle">{item.hint}</p>}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function verifyPageUrl(slug: string) {
   return `${SITE_URL}/verify/${slug}`;
 }

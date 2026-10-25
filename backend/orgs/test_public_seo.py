@@ -3,6 +3,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
 from orgs.models import Organization
+from orgs.testing import unlock_org
 
 
 @pytest.fixture
@@ -41,8 +42,8 @@ def test_public_sitemap_lists_live_orgs_and_complete_profiles(api):
 @pytest.mark.django_db
 def test_public_discovery_is_unauthenticated_and_paginated(api):
     for i in range(3):
-        Organization.objects.create(
-            slug=f"org{i}", name=f"Org {i}", status=Organization.Status.LIVE
+        unlock_org(
+            Organization.objects.create(slug=f"org{i}", name=f"Org {i}", status=Organization.Status.LIVE)
         )
 
     res = api.get("/api/public/discovery/?limit=2&offset=0")

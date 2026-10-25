@@ -22,7 +22,18 @@ User = get_user_model()
 
 
 def matching_orgs_for(profile: InvestorProfile, since):
-    qs = Organization.objects.filter(status=Organization.Status.LIVE, created_at__gte=since)
+    from django.db.models import Q
+
+    from orgs.ladder import listed_in_discover
+
+    # "New this week" means new in Discover: published past the ladder's gate
+    # (orgs/ladder.py) this week. Orgs published before discoverable_since
+    # existed fall back to their creation date.
+    qs = listed_in_discover(
+        Organization.objects.filter(
+            Q(discoverable_since__gte=since) | Q(discoverable_since__isnull=True, created_at__gte=since)
+        )
+    )
     if profile.stage_focus:
         qs = qs.filter(stage__in=profile.stage_focus)
     if profile.sector_focus:

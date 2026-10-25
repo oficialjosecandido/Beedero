@@ -40,6 +40,10 @@ class Organization(models.Model):
     # HQ / main team location for discovery filters and density KPIs.
     # Not customer markets (→ market thesis) or legal domicile (→ verification).
     geo = models.CharField(max_length=50, blank=True, db_index=True)
+    # First time the organisation was published past the ladder's gate
+    # (orgs/ladder.py, rungs 1–4) — i.e. first listed in Discover. Listing is
+    # computed live; this only records *when*, for time-to-publish.
+    discoverable_since = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.slug

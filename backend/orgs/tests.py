@@ -14,6 +14,7 @@ from orgs.models import (
     Visibility,
     VisibilityGrant,
 )
+from orgs.testing import unlock_org
 from orgs.visibility import VisibilityResolver
 
 
@@ -296,6 +297,7 @@ def test_unfollow_org_is_idempotent_when_not_following(db, org):
 def test_discovery_no_inference_leak(org, outsider, verified_investor):
     from orgs.discovery import discover
 
+    unlock_org(org)  # Discover only lists orgs past their ladder's gate
     section = _open_fundraise_section(org)
     OrgField.objects.create(section=section, key="mrr", value=999999)  # no grant yet
 
