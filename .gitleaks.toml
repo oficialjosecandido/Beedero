@@ -1,0 +1,30 @@
+# Secret scanning. Runs in CI on every push and pull request
+# (.github/workflows/ci.yml), and locally with `gitleaks dir .`.
+#
+# Allowlists here are deliberately narrow. Note that gitleaks ORs `paths`
+# and `regexes` within one block (its `condition = "AND"` is not honoured in
+# 8.x), so a block carrying both would allowlist every file it names — the
+# source-code entries below match on content only.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dependencies, build output and caches — not our source."
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)venv/''',
+  '''(^|/)\.venv/''',
+  '''(^|/)\.next/''',
+  '''(^|/)staticfiles/''',
+  '''(^|/)htmlcov/''',
+  '''package-lock\.json$''',
+]
+
+[[allowlists]]
+description = "Placeholder tokens in recorded debug commands (.claude/settings.json)."
+regexTarget = "line"
+regexes = [
+  '''Bearer __[A-Z_]+__''',
+  '''beedero_access=__[A-Z_]+__''',
+]

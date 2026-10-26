@@ -1,5 +1,3 @@
-import { unzip } from "fflate";
-
 /**
  * Opens the LinkedIn export in the browser and keeps only the three files the
  * importer reads, so the rest never leaves the person's computer.
@@ -40,7 +38,14 @@ async function looksLikeZip(file: File): Promise<boolean> {
   return ZIP_MAGIC.every((byte, i) => head[i] === byte);
 }
 
-function unzipWanted(data: Uint8Array): Promise<Record<string, Uint8Array>> {
+async function unzipWanted(data: Uint8Array): Promise<Record<string, Uint8Array>> {
+  // fflate only matters to someone who actually picked a ZIP, but this module
+  // is reached from the profile page and the onboarding step, so a static
+  // import put the whole inflater in both of their bundles. Loading it here
+  // costs nothing noticeable: the file has just been read off disk and the
+  // person is already waiting on the archive.
+  const { unzip } = await import("fflate");
+
   return new Promise((resolve, reject) => {
     unzip(
       data,

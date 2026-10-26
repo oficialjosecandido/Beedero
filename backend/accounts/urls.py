@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import linkedin_views, onboarding_views, public_views, signin_link, views
+from . import badges, linkedin_views, onboarding_views, public_views, signin_link, views
 
 urlpatterns = [
     path("profile/import/linkedin/preview/", linkedin_views.LinkedInImportPreviewView.as_view()),
@@ -8,6 +8,7 @@ urlpatterns = [
     path("auth/signin-link/", signin_link.SignInLinkView.as_view()),
     path("auth/signin-code/verify/", signin_link.SignInCodeVerifyView.as_view()),
     path("auth/me/", views.MeView.as_view()),
+    path("me/badges/", badges.BadgeCountsView.as_view()),
     path("onboarding/", onboarding_views.OnboardingView.as_view()),
     path("onboarding/intents/", onboarding_views.OnboardingIntentOptionsView.as_view()),
     path("onboarding/suggestions/", onboarding_views.OnboardingSuggestionsView.as_view()),

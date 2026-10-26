@@ -137,13 +137,40 @@ if not os.environ.get("DATABASE_URL"):
 
 DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"])}
 
-# Shared across gunicorn workers — DatabaseCache uses the Postgres we already run.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "django_cache",
+# Shared across gunicorn workers. DatabaseCache needs no extra service, but
+# every cache read is a round trip to the primary database and its `incr()` is
+# a read-then-write rather than one atomic operation (see beedero/ratelimit.py)
+# — so setting REDIS_URL switches the backend over with no code change.
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache",
+        }
+    }
+
+# Link previews are fetched off the request thread (social/unfurl.py). Set to
+# False to fetch inline — what the tests do, since a worker thread's writes
+# would land outside the test's transaction.
+UNFURL_IN_BACKGROUND = os.environ.get("UNFURL_IN_BACKGROUND", "1") != "0"
+
+# How many reverse proxies sit in front of Django. The client's address is
+# that many entries from the right of X-Forwarded-For — everything further
+# left was put there by the caller and can claim anything at all, which is why
+# reading the leftmost entry lets anyone pick their own identity for
+# per-IP rate limits and visitor counts. Azure App Service puts exactly one
+# front end in front of the container, hence the default. 0 means no proxy:
+# ignore the header and believe REMOTE_ADDR only.
+TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "1"))
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -207,6 +234,12 @@ if not (AZURE_COMMUNICATION_CONNECTION_STRING and DEFAULT_FROM_EMAIL):
 EMAIL_BACKEND = "beedero.email_backend.AzureCommunicationEmailBackend"
 
 NEW_USER_NOTIFY_EMAIL = os.environ.get("NEW_USER_NOTIFY_EMAIL", "josevcandido@gmail.com")
+
+# Signing secret for the Stripe webhook endpoint (`whsec_...`, from the Stripe
+# dashboard). Tolerated unset at boot so local/CI runs need no Stripe account,
+# but billing.views fails closed on it: with no secret, every delivery is
+# rejected rather than trusted. Must be set before a paid plan goes live.
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 # One service account, two consumers (beedero/firebase.py): web push (FCM)
 # and ID-token verification for authentication. Unset is tolerated at boot so

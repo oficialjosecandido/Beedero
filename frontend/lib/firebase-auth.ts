@@ -157,10 +157,29 @@ export function looksLikeEmail(value: string): boolean {
  * attacker-controllable: "//evil.com" and "https://evil.com" are both valid
  * `Location` values that leave the site, and an open redirect on a login route
  * is exactly the thing phishing wants.
+ *
+ * Rejecting anything that doesn't start with a single "/" is not enough:
+ * browsers normalise a backslash to a forward slash in the authority
+ * position, so "/\evil.com" and "/\/evil.com" navigate to evil.com exactly
+ * like "//evil.com" would. Control characters are stripped by the URL parser
+ * before that normalisation, which turns "/\tevil.com" or "/\n/evil.com" into
+ * the same escape. Instead of enumerating the tricks, the final check hands
+ * the value to the platform's own URL parser against a dummy base and keeps
+ * it only if the parser agrees it stayed on that origin.
  */
 export function safeNextPath(value: string | undefined | null, fallback = "/feed"): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
-  return value;
+  if (value.includes("\\")) return fallback;
+  if (/[\u0000-\u001f\u007f]/.test(value)) return fallback;
+
+  const base = "https://beedero.invalid";
+  try {
+    const resolved = new URL(value, base);
+    if (resolved.origin !== base) return fallback;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 /** User-facing copy for a FirebaseAuthError code (and for the `?error=` values

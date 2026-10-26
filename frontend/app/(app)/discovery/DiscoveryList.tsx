@@ -26,6 +26,7 @@ function OrgCard({ org }: { org: OrgSummary }) {
       {org.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          loading="lazy"
           src={org.logo}
           alt=""
           className="size-12 shrink-0 object-cover [clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0_50%)]"

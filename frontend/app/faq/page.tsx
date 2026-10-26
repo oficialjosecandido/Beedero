@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { FAQ_ITEMS, SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
+import { jsonLdHtml } from "@/lib/json-ld";
 import { COMPANY } from "@/lib/legal-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
@@ -29,7 +30,7 @@ export default function FaqPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <main className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
         <div className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8 sm:py-14">

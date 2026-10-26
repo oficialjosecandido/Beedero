@@ -474,3 +474,97 @@ def test_link_preview_rejects_non_http_scheme(api, outsider):
     assert res.status_code == 200
     assert res.data == {"status": "unavailable"}
     assert not LinkPreview.objects.exists()
+
+
+class _RecordingExecutor:
+    """Stands in for the unfurl thread pool: records, never runs."""
+
+    def __init__(self):
+        self.submitted = []
+
+    def submit(self, fn, *args):
+        self.submitted.append(args)
+
+
+@pytest.fixture
+def background_unfurl(settings, monkeypatch):
+    """The real dispatch path, with the pool and its slots swapped out."""
+    import threading
+
+    settings.UNFURL_IN_BACKGROUND = True
+    executor = _RecordingExecutor()
+    monkeypatch.setattr(unfurl_module, "_get_executor", lambda: executor)
+    monkeypatch.setattr(unfurl_module, "_slots", threading.BoundedSemaphore(4))
+
+    def fake_get(url, params=None, timeout=None):
+        raise AssertionError("the request thread must never call Microlink")
+
+    monkeypatch.setattr(unfurl_module.requests, "get", fake_get)
+    return executor
+
+
+@pytest.mark.django_db
+def test_link_preview_does_not_wait_for_the_unfurl_service(api, outsider, background_unfurl):
+    """PERF-06: Microlink gets up to ten seconds to answer, and that used to
+    be ten seconds of a gunicorn worker."""
+    api.force_authenticate(outsider)
+
+    res = api.get("/api/links/preview/?url=https://slow.example.com/story")
+
+    assert res.status_code == 200
+    assert res.data == {"status": "pending"}
+    preview = LinkPreview.objects.get()
+    assert preview.status == LinkPreview.Status.PENDING
+    assert background_unfurl.submitted == [(preview.pk, "https://slow.example.com/story")]
+
+
+@pytest.mark.django_db
+def test_polling_a_pending_preview_queues_one_fetch(api, outsider, background_unfurl):
+    api.force_authenticate(outsider)
+    url = "/api/links/preview/?url=https://slow.example.com/story"
+
+    assert api.get(url).data == {"status": "pending"}
+    assert api.get(url).data == {"status": "pending"}
+
+    assert len(background_unfurl.submitted) == 1
+    assert LinkPreview.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_abandoned_pending_preview_is_retried(api, outsider, background_unfurl):
+    """A worker restarted mid-fetch must not strand the URL as PENDING."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    api.force_authenticate(outsider)
+    url = "/api/links/preview/?url=https://slow.example.com/story"
+    api.get(url)
+
+    preview = LinkPreview.objects.get()
+    preview.fetched_at = timezone.now() - (unfurl_module.PENDING_RETRY_AFTER + timedelta(seconds=1))
+    preview.save(update_fields=["fetched_at"])
+
+    assert api.get(url).data == {"status": "pending"}
+    assert len(background_unfurl.submitted) == 2
+
+
+@pytest.mark.django_db
+def test_full_queue_leaves_the_preview_pending_rather_than_piling_up(
+    api, outsider, settings, monkeypatch
+):
+    import threading
+
+    settings.UNFURL_IN_BACKGROUND = True
+    executor = _RecordingExecutor()
+    monkeypatch.setattr(unfurl_module, "_get_executor", lambda: executor)
+    slots = threading.BoundedSemaphore(1)
+    monkeypatch.setattr(unfurl_module, "_slots", slots)
+    assert slots.acquire(blocking=False)  # the only slot is already taken
+
+    api.force_authenticate(outsider)
+    res = api.get("/api/links/preview/?url=https://slow.example.com/story")
+
+    assert res.data == {"status": "pending"}
+    assert executor.submitted == []
+    assert LinkPreview.objects.get().status == LinkPreview.Status.PENDING

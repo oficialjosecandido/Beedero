@@ -74,6 +74,28 @@ class CommitmentFee(models.Model):
         return f"{self.org.slug} fee ({self.status})"
 
 
+class ProcessedWebhookEvent(models.Model):
+    """One row per Stripe event already applied — the idempotency key.
+
+    Stripe re-delivers an event until it gets a 2xx, and a delivery it already
+    got a 2xx for can still arrive again (at-least-once, by design). Without
+    this, a retry re-runs the handler; with it, the second delivery is
+    acknowledged and dropped. The uniqueness is enforced by the database, not
+    by a read-then-write in Python, so two concurrent deliveries of the same
+    event can't both pass the check.
+
+    Separate from the signature's timestamp tolerance, which rejects a
+    *replayed request*; this rejects a *re-delivered event*.
+    """
+
+    event_id = models.CharField(max_length=100, unique=True)
+    event_type = models.CharField(max_length=100)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.event_id} ({self.event_type})"
+
+
 class OrgCredit(models.Model):
     org = models.ForeignKey(Organization, related_name="credits", on_delete=models.CASCADE)
     amount_cents = models.IntegerField()

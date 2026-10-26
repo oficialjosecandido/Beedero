@@ -24,8 +24,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import Activity, Organization
-from .posting.freshness import discovery_score
-from .visibility import VisibilityResolver
+from .posting.freshness import discovery_score, prime_last_activity
+from .visibility import visible_fields_for_orgs
 
 RESTRICTED_METRIC_KEYS = {"mrr", "arr", "valuation"}
 
@@ -80,15 +80,20 @@ def discover(viewer, params: dict):
         except ValueError:
             return qs.order_by("name")
 
+        candidate_ids = list(
+            qs.order_by("name").values_list("id", flat=True)[:MAX_METRIC_CANDIDATES]
+        )
+        # One pass over the candidates' visible fields instead of a
+        # VisibilityResolver (five or six queries) per candidate.
         matching_ids = []
-        for org in qs.order_by("name")[:MAX_METRIC_CANDIDATES]:
-            resolver = VisibilityResolver(viewer=viewer, org=org)
-            field = resolver.visible_fields().filter(key=metric_key).first()
-            if field is None:
-                continue
+        for org_id, value in (
+            visible_fields_for_orgs(viewer, candidate_ids)
+            .filter(key=metric_key)
+            .values_list("section__org_id", "value")
+        ):
             try:
-                if float(field.value) >= threshold:
-                    matching_ids.append(org.id)
+                if float(value) >= threshold:
+                    matching_ids.append(org_id)
             except (TypeError, ValueError):
                 continue
         qs = qs.filter(id__in=matching_ids)
@@ -101,21 +106,37 @@ def discover(viewer, params: dict):
             return qs.order_by("name")
         # credibility_level() is derived, not a column — same
         # MAX_METRIC_CANDIDATES bound as the restricted-metric filter above,
-        # for the same reason (unbounded per-org computation).
-        from credibility.levels import credibility_level
+        # for the same reason (unbounded per-org computation), but resolved
+        # for the whole candidate set in one query.
+        from credibility.levels import credibility_levels
 
-        candidates = list(qs.order_by("name")[:MAX_METRIC_CANDIDATES])
-        matching_ids = [org.id for org in candidates if credibility_level(org) >= threshold]
+        candidate_ids = list(
+            qs.order_by("name").values_list("id", flat=True)[:MAX_METRIC_CANDIDATES]
+        )
+        levels = credibility_levels(candidate_ids)
+        matching_ids = [org_id for org_id in candidate_ids if levels.get(org_id, 0) >= threshold]
         qs = qs.filter(id__in=matching_ids)
 
     if params.get("sort") == "credibility":
-        from credibility.levels import credibility_level
-
-        candidates = list(qs.order_by("name")[:MAX_METRIC_CANDIDATES])
-        candidates.sort(key=lambda org: (-discovery_score(org), org.name))
+        candidates = rank_by_score(qs.order_by("name")[:MAX_METRIC_CANDIDATES])
         return candidates
 
     return qs.order_by("name")
+
+
+def rank_by_score(orgs, *, limit=None):
+    """Sort orgs by `discovery_score` — two queries for the whole list.
+
+    `discovery_score` reads the credibility level and the last activity, both
+    derived rather than columns, so ranking used to cost two queries per
+    candidate. Priming resolves each in a single grouped query first; the sort
+    itself then touches no database at all.
+    """
+    from credibility.levels import prime_credibility_levels
+
+    candidates = prime_last_activity(prime_credibility_levels(orgs))
+    candidates.sort(key=lambda org: (-discovery_score(org), org.name))
+    return candidates[:limit] if limit is not None else candidates
 
 
 def discover_active_this_week(viewer, limit=12):
@@ -131,8 +152,9 @@ def discover_active_this_week(viewer, limit=12):
     from .ladder import listed_in_discover
 
     orgs = listed_in_discover(Organization.objects.filter(id__in=active_org_ids))
-    candidates = [org for org in orgs if credibility_level(org) >= 1]
-    candidates.sort(key=lambda org: (-discovery_score(org), org.name))
+    # Primed first, so the level filter and the ranking below read the same
+    # cached values instead of querying per org.
+    candidates = [org for org in rank_by_score(orgs) if credibility_level(org) >= 1]
     return candidates[:limit]
 
 

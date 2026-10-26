@@ -1,3 +1,4 @@
+import { jsonLdHtml } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site-metadata";
 
 type VerifyJsonLdInput = {
@@ -38,7 +39,7 @@ export function VerifyProfileJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
     />
   );
 }

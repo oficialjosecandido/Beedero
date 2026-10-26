@@ -24,8 +24,15 @@ function ApplicantAvatar({
   profilePicture?: string | null;
 }) {
   if (profilePicture) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={profilePicture} alt="" className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border" />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        loading="lazy"
+        src={profilePicture}
+        alt=""
+        className="size-9 shrink-0 rounded-full object-cover ring-1 ring-beedero-border"
+      />
+    );
   }
   return (
     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500 ring-1 ring-beedero-border">

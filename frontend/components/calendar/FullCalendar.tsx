@@ -1,0 +1,499 @@
+"use client";
+
+import { useMemo, useState, type ReactNode } from "react";
+
+import {
+  LOCALE,
+  MONTH_FORMATTER,
+  addDays,
+  addMonths,
+  dateKey,
+  isSameDay,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  useEventsByDay,
+  type CalendarEvent,
+  type EventRoleFilter,
+  type RoleCounts,
+} from "@/components/calendar/shared";
+import { formatDateTime } from "@/lib/format";
+
+/** The full-page calendar: month, week and day views, with the role filter
+ * bar. Only the organisation workspace's Calendar tab renders it, so it is
+ * loaded on demand — see components/EventsCalendar.tsx. */
+
+type ViewMode = "month" | "week" | "day";
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_HEADER_FORMATTER = new Intl.DateTimeFormat(LOCALE, {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+const WEEK_RANGE_FORMATTER = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short" });
+
+function eventOverlapsDay(event: CalendarEvent, day: Date): boolean {
+  const start = new Date(event.occurred_at);
+  const end = event.ends_at ? new Date(event.ends_at) : start;
+  const dayStart = startOfDay(day);
+  const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999);
+  return start <= dayEnd && end >= dayStart;
+}
+
+function formatTime(value: string): string {
+  return new Date(value).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+}
+
+function eventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
+  return events
+    .filter((event) => eventOverlapsDay(event, day))
+    .sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
+}
+
+function eventRoleStyles(role: CalendarEvent["role"], compact = false) {
+  if (role === "attending") {
+    return compact
+      ? "border-2 border-success-strong bg-success-surface text-emerald-950"
+      : "border-2 border-success-strong bg-success-surface text-emerald-950";
+  }
+  return compact
+    ? "border border-beedero-black/10 bg-beedero-black text-beedero-yellow"
+    : "border-2 border-beedero-black bg-beedero-black text-beedero-yellow";
+}
+
+function EventChip({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
+  return (
+    <div
+      className={`rounded-lg px-2 py-1 shadow-sm ${eventRoleStyles(event.role, compact)} ${
+        compact ? "text-[10px] leading-tight" : "text-xs"
+      }`}
+    >
+      <p className="truncate font-bold">{event.title}</p>
+      {!compact && event.role === "attending" && event.host && (
+        <p className="mt-0.5 truncate text-[10px] font-medium opacity-80">by {event.host.name}</p>
+      )}
+      {!compact && (
+        <p
+          className={`mt-0.5 text-[10px] font-medium ${
+            event.role === "attending" ? "text-emerald-800/80" : "text-beedero-yellow/80"
+          }`}
+        >
+          {formatTime(event.occurred_at)}
+          {event.ends_at ? ` – ${formatTime(event.ends_at)}` : ""}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function EventCard({ event }: { event: CalendarEvent }) {
+  const isAttending = event.role === "attending";
+  return (
+    <article
+      className={`rounded-2xl border-2 p-5 shadow-sm ${
+        isAttending
+          ? "border-success-strong border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50 to-beedero-white"
+          : "border-beedero-border border-l-4 border-l-beedero-black bg-gradient-to-br from-beedero-yellow/25 to-beedero-white"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            isAttending ? "bg-emerald-700 text-white" : "bg-beedero-black text-beedero-yellow"
+          }`}
+        >
+          {isAttending ? "Participating" : "Organized by you"}
+        </span>
+        {isAttending && event.host && (
+          <span className="text-xs font-medium text-emerald-900/70">by {event.host.name}</span>
+        )}
+      </div>
+      <p className="mt-2 font-extrabold text-beedero-black">{event.title}</p>
+      <p className="mt-1 text-sm font-medium text-beedero-black/70">
+        {formatDateTime(event.occurred_at)}
+        {event.ends_at ? ` – ${formatDateTime(event.ends_at)}` : ""}
+      </p>
+      {event.body && <p className="mt-3 text-sm leading-6 text-zinc-700">{event.body}</p>}
+    </article>
+  );
+}
+
+function EventRoleFilterBar({
+  value,
+  onChange,
+  counts,
+}: {
+  value: EventRoleFilter;
+  onChange: (value: EventRoleFilter) => void;
+  counts: RoleCounts;
+}) {
+  const total = counts.created + counts.attending;
+  const options: {
+    id: EventRoleFilter;
+    label: string;
+    count: number;
+    activeClass: string;
+    idleClass: string;
+    dotClass: string;
+  }[] = [
+    {
+      id: "all",
+      label: "All",
+      count: total,
+      activeClass: "bg-beedero-black text-beedero-yellow shadow-sm",
+      idleClass: "text-beedero-black/70 hover:bg-beedero-white",
+      dotClass: "bg-gradient-to-r from-beedero-black to-emerald-600",
+    },
+    {
+      id: "created",
+      label: "Organized by you",
+      count: counts.created,
+      activeClass: "bg-beedero-black text-beedero-yellow shadow-sm",
+      idleClass: "text-beedero-black/70 hover:bg-beedero-white",
+      dotClass: "bg-beedero-black",
+    },
+    {
+      id: "attending",
+      label: "Participating",
+      count: counts.attending,
+      activeClass: "bg-emerald-700 text-white shadow-sm",
+      idleClass: "text-emerald-900/80 hover:bg-success-surface",
+      dotClass: "border-2 border-success-strong bg-success-surface",
+    },
+  ];
+
+  return (
+    <div
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      role="group"
+      aria-label="Filter events by role"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-beedero-black/45">Show</p>
+      <div className="flex flex-col gap-1 rounded-2xl border-2 border-beedero-border bg-beedero-yellow/10 p-1 sm:inline-flex sm:flex-row">
+        {options.map((option) => {
+          const active = value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option.id)}
+              className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors sm:justify-center sm:px-4 ${
+                active ? option.activeClass : option.idleClass
+              }`}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={`size-2.5 shrink-0 rounded-full ${option.dotClass}`} />
+                <span className="truncate">{option.label}</span>
+              </span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold tabular-nums ${
+                  active
+                    ? option.id === "attending"
+                      ? "bg-white/20 text-white"
+                      : "bg-beedero-yellow/25 text-inherit"
+                    : "bg-beedero-black/5 text-beedero-black/55"
+                }`}
+              >
+                {option.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function emptyCalendarMessage(roleFilter: EventRoleFilter | undefined): string {
+  if (roleFilter === "created") {
+    return "No events organized by you yet. Use “Create event” to publish one on this calendar.";
+  }
+  if (roleFilter === "attending") {
+    return "No participating events yet. Accept events from your feed and they will appear here in green.";
+  }
+  return "No events yet. Create one above, or accept events from your feed to see them here.";
+}
+
+function ViewModeToggle({
+  viewMode,
+  onChange,
+}: {
+  viewMode: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}) {
+  const modes: { id: ViewMode; label: string }[] = [
+    { id: "month", label: "Month" },
+    { id: "week", label: "Week" },
+    { id: "day", label: "Day" },
+  ];
+
+  return (
+    <div className="flex rounded-xl border-2 border-beedero-border bg-beedero-white p-1 shadow-sm">
+      {modes.map((mode) => (
+        <button
+          key={mode.id}
+          type="button"
+          onClick={() => onChange(mode.id)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors sm:px-4 sm:text-sm ${
+            viewMode === mode.id
+              ? "bg-beedero-black text-beedero-yellow shadow-sm"
+              : "text-beedero-black/70 hover:bg-beedero-yellow hover:text-beedero-black"
+          }`}
+        >
+          {mode.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NavButton({
+  onClick,
+  children,
+  label,
+  primary = false,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+  label?: string;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`rounded-xl px-3 py-1.5 text-sm font-bold transition-colors ${
+        primary
+          ? "bg-beedero-yellow text-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
+          : "border-2 border-beedero-border text-beedero-black hover:border-beedero-black hover:bg-beedero-black hover:text-beedero-yellow"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function FullCalendar({
+  events,
+  today,
+  roleFilter,
+  onRoleFilterChange,
+  roleCounts,
+}: {
+  events: CalendarEvent[];
+  today: Date;
+  roleFilter?: EventRoleFilter;
+  onRoleFilterChange?: (value: EventRoleFilter) => void;
+  roleCounts?: RoleCounts;
+}) {
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [cursor, setCursor] = useState(() => startOfDay(today));
+  const eventsByDay = useEventsByDay(events);
+
+  function goBack() {
+    if (viewMode === "month") setCursor((cur) => addMonths(cur, -1));
+    else if (viewMode === "week") setCursor((cur) => addDays(cur, -7));
+    else setCursor((cur) => addDays(cur, -1));
+  }
+
+  function goForward() {
+    if (viewMode === "month") setCursor((cur) => addMonths(cur, 1));
+    else if (viewMode === "week") setCursor((cur) => addDays(cur, 7));
+    else setCursor((cur) => addDays(cur, 1));
+  }
+
+  function goToday() {
+    setCursor(startOfDay(today));
+  }
+
+  const headerLabel = useMemo(() => {
+    if (viewMode === "month") return MONTH_FORMATTER.format(cursor);
+    if (viewMode === "day") return DAY_HEADER_FORMATTER.format(cursor);
+    const weekStart = startOfWeek(cursor);
+    const weekEnd = addDays(weekStart, 6);
+    return `${WEEK_RANGE_FORMATTER.format(weekStart)} – ${WEEK_RANGE_FORMATTER.format(weekEnd)}, ${weekStart.getFullYear()}`;
+  }, [cursor, viewMode]);
+
+  const monthWeeks = useMemo(() => {
+    const first = startOfMonth(cursor);
+    const gridStart = startOfWeek(first);
+    const weeks: Date[][] = [];
+    let day = gridStart;
+    for (let week = 0; week < 6; week++) {
+      const row: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+        row.push(new Date(day));
+        day = addDays(day, 1);
+      }
+      weeks.push(row);
+    }
+    return weeks;
+  }, [cursor]);
+
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(cursor);
+    return Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  }, [cursor]);
+
+  const dayEvents = useMemo(() => eventsForDay(events, cursor), [events, cursor]);
+
+  return (
+    <div className="flex min-h-[calc(100vh-14rem)] flex-col overflow-hidden rounded-3xl border-2 border-beedero-border bg-beedero-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b-2 border-beedero-border bg-gradient-to-r from-beedero-yellow/35 via-beedero-yellow/15 to-beedero-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <NavButton onClick={goBack} label="Previous">
+            ‹
+          </NavButton>
+          <NavButton onClick={goToday} primary>
+            Today
+          </NavButton>
+          <NavButton onClick={goForward} label="Next">
+            ›
+          </NavButton>
+          <h2 className="text-base font-extrabold text-beedero-black sm:text-lg">{headerLabel}</h2>
+        </div>
+        <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+      </div>
+      <div className="border-b border-beedero-border bg-beedero-white px-4 py-3 sm:px-5">
+        {roleCounts && onRoleFilterChange && roleFilter ? (
+          <EventRoleFilterBar
+            value={roleFilter}
+            onChange={onRoleFilterChange}
+            counts={roleCounts}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-beedero-black/70">
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded bg-beedero-black" />
+              Organized by you
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded border-2 border-success-strong bg-success-surface" />
+              You&apos;re participating
+            </span>
+          </div>
+        )}
+      </div>
+
+      {viewMode === "month" && (
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="grid grid-cols-7 border-b-2 border-beedero-border bg-beedero-black">
+            {WEEKDAY_LABELS.map((label) => (
+              <div
+                key={label}
+                className="border-r border-beedero-yellow/20 px-2 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-beedero-yellow last:border-r-0"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="grid flex-1 auto-rows-fr grid-cols-7 bg-beedero-yellow/5">
+            {monthWeeks.flat().map((day) => {
+              const key = dateKey(day);
+              const dayEventsList = eventsByDay.get(key) ?? [];
+              const inCurrentMonth = day.getMonth() === cursor.getMonth();
+              const isToday = isSameDay(day, today);
+              return (
+                <div
+                  key={key}
+                  className={`min-h-[7rem] border-b border-r border-beedero-border p-1.5 transition-colors sm:min-h-[8.5rem] sm:p-2 ${
+                    inCurrentMonth ? "bg-beedero-white" : "bg-beedero-yellow/10"
+                  } ${isToday ? "bg-beedero-yellow/20" : ""}`}
+                >
+                  <p
+                    className={`mb-1 flex size-7 items-center justify-center rounded-full text-xs font-extrabold sm:text-sm ${
+                      isToday
+                        ? "bg-beedero-black text-beedero-yellow shadow-sm"
+                        : inCurrentMonth
+                          ? "text-beedero-black"
+                          : "text-beedero-black/35"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    {dayEventsList.slice(0, 3).map((event) => (
+                      <EventChip key={`${key}-${event.id}`} event={event} compact />
+                    ))}
+                    {dayEventsList.length > 3 && (
+                      <p className="px-1 text-[10px] font-extrabold text-beedero-black">
+                        +{dayEventsList.length - 3} more
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "week" && (
+        <div className="grid flex-1 grid-cols-1 divide-y-2 divide-beedero-border sm:grid-cols-7 sm:divide-x-2 sm:divide-y-0">
+          {weekDays.map((day) => {
+            const dayEventsList = eventsForDay(events, day);
+            const isToday = isSameDay(day, today);
+            return (
+              <div
+                key={dateKey(day)}
+                className={`flex min-h-[12rem] flex-col sm:min-h-[calc(100vh-18rem)] ${
+                  isToday ? "bg-beedero-yellow/10" : "bg-beedero-white"
+                }`}
+              >
+                <div
+                  className={`border-b-2 border-beedero-border px-3 py-3 text-center ${
+                    isToday ? "bg-beedero-black text-beedero-yellow" : "bg-beedero-yellow/25"
+                  }`}
+                >
+                  <p
+                    className={`text-xs font-extrabold uppercase tracking-wide ${
+                      isToday ? "text-beedero-yellow/80" : "text-beedero-black/60"
+                    }`}
+                  >
+                    {WEEKDAY_LABELS[(day.getDay() + 6) % 7]}
+                  </p>
+                  <p className="mt-1 text-lg font-extrabold">{day.getDate()}</p>
+                </div>
+                <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
+                  {dayEventsList.length === 0 && (
+                    <p className="px-1 py-4 text-center text-xs font-medium text-beedero-black/40">
+                      No events
+                    </p>
+                  )}
+                  {dayEventsList.map((event) => (
+                    <EventChip key={event.id} event={event} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {viewMode === "day" && (
+        <div className="flex flex-1 flex-col gap-4 bg-gradient-to-b from-beedero-yellow/10 to-beedero-white p-4 sm:p-6">
+          {dayEvents.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-beedero-border bg-beedero-yellow/15 p-8 text-center">
+              <p className="text-sm font-extrabold text-beedero-black">No events on this day</p>
+              <p className="mt-1 text-sm text-beedero-black/60">
+                Create an event above or accept an invitation from your feed.
+              </p>
+            </div>
+          ) : (
+            dayEvents.map((event) => <EventCard key={event.id} event={event} />)
+          )}
+        </div>
+      )}
+
+      {events.length === 0 && viewMode === "month" && (
+        <div className="border-t-2 border-beedero-border bg-beedero-yellow/15 px-5 py-4 text-sm font-medium text-beedero-black/70">
+          {emptyCalendarMessage(roleFilter)}
+        </div>
+      )}
+    </div>
+  );
+}

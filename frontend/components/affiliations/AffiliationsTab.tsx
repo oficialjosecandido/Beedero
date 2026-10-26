@@ -36,8 +36,15 @@ function normalizeUsername(value: string) {
 
 function PersonAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
   if (avatar) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={avatar} alt="" className="size-10 shrink-0 rounded-full object-cover ring-1 ring-beedero-border" />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        loading="lazy"
+        src={avatar}
+        alt=""
+        className="size-10 shrink-0 rounded-full object-cover ring-1 ring-beedero-border"
+      />
+    );
   }
   return (
     <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500 ring-1 ring-beedero-border">

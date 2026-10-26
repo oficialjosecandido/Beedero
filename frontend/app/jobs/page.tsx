@@ -7,6 +7,7 @@ import { WelcomeNudge } from "@/components/onboarding/WelcomeNudge";
 import { PublicJobFilters } from "@/components/jobs/PublicJobFilters";
 import { publicFetch } from "@/lib/api";
 import { engagementTypeLabel, locationTypeLabel } from "@/lib/job-options";
+import { jsonLdHtml } from "@/lib/json-ld";
 import { pageMetadata, SITE_URL } from "@/lib/site-metadata";
 import type { PublicJobsPage } from "@/lib/types";
 
@@ -100,7 +101,7 @@ function JobsListJsonLd({ page }: { page: PublicJobsPage }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
     />
   );
 }

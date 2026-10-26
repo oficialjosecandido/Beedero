@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -20,9 +21,7 @@ import { confirmMembershipDetailsAction } from "@/app/(app)/dashboard/membership
 import { confirmMembershipSkillAction } from "@/app/(app)/dashboard/membership-skills-actions";
 import { BadgeEmbedPanel, PresenceSignalsPanel } from "@/components/BadgePanels";
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
-import { EventsCalendar, type CalendarEvent, type EventRoleFilter } from "@/components/EventsCalendar";
-import { JobsTab } from "@/components/jobs/JobsTab";
-import { AffiliationsTab } from "@/components/affiliations/AffiliationsTab";
+import type { CalendarEvent, EventRoleFilter } from "@/components/EventsCalendar";
 import { CompanyRegistryCard } from "@/components/org-workspace/CompanyRegistryCard";
 import type { OrgTabId } from "@/components/org-workspace/tabs";
 import { OrgLogoForm } from "./OrgLogoForm";
@@ -141,6 +140,19 @@ type BadgeEmbedInfo = {
   badge_url: string;
   json_url: string;
 };
+
+// The workspace opens on Overview and switches tabs in client state, so every
+// panel used to be in the same chunk. These three are the heavy ones — the
+// calendar, the affiliations table and the jobs board, ~56 KB of source
+// between them — and each loads only once its own tab is opened. They still
+// render on the server for a `?tab=` deep link.
+const EventsCalendar = dynamic(() =>
+  import("@/components/EventsCalendar").then((mod) => mod.EventsCalendar)
+);
+const AffiliationsTab = dynamic(() =>
+  import("@/components/affiliations/AffiliationsTab").then((mod) => mod.AffiliationsTab)
+);
+const JobsTab = dynamic(() => import("@/components/jobs/JobsTab").then((mod) => mod.JobsTab));
 
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];

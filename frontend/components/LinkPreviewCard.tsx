@@ -4,17 +4,19 @@ import { useEffect, useState } from "react";
 
 import { extractFirstUrl } from "@/lib/richtext";
 
-type PreviewState =
-  | { status: "loading" }
-  | { status: "unavailable" }
-  | {
-      status: "ready";
-      url: string;
-      title: string;
-      description: string;
-      image_url: string;
-      site_name: string;
-    };
+type PreviewReady = {
+  status: "ready";
+  url: string;
+  title: string;
+  description: string;
+  image_url: string;
+  site_name: string;
+};
+
+type PreviewState = { status: "loading" } | { status: "unavailable" } | PreviewReady;
+
+/** `pending` means the unfurl is in flight server-side — poll, don't give up. */
+type PreviewResult = PreviewReady | { status: "pending" } | { status: "unavailable" };
 
 type PreviewPayload = {
   status?: string;
@@ -25,10 +27,11 @@ type PreviewPayload = {
   site_name?: string;
 };
 
-async function fetchPreview(url: string): Promise<PreviewState> {
+async function fetchPreview(url: string): Promise<PreviewResult> {
   const res = await fetch(`/api/links/preview?url=${encodeURIComponent(url)}`);
   if (!res.ok) return { status: "unavailable" };
   const data = (await res.json()) as PreviewPayload;
+  if (data.status === "pending") return { status: "pending" };
   if (data.status !== "ready" || !data.url) return { status: "unavailable" };
   return {
     status: "ready",
@@ -39,6 +42,12 @@ async function fetchPreview(url: string): Promise<PreviewState> {
     site_name: data.site_name ?? "",
   };
 }
+
+/** Gaps between polls while the preview is pending. The unfurl happens off
+ * the request thread (backend/social/unfurl.py) and the service gets up to
+ * ten seconds to answer, so these start tight — a warm link is ready almost
+ * at once — and spread out to cover that budget in six calls. */
+const POLL_DELAYS_MS = [400, 800, 1500, 2500, 4000];
 
 /** Lazily unfurls the first http(s) link in a post/comment body into a rich
  * preview card (spec §A2). Fetched via a same-origin proxy backed by a
@@ -66,13 +75,23 @@ function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dar
 
     void (async () => {
       try {
-        let next = await fetchPreview(url);
-        // One quiet retry — first hit often races Microlink on cold URLs.
-        if (!cancelled && next.status === "unavailable") {
-          await new Promise((resolve) => setTimeout(resolve, 600));
-          next = await fetchPreview(url);
+        for (let attempt = 0; ; attempt += 1) {
+          const next = await fetchPreview(url);
+          if (cancelled) return;
+          if (next.status !== "pending") {
+            setState(next);
+            return;
+          }
+          if (attempt >= POLL_DELAYS_MS.length) {
+            // Out of patience: drop the skeleton rather than leave it
+            // pulsing in the feed. The fetch carries on server-side, so the
+            // next mount of this card finds the row ready.
+            setState({ status: "unavailable" });
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, POLL_DELAYS_MS[attempt]));
+          if (cancelled) return;
         }
-        if (!cancelled) setState(next);
       } catch {
         if (!cancelled) setState({ status: "unavailable" });
       }
@@ -154,7 +173,9 @@ function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dar
   );
 }
 
-/** Warm the preview cache as soon as a URL is typed into the composer. */
+/** Warm the preview cache as soon as a URL is typed into the composer: this
+ * queues the unfurl server-side, so by the time the post renders its card the
+ * row is usually already ready. */
 export function prefetchLinkPreview(body: string) {
   const url = extractFirstUrl(body);
   if (!url || typeof window === "undefined") return;

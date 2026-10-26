@@ -15,6 +15,12 @@ fi
 python manage.py createcachetable
 python manage.py migrate --noinput
 
+# Trigram indexes for discovery's `q=` search. Not a migration because
+# `CREATE EXTENSION pg_trgm` needs privileges this role may not have; the
+# command reports and carries on when it cannot, and picks the indexes up on
+# a later boot once the extension exists. See the command's docstring.
+python manage.py ensure_trigram_indexes
+
 # Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
 # Runs on the migrate role when set — the runtime role may be read/write-
 # limited enough that INSERT into accounts_* fails silently after a partial

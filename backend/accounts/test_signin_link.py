@@ -194,6 +194,7 @@ def test_endpoint_needs_no_session(api, firebase_mints):
     [
         ("/feed", "/feed"),
         ("/orgs/acme", "/orgs/acme"),
+        ("/orgs/acme?tab=team#top", "/orgs/acme?tab=team#top"),
         ("//evil.com", "/feed"),
         ("https://evil.com", "/feed"),
         ("", "/feed"),
@@ -202,6 +203,41 @@ def test_endpoint_needs_no_session(api, firebase_mints):
 )
 def test_safe_next_path(value, expected):
     assert safe_next_path(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # A browser normalises the backslash to a slash in the authority
+        # position, so each of these navigates to evil.com.
+        "/\\evil.com",
+        "/\\/evil.com",
+        "/\\\\evil.com",
+        "\\\\evil.com",
+        "/feed\\..\\..\\evil.com",
+        # Control characters are stripped before that normalisation happens.
+        "/\tevil.com",
+        "/\t/evil.com",
+        "/\n/evil.com",
+        "/\r\n//evil.com",
+        "/\x00//evil.com",
+        "/feed\x7f",
+        # Scheme-relative and scheme-bearing values of every shape.
+        "///evil.com",
+        "////evil.com",
+        "http://evil.com",
+        "javascript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "/%2F%2Fevil.com".replace("%2F", "/"),
+        # Not a path at all.
+        "feed",
+        "evil.com",
+        " /feed",
+    ],
+)
+def test_safe_next_path_rejects_malicious(value):
+    # Any rejection lands on the fallback — never on the attacker's value.
+    assert safe_next_path(value) == "/feed"
 
 
 def test_unavailable_is_its_own_exception_type():

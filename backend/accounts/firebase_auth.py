@@ -26,7 +26,47 @@ class FirebaseIDTokenAuthentication(BaseAuthentication):
 
     keyword = "Bearer"
 
+    # Where the outcome of this request's single verification is kept. Set on
+    # the underlying HttpRequest and nowhere else — see `authenticate`.
+    _CACHE_ATTR = "_firebase_auth_outcome"
+
     def authenticate(self, request):
+        """PERF-04: verify the token once per request, not twice.
+
+        Every API call authenticates twice: RLSViewerMiddleware needs the
+        viewer before Postgres runs a single statement, which is earlier than
+        DRF's authentication classes can run (orgs/middleware.py explains
+        why), and then DRF does it again in `dispatch`. That meant two
+        signature verifications, two user lookups and two `record_presence`
+        calls per request, the second one re-reading the row the first had
+        just written.
+
+        The outcome is cached on the underlying `HttpRequest`, which is the
+        one object both callers share: DRF wraps it and exposes it as
+        `_request`. Scoped to a single request and never beyond it — a cache
+        that outlived the request would keep accepting a token after it had
+        expired or been revoked, which is exactly the check this class exists
+        to perform.
+        """
+        carrier = getattr(request, "_request", request)
+        cached = getattr(carrier, self._CACHE_ATTR, None)
+        if cached is not None:
+            failure, result = cached
+            if failure is not None:
+                raise AuthenticationFailed(failure)
+            return result
+
+        try:
+            result = self._authenticate(request)
+        except AuthenticationFailed as exc:
+            # Cached too: a bad token must fail the same way at both call
+            # sites, without paying for a second round of verification.
+            setattr(carrier, self._CACHE_ATTR, (exc.detail, None))
+            raise
+        setattr(carrier, self._CACHE_ATTR, (None, result))
+        return result
+
+    def _authenticate(self, request):
         header = request.META.get("HTTP_AUTHORIZATION", "")
         if not header.startswith(f"{self.keyword} "):
             return None
@@ -62,8 +102,6 @@ class FirebaseIDTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed("Firebase account has no verified email address.")
 
         user = get_or_provision_firebase_user(claims)
-        # This runs twice per API request (RLSViewerMiddleware, then DRF);
-        # the second call re-reads the row it just updated and writes nothing.
         record_presence(user)
         return (user, token)
 

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { useVisiblePolling } from "@/lib/use-visible-polling";
+import { type BadgeCounts, useBadgeCounts } from "@/lib/badge-counts";
 
 export type PersonSummary = {
   id: number;
@@ -59,8 +59,8 @@ type MessagingContextValue = {
 
 const MessagingContext = createContext<MessagingContextValue | null>(null);
 
-const UNREAD_POLL_MS = 60_000;
-
+/** Only for the targeted refresh after sending or reading a message — the
+ * steady-state badge comes from the chrome's shared poll (lib/badge-counts). */
 async function fetchUnreadTotal(): Promise<number> {
   try {
     const res = await fetch("/api/messaging/unread-count", { cache: "no-store" });
@@ -83,11 +83,11 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     setUnreadTotal(await fetchUnreadTotal());
   }, []);
 
-  const syncUnread = useCallback(async () => {
-    setUnreadTotal(await fetchUnreadTotal());
+  const applyBadges = useCallback((counts: BadgeCounts) => {
+    setUnreadTotal(counts.messages.unread_count);
   }, []);
 
-  useVisiblePolling({ onPoll: syncUnread, intervalMs: UNREAD_POLL_MS });
+  useBadgeCounts(applyBadges);
 
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_MQ);

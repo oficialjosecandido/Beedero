@@ -200,6 +200,45 @@ def test_missing_bearer_header_is_anonymous_not_an_error(api, firebase_configure
 
 
 @pytest.mark.django_db
+def test_token_is_verified_once_per_request(api, firebase_configured):
+    """PERF-04: RLSViewerMiddleware and DRF share one verification."""
+    with patch.object(firebase_auth, "verify_id_token", return_value=CLAIMS) as verify:
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+
+        assert api.get("/api/auth/me/").status_code == 200
+        assert verify.call_count == 1
+
+        # And the next request verifies again: the cache is per request, so a
+        # token that expires or is revoked between calls is caught.
+        assert api.get("/api/auth/me/").status_code == 200
+        assert verify.call_count == 2
+
+
+@pytest.mark.django_db
+def test_presence_is_recorded_once_per_request(api, firebase_configured):
+    with _verifies(), patch("accounts.firebase_auth.record_presence") as presence:
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+        res = api.get("/api/auth/me/")
+
+    assert res.status_code == 200
+    assert presence.call_count == 1
+
+
+@pytest.mark.django_db
+def test_bad_token_is_verified_once_and_still_refused(api, firebase_configured):
+    """The cached failure has to raise at DRF's call site, not downgrade to
+    anonymous — the middleware swallowing it is only about the RLS viewer."""
+    with patch.object(
+        firebase_auth, "verify_id_token", side_effect=firebase_auth.InvalidIdTokenError("bad")
+    ) as verify:
+        api.credentials(HTTP_AUTHORIZATION="Bearer fake.jwt.token")
+        res = api.get("/api/auth/me/")
+
+    assert res.status_code == 401
+    assert verify.call_count == 1
+
+
+@pytest.mark.django_db
 def test_unconfigured_firebase_rejects_rather_than_failing_open(api):
     """No service account (the default in tests and CI): every token-bearing
     request is refused. Contrast notifications/push.py, which no-ops."""

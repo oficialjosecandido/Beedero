@@ -247,7 +247,7 @@ function RecordRow({
       >
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="size-7 object-cover" />
+          <img loading="lazy" src={logoUrl} alt="" className="size-7 object-cover" />
         ) : (
           <Icon size={14} />
         )}

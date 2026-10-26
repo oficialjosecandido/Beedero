@@ -2,8 +2,8 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
+import { type BadgeCounts, useBadgeCounts } from "@/lib/badge-counts";
 import { requestPushToken } from "@/lib/push";
-import { useVisiblePolling } from "@/lib/use-visible-polling";
 
 export type NotificationItem = {
   id: number;
@@ -75,21 +75,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // Badge-only poll — must not clear `loading`, which means "list not fetched yet".
-  // Clearing it here made the header dropdown show "No notifications yet" while
-  // unread_count was already > 0.
-  const pollUnread = useCallback(async () => {
-    try {
-      const res = await fetch("/api/notifications/unread-count", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = (await res.json()) as { unread_count: number };
-      setUnread(data.unread_count);
-    } catch {
-      // ignore polling errors
-    }
+  // Badge-only, from the chrome's shared poll — must not clear `loading`,
+  // which means "list not fetched yet". Clearing it here made the header
+  // dropdown show "No notifications yet" while unread_count was already > 0.
+  const applyBadges = useCallback((counts: BadgeCounts) => {
+    setUnread(counts.notifications.unread_count);
   }, []);
 
-  useVisiblePolling({ onPoll: pollUnread, intervalMs: 60_000 });
+  useBadgeCounts(applyBadges);
 
   // Opening a notification reads it. Optimistic: the row is usually unmounted
   // by the navigation it triggers, so there is nothing left to revert to —

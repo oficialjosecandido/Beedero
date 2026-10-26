@@ -416,6 +416,7 @@ function MessagesHubContent() {
                 {c.other_participant.profile_picture ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
+                    loading="lazy"
                     src={c.other_participant.profile_picture}
                     alt=""
                     className="size-12 shrink-0 rounded-full object-cover"

@@ -313,6 +313,12 @@ def notify_milestone(
     return created
 
 
+def unread_count(user) -> int:
+    """The header badge's number. Shared by the dedicated endpoint and the
+    combined one in accounts/badges.py, so both can never disagree."""
+    return Notification.objects.filter(user=user, read_at__isnull=True).count()
+
+
 def _display_name(user) -> str:
     profile = getattr(user, "investorprofile", None)
     if profile and profile.full_name:

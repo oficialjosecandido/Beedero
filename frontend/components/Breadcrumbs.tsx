@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { jsonLdHtml } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site-metadata";
 
 export type Crumb = {
@@ -35,7 +36,7 @@ export function Breadcrumbs({ items, tone = "dark" }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <nav aria-label="Breadcrumb" className={`text-xs ${muted}`}>
         <ol className="flex flex-wrap items-center gap-1.5">

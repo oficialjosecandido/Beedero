@@ -148,7 +148,7 @@ function OrganisationsPanel({ orgs }: { orgs: Membership[] }) {
               >
                 {org.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={org.logo} alt="" className="size-7 shrink-0 object-cover" />
+                  <img loading="lazy" src={org.logo} alt="" className="size-7 shrink-0 object-cover" />
                 ) : (
                   <span
                     aria-hidden
@@ -235,7 +235,12 @@ function OrgNewsPanel({ items }: { items: RecentOrgUpdateItem[] }) {
               >
                 {item.org.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.org.logo} alt="" className="mt-0.5 size-8 shrink-0 object-cover" />
+                  <img
+                    loading="lazy"
+                    src={item.org.logo}
+                    alt=""
+                    className="mt-0.5 size-8 shrink-0 object-cover"
+                  />
                 ) : (
                   <span
                     aria-hidden

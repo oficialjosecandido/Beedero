@@ -3,10 +3,12 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from connections.models import Connection, ConnectionRequest
+from connections.models import Connection
 from connections.serializers import user_summary
 from connections.services import remove_connection
 from orgs.models import OrgFollow
+
+from .services import network_counts
 
 
 def _org_summary(org):
@@ -87,13 +89,4 @@ class NetworkCountsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        return Response(
-            {
-                "connections": Connection.objects.filter(Q(user_one=user) | Q(user_two=user)).count(),
-                "pending": ConnectionRequest.objects.filter(
-                    recipient=user, status=ConnectionRequest.Status.PENDING
-                ).count(),
-                "following": OrgFollow.objects.filter(user=user).count(),
-            }
-        )
+        return Response(network_counts(request.user))

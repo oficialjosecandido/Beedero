@@ -30,7 +30,7 @@ Both endpoints below end in the same place — an `oobCode` the frontend redeems
 
 import hashlib
 import re
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse, urlsplit
 
 import sentry_sdk
 from django.conf import settings
@@ -58,6 +58,10 @@ MAX_EMAIL_LENGTH = 254
 # shape keeps a caller from stuffing anything else into a URL we then email.
 STATE_RE = re.compile(r"^[0-9a-f]{32}$")
 
+# C0 plus DEL. A URL parser drops these before resolving the rest, so leaving
+# any of them in a `next` value hands over a second chance at an authority.
+CONTROL_CHARS = frozenset(chr(code) for code in list(range(0x20)) + [0x7F])
+
 # Firebase sign-in links are good for six hours; lib/session.ts sizes its
 # pending-link cookies to match.
 LINK_TTL_HOURS = 6
@@ -81,8 +85,26 @@ def safe_next_path(value, fallback="/feed"):
     The frontend narrows it before sending and this narrows it again, because
     the endpoint is public and nothing here may assume the frontend was the
     caller.
+
+    A single leading "/" is not sufficient. The browser that follows the
+    emailed link normalises a backslash to a forward slash in the authority
+    position, so "/\\evil.com" leaves the site just like "//evil.com" does,
+    and it strips control characters before doing so ("/\\tevil.com" is the
+    same escape again). `urlsplit` does none of that normalisation — it reads
+    "/\\evil.com" as a plain path — so the backslash and the control
+    characters have to be rejected explicitly here rather than left to the
+    parser, which is where the two implementations necessarily differ.
     """
     if not value or not value.startswith("/") or value.startswith("//"):
+        return fallback
+    if "\\" in value:
+        return fallback
+    if any(char in value for char in CONTROL_CHARS):
+        return fallback
+    # Belt and braces: "/..:" style values that a parser might still read as
+    # having a scheme or an authority never make it into an email.
+    parts = urlsplit(value)
+    if parts.scheme or parts.netloc:
         return fallback
     return value
 

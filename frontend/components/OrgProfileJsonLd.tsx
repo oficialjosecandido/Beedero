@@ -1,3 +1,4 @@
+import { jsonLdHtml } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site-metadata";
 import type { OrgSummary } from "@/lib/types";
 
@@ -15,7 +16,7 @@ export function OrgProfileJsonLd({ org }: { org: OrgSummary }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
     />
   );
 }

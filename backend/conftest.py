@@ -15,6 +15,16 @@ def _in_memory_file_storage(settings):
     }
 
 
+@pytest.fixture(autouse=True)
+def _unfurl_inline(settings):
+    """Fetch link previews on the calling thread under test.
+
+    The real path hands the fetch to a worker thread, which opens its own
+    connection — it could neither see rows written inside the test's
+    transaction nor have its own writes rolled back with it."""
+    settings.UNFURL_IN_BACKGROUND = False
+
+
 @pytest.fixture(scope="session")
 def _grant_app_role_on_test_db(django_db_setup, django_db_blocker):
     """Runs once per session, outside any per-test transaction: grants

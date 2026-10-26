@@ -92,6 +92,7 @@ function FeedMessagesSidebar() {
                   {c.other_participant.profile_picture ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
+                      loading="lazy"
                       src={c.other_participant.profile_picture}
                       alt=""
                       className="size-9 rounded-full object-cover"
@@ -168,7 +169,7 @@ function SuggestedConnections({ organizations }: { organizations: SuggestedOrg[]
           <li key={org.slug} className="flex items-center gap-3 py-2">
             {org.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={org.logo} alt="" className="size-8 shrink-0 object-cover" />
+              <img loading="lazy" src={org.logo} alt="" className="size-8 shrink-0 object-cover" />
             ) : (
               <span className="grid size-8 shrink-0 place-items-center bg-white/10 text-[10px] font-black">
                 {org.name.charAt(0).toUpperCase()}

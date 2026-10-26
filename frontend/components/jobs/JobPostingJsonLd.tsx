@@ -1,3 +1,4 @@
+import { jsonLdHtml } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site-metadata";
 import type { PublicJob } from "@/lib/types";
 
@@ -75,7 +76,7 @@ export function JobPostingJsonLd({ job }: { job: PublicJob }) {
       type="application/ld+json"
       // Escaping "<" keeps a description that happens to contain markup from
       // ending the script element early.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
     />
   );
 }

@@ -1,3 +1,4 @@
+import { jsonLdHtml } from "@/lib/json-ld";
 import { LEGAL_ENTITY } from "@/lib/legal-content";
 import { SITE_URL } from "@/lib/site-metadata";
 
@@ -57,11 +58,11 @@ export function WebsiteJsonLd() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(websiteJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(organizationJsonLd) }}
       />
     </>
   );

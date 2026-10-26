@@ -1,6 +1,95 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+const isDev = process.env.NODE_ENV === "development";
+
+/** Sentry's CSP collector for this project, derived from the public DSN
+ * (`https://<key>@<host>/<project>`). Without a DSN the report-only policy
+ * still applies — the browser just has nowhere to send violations. */
+function cspReportUri(): string | null {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return null;
+  try {
+    const { username, host, pathname } = new URL(dsn);
+    const projectId = pathname.replace(/^\//, "");
+    if (!username || !projectId) return null;
+    return `https://${host}/api/${projectId}/security/?sentry_key=${username}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Directives that cannot break a page that already works, so they go out
+ * enforced. The rest of the policy ships report-only below. */
+const ENFORCED_CSP = [
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join("; ");
+
+/** The policy we intend to enforce. Report-only for now because the app has
+ * never run under a CSP: Next inlines its own bootstrap scripts and Tailwind
+ * its styles, so enforcing `script-src`/`style-src` without watching real
+ * traffic first would white-screen the site, and nonces are not an option
+ * while the public pages need to stay statically rendered (they are what SEO
+ * reads). Promote it to `Content-Security-Policy` once the reports are quiet.
+ *
+ * `img-src https:` is deliberately wide: rich link previews render the
+ * publisher's own image, which can be any host on the web. */
+function reportOnlyCsp(): string {
+  const directives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${
+      isDev ? " 'unsafe-eval'" : ""
+    }`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    // Firebase email-link sign-in and Cloud Messaging; GA4. The API itself is
+    // same-origin — the browser only ever talks to /api/* route handlers.
+    [
+      "connect-src 'self'",
+      "https://identitytoolkit.googleapis.com",
+      "https://securetoken.googleapis.com",
+      "https://firebaseinstallations.googleapis.com",
+      "https://fcmregistrations.googleapis.com",
+      "https://fcm.googleapis.com",
+      "https://*.google-analytics.com",
+      "https://*.googletagmanager.com",
+      "https://*.analytics.google.com",
+    ].join(" "),
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "media-src 'self'",
+    "frame-src 'none'",
+    ENFORCED_CSP,
+    "upgrade-insecure-requests",
+  ];
+  const reportUri = cspReportUri();
+  if (reportUri) directives.push(`report-uri ${reportUri}`);
+  return directives.join("; ");
+}
+
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: ENFORCED_CSP },
+  { key: "Content-Security-Policy-Report-Only", value: reportOnlyCsp() },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Belt and braces with `frame-ancestors` above, for older browsers.
+  { key: "X-Frame-Options", value: "DENY" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  },
+  // Sign-in is an emailed link, never a popup, so isolation costs nothing.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+  // No `preload`: that is a submission to a browser-maintained list and is
+  // effectively irreversible, so it belongs to a deliberate decision rather
+  // than a config change.
+  { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   // Profile/ logo uploads go through Server Actions (multipart). Default 1MB
@@ -9,6 +98,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "5mb",
     },
+  },
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
   async redirects() {
     return [

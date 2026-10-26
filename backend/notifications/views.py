@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import DigestSend, Notification, NotificationPreference, PushSubscription
+from .services import unread_count
 
 # 1x1 transparent GIF, served by the open-tracking pixel.
 _TRANSPARENT_GIF = (
@@ -78,8 +79,7 @@ class NotificationUnreadCountView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        unread = Notification.objects.filter(user=request.user, read_at__isnull=True).count()
-        return Response({"unread_count": unread})
+        return Response({"unread_count": unread_count(request.user)})
 
 
 class NotificationPreferenceView(APIView):

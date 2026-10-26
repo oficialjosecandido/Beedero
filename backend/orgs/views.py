@@ -22,6 +22,7 @@ from beedero.pagination import decode_cursor, encode_cursor
 from beedero.ratelimit import enforce_rate_limit
 from billing.entitlements import has_entitlement
 from billing.services import maybe_refund_as_credit
+from credibility.levels import prime_credibility_levels
 from accounts.skills import normalize_skills
 from social.mentions import resolve_mentions
 from social.services import (
@@ -84,6 +85,7 @@ from .serializers import (
     OrgProfileSerializer,
     VisibilityGrantSerializer,
     _org_summary,
+    org_summaries,
 )
 from .visibility import VisibilityResolver
 
@@ -1283,6 +1285,8 @@ class RecentOrgUpdatesView(APIView):
             .select_related("org")
             .order_by("-created_at", "-id")[: self.LIMIT]
         )
+        # One query for the page's credibility levels instead of one per row.
+        prime_credibility_levels([a.org for a in activities])
         return Response(
             {
                 "items": [
@@ -1317,6 +1321,7 @@ class TrendingView(APIView):
             .annotate(engagement=F("reaction_count") + F("comment_count"))
             .order_by("-engagement", "-occurred_at")[: self.LIMIT]
         )
+        prime_credibility_levels([a.org for a in activities if a.org_id])
         return Response(
             {
                 "items": [
@@ -1441,8 +1446,9 @@ class DiscoveryView(APIView):
 
         return Response(
             {
-                "items": [_org_summary(o) for o in page],
+                "items": org_summaries(page),
                 "next_offset": offset + limit if has_more else None,
+                # Already primed by the ranking inside discover_active_this_week.
                 "active_this_week": [_org_summary(o) for o in discover_active_this_week(request.user)],
             }
         )

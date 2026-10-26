@@ -23,6 +23,18 @@ from .visibility import VisibilityResolver
 logger = logging.getLogger(__name__)
 
 
+def org_summaries(orgs):
+    """`_org_summary` for a list, without a query per row.
+
+    `credibility_level` is derived from live Verification rows, so every
+    summary in a list used to cost its own query. Priming resolves the whole
+    page in one, and `_org_summary` then reads the cached value.
+    """
+    from credibility.levels import prime_credibility_levels
+
+    return [_org_summary(org) for org in prime_credibility_levels(orgs)]
+
+
 def _org_summary(org):
     from credibility.levels import credibility_level
 

@@ -24,7 +24,7 @@ from .services import (
     toggle_reaction,
     user_has_commented,
 )
-from .unfurl import get_or_fetch_preview
+from .unfurl import request_preview
 
 REACTIONS_PER_DAY = 200
 COMMENTS_PER_DAY = 30
@@ -206,7 +206,10 @@ class LinkPreviewView(APIView):
     """GET /api/links/preview/?url= — on-demand rich-link unfurl (spec §A2).
     The frontend calls this per unique http(s) URL it detects in a post/
     comment body; results are cached server-side by URL, so repeated posts
-    of the same link only ever hit the third-party unfurl service once."""
+    of the same link only ever hit the third-party unfurl service once.
+
+    Answers `pending` while the unfurl service is still being asked, rather
+    than holding the worker for the length of that call (social/unfurl.py)."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -217,9 +220,13 @@ class LinkPreviewView(APIView):
         enforce_rate_limit(
             f"link_preview:{request.user.id}", limit=LINK_PREVIEWS_PER_HOUR, window_seconds=3600
         )
-        preview = get_or_fetch_preview(url)
-        if preview is None or preview.status != preview.Status.READY:
+        preview = request_preview(url)
+        if preview is None or preview.status == preview.Status.FAILED:
             return Response({"status": "unavailable"})
+        if preview.status != preview.Status.READY:
+            # The fetch is running off-request; the client polls (see
+            # frontend/components/LinkPreviewCard.tsx).
+            return Response({"status": "pending"})
         return Response(
             {
                 "status": "ready",

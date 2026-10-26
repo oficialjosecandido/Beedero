@@ -63,7 +63,9 @@ class Command(BaseCommand):
                     verified_at__gte=week_ago,
                 ).count()
                 + ProfessionalCredential.objects.filter(
-                    user=user, status=ProfessionalCredential.Status.VERIFIED, verified_at__gte=week_ago
+                    user=user,
+                    status=ProfessionalCredential.Status.VERIFIED,
+                    verified_at__gte=week_ago,
                 ).count()
             )
             if investor_views == 0 and new_verified_facts == 0:
