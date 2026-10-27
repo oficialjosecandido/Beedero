@@ -29,7 +29,7 @@ export function LandingHero({ primaryHref }: { primaryHref: string }) {
           <p className="inline-flex rounded-full border border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
             The network for people in motion
           </p>
-          <h1 className="mt-8 whitespace-pre-line text-[clamp(3.15rem,15vw,7.4rem)] font-black uppercase leading-[0.88] tracking-[-0.052em] sm:mt-7 sm:text-[clamp(3.7rem,7.5vw,7.4rem)] sm:leading-[0.84] sm:tracking-[-0.065em]">
+          <h1 className="mt-8 whitespace-pre-line text-[clamp(3.15rem,15vw,7.4rem)] font-black uppercase leading-[0.88] tracking-[-0.02em] sm:mt-7 sm:text-[clamp(3.7rem,7.5vw,7.4rem)] sm:leading-[0.84] sm:tracking-[-0.02em]">
             {current.line}
           </h1>
           <p className="mt-7 max-w-xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8">

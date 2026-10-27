@@ -38,7 +38,7 @@ export default function FaqPage() {
           <p className="mt-8 text-[10px] font-black uppercase tracking-[0.18em] text-beedero-black/45">
             Help
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+          <h1 className="mt-3 text-4xl font-black tracking-[-0.02em] sm:text-5xl">
             Questions, answered.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-600">

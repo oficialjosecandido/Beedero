@@ -107,7 +107,7 @@ export default async function FeedPage() {
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
             The network, today
           </p>
-          <h1 className="mt-2 text-[2.5rem] font-black leading-none tracking-[-0.045em] sm:text-5xl">
+          <h1 className="mt-2 text-[2.5rem] font-black leading-none tracking-[-0.02em] sm:text-5xl">
             {greetingFor(displayName)}
           </h1>
         </div>

@@ -316,7 +316,7 @@ function PreferencesModal({ onClose }: { onClose: () => void }) {
           <div>
             <div className="flex items-center gap-2">
               <Settings2 size={16} className="text-beedero-yellow" aria-hidden />
-              <h2 className="text-2xl font-black tracking-[-0.03em]">Notification preferences</h2>
+              <h2 className="text-2xl font-black tracking-[-0.02em]">Notification preferences</h2>
             </div>
             <p className="mt-1 text-xs text-white/45">
               Choose the signals that deserve your attention.

@@ -127,7 +127,7 @@ function KpiMetricCard({ metric, rangeDays }: { metric: MetricDef; rangeDays: nu
         {metric.label}
       </p>
       <p
-        className={`mt-1 text-3xl font-black tabular-nums tracking-[-0.03em] ${valueClass(
+        className={`mt-1 text-3xl font-black tabular-nums tracking-[-0.02em] ${valueClass(
           metric.value,
           metric.highlight
         )}`}
@@ -195,7 +195,7 @@ export function PersonalKpiPanel({ initialStats }: { initialStats: PersonalKpiSt
           <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
             <BarChart3 size={13} aria-hidden /> Private metrics
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Your KPIs.</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.02em]">Your KPIs.</h2>
           <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
             Activity on your personal profile in the selected period.
           </p>

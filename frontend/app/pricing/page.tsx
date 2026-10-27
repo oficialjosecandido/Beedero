@@ -34,7 +34,7 @@ export default async function PricingPage() {
   return (
     <main className="min-h-screen bg-[#070806] px-5 pb-10 text-white sm:px-8">
       <header className="mx-auto flex max-w-[1280px] items-center justify-between pb-5 pt-[max(2rem,env(safe-area-inset-top))] sm:py-5">
-        <Link href="/" className="text-lg font-black uppercase tracking-[-0.07em]">
+        <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
           Beedero
         </Link>
         <Link
@@ -49,7 +49,7 @@ export default async function PricingPage() {
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
           Start free. Step up when you&apos;re ready.
         </p>
-        <h1 className="mt-6 max-w-4xl text-[clamp(3.5rem,8vw,7.5rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]">
+        <h1 className="mt-6 max-w-4xl text-[clamp(3.5rem,8vw,7.5rem)] font-black uppercase leading-[0.82] tracking-[-0.02em]">
           Build credibility
           <br />
           before you need it.
@@ -70,7 +70,7 @@ export default async function PricingPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
               For you
             </p>
-            <h2 className="mt-6 text-5xl font-black uppercase tracking-[-0.07em]">Free</h2>
+            <h2 className="mt-6 text-5xl font-black uppercase tracking-[-0.02em]">Free</h2>
             <p className="mt-4 max-w-md text-sm leading-6 text-white/65">
               Build your professional identity, grow the right network and stay close to the
               opportunities that move you forward.
@@ -101,7 +101,7 @@ export default async function PricingPage() {
               </span>
             </div>
             <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-1">
-              <h2 className="text-6xl font-black uppercase tracking-[-0.08em]">€99</h2>
+              <h2 className="text-6xl font-black uppercase tracking-[-0.02em]">€99</h2>
               <p className="pb-2 text-xs font-black uppercase tracking-[0.12em] text-beedero-black/55">
                 full first year
               </p>

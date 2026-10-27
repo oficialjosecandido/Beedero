@@ -19,14 +19,14 @@ from accounts.ladder import (
     verification_ladder,
     with_unlock,
 )
-from accounts.models import InvestorProfile, User
+from accounts.models import InvestorProfile, SelfDeclaredExperience, User
 from accounts.testing import unlock
 from affiliations.models import Affiliation, RoleType
 from connections.models import Connection, ConnectionRequest
 from connections.services import daily_request_limit
 from investments.models import InvestmentRecord
 from notifications.models import Notification
-from orgs.models import Activity, Organization, OrgMembership
+from orgs.models import Activity, MembershipSkill, Organization, OrgMembership
 
 
 @pytest.fixture
@@ -188,6 +188,85 @@ def test_an_org_role_also_starts_the_record(route):
     else:
         OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.MEMBER)
     assert is_unlocked(profile) and listed(profile)
+
+
+def _bare_record(username: str):
+    """A person past rungs 1–3 with a role on file and not one skill anywhere."""
+    user = make_user(username)
+    profile = unlock(user)
+    profile.skills = []
+    profile.save()
+    user.self_declared_experiences.all().delete()
+    org = Organization.objects.create(name="Acme", slug="acme")
+    membership = OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.MEMBER)
+    experience = SelfDeclaredExperience.objects.create(
+        user=user, org_name="Acme", role="Founder", started_on=date(2024, 1, 1)
+    )
+    return profile, experience, membership
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("store", ["profile", "experience", "roster", "spread"])
+def test_three_skills_start_the_record_wherever_they_were_typed(store):
+    """Add experience writes skills onto the experience, not onto the profile's
+    cloud, so a gate that read only the cloud told people who had just filled
+    in their whole professional record that they had declared no skills."""
+    profile, experience, membership = _bare_record("ana")
+    if store == "profile":
+        profile.skills = ["Python", "React", "SQL"]
+        profile.save()
+    elif store == "experience":
+        experience.skills = ["Python", "React", "SQL"]
+        experience.save(update_fields=["skills"])
+    elif store == "roster":
+        for skill in ("Python", "React", "SQL"):
+            MembershipSkill.objects.create(membership=membership, skill=skill)
+    else:
+        profile.skills = ["Python"]
+        profile.save()
+        experience.skills = ["React"]
+        experience.save(update_fields=["skills"])
+        MembershipSkill.objects.create(membership=membership, skill="SQL")
+
+    profile.refresh_from_db()
+    assert rung(verification_ladder(profile), "record_started")["done"] is True
+    # Both engines, or Discover and the ladder would tell the person different
+    # things about the same profile.
+    assert is_unlocked(profile) and listed(profile)
+
+
+@pytest.mark.django_db
+def test_skills_add_up_across_several_experiences():
+    """Two skills on each of two roles is four. The SQL half of the gate sums
+    them in a subquery, which would happily return only the first row."""
+    profile, experience, _ = _bare_record("ana")
+    experience.skills = ["Python", "React"]
+    experience.save(update_fields=["skills"])
+    SelfDeclaredExperience.objects.create(
+        user=profile.user,
+        org_name="Beedero",
+        role="Founder",
+        started_on=date(2025, 5, 1),
+        skills=["SQL", "Django"],
+    )
+
+    profile.refresh_from_db()
+    assert rung(verification_ladder(profile), "record_started")["done"] is True
+    assert is_unlocked(profile) and listed(profile)
+
+
+@pytest.mark.django_db
+def test_two_skills_across_the_stores_are_still_two():
+    profile, experience, _ = _bare_record("ana")
+    profile.skills = ["Python"]
+    profile.save()
+    experience.skills = ["React"]
+    experience.save(update_fields=["skills"])
+
+    profile.refresh_from_db()
+    assert rung(verification_ladder(profile), "record_started")["done"] is False
+    assert is_unlocked(profile) is False
+    assert listed(profile) is False
 
 
 @pytest.mark.django_db

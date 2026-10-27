@@ -302,7 +302,7 @@ function MessagesHubContent() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <FaComment className="size-6 text-beedero-yellow" aria-hidden />
-            <h1 className="text-3xl font-black tracking-[-0.055em] sm:text-4xl">Messages</h1>
+            <h1 className="text-3xl font-black tracking-[-0.02em] sm:text-4xl">Messages</h1>
           </div>
           <div className="flex items-center gap-3">
             <MessagingInboxSwitcher />

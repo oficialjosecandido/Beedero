@@ -86,7 +86,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="text-lg font-black uppercase tracking-[-0.04em]">
+            <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
               Beedero
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-6 text-beedero-black/75">

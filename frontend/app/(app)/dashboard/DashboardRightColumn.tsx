@@ -52,7 +52,7 @@ function ProfileLadder({
     <section className={panelClass}>
       <div className="flex items-center gap-2">
         <ShieldCheck size={16} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">Profile ladder</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">Profile ladder</h2>
       </div>
       <p className="mt-2 text-xs leading-5 text-white/45">
         A trusted profile is built step by step. Private to you.
@@ -106,7 +106,7 @@ function NetworkPanel({ network }: { network: NetworkCounts }) {
     <section className={panelClass}>
       <div className="flex items-center gap-2">
         <UsersRound size={16} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">Your network</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">Your network</h2>
       </div>
       <dl className="mt-4 space-y-2">
         {rows.map((row) => (
@@ -132,7 +132,7 @@ function OrganisationsPanel({ orgs }: { orgs: Membership[] }) {
     <section className={panelClass}>
       <div className="flex items-center gap-2">
         <Building2 size={16} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">Organisations</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">Organisations</h2>
       </div>
       {orgs.length === 0 ? (
         <p className="mt-3 text-xs leading-5 text-white/45">
@@ -182,7 +182,7 @@ function VisibilityPanel({ visibility }: { visibility: Record<string, string> | 
     <section className={panelClass}>
       <div className="flex items-center gap-2">
         <Eye size={16} className="text-sky-300" aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">Who sees what</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">Who sees what</h2>
       </div>
       <p className="mt-2 text-xs leading-5 text-white/45">
         Each part of your profile has its own audience.
@@ -219,7 +219,7 @@ function OrgNewsPanel({ items }: { items: RecentOrgUpdateItem[] }) {
     <section className="border border-white/10 bg-white/[0.025]">
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
         <Newspaper size={15} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-base font-black tracking-[-0.03em]">News</h2>
+        <h2 className="text-base font-black tracking-[-0.02em]">News</h2>
       </div>
       {items.length === 0 ? (
         <p className="px-4 py-5 text-xs leading-5 text-white/40">

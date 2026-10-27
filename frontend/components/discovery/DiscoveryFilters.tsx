@@ -8,8 +8,8 @@ import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 type Tab = "people" | "organizations";
 
 const KIND_OPTIONS = [
-  { value: "organizations", label: "Organisations" },
   { value: "people", label: "People" },
+  { value: "organizations", label: "Organisations" },
 ] as const;
 
 const PEOPLE_LOCATION_OPTIONS = [
@@ -132,7 +132,7 @@ export function DiscoveryFilters({
   const [openId, setOpenId] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const tab: Tab = searchParams.get("tab") === "people" ? "people" : "organizations";
+  const tab: Tab = searchParams.get("tab") === "organizations" ? "organizations" : "people";
   const stage = searchParams.get("stage") ?? "";
   const sector = searchParams.get("sector") ?? "";
   const geo = searchParams.get("geo") ?? "";
@@ -156,7 +156,7 @@ export function DiscoveryFilters({
   }
 
   function setTab(nextTab: Tab) {
-    const next: Record<string, string> = { tab: nextTab === "organizations" ? "" : "people" };
+    const next: Record<string, string> = { tab: nextTab === "people" ? "" : "organizations" };
     // Location meaning differs per tab — clear the other key.
     if (nextTab === "people") next.geo = "";
     else next.city = "";

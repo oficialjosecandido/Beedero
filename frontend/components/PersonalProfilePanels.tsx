@@ -42,7 +42,7 @@ export function PersonBadgeEmbedPanel({
     <section className="border border-white/10 bg-white/[0.025] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-[-0.03em]">Your personal badge</h2>
+          <h2 className="text-xl font-black tracking-[-0.02em]">Your personal badge</h2>
           <p className="mt-1 text-xs leading-5 text-white/45">
             Your live badge links to your public Beedero profile.
           </p>
@@ -90,7 +90,7 @@ export function PersonPresenceSignalsPanel({
     <section className="border border-white/10 bg-white/[0.025] p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <Eye size={16} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">Who&apos;s looking this week</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">Who&apos;s looking this week</h2>
       </div>
       <p className="mt-2 text-xs leading-5 text-white/45">
         Aggregated signals from the last {presence.since_days} days — no names shown here.

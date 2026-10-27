@@ -29,15 +29,15 @@ then throws away. test_ladder.py holds them together. Listings go through
 
 import math
 
-from django.db.models import Exists, Func, IntegerField, OuterRef, Q
-from django.db.models.functions import Length, Trim
+from django.db.models import Count, Exists, F, Func, IntegerField, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Coalesce, Length, Trim
 from django.utils import timezone
 
 from affiliations.models import Affiliation
 from connections.models import Connection
 from credibility.models import ProfessionalCredential
 from investments.models import InvestmentRecord
-from orgs.models import OrgMembership
+from orgs.models import MembershipSkill, OrgMembership
 
 from .cadence import longest_daily_run
 from .models import SelfDeclaredExperience
@@ -76,7 +76,27 @@ def _has_record(user) -> bool:
 
 
 def _skills_count(profile) -> int:
-    return len(profile.skills) if isinstance(profile.skills, list) else 0
+    """Every skill the person has declared, wherever they typed it.
+
+    One idea lives in three stores (accounts/skills.py): the free cloud on the
+    profile, the list on each self-declared experience, and the rows anchored
+    to a roster membership. The Add experience form writes to the last two, so
+    counting only the cloud told people who had just filled in their whole
+    professional record that they had declared no skills at all.
+
+    Totals rather than a distinct set: normalize_skills already dedupes inside
+    each store, and repeating that across a jsonb column and two tables would
+    cost every Discover query (`with_unlock`) more than the overlap is worth.
+    """
+    own = len(profile.skills) if isinstance(profile.skills, list) else 0
+    from_experiences = sum(
+        len(skills) if isinstance(skills, list) else 0
+        for skills in SelfDeclaredExperience.objects.filter(
+            user_id=profile.user_id
+        ).values_list("skills", flat=True)
+    )
+    from_roster = MembershipSkill.objects.filter(membership__user_id=profile.user_id).count()
+    return own + from_experiences + from_roster
 
 
 def _record_started(profile) -> bool:
@@ -124,25 +144,49 @@ class _SkillsCount(Func):
 def with_unlock(queryset):
     """InvestorProfile queryset → only the unlocked ones (same rule as
     `is_unlocked`, evaluated in the database)."""
-    return queryset.annotate(
-        _bio_len=Length(Trim("bio")),
-        _skills_n=_SkillsCount("skills"),
-        _has_exp=Exists(SelfDeclaredExperience.objects.filter(user_id=OuterRef("user_id"))),
-        _has_aff=Exists(Affiliation.objects.filter(user_id=OuterRef("user_id"))),
-        _has_mem=Exists(OrgMembership.objects.filter(user_id=OuterRef("user_id"))),
-    ).filter(
-        Q(user__email_verified_at__isnull=False)
-        & ~Q(full_name="")
-        & ~Q(headline="")
-        & ~Q(country="")
-        & ~Q(city="")
-        & Q(handle__isnull=False)
-        & ~Q(handle="")
-        & Q(profile_picture__isnull=False)
-        & ~Q(profile_picture="")
-        & Q(_bio_len__gte=MIN_BIO_CHARS)
-        & Q(_skills_n__gte=MIN_SKILLS)
-        & (Q(_has_exp=True) | Q(_has_aff=True) | Q(_has_mem=True))
+    return (
+        queryset.annotate(
+            _bio_len=Length(Trim("bio")),
+            # The three skill stores _skills_count adds up, one annotation each.
+            _skills_n=_SkillsCount("skills"),
+            _exp_skills_n=Coalesce(
+                Subquery(
+                    SelfDeclaredExperience.objects.filter(user_id=OuterRef("user_id"))
+                    .annotate(_n=_SkillsCount("skills"))
+                    .values("user_id")
+                    .annotate(_total=Sum("_n"))
+                    .values("_total")[:1]
+                ),
+                0,
+            ),
+            _mem_skills_n=Coalesce(
+                Subquery(
+                    MembershipSkill.objects.filter(membership__user_id=OuterRef("user_id"))
+                    .values("membership__user_id")
+                    .annotate(_total=Count("id"))
+                    .values("_total")[:1]
+                ),
+                0,
+            ),
+            _has_exp=Exists(SelfDeclaredExperience.objects.filter(user_id=OuterRef("user_id"))),
+            _has_aff=Exists(Affiliation.objects.filter(user_id=OuterRef("user_id"))),
+            _has_mem=Exists(OrgMembership.objects.filter(user_id=OuterRef("user_id"))),
+        )
+        .annotate(_all_skills_n=F("_skills_n") + F("_exp_skills_n") + F("_mem_skills_n"))
+        .filter(
+            Q(user__email_verified_at__isnull=False)
+            & ~Q(full_name="")
+            & ~Q(headline="")
+            & ~Q(country="")
+            & ~Q(city="")
+            & Q(handle__isnull=False)
+            & ~Q(handle="")
+            & Q(profile_picture__isnull=False)
+            & ~Q(profile_picture="")
+            & Q(_bio_len__gte=MIN_BIO_CHARS)
+            & Q(_all_skills_n__gte=MIN_SKILLS)
+            & (Q(_has_exp=True) | Q(_has_aff=True) | Q(_has_mem=True))
+        )
     )
 
 

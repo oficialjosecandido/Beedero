@@ -45,7 +45,7 @@ export function ShareProfileModal({
           setCopied(false);
           setOpen(true);
         }}
-        className="flex items-center gap-2 border border-white/15 px-4 py-2.5 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow"
+        className="flex h-9 items-center gap-2 border border-white/15 px-4 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow"
       >
         <Share2 size={14} aria-hidden /> Share profile
       </button>
@@ -67,7 +67,7 @@ export function ShareProfileModal({
             className="flex max-h-[92vh] w-full max-w-xl flex-col border border-white/15 bg-app-elevated shadow-2xl"
           >
             <header className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
-              <h2 className="text-2xl font-black tracking-[-0.035em]">Share profile</h2>
+              <h2 className="text-2xl font-black tracking-[-0.02em]">Share profile</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

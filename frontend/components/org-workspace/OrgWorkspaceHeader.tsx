@@ -33,7 +33,7 @@ export function OrgWorkspaceHeader({ personName }: { personName: string }) {
   return (
     <header className="sticky top-0 z-30 border-b border-black/30 bg-org-ground/95 backdrop-blur">
       <div className="mx-auto flex h-[70px] max-w-[1500px] items-center gap-4 px-4 sm:px-6">
-        <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.055em]">
+        <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.02em]">
           beedero<span className="text-org-ink">.</span>
         </Link>
         <span className="hidden h-5 w-px bg-black/15 sm:block" aria-hidden />

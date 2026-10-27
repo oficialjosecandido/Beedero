@@ -83,7 +83,7 @@ export function VisibilityPill({
         aria-label={`${label}: visible to ${current.label}. Change`}
         disabled={pending}
         onClick={() => setOpen((v) => !v)}
-        className={`flex h-11 items-center gap-1.5 border px-2.5 text-[10px] font-black uppercase tracking-[0.1em] transition sm:h-9 ${
+        className={`flex h-9 items-center gap-1.5 border px-3 text-xs font-black uppercase tracking-[0.1em] transition ${
           level === "public"
             ? "border-emerald-400/40 text-emerald-400"
             : "border-sky-300/40 text-sky-300"

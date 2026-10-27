@@ -39,7 +39,7 @@ export function CredentialsSection({
   return (
     <section id="credentials" aria-labelledby="credentials-title" className="scroll-mt-24 border border-white/10 bg-white/[0.025] p-5 sm:p-7">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <h2 id="credentials-title" className="mt-1 text-2xl font-black tracking-[-0.04em]">
+        <h2 id="credentials-title" className="mt-1 text-2xl font-black tracking-[-0.02em]">
           Credentials
         </h2>
         <div className="flex items-center gap-2">

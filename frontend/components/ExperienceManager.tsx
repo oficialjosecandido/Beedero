@@ -190,7 +190,7 @@ function CapabilityRecord({ skills }: { skills: AggregatedSkillTime[] }) {
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
             Capability record
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Skills.</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.02em]">Skills.</h2>
         </div>
         <p className="max-w-xs text-[11px] leading-5 text-white/40 sm:text-right">
           Time reflects the experience where each skill was developed. Roles held at the same time
@@ -1035,7 +1035,7 @@ export function ExperienceManager({
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
             Professional record
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Experience.</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.02em]">Experience.</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {headerAside}

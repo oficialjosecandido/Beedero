@@ -45,7 +45,7 @@ export function LandingPrivacyDemo() {
       <div className="border border-white/15 p-5">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Live MRR</p>
         <p
-          className={`mt-3 text-5xl font-black tracking-[-0.07em] ${
+          className={`mt-3 text-5xl font-black tracking-[-0.02em] ${
             access === "Private" ? "select-none blur-md" : ""
           }`}
         >

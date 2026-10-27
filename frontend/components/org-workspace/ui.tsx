@@ -103,7 +103,7 @@ export function OrgCardHeading({
       <p className={`${orgEyebrowClass} ${onDark ? "text-beedero-yellow" : "text-org-ink"}`}>
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{title}</h2>
+      <h2 className="mt-2 text-3xl font-black tracking-[-0.02em]">{title}</h2>
     </div>
   );
 }

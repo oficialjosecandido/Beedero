@@ -46,7 +46,7 @@ function CardHeading({
     <>
       <div className="flex items-center gap-2">
         <Icon size={16} className={iconClass} aria-hidden />
-        <h2 className="text-xl font-black tracking-[-0.03em]">{title}</h2>
+        <h2 className="text-xl font-black tracking-[-0.02em]">{title}</h2>
       </div>
       <p className="mt-2 text-xs leading-5 text-white/45">{note}</p>
     </>
@@ -121,13 +121,13 @@ function Rung({
 }) {
   return (
     <li
-      className={`-mx-2 grid grid-cols-[32px_1fr_auto] items-start gap-3 px-2 py-3 ${
+      className={`-mx-2 grid grid-cols-[28px_1fr_auto] items-start gap-2.5 px-2 py-2.5 ${
         isNext ? "bg-beedero-yellow/[0.06]" : ""
       }`}
     >
       <span
         aria-hidden
-        className={`mt-0.5 grid size-7 place-items-center text-xs font-black ${
+        className={`mt-0.5 grid size-6 place-items-center text-[11px] font-black ${
           rung.done
             ? `bg-beedero-yellow text-beedero-black ${hexClipClass}`
             : isNext
@@ -135,27 +135,27 @@ function Rung({
               : "border border-white/15 text-white/35"
         }`}
       >
-        {rung.done ? <Check size={14} /> : index + 1}
+        {rung.done ? <Check size={12} /> : index + 1}
       </span>
 
       <div className="min-w-0">
-        <b className={`block text-lg leading-6 ${rung.done || isNext ? "" : "text-white/55"}`}>
+        <b className={`block text-sm leading-5 ${rung.done || isNext ? "" : "text-white/55"}`}>
           {rung.label}
         </b>
-        <p className="mt-1 break-words text-base leading-6 text-white/65">
+        <p className="mt-1 break-words text-xs leading-5 text-white/60">
           {confirmerLine(rung, isGate)}
         </p>
         {isNext && rung.hint && (
-          <p className="mt-1.5 text-base leading-6 text-white/75">{rung.hint}</p>
+          <p className="mt-1.5 text-xs leading-5 text-white/70">{rung.hint}</p>
         )}
         {!rung.done && rung.progress ? <DayDots progress={rung.progress} /> : null}
         {rung.warning && (
-          <p className="mt-1.5 text-base font-bold leading-6 text-amber-300">{rung.warning}</p>
+          <p className="mt-1.5 text-xs font-bold leading-5 text-amber-300">{rung.warning}</p>
         )}
       </div>
 
       <span
-        className={`mt-0.5 shrink-0 text-sm font-black uppercase tracking-[0.08em] ${
+        className={`mt-0.5 shrink-0 text-[10px] font-black uppercase tracking-[0.08em] ${
           rung.done ? "text-emerald-400" : isNext ? "text-beedero-yellow" : "text-white/35"
         }`}
       >
@@ -174,10 +174,10 @@ function NextStepFooter({ ladder }: { ladder: VerificationLadder }) {
   const inner = (
     <>
       <span className="min-w-0">
-        <span className="block text-sm font-black uppercase tracking-[0.14em] text-beedero-black/55">
+        <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-beedero-black/55">
           Next level · {after}%
         </span>
-        <b className="mt-1 block text-lg">{next.label}</b>
+        <b className="mt-1 block text-sm">{next.label}</b>
       </span>
       <ArrowRight size={16} className="shrink-0 transition group-hover:translate-x-1" aria-hidden />
     </>
@@ -224,15 +224,15 @@ function VerificationLadderCard({ ladder }: { ladder: VerificationLadder }) {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <ShieldCheck size={16} className="text-beedero-yellow" aria-hidden />
-              <h2 id="ladder-title" className="text-2xl font-black tracking-[-0.03em]">
+              <h2 id="ladder-title" className="text-xl font-black tracking-[-0.02em]">
                 Verification ladder
               </h2>
             </div>
-            <p className="mt-2 text-base leading-6 text-white/65">
+            <p className="mt-2 text-xs leading-5 text-white/55">
               Eight steps. Each one shows who confirms it.
             </p>
           </div>
-          <span className="shrink-0 border border-beedero-yellow/40 px-2.5 py-1 text-sm font-black uppercase tracking-[0.1em] text-beedero-yellow">
+          <span className="shrink-0 border border-beedero-yellow/40 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-beedero-yellow">
             Level {ladder.level}
           </span>
         </div>
@@ -253,17 +253,17 @@ function VerificationLadderCard({ ladder }: { ladder: VerificationLadder }) {
             />
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-sm font-black uppercase tracking-[0.1em]">
-          <span className={ladder.unlocked ? "text-beedero-yellow" : "text-white/55"}>
+        <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.1em]">
+          <span className={ladder.unlocked ? "text-beedero-yellow" : "text-white/50"}>
             {ladder.percent}% · {ladder.unlocked ? "In Discover" : "Discover at 50%"}
           </span>
-          <span className="text-white/55">
+          <span className="text-white/50">
             {ladder.done_count} of {ladder.total_count}
           </span>
         </div>
 
         <p
-          className={`mt-3 text-base leading-6 ${ladder.unlocked ? "text-emerald-400" : "text-white/80"}`}
+          className={`mt-3 text-xs leading-5 ${ladder.unlocked ? "text-emerald-400" : "text-white/70"}`}
         >
           {ladder.unlocked
             ? "You're in Discover. People can find you, and you can ask to connect."
@@ -275,10 +275,10 @@ function VerificationLadderCard({ ladder }: { ladder: VerificationLadder }) {
         {BANDS.map((band) => (
           <div key={band.key} className="border-b border-white/[0.07] p-5 last:border-0">
             <div className="mb-3 flex items-baseline justify-between gap-2">
-              <p className="text-sm font-black uppercase tracking-[0.15em] text-white/60">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
                 {band.label}
               </p>
-              <p className="text-sm text-white/50">{band.note}</p>
+              <p className="text-[10px] text-white/40">{band.note}</p>
             </div>
             <ol className="space-y-1.5">
               {ladder.rungs

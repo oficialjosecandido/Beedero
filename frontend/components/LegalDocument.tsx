@@ -130,14 +130,14 @@ function renderBlock(block: string, key: string): React.ReactNode {
     const text = trimmed.replace(/^#{1,3}\s/, "");
     if (level === 1) {
       return (
-        <h1 key={key} className="mt-2 text-4xl font-black uppercase tracking-[-0.05em]">
+        <h1 key={key} className="mt-2 text-4xl font-black uppercase tracking-[-0.02em]">
           {inlineNodes(text, key)}
         </h1>
       );
     }
     if (level === 2) {
       return (
-        <h2 key={key} className="mt-10 text-2xl font-black tracking-[-0.03em]">
+        <h2 key={key} className="mt-10 text-2xl font-black tracking-[-0.02em]">
           {inlineNodes(text, key)}
         </h2>
       );
@@ -198,7 +198,7 @@ export function LegalDocument({
   return (
     <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
       <nav className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" className="text-lg font-black uppercase tracking-[-0.04em]">
+        <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
           Beedero
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-sm font-semibold uppercase tracking-[-0.02em] text-beedero-black/60">

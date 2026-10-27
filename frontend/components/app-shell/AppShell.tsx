@@ -253,7 +253,7 @@ export function AppShell({ children, orgs = [] }: Props) {
     <div className="min-h-screen bg-app-bg text-[#f4f4f1]">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-app-bg/95 px-4 backdrop-blur sm:px-6">
         <div className="mx-auto flex h-[70px] w-full max-w-[1440px] items-center gap-5">
-          <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.055em]">
+          <Link href="/feed" className="text-xl font-black uppercase tracking-[-0.02em]">
             beedero<span className="text-beedero-yellow">.</span>
           </Link>
 

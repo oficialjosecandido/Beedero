@@ -27,7 +27,7 @@ export function PageHeading({
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
           {eyebrow}
         </p>
-        <h1 className="mt-2 text-[2.5rem] font-black leading-none tracking-[-0.045em] sm:text-5xl">
+        <h1 className="mt-2 text-[2.5rem] font-black leading-none tracking-[-0.02em] sm:text-5xl">
           {title}
         </h1>
       </div>
@@ -63,7 +63,7 @@ export function PanelHeader({
     <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
       <div className="flex min-w-0 items-center gap-2">
         {icon}
-        <h2 className="truncate text-base font-black tracking-[-0.03em]">{title}</h2>
+        <h2 className="truncate text-base font-black tracking-[-0.02em]">{title}</h2>
       </div>
       {trailing}
     </div>
@@ -119,13 +119,13 @@ export const inputDark =
 export const labelDark = "text-[10px] font-black uppercase tracking-[0.12em] text-white/40";
 
 export const btnPrimary =
-  "flex items-center gap-2 bg-beedero-yellow px-4 py-2.5 text-xs font-black text-beedero-black transition hover:opacity-90 disabled:cursor-default disabled:opacity-40";
+  "flex h-9 items-center gap-2 bg-beedero-yellow px-4 text-xs font-black text-beedero-black transition hover:opacity-90 disabled:cursor-default disabled:opacity-40";
 
 export const btnGhost =
-  "flex items-center gap-2 border border-white/15 px-4 py-2.5 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow disabled:cursor-default disabled:opacity-40";
+  "flex h-9 items-center gap-2 border border-white/15 px-4 text-xs font-bold text-white/70 transition hover:border-beedero-yellow hover:text-beedero-yellow disabled:cursor-default disabled:opacity-40";
 
 export const btnOutlineYellow =
-  "flex items-center gap-2 border border-beedero-yellow/60 px-4 py-2.5 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black disabled:cursor-default disabled:opacity-40";
+  "flex h-9 items-center gap-2 border border-beedero-yellow/60 px-4 text-xs font-bold text-beedero-yellow transition hover:bg-beedero-yellow hover:text-beedero-black disabled:cursor-default disabled:opacity-40";
 
 /** Initials avatar, used wherever a person has no picture. */
 export function Initials({ name, className = "" }: { name: string; className?: string }) {

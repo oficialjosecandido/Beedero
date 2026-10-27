@@ -84,7 +84,7 @@ export function OrgHero({
             <p className={`${orgEyebrowClass} text-beedero-yellow`}>
               {isVerified ? "Verified organisation" : isDraft ? "Draft organisation" : "Organisation"}
             </p>
-            <h1 className="mt-1 text-4xl font-black tracking-[-0.055em] sm:text-5xl">{name}</h1>
+            <h1 className="mt-1 text-4xl font-black tracking-[-0.02em] sm:text-5xl">{name}</h1>
             {oneLiner && <p className="mt-2 max-w-xl text-sm text-white/65">{oneLiner}</p>}
             {meta.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-white/45">

@@ -55,8 +55,8 @@ export default async function DiscoveryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  // Figma defaults to organisations — keep "people" only when explicitly asked.
-  const tab = params.tab === "people" ? "people" : "organizations";
+  // People first in Looking for — organisations only when explicitly asked.
+  const tab = params.tab === "organizations" ? "organizations" : "people";
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.city) query.set("city", params.city);

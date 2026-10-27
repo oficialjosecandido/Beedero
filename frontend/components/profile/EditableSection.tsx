@@ -121,7 +121,7 @@ export function EditableSection({
           )}
           <h2
             id={`${id}-title`}
-            className={hideTitle ? "sr-only" : "mt-1 text-2xl font-black tracking-[-0.04em]"}
+            className={hideTitle ? "sr-only" : "mt-1 text-2xl font-black tracking-[-0.02em]"}
           >
             {title}
           </h2>
@@ -134,7 +134,7 @@ export function EditableSection({
               type="button"
               onClick={() => request(id)}
               aria-label={`Edit ${title}`}
-              className="grid size-11 place-items-center border border-white/10 text-white/55 transition hover:border-beedero-yellow hover:text-beedero-yellow sm:size-9"
+              className="grid size-9 place-items-center border border-white/10 text-white/55 transition hover:border-beedero-yellow hover:text-beedero-yellow"
             >
               <Pencil size={14} aria-hidden />
             </button>

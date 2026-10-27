@@ -161,7 +161,7 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className={profileSectionHeadingClass}>Timeline tree</h2>
-          <p className="mt-2 text-lg font-black tracking-[-0.03em] text-white">
+          <p className="mt-2 text-lg font-black tracking-[-0.02em] text-white">
             The shape of this record.
           </p>
         </div>

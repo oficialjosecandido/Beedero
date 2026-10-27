@@ -289,7 +289,7 @@ export function FeedComposer({
           <section className="w-full max-w-xl border border-white/15 bg-[#15181f] text-[#f4f4f1]">
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
-                <h2 className="text-3xl font-black tracking-[-0.045em]">Make it useful.</h2>
+                <h2 className="text-3xl font-black tracking-[-0.02em]">Make it useful.</h2>
                 <p className="mt-1 text-sm text-white/40">
                   Share an update with the people who matter.
                 </p>

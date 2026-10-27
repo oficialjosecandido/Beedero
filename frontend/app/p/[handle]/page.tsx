@@ -124,7 +124,7 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
               )}
               <div className="min-w-0 pt-0.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-[1.65rem]">
+                  <h1 className="text-2xl font-black tracking-[-0.02em] text-white sm:text-[1.65rem]">
                     {person.full_name}
                   </h1>
                   {person.is_verified && (

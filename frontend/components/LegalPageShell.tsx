@@ -10,7 +10,7 @@ export function LegalPageShell({
   return (
     <div className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
       <nav className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" className="text-lg font-black uppercase tracking-[-0.04em]">
+        <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
           Beedero
         </Link>
         <Link

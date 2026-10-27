@@ -167,7 +167,7 @@ export function NetworkPrinciples({
 
   return (
     <section className="h-fit border border-white/10 bg-white/[0.025] p-5">
-      <h2 className="text-2xl font-black tracking-[-0.03em]">Connection principles</h2>
+      <h2 className="text-2xl font-black tracking-[-0.02em]">Connection principles</h2>
       <p className="mt-4 text-sm leading-6 text-white/60">
         Beedero keeps attention and trust distinct. Following shapes your feed; connections open a
         shared relationship and messaging.

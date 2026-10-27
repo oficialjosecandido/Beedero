@@ -158,7 +158,7 @@ export function IdentitySection({
           <Avatar profile={profile} name={name} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate text-3xl font-black tracking-[-0.05em] sm:text-4xl">{name}</p>
+              <p className="truncate text-3xl font-black tracking-[-0.02em] sm:text-4xl">{name}</p>
               {profile.is_verified && <Seal />}
             </div>
             {profile.headline ? (

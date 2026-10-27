@@ -263,9 +263,32 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
 
-CSRF_TRUSTED_ORIGINS = [
-    o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o
-]
+def _origin_of(url: str) -> str:
+    parts = urlparse(url)
+    if parts.scheme in {"http", "https"} and parts.netloc:
+        return f"{parts.scheme}://{parts.netloc}"
+    return ""
+
+
+# Django 4+ rejects HTTPS POSTs (including /admin/login/) whose Origin is not
+# listed here. Always fold in BACKEND_URL / FRONTEND_URL and, in production,
+# https://<each ALLOWED_HOST> so admin keeps working even when the env var is
+# incomplete — Azure App Service is the usual place that gets forgotten.
+_csrf_origins = {
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+for _url in (BACKEND_URL, FRONTEND_URL):
+    _origin = _origin_of(_url)
+    if _origin:
+        _csrf_origins.add(_origin)
+if not DEBUG:
+    for _host in ALLOWED_HOSTS:
+        _host = _host.strip()
+        if _host and _host not in {"*", "localhost", "127.0.0.1", "[::1]"}:
+            _csrf_origins.add(f"https://{_host}")
+CSRF_TRUSTED_ORIGINS = sorted(_csrf_origins)
 
 REST_FRAMEWORK = {
     # Firebase Authentication is the only authentication path. It replaced

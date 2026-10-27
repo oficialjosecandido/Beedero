@@ -62,7 +62,7 @@ function FeedMessagesSidebar() {
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
           <MessageCircle size={16} className="text-beedero-yellow" aria-hidden />
-          <h2 className="text-base font-black tracking-[-0.03em]">Messages</h2>
+          <h2 className="text-base font-black tracking-[-0.02em]">Messages</h2>
           {unreadTotal > 0 && (
             <span className="ml-1 rounded-full bg-beedero-yellow px-1.5 py-0.5 text-[9px] font-black text-beedero-black">
               {unreadTotal > 9 ? "9+" : unreadTotal}
@@ -159,7 +159,7 @@ function SuggestedConnections({ organizations }: { organizations: SuggestedOrg[]
   return (
     <section className="border border-white/10 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-black tracking-[-0.03em]">Suggested connections</h2>
+        <h2 className="text-base font-black tracking-[-0.02em]">Suggested connections</h2>
         <Link href="/discovery" className="text-xs font-bold text-beedero-yellow">
           See all
         </Link>
@@ -204,7 +204,7 @@ function UpcomingEvents({ events }: { events: CalendarEvent[] }) {
     <section className="border border-white/10">
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
         <CalendarDays size={14} className="text-beedero-yellow" aria-hidden />
-        <h2 className="text-base font-black tracking-[-0.03em]">Upcoming events</h2>
+        <h2 className="text-base font-black tracking-[-0.02em]">Upcoming events</h2>
       </div>
       {events.length === 0 ? (
         <p className="px-4 py-5 text-xs text-white/40">No upcoming events yet.</p>

@@ -210,7 +210,7 @@ export function InsightsTabs({
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
                 What you published
               </p>
-              <h2 className="mt-2 text-3xl font-black tracking-[-0.045em]">Your posts.</h2>
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.02em]">Your posts.</h2>
               <p className="mt-2 max-w-md text-xs leading-5 text-white/45">
                 Milestones, events and updates you&apos;ve shared on the feed.
               </p>

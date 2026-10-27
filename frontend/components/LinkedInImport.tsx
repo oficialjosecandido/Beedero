@@ -51,7 +51,7 @@ const TONES: Record<
   dark: {
     shell: "border border-white/10 bg-white/[0.025] p-5 sm:p-6",
     eyebrow: "text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow",
-    title: "mt-2 text-xl font-black tracking-[-0.03em]",
+    title: "mt-2 text-xl font-black tracking-[-0.02em]",
     body: "mt-1 text-xs leading-5 text-white/55",
     note: "border-l-2 border-beedero-yellow pl-3 text-xs leading-5 text-white/55",
     link: "font-bold text-beedero-yellow underline underline-offset-2",

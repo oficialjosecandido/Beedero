@@ -30,7 +30,7 @@ export default function PipelinePage() {
         Private investor workspace
       </p>
       <div className="mb-8 mt-2 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black tracking-[-0.045em]">Pipeline.</h1>
+        <h1 className="text-4xl font-black tracking-[-0.02em]">Pipeline.</h1>
         <button
           type="button"
           className="bg-beedero-yellow px-4 py-2.5 text-xs font-black text-beedero-black"

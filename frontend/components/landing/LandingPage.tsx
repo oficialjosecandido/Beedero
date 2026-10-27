@@ -22,7 +22,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
   return (
     <main className="min-h-screen overflow-hidden bg-[#070806] text-white selection:bg-beedero-yellow selection:text-beedero-black">
       <header className="relative z-10 mx-auto flex max-w-[1440px] items-center justify-between px-5 pb-5 pt-[max(3rem,env(safe-area-inset-top))] sm:px-8 sm:py-5">
-        <Link href="/" className="text-lg font-black uppercase tracking-[-0.07em]">
+        <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
           Beedero
         </Link>
         <nav className="hidden gap-7 text-xs font-bold uppercase text-white/65 md:flex">
@@ -53,7 +53,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
       */}
       <noscript>
         <section className="px-5 pb-12 pt-14 sm:px-8">
-          <h1 className="whitespace-pre-line text-[clamp(3.15rem,15vw,7.4rem)] font-black uppercase leading-[0.88] tracking-[-0.052em]">
+          <h1 className="whitespace-pre-line text-[clamp(3.15rem,15vw,7.4rem)] font-black uppercase leading-[0.88] tracking-[-0.02em]">
             Build the thing.
             {"\n"}
             Find your people.
@@ -69,7 +69,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
       >
         <div className="mx-auto max-w-[1440px]">
           <div className="flex flex-wrap items-end justify-between gap-5">
-            <h2 className="max-w-xl text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-6xl">
+            <h2 className="max-w-xl text-4xl font-black uppercase leading-[0.84] tracking-[-0.02em] sm:text-6xl">
               One network.
               <br />
               Four ways forward.
@@ -84,10 +84,10 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
                 key={title}
                 className="group border-b border-black/20 p-5 last:border-0 sm:border-r sm:[&:nth-child(2)]:border-r-0 lg:border-b-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0"
               >
-                <p className="text-4xl font-black tracking-[-0.08em] text-beedero-black/35">
+                <p className="text-4xl font-black tracking-[-0.02em] text-beedero-black/35">
                   {number}
                 </p>
-                <h3 className="mt-9 text-lg font-black uppercase tracking-[-0.04em]">{title}</h3>
+                <h3 className="mt-9 text-lg font-black uppercase tracking-[-0.02em]">{title}</h3>
                 <p className="mt-3 max-w-[220px] text-sm leading-6 text-beedero-black/65">{copy}</p>
               </article>
             ))}
@@ -103,7 +103,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
             Trust, on your terms
           </p>
-          <h2 className="mt-5 text-5xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-7xl">
+          <h2 className="mt-5 text-5xl font-black uppercase leading-[0.84] tracking-[-0.02em] sm:text-7xl">
             Share enough.
             <br />
             <span className="text-beedero-yellow">Keep what matters.</span>
@@ -123,7 +123,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
                 Results
               </p>
-              <h2 className="mt-4 max-w-xl text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-5xl">
+              <h2 className="mt-4 max-w-xl text-4xl font-black uppercase leading-[0.84] tracking-[-0.02em] sm:text-5xl">
                 Cases with outcomes.
               </h2>
             </div>
@@ -141,7 +141,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-beedero-yellow">
                   {study.role}
                 </p>
-                <h3 className="mt-3 text-lg font-black tracking-[-0.03em]">{study.headline}</h3>
+                <h3 className="mt-3 text-lg font-black tracking-[-0.02em]">{study.headline}</h3>
                 <p className="mt-3 text-sm leading-6 text-white/55">{study.summary}</p>
                 <p className="mt-6 text-2xl font-black text-beedero-yellow">{study.metric}</p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
@@ -159,7 +159,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
               FAQ
             </p>
-            <h2 className="mt-4 text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-5xl">
+            <h2 className="mt-4 text-4xl font-black uppercase leading-[0.84] tracking-[-0.02em] sm:text-5xl">
               Straight answers.
             </h2>
             <p className="mt-5 max-w-sm text-sm leading-6 text-white/55">
@@ -197,7 +197,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-black/55">
               Your next move starts here
             </p>
-            <h2 className="mt-4 text-4xl font-black uppercase leading-[0.84] tracking-[-0.075em] sm:text-6xl">
+            <h2 className="mt-4 text-4xl font-black uppercase leading-[0.84] tracking-[-0.02em] sm:text-6xl">
               Make yourself
               <br />
               easy to find.
@@ -215,7 +215,7 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
       <footer className="px-5 py-9 pb-28 sm:px-8 md:pb-9">
         <div className="mx-auto grid max-w-[1440px] gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
-            <p className="text-lg font-black uppercase tracking-[-0.07em]">Beedero</p>
+            <p className="text-lg font-black uppercase tracking-[-0.02em]">Beedero</p>
             <p className="mt-2 text-xs text-white/45">
               A professional network built to move people forward. {SUPPORT_RESPONSE_SLA}
             </p>
