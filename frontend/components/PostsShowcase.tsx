@@ -25,18 +25,20 @@ export function PostsShowcase({ posts }: { posts: Post[] }) {
   const hiddenCount = posts.length - VISIBLE_COUNT;
 
   return (
-    <section className="mt-8 border-t border-zinc-100 pt-8">
-      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Activity</h2>
+    <section className="mt-8 border-t border-white/10 pt-8">
+      <h2 className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
+        Activity
+      </h2>
       <ul className="mt-3 flex flex-col gap-3">
         {visible.map((post) => (
-          <li key={post.id} className="rounded-xl border border-beedero-border/70 px-4 py-3">
-            <p className="font-semibold text-zinc-900">{post.title}</p>
+          <li key={post.id} className="border border-white/10 bg-white/[0.025] px-4 py-3">
+            <p className="font-bold text-white">{post.title}</p>
             {post.body && (
-              <p className="mt-1 text-sm text-zinc-600">
+              <p className="mt-1 text-sm text-white/65">
                 <RichText body={post.body} mentions={post.mentions} />
               </p>
             )}
-            <p className="mt-1 text-xs text-subtle">{formatDate(post.occurred_at)}</p>
+            <p className="mt-1 text-xs text-white/40">{formatDate(post.occurred_at)}</p>
           </li>
         ))}
       </ul>
@@ -44,7 +46,7 @@ export function PostsShowcase({ posts }: { posts: Post[] }) {
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="mt-3 text-xs font-semibold text-beedero-black underline underline-offset-2"
+          className="mt-3 text-xs font-bold text-beedero-yellow underline underline-offset-2"
         >
           Ver mais ({hiddenCount})
         </button>

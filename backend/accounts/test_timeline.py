@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from django.utils import timezone
 
 from accounts.models import InvestorProfile, User
 from affiliations.models import Affiliation, RoleType
@@ -20,13 +21,27 @@ def org(db):
     return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
 
 
+@pytest.fixture
+def admin(db):
+    """Somebody other than `user`. Only a confirmation by another person is
+    attestation, so roster rows need one to read as verified — see
+    OrgMembership.attested_by_other."""
+    return User.objects.create_user(username="admin", email="admin@example.com", password="x")
+
+
 @pytest.mark.django_db
 class TestVerifiedFactsCount:
     def test_zero_for_person_with_no_facts(self, user):
         assert verified_facts_count(user) == 0
 
-    def test_counts_membership_verified_affiliation_and_credential(self, user, org):
-        OrgMembership.objects.create(org=org, user=user, role=OrgMembership.Role.MEMBER)
+    def test_counts_membership_verified_affiliation_and_credential(self, user, org, admin):
+        OrgMembership.objects.create(
+            org=org,
+            user=user,
+            role=OrgMembership.Role.MEMBER,
+            details_confirmed_by=admin,
+            details_confirmed_at=timezone.now(),
+        )
         Affiliation.objects.create(
             user=user,
             org=org,
@@ -72,10 +87,24 @@ class TestVerifiedFactsCount:
 
         assert verified_facts_count(user) == 0
 
+    def test_excludes_membership_nobody_else_confirmed(self, user, org):
+        """"Independently verified" means somebody else attested to it. A row
+        you confirmed yourself — which is what creating an org hands you — and
+        a row that predates the confirmer column are both unattested."""
+        OrgMembership.objects.create(
+            org=org,
+            user=user,
+            role=OrgMembership.Role.OWNER,
+            details_confirmed_by=user,
+            details_confirmed_at=timezone.now(),
+        )
+
+        assert verified_facts_count(user) == 0
+
 
 @pytest.mark.django_db
 class TestPersonTimeline:
-    def test_draft_membership_shows_as_verified_without_public_slug(self, user):
+    def test_draft_membership_shows_as_verified_without_public_slug(self, user, admin):
         profile, _ = InvestorProfile.objects.get_or_create(user=user)
         draft_org = Organization.objects.create(
             slug="bidroom", name="BidRoom", status=Organization.Status.DRAFT
@@ -86,6 +115,8 @@ class TestPersonTimeline:
             role=OrgMembership.Role.OWNER,
             title="Founder",
             started_on=date(2024, 1, 1),
+            details_confirmed_by=admin,
+            details_confirmed_at=timezone.now(),
         )
 
         bands = person_timeline(profile, viewer=user)
@@ -97,13 +128,43 @@ class TestPersonTimeline:
         assert bands[0]["verified_via"] == "org_membership"
         assert bands[0]["org_slug"] is None
 
-    def test_self_declared_duplicate_of_membership_is_hidden(self, user):
+    def test_a_membership_only_the_person_confirmed_reads_as_self_declared(self, user):
+        """Creating an org makes you its owner with a confirmed roster row, so
+        a confirmed row alone proves nothing. The band must say so, or the
+        badge would claim more than rung 6 of the ladder grants."""
+        profile, _ = InvestorProfile.objects.get_or_create(user=user)
+        org = Organization.objects.create(
+            slug="bidroom", name="BidRoom", status=Organization.Status.LIVE
+        )
+        OrgMembership.objects.create(
+            org=org,
+            user=user,
+            role=OrgMembership.Role.OWNER,
+            title="Founder",
+            started_on=date(2024, 1, 1),
+            details_confirmed_by=user,
+            details_confirmed_at=timezone.now(),
+        )
+
+        bands = person_timeline(profile, viewer=user)
+
+        assert len(bands) == 1
+        assert bands[0]["title"] == "Founder"
+        assert bands[0]["verified"] is False
+        assert bands[0]["verified_via"] is None
+
+    def test_self_declared_duplicate_of_membership_is_hidden(self, user, admin):
         from accounts.models import SelfDeclaredExperience
 
         profile, _ = InvestorProfile.objects.get_or_create(user=user)
         org = Organization.objects.create(slug="bidroom", name="BidRoom", status=Organization.Status.LIVE)
         OrgMembership.objects.create(
-            org=org, user=user, role=OrgMembership.Role.OWNER, started_on=date(2024, 1, 1)
+            org=org,
+            user=user,
+            role=OrgMembership.Role.OWNER,
+            started_on=date(2024, 1, 1),
+            details_confirmed_by=admin,
+            details_confirmed_at=timezone.now(),
         )
         SelfDeclaredExperience.objects.create(
             user=user, org_name="BidRoom", role="Founder", started_on=date(2024, 1, 1)

@@ -20,6 +20,11 @@ type PersonProfileActionsProps = {
   canRequest?: boolean;
 };
 
+const primaryBtn =
+  "inline-flex items-center gap-2 bg-beedero-yellow px-5 py-2.5 text-sm font-black text-beedero-black transition hover:bg-white disabled:opacity-50";
+const ghostBtn =
+  "inline-flex items-center gap-2 border border-white/20 px-5 py-2.5 text-sm font-bold text-white/70";
+
 export function PersonProfileActions({
   userId,
   name,
@@ -62,13 +67,8 @@ export function PersonProfileActions({
 
   if (canMessage) {
     return (
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={handleMessage}
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-full bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
-        >
+      <div className="flex flex-wrap gap-3">
+        <button type="button" onClick={handleMessage} disabled={isPending} className={primaryBtn}>
           <FaRegPaperPlane className="text-sm" aria-hidden />
           {isPending ? "Opening…" : `Message ${name.split(" ")[0]}`}
         </button>
@@ -78,21 +78,16 @@ export function PersonProfileActions({
 
   if (sent || connectionStatus === "pending_sent") {
     return (
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full border border-beedero-border px-5 py-2.5 text-sm font-semibold text-zinc-500">
-          Request sent
-        </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={ghostBtn}>Request sent</span>
       </div>
     );
   }
 
   if (connectionStatus === "pending_received") {
     return (
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Link
-          href="/network"
-          className="inline-flex items-center gap-2 rounded-full bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
-        >
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href="/network" className={primaryBtn}>
           Respond to their request
         </Link>
       </div>
@@ -101,20 +96,17 @@ export function PersonProfileActions({
 
   if (locked) {
     return (
-      <div className="mt-6 rounded-2xl border-2 border-beedero-yellow bg-beedero-yellow/10 p-4" role="status">
-        <p className="text-sm font-bold text-beedero-black">{LOCKED_TITLE}</p>
-        <p className="mt-1 text-sm leading-6 text-zinc-600">{LOCKED_BODY}</p>
+      <div className="border border-beedero-yellow/40 bg-beedero-yellow/[0.08] p-4" role="status">
+        <p className="text-sm font-black text-beedero-yellow">{LOCKED_TITLE}</p>
+        <p className="mt-1 text-sm leading-6 text-white/65">{LOCKED_BODY}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 rounded-full bg-beedero-black px-5 py-2.5 text-sm font-bold text-beedero-yellow hover:bg-beedero-yellow hover:text-beedero-black"
-          >
+          <Link href="/profile" className={primaryBtn}>
             Finish my profile
           </Link>
           <button
             type="button"
             onClick={() => setLocked(false)}
-            className="text-sm font-semibold text-zinc-500 hover:text-beedero-black"
+            className="text-sm font-bold text-white/50 transition hover:text-white"
           >
             Not now
           </button>
@@ -124,7 +116,7 @@ export function PersonProfileActions({
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {showNote ? (
         <div className="flex flex-col gap-2">
           <textarea
@@ -132,33 +124,33 @@ export function PersonProfileActions({
             onChange={(e) => setNote(e.target.value.slice(0, 300))}
             placeholder={`Say hello to ${name.split(" ")[0]}…`}
             rows={3}
-            className="w-full rounded-xl border border-beedero-border p-3 text-sm text-beedero-black focus:border-beedero-black focus:outline-none"
+            className="w-full border border-white/15 bg-app-elevated p-3 text-sm text-white placeholder:text-white/35 focus:border-beedero-yellow focus:outline-none"
           />
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleSendRequest}
               disabled={isPending}
-              className="inline-flex items-center gap-2 rounded-full bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white disabled:opacity-50"
+              className={primaryBtn}
             >
               {isPending ? "Sending…" : "Send request"}
             </button>
             <button
               type="button"
               onClick={() => setShowNote(false)}
-              className="text-sm font-semibold text-zinc-500 hover:text-beedero-black"
+              className="text-sm font-bold text-white/50 transition hover:text-white"
             >
               Cancel
             </button>
           </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => (canRequest ? setShowNote(true) : setLocked(true))}
-            className="inline-flex w-fit items-center gap-2 rounded-full bg-beedero-yellow px-5 py-2.5 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
+            className={`${primaryBtn} w-fit`}
           >
             <FaRegPaperPlane className="text-sm" aria-hidden />
             Ask to connect

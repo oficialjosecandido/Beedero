@@ -74,8 +74,19 @@ def member_update_details(
     membership.started_on = started_on
     membership.ended_on = ended_on
     membership.details_status = OrgMembership.DetailsStatus.PENDING
+    # The old attestation was for the old details; it does not carry over.
+    membership.details_confirmed_by = None
+    membership.details_confirmed_at = None
     membership.save(
-        update_fields=["title", "description", "started_on", "ended_on", "details_status"]
+        update_fields=[
+            "title",
+            "description",
+            "started_on",
+            "ended_on",
+            "details_status",
+            "details_confirmed_by",
+            "details_confirmed_at",
+        ]
     )
     sync_membership_skills(membership, skills)
 
@@ -110,7 +121,11 @@ def confirm_membership_details(membership: OrgMembership, by_admin) -> OrgMember
         raise ValidationError({"status": "Only pending team details can be confirmed."})
 
     membership.details_status = OrgMembership.DetailsStatus.CONFIRMED
-    membership.save(update_fields=["details_status"])
+    membership.details_confirmed_by = by_admin
+    membership.details_confirmed_at = timezone.now()
+    membership.save(
+        update_fields=["details_status", "details_confirmed_by", "details_confirmed_at"]
+    )
     Notification.objects.filter(
         aggregate_key=f"membership_details:{membership.id}",
         read_at__isnull=True,

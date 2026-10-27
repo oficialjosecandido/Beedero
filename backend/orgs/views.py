@@ -228,7 +228,15 @@ class OrgListCreateView(APIView):
         if org is None:
             return Response({"detail": "Could not create organization, please try again."}, status=409)
 
-        OrgMembership.objects.create(org=org, user=request.user, role=OrgMembership.Role.OWNER)
+        # Founder's own row: confirmed, but self-attested — recording that keeps
+        # it from reading as an organisation vouching for them.
+        OrgMembership.objects.create(
+            org=org,
+            user=request.user,
+            role=OrgMembership.Role.OWNER,
+            details_confirmed_by=request.user,
+            details_confirmed_at=timezone.now(),
+        )
         OrgFollow.objects.get_or_create(user=request.user, org=org)
         return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
@@ -637,10 +645,12 @@ class OrgMemberDetailView(OrgLookupMixin, APIView):
         if not updated_fields:
             return Response({"detail": "Nothing to update."}, status=400)
 
-        # Admin edits re-attest the details.
+        # Admin edits re-attest the details, in this admin's name.
         if "title" in updated_fields or "started_on" in updated_fields or "ended_on" in updated_fields:
             member.details_status = OrgMembership.DetailsStatus.CONFIRMED
-            updated_fields.append("details_status")
+            member.details_confirmed_by = request.user
+            member.details_confirmed_at = timezone.now()
+            updated_fields += ["details_status", "details_confirmed_by", "details_confirmed_at"]
 
         member.save(update_fields=updated_fields)
         return Response(OrgMembershipSerializer(member).data)
@@ -813,7 +823,14 @@ class OrgInviteAcceptView(APIView):
                 return Response({"detail": "This invite link has expired."}, status=400)
             if invite.max_uses is not None and invite.uses_count >= invite.max_uses:
                 return Response({"detail": "This invite link has reached its usage limit."}, status=400)
-            OrgMembership.objects.create(org=invite.org, user=request.user, role=invite.role)
+            # Whoever wrote the invite is attesting to this roster row.
+            OrgMembership.objects.create(
+                org=invite.org,
+                user=request.user,
+                role=invite.role,
+                details_confirmed_by=invite.created_by,
+                details_confirmed_at=timezone.now() if invite.created_by_id else None,
+            )
             OrgFollow.objects.get_or_create(user=request.user, org=invite.org)
             invite.uses_count += 1
             if invite.max_uses is not None and invite.uses_count >= invite.max_uses:

@@ -73,6 +73,10 @@ type PublicPerson = {
 
 const COUNTRY_NAMES = Object.fromEntries(COUNTRIES);
 
+const sectionHeading =
+  "text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow";
+const cardClass = "border border-white/10 bg-white/[0.025] px-4 py-3";
+
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   try {
@@ -104,37 +108,37 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
       <PersonProfileJsonLd person={person} />
       <main className="flex flex-1 justify-center px-4 py-12 lg:px-6 lg:py-16">
         <div className="w-full max-w-2xl">
-          <div className="rounded-3xl border-2 border-beedero-border bg-beedero-white p-6 shadow-sm sm:p-8">
+          <div className="border border-beedero-yellow/40 bg-app-surface p-6 sm:p-8">
             <header className="flex items-start gap-5">
               {person.profile_picture ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={person.profile_picture}
                   alt={`${person.full_name} profile photo`}
-                  className="size-20 shrink-0 rounded-full object-cover ring-2 ring-beedero-border/50"
+                  className="size-20 shrink-0 rounded-full object-cover ring-2 ring-beedero-yellow/40"
                 />
               ) : (
-                <span className="flex size-20 shrink-0 items-center justify-center rounded-full bg-beedero-yellow/35 text-3xl font-extrabold text-beedero-black ring-2 ring-beedero-border/50">
+                <span className="flex size-20 shrink-0 items-center justify-center rounded-full bg-beedero-yellow text-3xl font-black text-beedero-black ring-2 ring-beedero-yellow/40">
                   {person.full_name.charAt(0)}
                 </span>
               )}
               <div className="min-w-0 pt-0.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 sm:text-[1.65rem]">
+                  <h1 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-[1.65rem]">
                     {person.full_name}
                   </h1>
                   {person.is_verified && (
-                    <span className="rounded-full bg-beedero-yellow px-2.5 py-0.5 text-xs font-bold text-beedero-black">
+                    <span className="bg-beedero-yellow px-2.5 py-0.5 text-xs font-black text-beedero-black">
                       Verified
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm font-semibold text-zinc-500">{formatAtHandle(person.handle)}</p>
+                <p className="mt-1 text-sm font-semibold text-white/45">{formatAtHandle(person.handle)}</p>
                 {person.headline && (
-                  <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">{person.headline}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-white/65">{person.headline}</p>
                 )}
                 {(person.city || person.country) && (
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-white/40">
                     {[person.city, person.country && (COUNTRY_NAMES[person.country] ?? person.country)]
                       .filter(Boolean)
                       .join(" · ")}
@@ -144,11 +148,11 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
             </header>
 
             <section className="mt-6">
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Intro</h2>
+              <h2 className={sectionHeading}>Intro</h2>
               {person.bio ? (
-                <p className="mt-2 text-sm leading-7 text-zinc-700">{person.bio}</p>
+                <p className="mt-2 text-sm leading-7 text-white/75">{person.bio}</p>
               ) : (
-                <p className="mt-2 text-sm text-zinc-400">No intro</p>
+                <p className="mt-2 text-sm text-white/40">No intro</p>
               )}
             </section>
 
@@ -165,141 +169,133 @@ export default async function PublicPersonPage({ params }: { params: Promise<{ h
             )}
 
             {attestations.length > 0 && (
-              <section className="mt-8 border-t border-zinc-100 pt-8">
-                <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
-                  Platform-attested
-                </h2>
-              <ul className="mt-3 flex flex-col gap-2">
-                {attestations.map((item) => (
-                  <li
-                    key={`${item.kind}-${item.label}`}
-                    className="flex items-center gap-3 rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3"
-                  >
-                    {item.org_slug ? (
-                      item.org_logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img loading="lazy"
-                          src={item.org_logo}
-                          alt={`${item.org_name ?? item.label} logo`}
-                          className="size-10 shrink-0 rounded-xl border border-beedero-border/60 object-cover"
-                        />
-                      ) : (
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-beedero-border/60 bg-beedero-white text-sm font-bold text-beedero-black">
-                          {(item.org_name ?? item.label).charAt(0).toUpperCase()}
-                        </span>
-                      )
-                    ) : null}
-                    <div className="min-w-0 flex-1">
+              <section className="mt-8 border-t border-white/10 pt-8">
+                <h2 className={sectionHeading}>Platform-attested</h2>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {attestations.map((item) => (
+                    <li key={`${item.kind}-${item.label}`} className={`flex items-center gap-3 ${cardClass}`}>
                       {item.org_slug ? (
-                        <Link
-                          href={`/o/${item.org_slug}`}
-                          className="font-semibold text-beedero-black hover:underline"
-                        >
-                          {item.label}
-                        </Link>
-                      ) : (
-                        <p className="font-semibold text-beedero-black">{item.label}</p>
-                      )}
-                      <p className="text-xs text-zinc-500">{item.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+                        item.org_logo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            loading="lazy"
+                            src={item.org_logo}
+                            alt={`${item.org_name ?? item.label} logo`}
+                            className="size-10 shrink-0 border border-white/15 object-cover"
+                          />
+                        ) : (
+                          <span className="flex size-10 shrink-0 items-center justify-center border border-white/15 bg-beedero-yellow text-sm font-black text-beedero-black">
+                            {(item.org_name ?? item.label).charAt(0).toUpperCase()}
+                          </span>
+                        )
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        {item.org_slug ? (
+                          <Link
+                            href={`/o/${item.org_slug}`}
+                            className="font-bold text-white hover:text-beedero-yellow"
+                          >
+                            {item.label}
+                          </Link>
+                        ) : (
+                          <p className="font-bold text-white">{item.label}</p>
+                        )}
+                        <p className="text-xs text-white/45">{item.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-          {credentials && credentials.length > 0 && (
-            <section className="mt-8 border-t border-zinc-100 pt-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
-                Professional credentials
-              </h2>
-              <ul className="mt-3 flex flex-col gap-2">
-                {credentials.map((credential) => (
-                  <li
-                    key={`${credential.issuer}-${credential.identifier}`}
-                    className="rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3"
-                  >
-                    <p className="font-semibold text-beedero-black">{credential.title}</p>
-                    <p className="text-xs text-zinc-500">
-                      {credential.identifier} confirmed with {credential.issuer}
-                      {credential.verified_at ? ` on ${formatDate(credential.verified_at)}` : ""}
+            {credentials && credentials.length > 0 && (
+              <section className="mt-8 border-t border-white/10 pt-8">
+                <h2 className={sectionHeading}>Professional credentials</h2>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {credentials.map((credential) => (
+                    <li
+                      key={`${credential.issuer}-${credential.identifier}`}
+                      className={cardClass}
+                    >
+                      <p className="font-bold text-white">{credential.title}</p>
+                      <p className="text-xs text-white/45">
+                        {credential.identifier} confirmed with {credential.issuer}
+                        {credential.verified_at ? ` on ${formatDate(credential.verified_at)}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <PersonTimelineTree bands={timeline} />
+
+            <PersonTimeline bands={timeline} />
+
+            {advisor?.is_available && (
+              <section className="mt-8 border-t border-white/10 pt-8">
+                <h2 className={sectionHeading}>Advisory &amp; board</h2>
+                <div className={`mt-3 ${cardClass}`}>
+                  <p className="text-sm font-bold text-white">Open to advisory work</p>
+                  {advisor.engagement_types.length > 0 && (
+                    <p className="mt-1 text-xs text-white/45">
+                      {advisor.engagement_types.map(engagementLabel).join(", ")}
                     </p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <PersonTimelineTree bands={timeline} />
-
-          <PersonTimeline bands={timeline} />
-
-          {advisor?.is_available && (
-            <section className="mt-8 border-t border-zinc-100 pt-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">
-                Advisory &amp; board
-              </h2>
-              <div className="mt-3 rounded-xl border border-beedero-border/70 bg-zinc-50 px-4 py-3">
-                <p className="text-sm font-semibold text-beedero-black">Open to advisory work</p>
-                {advisor.engagement_types.length > 0 && (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {advisor.engagement_types.map(engagementLabel).join(", ")}
-                  </p>
-                )}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {advisor.expertise.map((value) => (
-                    <span
-                      key={`expertise-${value}`}
-                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
-                    >
-                      {expertiseLabel(value)}
-                    </span>
-                  ))}
-                  {advisor.stages.map((value) => (
-                    <span
-                      key={`stage-${value}`}
-                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
-                    >
-                      {stageLabel(value)}
-                    </span>
-                  ))}
-                  {advisor.sectors.map((value) => (
-                    <span
-                      key={`sector-${value}`}
-                      className="rounded-full bg-beedero-white px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-beedero-border/70"
-                    >
-                      {sectorLabel(value)}
-                    </span>
-                  ))}
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {advisor.expertise.map((value) => (
+                      <span
+                        key={`expertise-${value}`}
+                        className="border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-white/70"
+                      >
+                        {expertiseLabel(value)}
+                      </span>
+                    ))}
+                    {advisor.stages.map((value) => (
+                      <span
+                        key={`stage-${value}`}
+                        className="border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-white/70"
+                      >
+                        {stageLabel(value)}
+                      </span>
+                    ))}
+                    {advisor.sectors.map((value) => (
+                      <span
+                        key={`sector-${value}`}
+                        className="border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-white/70"
+                      >
+                        {sectorLabel(value)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </section>
-          )}
+              </section>
+            )}
 
-          {skills && <PersonSkillsSection free={skills.free} aggregated={skills.aggregated} />}
+            {skills && <PersonSkillsSection free={skills.free} aggregated={skills.aggregated} />}
 
-          <PostsShowcase posts={posts} />
+            <PostsShowcase posts={posts} />
 
-          <div className="mt-10 flex flex-col gap-4 border-t-2 border-beedero-border/30 pt-8 sm:flex-row sm:items-center sm:justify-between">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/pbadge/${handle}.svg`}
-              alt={`${person.full_name} on Beedero`}
-              className="h-11 w-auto"
-            />
-            <p className="text-sm text-zinc-500">
-              Profile on{" "}
-              <Link
-                href="/"
-                className="font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-2"
-              >
-                Beedero
-              </Link>
-            </p>
+            <div className="mt-10 flex flex-col gap-4 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/pbadge/${handle}.svg`}
+                alt={`${person.full_name} on Beedero`}
+                className="h-11 w-auto"
+              />
+              <p className="text-sm text-white/45">
+                Profile on{" "}
+                <Link
+                  href="/"
+                  className="font-bold text-beedero-yellow underline decoration-beedero-yellow/50 decoration-2 underline-offset-2"
+                >
+                  Beedero
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
     </>
   );
 }

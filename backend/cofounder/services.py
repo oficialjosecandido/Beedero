@@ -7,6 +7,7 @@ import logging
 
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from beedero.ratelimit import enforce_rate_limit
@@ -262,7 +263,15 @@ def create_org_from_match(match: CofounderMatch, by, name: str, one_liner: str =
     if org is None:
         raise ValidationError({"name": "Could not create the organization, please try again."})
 
-    OrgMembership.objects.create(org=org, user=by, role=OrgMembership.Role.OWNER)
+    # Self-attested, like any founder's own row; the matched co-founder's row
+    # gets attested by `by` when they accept the invite created just below.
+    OrgMembership.objects.create(
+        org=org,
+        user=by,
+        role=OrgMembership.Role.OWNER,
+        details_confirmed_by=by,
+        details_confirmed_at=timezone.now(),
+    )
     OrgFollow.objects.get_or_create(user=by, org=org)
     invite = OrgInvite.objects.create(
         org=org, role=OrgMembership.Role.OWNER, created_by=by, max_uses=1

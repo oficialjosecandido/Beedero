@@ -181,6 +181,18 @@ def _third_party_confirmation(user) -> tuple[str, str] | None:
             "Company registry" if via_registry else affiliation.org.name,
             f"{role} at {affiliation.org.name}",
         )
+    # A roster row counts only when someone else attested to it: confirming
+    # your own details is free (you get a confirmed row by creating the org),
+    # so OrgMembership.attested_by_other is the condition, not "confirmed".
+    membership = (
+        OrgMembership.objects.filter(OrgMembership.ATTESTED_BY_OTHER, user=user)
+        .select_related("org")
+        .order_by("-details_confirmed_at")
+        .first()
+    )
+    if membership:
+        role = membership.title or membership.get_role_display()
+        return membership.org.name, f"{role} at {membership.org.name}"
     investment = (
         InvestmentRecord.objects.filter(investor_user=user, status=InvestmentRecord.Status.CONFIRMED)
         .select_related("org")

@@ -17,38 +17,38 @@ const CATEGORIES: Record<Category, { label: string; bar: string; accent: string;
   work: {
     label: "Work",
     bar: "border-l-beedero-yellow",
-    accent: "text-amber-700",
+    accent: "text-beedero-yellow",
     dot: "bg-beedero-yellow",
   },
   education: {
     label: "Education",
-    bar: "border-l-indigo-300",
-    accent: "text-indigo-700",
-    dot: "bg-indigo-300",
+    bar: "border-l-indigo-400",
+    accent: "text-indigo-300",
+    dot: "bg-indigo-400",
   },
   advisory: {
     label: "Advisory",
     bar: "border-l-violet-400",
-    accent: "text-violet-700",
+    accent: "text-violet-300",
     dot: "bg-violet-400",
   },
   volunteer: {
     label: "Volunteer",
     bar: "border-l-sky-400",
-    accent: "text-sky-700",
+    accent: "text-sky-300",
     dot: "bg-sky-400",
   },
   project: {
     label: "Project",
     bar: "border-l-emerald-400",
-    accent: "text-emerald-700",
+    accent: "text-emerald-300",
     dot: "bg-emerald-400",
   },
   declared: {
     label: "Self-declared",
-    bar: "border-l-zinc-300",
-    accent: "text-zinc-500",
-    dot: "bg-zinc-300",
+    bar: "border-l-white/30",
+    accent: "text-white/50",
+    dot: "bg-white/30",
   },
 };
 
@@ -157,15 +157,15 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
   const minWidth = YEAR_COLUMN + columnCount * MIN_BRANCH_WIDTH + (columnCount + 1) * GAP;
 
   return (
-    <section className="border-t border-zinc-100 pt-8">
+    <section className="border-t border-white/10 pt-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className={profileSectionHeadingClass}>Timeline tree</h2>
-          <p className="mt-2 text-lg font-extrabold tracking-tight text-zinc-900">
+          <p className="mt-2 text-lg font-black tracking-[-0.03em] text-white">
             The shape of this record.
           </p>
         </div>
-        <p className="max-w-[300px] text-xs leading-5 text-zinc-500">
+        <p className="max-w-[300px] text-xs leading-5 text-white/45">
           One column per activity. Its height shows how long it lived across the years.
         </p>
       </div>
@@ -191,12 +191,12 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
           {rows.map((label, index) => (
             <div
               key={label}
-              className="col-start-1 flex items-start justify-end border-t border-zinc-100 pr-2 pt-2"
+              className="col-start-1 flex items-start justify-end border-t border-white/10 pr-2 pt-2"
               style={{ gridRow: index + 1 }}
             >
               <span
-                className={`text-xs font-extrabold tabular-nums ${
-                  index === 0 ? "text-amber-700" : "text-zinc-400"
+                className={`text-xs font-black tabular-nums ${
+                  index === 0 ? "text-beedero-yellow" : "text-white/40"
                 }`}
               >
                 {label}
@@ -208,7 +208,7 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
             <div
               key={`guide-${label}`}
               aria-hidden
-              className="pointer-events-none border-t border-zinc-100"
+              className="pointer-events-none border-t border-white/10"
               style={{ gridRow: index + 1, gridColumn: `2 / ${columnCount + 2}` }}
             />
           ))}
@@ -218,7 +218,7 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
             return (
               <article
                 key={branch.key}
-                className={`relative z-10 flex min-w-0 flex-col justify-between rounded-xl border border-zinc-200 border-l-[3px] bg-white p-3 shadow-sm ${tone.bar}`}
+                className={`relative z-10 flex min-w-0 flex-col justify-between border border-white/10 border-l-[3px] bg-white/[0.04] p-3 ${tone.bar}`}
                 style={{
                   gridColumn: branch.column,
                   gridRow: `${branch.topRow + 1} / ${branch.bottomRow + 2}`,
@@ -226,31 +226,29 @@ export function PersonTimelineTree({ bands }: { bands: TimelineBand[] }) {
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-1">
-                    <p
-                      className={`text-[9px] font-black uppercase tracking-[0.13em] ${tone.accent}`}
-                    >
+                    <p className={`text-[9px] font-black uppercase tracking-[0.13em] ${tone.accent}`}>
                       {tone.label}
-                      {branch.verified && <span className="ml-1 text-emerald-600">✓</span>}
+                      {branch.verified && <span className="ml-1 text-emerald-400">✓</span>}
                     </p>
                     <span
                       className={`text-[9px] font-black uppercase tracking-[0.1em] ${
-                        branch.ongoing ? tone.accent : "text-zinc-400"
+                        branch.ongoing ? tone.accent : "text-white/40"
                       }`}
                     >
                       {branch.status}
                     </span>
                   </div>
-                  <h3 className="mt-2 text-xs font-bold leading-5 text-zinc-900">{branch.title}</h3>
+                  <h3 className="mt-2 text-xs font-bold leading-5 text-white">{branch.title}</h3>
                   {branch.subtitle && (
-                    <p className="mt-1 truncate text-[10px] font-semibold text-zinc-500">
+                    <p className="mt-1 truncate text-[10px] font-semibold text-white/50">
                       {branch.subtitle}
                     </p>
                   )}
                 </div>
-                <p className="mt-2 border-t border-zinc-100 pt-2 text-[9px] font-black uppercase tracking-[0.1em] tabular-nums text-zinc-400">
+                <p className="mt-2 border-t border-white/10 pt-2 text-[9px] font-black uppercase tracking-[0.1em] tabular-nums text-white/40">
                   {branch.range}
                   {branch.milestones > 0 && (
-                    <span className="ml-1.5 text-amber-700">
+                    <span className="ml-1.5 text-beedero-yellow">
                       · {branch.milestones} milestone{branch.milestones === 1 ? "" : "s"}
                     </span>
                   )}

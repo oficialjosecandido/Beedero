@@ -265,6 +265,42 @@ def test_a_declared_investment_confirms_nothing():
 
 
 @pytest.mark.django_db
+def test_a_roster_row_an_admin_confirmed_confirms_the_person():
+    profile = unlock(make_user("ana"))
+    org = Organization.objects.create(name="Alma Labs", slug="alma-labs")
+    OrgMembership.objects.create(
+        org=org,
+        user=profile.user,
+        role=OrgMembership.Role.MEMBER,
+        title="Engineer",
+        details_confirmed_by=make_user("admin"),
+        details_confirmed_at=timezone.now(),
+    )
+    confirmed = rung(verification_ladder(profile), "confirmed")
+    assert confirmed["done"] is True
+    assert confirmed["attested_by"] == "Alma Labs"
+    assert confirmed["detail"] == "Engineer at Alma Labs"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("confirmer", ["self", "nobody"])
+def test_a_roster_row_nobody_else_vouched_for_confirms_nothing(confirmer):
+    """Creating an org hands you a confirmed row on your own roster, and rows
+    that predate the confirmer column have no attester we can name. Neither is
+    somebody else vouching for you."""
+    profile = unlock(make_user("ana"))
+    org = Organization.objects.create(name="Alma Labs", slug="alma-labs")
+    OrgMembership.objects.create(
+        org=org,
+        user=profile.user,
+        role=OrgMembership.Role.OWNER,
+        details_confirmed_by=profile.user if confirmer == "self" else None,
+        details_confirmed_at=timezone.now() if confirmer == "self" else None,
+    )
+    assert rung(verification_ladder(profile), "confirmed")["done"] is False
+
+
+@pytest.mark.django_db
 def test_seven_days_in_a_row_climb_the_last_rung():
     profile = unlock(make_user("ana"))
     start = datetime(2026, 9, 1, 9, 0, tzinfo=LISBON)

@@ -80,9 +80,43 @@ class OrgMembership(models.Model):
         default=DetailsStatus.CONFIRMED,
         db_index=True,
     )
+    # Who attested the details above, and when. Null means nobody we can name:
+    # the row predates this field. Confirming your own row is self-attestation
+    # — you get one by creating an org — so "confirmed" alone proves nothing.
+    details_confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="+",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    details_confirmed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("org", "user")
+
+    # Queryset counterpart of attested_by_other, for the places that count or
+    # look up attested rows instead of inspecting one (accounts/ladder.py,
+    # accounts/timeline.py). Keeping both forms here keeps them in step.
+    ATTESTED_BY_OTHER = models.Q(
+        details_status=DetailsStatus.CONFIRMED,
+        details_confirmed_by__isnull=False,
+    ) & ~models.Q(details_confirmed_by=models.F("user"))
+
+    @property
+    def attested_by_other(self) -> bool:
+        """True when someone other than the member confirmed these details.
+
+        The single source for both the "verified by organisation" badge and
+        rung 6 of the person's ladder (accounts/ladder.py), so the two can
+        never disagree about what counts as third-party attestation.
+        Use ATTESTED_BY_OTHER to ask the same question of a queryset.
+        """
+        return (
+            self.details_status == self.DetailsStatus.CONFIRMED
+            and self.details_confirmed_by_id is not None
+            and self.details_confirmed_by_id != self.user_id
+        )
 
 
 class MembershipSkill(models.Model):
