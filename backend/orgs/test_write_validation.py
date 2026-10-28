@@ -2,6 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from billing.testing import grant_plan
 from orgs.constants import SectionKind
 from orgs.models import OrgMembership, Organization
 
@@ -13,7 +14,9 @@ def api():
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    grant_plan(org)
+    return org
 
 
 @pytest.fixture

@@ -136,7 +136,12 @@ class PaidInvoice(models.Model):
     fatura (it does not come from certified invoicing software), so each row
     here is one fatura-recibo to issue — `fatura_reference` records it."""
 
-    org = models.ForeignKey(Organization, related_name="paid_invoices", on_delete=models.CASCADE, null=True)
+    # SET_NULL, not CASCADE: an invoicing record has to be kept whether or not
+    # the company that paid still has an account here, which is why the
+    # customer's name and tax id are copied in rather than read off the org.
+    org = models.ForeignKey(
+        Organization, related_name="paid_invoices", on_delete=models.SET_NULL, null=True
+    )
     stripe_invoice_id = models.CharField(max_length=100, unique=True)
     number = models.CharField(max_length=60, blank=True)
     amount_paid_cents = models.PositiveIntegerField()

@@ -96,9 +96,9 @@ export function billingSummary(name: string, billing: OrgBilling): string {
     case "comp":
       return `${name} has a complimentary plan.`;
     case "lapsed":
-      return `${name}'s plan has ended. It is hidden from Discover and can't post until it has a plan again.`;
+      return `${name}'s plan has ended. It is read-only — hidden from Discover, and nothing can be edited until it has a plan again.`;
     default:
-      return `${name} needs a plan to be published, post and list jobs.`;
+      return `${name} needs a plan before anything can be edited, published, posted or listed.`;
   }
 }
 

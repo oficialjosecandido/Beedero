@@ -51,6 +51,7 @@ class PromoCodeView(APIView):
 
 class OrgBillingView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+    requires_org_plan = False
 
     def get(self, request, slug):
         return Response(billing_payload(self.get_org()))
@@ -58,6 +59,7 @@ class OrgBillingView(OrgLookupMixin, APIView):
 
 class OrgCheckoutView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    requires_org_plan = False
 
     def post(self, request, slug):
         org = self.get_org()
@@ -72,6 +74,7 @@ class OrgCheckoutView(OrgLookupMixin, APIView):
 
 class OrgRedeemView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    requires_org_plan = False
 
     def post(self, request, slug):
         org = self.get_org()
@@ -82,6 +85,7 @@ class OrgRedeemView(OrgLookupMixin, APIView):
 
 class OrgCheckoutSyncView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    requires_org_plan = False
 
     def post(self, request, slug):
         org = self.get_org()
@@ -96,6 +100,7 @@ class OrgCheckoutSyncView(OrgLookupMixin, APIView):
 
 class OrgPortalView(OrgLookupMixin, APIView):
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+    requires_org_plan = False
 
     def post(self, request, slug):
         org = self.get_org()

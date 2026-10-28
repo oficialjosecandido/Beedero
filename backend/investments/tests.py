@@ -33,8 +33,11 @@ def investor(db):
 
 @pytest.fixture
 def org(db, owner):
+    from billing.testing import grant_plan
+
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=owner, role=OrgMembership.Role.OWNER)
+    grant_plan(org)
     return org
 
 

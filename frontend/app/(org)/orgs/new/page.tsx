@@ -57,7 +57,10 @@ export default async function NewOrganisationPage({
 
   return (
     <main className="min-h-screen bg-org-ground text-org-ink">
-      <OrgWorkspaceHeader personName={me.investor_profile?.full_name || me.email} />
+      <OrgWorkspaceHeader
+        personName={me.investor_profile?.full_name || me.email}
+        personPicture={me.investor_profile?.profile_picture}
+      />
       <OrgOnboardingForm match={await matchContext(match)} />
     </main>
   );

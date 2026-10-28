@@ -361,7 +361,7 @@ export default async function DashboardOrgPage({
 
   return (
     <main className="min-h-screen bg-org-ground text-org-ink">
-      <OrgWorkspaceHeader personName={myName} />
+      <OrgWorkspaceHeader personName={myName} personPicture={myMembership?.profile_picture} />
 
       <OrgWorkspace
         initialTab={suggestedTitle ? "activity" : (initialTab ?? "overview")}
@@ -425,6 +425,8 @@ export default async function DashboardOrgPage({
           members,
           invites,
           canManage,
+          // Deleting the organisation is the owner's alone, not an admin's.
+          isOwner: myRole === "owner",
           onboarding: onboardingData,
           badgeEmbed,
           vitality,

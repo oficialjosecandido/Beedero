@@ -25,7 +25,11 @@ def api():
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    from billing.testing import grant_plan
+
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    grant_plan(org)
+    return org
 
 
 @pytest.fixture

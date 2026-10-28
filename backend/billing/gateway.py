@@ -1,4 +1,4 @@
-"""Everything that talks to Stripe, behind five calls.
+"""Everything that talks to Stripe, behind seven calls.
 
 `get_gateway()` returns the real Stripe gateway when STRIPE_SECRET_KEY is
 set. Without a key it returns the stub only if BILLING_STRIPE_STUB is on
@@ -93,6 +93,20 @@ class StripeGateway:
     def retrieve_subscription(self, subscription_id: str) -> dict:
         return self.stripe.Subscription.retrieve(subscription_id).to_dict()
 
+    def cancel_subscription(self, subscription_ref: str) -> None:
+        """Ends the subscription now, not at the end of the period — the only
+        caller is an organisation being deleted, which has nothing left to use
+        the rest of the period for.
+
+        A subscription Stripe no longer has is already the state we wanted, so
+        `resource_missing` is not a failure.
+        """
+        try:
+            self.stripe.Subscription.cancel(subscription_ref)
+        except self.stripe.InvalidRequestError as err:
+            if getattr(err, "code", "") != "resource_missing":
+                raise
+
     def create_portal_session(self, customer_ref: str, return_url: str) -> str:
         return self.stripe.billing_portal.Session.create(customer=customer_ref, return_url=return_url).url
 
@@ -160,6 +174,9 @@ class StubGateway:
     def retrieve_subscription(self, subscription_id: str) -> dict:
         _, _, org_id, choice = subscription_id.split("_", 3)
         return self._subscription(org_id, choice, 0)
+
+    def cancel_subscription(self, subscription_ref: str) -> None:
+        """Nothing to cancel: a stub subscription was never created anywhere."""
 
     def create_portal_session(self, customer_ref: str, return_url: str) -> str:
         return return_url

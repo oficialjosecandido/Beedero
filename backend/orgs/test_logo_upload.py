@@ -6,6 +6,7 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from billing.testing import grant_plan
 from orgs.models import Organization, OrgMembership
 from orgs.views import MAX_LOGO_SIZE_BYTES
 
@@ -17,7 +18,9 @@ def api():
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.DRAFT)
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.DRAFT)
+    grant_plan(org)
+    return org
 
 
 @pytest.fixture

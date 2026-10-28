@@ -53,10 +53,18 @@ def discover(viewer, params: dict):
     # Live *and* past the ladder's gate (orgs/ladder.py, rungs 1–4).
     qs = listed_in_discover(Organization.objects.all())
 
-    query = (params.get("q") or "").strip()
+    from beedero.text_search import fold_text, searchable_key
+
+    query = fold_text(params.get("q") or "")
     if query:
-        qs = qs.filter(
-            Q(name__icontains=query) | Q(one_liner__icontains=query) | Q(slug__icontains=query)
+        qs = qs.annotate(
+            name_key=searchable_key("name"),
+            one_liner_key=searchable_key("one_liner"),
+            slug_key=searchable_key("slug"),
+        ).filter(
+            Q(name_key__contains=query)
+            | Q(one_liner_key__contains=query)
+            | Q(slug_key__contains=query)
         )
 
     if params.get("stage"):
@@ -206,12 +214,19 @@ def discover_people(viewer, params: dict):
 
     qs = _people_base_qs(viewer)
 
-    query = (params.get("q") or "").strip()
+    # Same fold as PeopleSearchView / mentions: "Júlio" finds "Julio".
+    from beedero.text_search import fold_text, searchable_key
+
+    query = fold_text(params.get("q") or "")
     if query:
-        qs = qs.filter(
-            Q(full_name__icontains=query)
-            | Q(headline__icontains=query)
-            | Q(handle__icontains=query)
+        qs = qs.annotate(
+            name_key=searchable_key("full_name"),
+            headline_key=searchable_key("headline"),
+            handle_key=searchable_key("handle"),
+        ).filter(
+            Q(name_key__contains=query)
+            | Q(headline_key__contains=query)
+            | Q(handle_key__contains=query)
         )
 
     # Local density (doc `beedero-features-onfound-analise.md` §1.1): matched

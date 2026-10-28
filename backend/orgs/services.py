@@ -43,3 +43,23 @@ def sole_owner_orgs(user):
         org_id__in=owned_org_ids, role=OrgMembership.Role.OWNER
     ).exclude(user=user).values_list("org_id", flat=True)
     return Organization.objects.filter(id__in=owned_org_ids).exclude(id__in=other_owner_org_ids)
+
+
+def delete_organization(org) -> None:
+    """Deletes an organisation for good, after stopping anything that would
+    keep charging it.
+
+    The only way an organisation is deleted: from its own Settings tab, or
+    with the account of the person who alone owns it (accounts.MeView.delete).
+    Both go through here so neither can leave a subscription running — see
+    billing.subscriptions.release_stripe_subscriptions for why cancelling
+    comes first and is allowed to refuse the delete.
+
+    Everything the organisation owns goes with it (memberships, posts, jobs,
+    sections, the plan rows). Paid invoices stay, with no organisation
+    attached: they are the record of money that changed hands.
+    """
+    from billing.subscriptions import release_stripe_subscriptions
+
+    release_stripe_subscriptions(org)
+    org.delete()

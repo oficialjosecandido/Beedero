@@ -23,6 +23,7 @@ import { BadgeEmbedPanel, PresenceSignalsPanel } from "@/components/BadgePanels"
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import type { CalendarEvent, EventRoleFilter } from "@/components/EventsCalendar";
 import { CompanyRegistryCard } from "@/components/org-workspace/CompanyRegistryCard";
+import { DeleteOrgSection } from "@/components/org-workspace/DeleteOrgSection";
 import { OrgBillingPanel } from "@/components/org-workspace/OrgBilling";
 import type { OrgTabId } from "@/components/org-workspace/tabs";
 import { OrgLogoForm } from "./OrgLogoForm";
@@ -317,7 +318,15 @@ function SectionAddFieldForm({ slug, kind }: { slug: string; kind: string }) {
   );
 }
 
-function SectionCard({ slug, section }: { slug: string; section: Section }) {
+function SectionCard({
+  slug,
+  section,
+  editable = true,
+}: {
+  slug: string;
+  section: Section;
+  editable?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
@@ -328,11 +337,20 @@ function SectionCard({ slug, section }: { slug: string; section: Section }) {
       </div>
       <div className="flex flex-col gap-2">
         {section.fields.length === 0 && <p className="text-sm text-subtle">No fields yet.</p>}
-        {section.fields.map((field) => (
-          <SectionFieldRow key={field.id} slug={slug} kind={section.kind} field={field} />
-        ))}
+        {section.fields.map((field) =>
+          editable ? (
+            <SectionFieldRow key={field.id} slug={slug} kind={section.kind} field={field} />
+          ) : (
+            <div key={field.id} className="text-sm">
+              <span className="font-medium text-zinc-600">{field.key}: </span>
+              <span className="text-zinc-800">
+                {typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
+              </span>
+            </div>
+          )
+        )}
       </div>
-      <SectionAddFieldForm slug={slug} kind={section.kind} />
+      {editable && <SectionAddFieldForm slug={slug} kind={section.kind} />}
     </div>
   );
 }
@@ -342,16 +360,30 @@ function CuratedFieldForm({
   kind,
   item,
   field,
+  editable = true,
 }: {
   slug: string;
   kind: string;
   item: { key: string; label: string; placeholder: string; rows?: number };
   field?: SectionField;
+  editable?: boolean;
 }) {
   const [saveError, saveAction, savePending] = useActionState(upsertFieldAction, null);
   const [deleteError, deleteAction, deletePending] = useActionState(deleteFieldAction, null);
   useActionToast(saveError, savePending, { successMessage: "Saved." });
   useActionToast(deleteError, deletePending, { successMessage: "Cleared." });
+
+  const value = typeof field?.value === "string" ? field.value : "";
+  if (!editable) {
+    return (
+      <div className="flex flex-col gap-1.5 text-sm">
+        <span className="font-medium text-zinc-700">{item.label}</span>
+        <p className="whitespace-pre-wrap rounded-xl border border-beedero-border bg-zinc-50 px-3 py-2 text-beedero-black">
+          {value || "—"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form action={saveAction} className="flex flex-col gap-2">
@@ -364,7 +396,7 @@ function CuratedFieldForm({
           name="value"
           rows={item.rows ?? 3}
           placeholder={item.placeholder}
-          defaultValue={typeof field?.value === "string" ? field.value : ""}
+          defaultValue={value}
           className="rounded-xl border border-beedero-border bg-white px-3 py-2 text-sm text-beedero-black outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
         />
       </label>
@@ -397,6 +429,7 @@ function CuratedProfileSection({
   description,
   fields,
   optional = false,
+  editable = true,
 }: {
   slug: string;
   section?: Section;
@@ -405,6 +438,7 @@ function CuratedProfileSection({
   description?: string;
   fields: readonly { key: string; label: string; placeholder: string; rows?: number }[];
   optional?: boolean;
+  editable?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -427,14 +461,31 @@ function CuratedProfileSection({
       <div className="grid gap-4">
         {fields.map((item) => {
           const field = section?.fields.find((f) => f.key === item.key);
-          return <CuratedFieldForm key={item.key} slug={slug} kind={kind} item={item} field={field} />;
+          return (
+            <CuratedFieldForm
+              key={item.key}
+              slug={slug}
+              kind={kind}
+              item={item}
+              field={field}
+              editable={editable}
+            />
+          );
         })}
       </div>
     </div>
   );
 }
 
-function AboutProfileSection({ slug, section }: { slug: string; section?: Section }) {
+function AboutProfileSection({
+  slug,
+  section,
+  editable = true,
+}: {
+  slug: string;
+  section?: Section;
+  editable?: boolean;
+}) {
   return (
     <CuratedProfileSection
       slug={slug}
@@ -442,6 +493,7 @@ function AboutProfileSection({ slug, section }: { slug: string; section?: Sectio
       kind="about"
       title="About"
       fields={ABOUT_FIELDS}
+      editable={editable}
     />
   );
 }
@@ -569,7 +621,15 @@ function AddCustomLinkForm({ slug }: { slug: string }) {
   );
 }
 
-function LinksTab({ slug, section }: { slug: string; section?: Section }) {
+function LinksTab({
+  slug,
+  section,
+  editable = true,
+}: {
+  slug: string;
+  section?: Section;
+  editable?: boolean;
+}) {
   const fields = section?.fields ?? [];
   const curatedKeys = new Set(CURATED_LINKS.map((l) => l.key));
   const customFields = fields.filter((f) => !curatedKeys.has(f.key));
@@ -584,6 +644,15 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
         <div className="mt-4 flex flex-col gap-3">
           {CURATED_LINKS.map(({ key, label, placeholder }) => {
             const field = fields.find((f) => f.key === key);
+            if (!editable) {
+              const value = typeof field?.value === "string" ? field.value : "";
+              return (
+                <div key={key} className="flex items-center gap-2 text-sm">
+                  <span className="w-24 shrink-0 font-medium text-zinc-600">{label}</span>
+                  <span className="min-w-0 flex-1 truncate text-zinc-800">{value || "—"}</span>
+                </div>
+              );
+            }
             return (
               <CuratedLinkRow
                 key={key}
@@ -602,11 +671,20 @@ function LinksTab({ slug, section }: { slug: string; section?: Section }) {
         <h3 className="font-extrabold text-zinc-900">Other links</h3>
         <div className="mt-3 flex flex-col gap-2">
           {customFields.length === 0 && <p className="text-sm text-subtle">No custom links yet.</p>}
-          {customFields.map((field) => (
-            <CustomLinkRow key={field.id} slug={slug} field={field} />
-          ))}
+          {customFields.map((field) =>
+            editable ? (
+              <CustomLinkRow key={field.id} slug={slug} field={field} />
+            ) : (
+              <div key={field.id} className="flex items-center gap-2 text-sm">
+                <span className="w-24 shrink-0 font-medium text-zinc-600">{field.key}</span>
+                <span className="min-w-0 flex-1 truncate text-zinc-800">
+                  {typeof field.value === "string" ? field.value : "—"}
+                </span>
+              </div>
+            )
+          )}
         </div>
-        <AddCustomLinkForm slug={slug} />
+        {editable && <AddCustomLinkForm slug={slug} />}
       </div>
     </div>
   );
@@ -849,7 +927,15 @@ function InsightsTab({
   );
 }
 
-function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
+function PostCard({
+  slug,
+  activity,
+  canEdit = true,
+}: {
+  slug: string;
+  activity: OrgActivity;
+  canEdit?: boolean;
+}) {
   const value = activity.value;
   const [error, formAction, pending] = useActionState(deleteActivityAction, null);
   useActionToast(error, pending, { successMessage: "Post deleted." });
@@ -859,21 +945,23 @@ function PostCard({ slug, activity }: { slug: string; activity: OrgActivity }) {
         <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
           {SECTION_LABELS[activity.kind] ?? activity.kind}
         </span>
-        <form
-          action={formAction}
-          onSubmit={(event) => {
-            if (!window.confirm("Delete this post? This cannot be undone.")) event.preventDefault();
-          }}
-        >
-          <input type="hidden" name="slug" value={slug} />
-          <input type="hidden" name="activity_id" value={activity.id} />
-          <button
-            disabled={pending}
-            className="text-xs font-medium text-danger-strong hover:underline disabled:opacity-50"
+        {canEdit && (
+          <form
+            action={formAction}
+            onSubmit={(event) => {
+              if (!window.confirm("Delete this post? This cannot be undone.")) event.preventDefault();
+            }}
           >
-            {pending ? "Deleting…" : "Delete"}
-          </button>
-        </form>
+            <input type="hidden" name="slug" value={slug} />
+            <input type="hidden" name="activity_id" value={activity.id} />
+            <button
+              disabled={pending}
+              className="text-xs font-medium text-danger-strong hover:underline disabled:opacity-50"
+            >
+              {pending ? "Deleting…" : "Delete"}
+            </button>
+          </form>
+        )}
       </div>
       {value.image && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -898,28 +986,37 @@ function ActivityTab({
   postingStatus,
   suggestedTitle,
   suggestedBody,
+  canEdit = true,
 }: {
   slug: string;
   activities: OrgActivity[];
   postingStatus: PostingStatus;
   suggestedTitle?: string;
   suggestedBody?: string;
+  canEdit?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <OrgPostComposer
-        slug={slug}
-        postingStatus={postingStatus}
-        suggestedTitle={suggestedTitle}
-        suggestedBody={suggestedBody}
-      />
+      {canEdit ? (
+        <OrgPostComposer
+          slug={slug}
+          postingStatus={postingStatus}
+          suggestedTitle={suggestedTitle}
+          suggestedBody={suggestedBody}
+        />
+      ) : (
+        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
+          Choose a plan to post updates.
+        </p>
+      )}
       {activities.length === 0 && (
         <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
-          No posts yet. Share an update above to show investors you&apos;re active.
+          No posts yet
+          {canEdit ? ". Share an update above to show investors you&apos;re active." : "."}
         </p>
       )}
       {activities.map((activity) => (
-        <PostCard key={activity.id} slug={slug} activity={activity} />
+        <PostCard key={activity.id} slug={slug} activity={activity} canEdit={canEdit} />
       ))}
     </div>
   );
@@ -1175,11 +1272,13 @@ function FundraisingTab({
   isFundraising,
   fundraiseSections,
   roundHistory,
+  canEdit = true,
 }: {
   slug: string;
   isFundraising: boolean;
   fundraiseSections: Section[];
   roundHistory: FundraiseRound[];
+  canEdit?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -1191,7 +1290,7 @@ function FundraisingTab({
               {isFundraising ? "A round is currently open." : "No round is open right now."}
             </p>
           </div>
-          {isFundraising && (
+          {canEdit && isFundraising && (
             <form action={closeRoundAction} className="flex items-end gap-2">
               <input type="hidden" name="slug" value={slug} />
               <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -1209,7 +1308,7 @@ function FundraisingTab({
             </form>
           )}
         </div>
-        {!isFundraising && (
+        {canEdit && !isFundraising && (
           <form action={openRoundAction} className="mt-4 flex flex-wrap items-end gap-2">
             <input type="hidden" name="slug" value={slug} />
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
@@ -1294,7 +1393,7 @@ function FundraisingTab({
         </p>
       )}
       {fundraiseSections.map((section) => (
-        <SectionCard key={section.id} slug={slug} section={section} />
+        <SectionCard key={section.id} slug={slug} section={section} editable={canEdit} />
       ))}
     </div>
   );
@@ -1409,14 +1508,18 @@ function OrgBasicsForm({ org, canManage }: { org: OrgBasics; canManage: boolean 
 
 function ShareTab({
   slug,
+  orgName,
   canManage,
+  isOwner,
   badgeEmbed,
   vitality,
   linksSection,
   members,
 }: {
   slug: string;
+  orgName: string;
   canManage: boolean;
+  isOwner: boolean;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
   linksSection?: Section;
@@ -1430,7 +1533,9 @@ function ShareTab({
         <BadgeEmbedPanel embed={badgeEmbed} badge={vitality.badge} />
       )}
 
-      <LinksTab slug={slug} section={linksSection} />
+      <LinksTab slug={slug} section={linksSection} editable={canManage} />
+
+      {isOwner && <DeleteOrgSection slug={slug} name={orgName} />}
     </div>
   );
 }
@@ -1439,10 +1544,12 @@ function CalendarTab({
   slug,
   events,
   postingStatus,
+  canEdit = true,
 }: {
   slug: string;
   events: CalendarEvent[];
   postingStatus: PostingStatus;
+  canEdit?: boolean;
 }) {
   const [roleFilter, setRoleFilter] = useState<EventRoleFilter>("all");
 
@@ -1462,12 +1569,18 @@ function CalendarTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <OrgPostComposer
-        slug={slug}
-        postingStatus={postingStatus}
-        defaultKind="event"
-        compactCreateButton
-      />
+      {canEdit ? (
+        <OrgPostComposer
+          slug={slug}
+          postingStatus={postingStatus}
+          defaultKind="event"
+          compactCreateButton
+        />
+      ) : (
+        <p className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-4 text-sm text-zinc-500">
+          Choose a plan to create events.
+        </p>
+      )}
       <EventsCalendar
         events={filteredEvents}
         full
@@ -1495,6 +1608,7 @@ export function OrgTabs({
   members,
   invites,
   canManage,
+  isOwner,
   onboarding,
   badgeEmbed,
   vitality,
@@ -1519,6 +1633,7 @@ export function OrgTabs({
   members: Member[];
   invites: Invite[];
   canManage: boolean;
+  isOwner: boolean;
   onboarding: Onboarding;
   badgeEmbed: BadgeEmbedInfo | null;
   vitality: VitalityInfo | null;
@@ -1537,6 +1652,9 @@ export function OrgTabs({
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
   const registryRung = onboarding.ladder?.rungs.find((rung) => rung.key === "registry_confirmed");
+  // Owners keep billing actions; the rest of the workspace is read-only until
+  // the organisation has a plan (billing.has_access).
+  const canEdit = canManage && (billing?.has_access ?? true);
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -1544,7 +1662,7 @@ export function OrgTabs({
         <OverviewTab
           slug={slug}
           onboarding={onboarding}
-          canManage={canManage}
+          canManage={canEdit}
           confirmedTeam={affiliations.filter((item) => item.status === "verified").length}
           awaitingTeam={
             affiliations.filter((item) => item.status === "pending").length +
@@ -1558,7 +1676,7 @@ export function OrgTabs({
       )}
 
       {active === "calendar" && (
-        <CalendarTab slug={slug} events={events} postingStatus={postingStatus} />
+        <CalendarTab slug={slug} events={events} postingStatus={postingStatus} canEdit={canEdit} />
       )}
 
       {active === "activity" && (
@@ -1568,6 +1686,7 @@ export function OrgTabs({
           postingStatus={postingStatus}
           suggestedTitle={suggestedTitle}
           suggestedBody={suggestedBody}
+          canEdit={canEdit}
         />
       )}
 
@@ -1576,18 +1695,20 @@ export function OrgTabs({
           {/* Its own card: the logo uploader is a form of its own, so it cannot
               be nested inside the company-details form. */}
           <div className="flex items-center gap-4 rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
-            <OrgLogoForm slug={org.slug} logo={org.logo} name={org.name} editable={canManage} />
+            <OrgLogoForm slug={org.slug} logo={org.logo} name={org.name} editable={canEdit} />
             <div>
               <h3 className="font-extrabold text-zinc-900">Logo</h3>
               <p className="mt-1 text-sm text-zinc-500">
-                {canManage
+                {canEdit
                   ? "A square image works best — hover the logo to replace it."
-                  : "Owners and admins can change the logo."}
+                  : billing && !billing.has_access
+                    ? "Choose a plan to change the logo."
+                    : "Owners and admins can change the logo."}
               </p>
             </div>
           </div>
-          <OrgBasicsForm org={org} canManage={canManage} />
-          <AboutProfileSection slug={slug} section={aboutSection} />
+          <OrgBasicsForm org={org} canManage={canEdit} />
+          <AboutProfileSection slug={slug} section={aboutSection} editable={canEdit} />
           <CuratedProfileSection
             slug={slug}
             section={productsSection}
@@ -1596,6 +1717,7 @@ export function OrgTabs({
             description="Help investors understand what you sell or offer."
             fields={PRODUCTS_FIELDS}
             optional
+            editable={canEdit}
           />
           <CuratedProfileSection
             slug={slug}
@@ -1605,6 +1727,7 @@ export function OrgTabs({
             description="Explain the problem, market, and timing. Use Market to describe where you operate or sell — that is separate from Based in above."
             fields={MARKET_THESIS_FIELDS}
             optional
+            editable={canEdit}
           />
         </div>
       )}
@@ -1615,7 +1738,7 @@ export function OrgTabs({
             slug={slug}
             members={members}
             invites={invites}
-            canManage={canManage}
+            canManage={canEdit}
           />
         </div>
       )}
@@ -1627,18 +1750,19 @@ export function OrgTabs({
             affiliations={affiliations}
             teamInvites={teamInvites}
             inviteQuota={inviteQuota}
-            canManage={canManage}
+            canManage={canEdit}
           />
-          {canManage && registryRung && <CompanyRegistryCard slug={slug} rung={registryRung} />}
+          {canEdit && registryRung && <CompanyRegistryCard slug={slug} rung={registryRung} />}
         </div>
       )}
 
-      {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canManage} />}
+      {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canEdit} />}
 
       {active === "fundraising" && (
         <FundraisingTab
           slug={slug}
           isFundraising={isFundraising}
+          canEdit={canEdit}
           fundraiseSections={fundraiseSections}
           roundHistory={roundHistory}
         />
@@ -1651,7 +1775,11 @@ export function OrgTabs({
       {active === "share" && (
         <ShareTab
           slug={slug}
-          canManage={canManage}
+          orgName={org.name}
+          canManage={canEdit}
+          // Not canEdit: an organisation with no plan can still be closed,
+          // which is the whole point of letting it lapse (billing/access.py).
+          isOwner={isOwner}
           badgeEmbed={badgeEmbed}
           vitality={vitality}
           linksSection={linksSection}

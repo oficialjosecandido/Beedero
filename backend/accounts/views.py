@@ -13,7 +13,7 @@ from analytics.models import ActivityFeedImpression, PersonProfileView
 from billing.entitlements import has_entitlement
 from connections.models import Connection
 from orgs.models import Activity, Visibility
-from orgs.services import create_activity, sole_owner_orgs
+from orgs.services import create_activity, delete_organization, sole_owner_orgs
 from social.mentions import resolve_mentions
 from social.models import Reaction
 from social.services import reaction_counts_for
@@ -39,10 +39,15 @@ class MeView(APIView):
     def delete(self, request):
         """Deletes the caller's account. Orgs the caller solely owns are
         deleted with it; orgs with other owners just lose this membership
-        (cascades automatically via OrgMembership.user's on_delete=CASCADE)."""
+        (cascades automatically via OrgMembership.user's on_delete=CASCADE).
+
+        One at a time through `delete_organization` rather than a queryset
+        delete: each one's subscription has to be cancelled in Stripe before
+        it goes, or a deleted company keeps paying."""
         user = request.user
         with transaction.atomic():
-            sole_owner_orgs(user).delete()
+            for org in list(sole_owner_orgs(user)):
+                delete_organization(org)
             user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

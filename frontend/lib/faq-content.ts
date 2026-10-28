@@ -28,11 +28,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "How fast do you reply to support?",
-    answer: `${SUPPORT_RESPONSE_SLA} Write to hello@beedero.com — we read every message.`,
+    answer: `${SUPPORT_RESPONSE_SLA} Write to pt.bidnow@gmail.com — we read every message.`,
   },
   {
     question: "How do I delete my account?",
     answer:
-      "You can request deletion from account settings or by emailing privacy@beedero.com. We’ll confirm and process the request under our Privacy Policy.",
+      "You can request deletion from account settings or by emailing pt.bidnow@gmail.com. We’ll confirm and process the request under our Privacy Policy.",
   },
 ];

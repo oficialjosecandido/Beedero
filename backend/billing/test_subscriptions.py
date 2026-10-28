@@ -410,6 +410,28 @@ def test_a_lapsed_organisation_cannot_post_or_publish_jobs(api, owner, lapsed):
         format="json",
     )
     assert job.status_code == 402
+    edit = api.patch(f"/api/orgs/{lapsed.slug}/", {"one_liner": "Nope"}, format="json")
+    assert edit.status_code == 402
+    assert edit.json()["code"] == "plan_required"
+
+
+@pytest.mark.django_db
+def test_an_unpaid_organisation_is_read_only_until_it_has_a_plan(api, owner):
+    """Created without finishing checkout: members can read, nothing mutates."""
+    response = onboard(api, owner, name="Draft Co")
+    assert response.status_code == 201
+    slug = response.json()["slug"]
+    assert has_access(Organization.objects.get(slug=slug)) is False
+
+    assert api.get(f"/api/orgs/{slug}/").status_code == 200
+    assert api.get(f"/api/orgs/{slug}/billing/").status_code == 200
+
+    assert api.patch(f"/api/orgs/{slug}/", {"one_liner": "Nope"}, format="json").status_code == 402
+    assert api.post(
+        f"/api/orgs/{slug}/posts/", {"kind": "update", "title": "Hello", "body": "News"}, format="json"
+    ).status_code == 402
+    # Paying / redeeming must still work without a plan.
+    assert api.post(f"/api/orgs/{slug}/billing/checkout/", {"plan": "yearly"}, format="json").status_code == 200
 
 
 @pytest.mark.django_db

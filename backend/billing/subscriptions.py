@@ -23,13 +23,13 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError
 
 from beedero.email_brand import frontend_url, wrap_email
 from orgs.models import Organization, OrgMembership
 
 from .access import current_subscription, has_access
-from .gateway import get_gateway
+from .gateway import BillingUnavailable, get_gateway
 from .models import PaidInvoice, PromoCode, StripeCustomer, StripeEvent, Subscription
 from .plans import PLANS, plan_for_price
 
@@ -154,6 +154,61 @@ def portal_url(org) -> str:
     return get_gateway().create_portal_session(
         customer.provider_ref, frontend_url(f"dashboard/{org.slug}?tab=billing")
     )
+
+
+class CancelFailed(APIException):
+    status_code = 503
+    default_code = "cancel_failed"
+    default_detail = "Could not cancel the subscription with Stripe."
+
+
+def release_stripe_subscriptions(org) -> None:
+    """Cancels in Stripe everything that would keep charging this organisation.
+    Called before it is deleted (orgs/services.py).
+
+    Order matters, and so does failing loudly. The rows go with the
+    organisation (`on_delete=CASCADE`), and once it is gone there is no
+    workspace left to open the portal from: a subscription left running would
+    keep charging a company that no longer exists and nobody could stop it.
+    So a Stripe failure here refuses the delete — an owner who tries again in
+    a minute is a far better outcome than that.
+
+    Local free periods have nothing in Stripe (`provider_ref` empty), and a
+    subscription already canceled needs no second call.
+    """
+    refs = list(
+        Subscription.objects.filter(org=org)
+        .exclude(provider_ref="")
+        .exclude(
+            status__in=[Subscription.Status.CANCELED, Subscription.Status.INCOMPLETE_EXPIRED]
+        )
+        .values_list("provider_ref", flat=True)
+    )
+    if not refs:
+        return
+    try:
+        gateway = get_gateway()
+        for ref in refs:
+            gateway.cancel_subscription(ref)
+    except BillingUnavailable as err:
+        raise CancelFailed(
+            {
+                "detail": "This organisation pays through Stripe, which is not configured here, "
+                "so the subscription cannot be cancelled. Nothing was deleted.",
+                "code": "cancel_failed",
+            }
+        ) from err
+    except Exception as err:
+        # Anything Stripe throws: unreachable, rate-limited, a key rotated.
+        logger.exception("Could not cancel subscriptions for org %s before deleting it", org.pk)
+        sentry_sdk.capture_exception(err)
+        raise CancelFailed(
+            {
+                "detail": "Stripe did not confirm the subscription was cancelled, so nothing was "
+                "deleted. Try again in a moment.",
+                "code": "cancel_failed",
+            }
+        ) from err
 
 
 # ------------------------------------------------------------------- sync

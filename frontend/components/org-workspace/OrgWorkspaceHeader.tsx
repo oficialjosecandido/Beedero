@@ -26,7 +26,13 @@ const iconButtonClass =
  * shortcuts back into the personal app. It replaces `AppShell`'s dark header
  * for `/(org)` routes.
  */
-export function OrgWorkspaceHeader({ personName }: { personName: string }) {
+export function OrgWorkspaceHeader({
+  personName,
+  personPicture,
+}: {
+  personName: string;
+  personPicture?: string | null;
+}) {
   const { unreadTotal } = useMessaging();
   const { unread } = useNotifications();
 
@@ -60,10 +66,15 @@ export function OrgWorkspaceHeader({ personName }: { personName: string }) {
           </Link>
           <Link
             href="/profile"
-            className="ml-1 grid size-9 place-items-center rounded-full bg-org-ink text-[10px] font-black text-white"
+            className="ml-1 grid size-9 place-items-center overflow-hidden rounded-full bg-org-ink text-[10px] font-black text-white"
             aria-label="Open personal profile"
           >
-            {personInitials(personName)}
+            {personPicture ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img loading="lazy" src={personPicture} alt="" className="size-full object-cover" />
+            ) : (
+              personInitials(personName)
+            )}
           </Link>
         </div>
       </div>

@@ -67,7 +67,8 @@ from .models import (
     VisibilityGrant,
 )
 from .membership_details import confirm_membership_details, member_update_details
-from .permissions import IsOrgMember, IsOrgOwnerOrAdmin, IsVerifiedInvestor, OrgLookupMixin
+from .permissions import IsOrgMember, IsOrgOwner, IsOrgOwnerOrAdmin, IsVerifiedInvestor, OrgLookupMixin
+from .services import delete_organization
 from .posting.constants import ACTIVITY_TO_POST_KIND
 from .posting.services import (
     activity_post_summary,
@@ -196,11 +197,21 @@ class OrgListView(APIView):
 
 class OrgProfileView(OrgLookupMixin, APIView):
     """§4: GET /api/orgs/<slug>/ — full profile filtered by VisibilityResolver.
-    PATCH — progressive owner/admin edits to the org's basic attributes."""
+    PATCH — progressive owner/admin edits to the org's basic attributes.
+    DELETE — an owner ends the organisation."""
+
+    @property
+    def requires_org_plan(self) -> bool:
+        # Leaving has to work without a plan: an organisation whose free year
+        # ended and that does not want to pay is exactly the one that wants to
+        # go, and the mixin would otherwise answer 402 to its own delete.
+        return self.request.method != "DELETE"
 
     def get_permissions(self):
         if self.request.method == "PATCH":
             return [permissions.IsAuthenticated(), IsOrgOwnerOrAdmin()]
+        if self.request.method == "DELETE":
+            return [permissions.IsAuthenticated(), IsOrgOwner()]
         return [permissions.IsAuthenticated()]
 
     def get(self, request, slug):
@@ -230,6 +241,20 @@ class OrgProfileView(OrgLookupMixin, APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(_org_summary(org))
+
+    def delete(self, request, slug):
+        """The organisation's name is the confirmation, not a fixed word: an
+        owner with several organisations in the switcher should not be able to
+        delete the wrong one from muscle memory. The frontend asks for it too;
+        this is the check that counts."""
+        org = self.get_org()
+        typed = str(request.data.get("confirm", "")).strip()
+        if typed.casefold() != org.name.strip().casefold():
+            return Response(
+                {"confirm": f"Type the organisation's name ({org.name}) to confirm."}, status=400
+            )
+        delete_organization(org)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024

@@ -181,7 +181,7 @@ function RedeemCodeForm({ slug, onDark = false }: { slug: string; onDark?: boole
         <input
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase())}
-          placeholder="EARLYADOPTER"
+          placeholder="10OFF"
           spellCheck={false}
           aria-label="Code"
           className="w-full max-w-60 border-2 border-org-ink bg-white px-3 py-2 text-sm font-bold tracking-[0.08em] text-org-ink outline-none focus:ring-4 focus:ring-beedero-yellow"
@@ -271,8 +271,8 @@ export function OrgPlanNotice({
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
           {notice === "checkout_cancelled" && "Checkout cancelled — nothing was charged. "}
           {ended
-            ? "Its page stays up, but it's hidden from Discover and can't post or list jobs until it has a plan again."
-            : "The organisation exists as a draft. With a plan it can be published, post and list jobs."}
+            ? "Its page stays up, but it's read-only — hidden from Discover, and nothing can be edited, posted or listed until it has a plan again."
+            : "The organisation exists as a draft. Until it has a plan, nothing can be edited or deleted. With a plan it can be published, post and list jobs."}
         </p>
         <div className="mt-5 flex flex-col gap-4">
           {canManage ? (

@@ -1,5 +1,5 @@
 """Does this organisation have a plan right now — the one question every
-gate asks (publish, post, publish a job, be listed in Discover).
+gate asks (edit/delete workspace data, publish, post, list a job, Discover).
 
 Access is computed live from Subscription rows, never stored: a free year
 ends at `trial_end` whether or not the nightly job has run yet.
@@ -11,6 +11,7 @@ Grants access:
   - `trialing` until `trial_end` — the free year, or the rest of it after the
     owners added a card.
 Everything else (no row at all, paused, canceled, unpaid, incomplete) does not.
+Without access the workspace is read-only; only billing endpoints can write.
 """
 
 from django.db.models import Exists, OuterRef, Q
@@ -114,7 +115,7 @@ def require_access(org) -> None:
     if not has_access(org):
         raise PlanRequired(
             {
-                "detail": "This organisation needs an active plan. Owners and admins can choose one under Plan in the workspace.",
+                "detail": "This organisation needs an active plan before anything can be edited. Owners and admins can choose one under Plan in the workspace.",
                 "code": "plan_required",
             }
         )

@@ -300,7 +300,7 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
                       onBlur={() => code.trim() && codeState.status === "idle" && applyCode()}
                       autoCapitalize="characters"
                       spellCheck={false}
-                      placeholder="EARLYADOPTER"
+                      placeholder="10OFF"
                       className={`${inputClass} font-bold tracking-[0.08em]`}
                     />
                     <button

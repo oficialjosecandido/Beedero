@@ -42,8 +42,11 @@ def make_user(username: str, *, email_verified: bool = True) -> User:
 
 
 def make_org(owner: User, slug: str = "acme", **fields) -> Organization:
+    from billing.testing import grant_plan
+
     org = Organization.objects.create(slug=slug, name=fields.pop("name", slug.title()), **fields)
     OrgMembership.objects.create(org=org, user=owner, role=OrgMembership.Role.OWNER)
+    grant_plan(org)
     return org
 
 

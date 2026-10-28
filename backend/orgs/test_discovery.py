@@ -82,6 +82,19 @@ def test_discover_people_search_by_name(api, viewer):
 
 
 @pytest.mark.django_db
+def test_discover_people_search_ignores_accents(api, viewer):
+    """Typing Júlio must still find Julio — Portuguese names carry accents."""
+    target = User.objects.create_user(username="julio", email="julio@example.com", password="x")
+    unlock(target, full_name="Julio Pomar", headline="Painter")
+    api.force_authenticate(viewer)
+
+    for query in ("Júlio", "julio", "JULIO", "Pomár"):
+        res = api.get(f"/api/discovery/people/?q={query}")
+        assert res.status_code == 200, query
+        assert [item["name"] for item in res.data["items"]] == ["Julio Pomar"], query
+
+
+@pytest.mark.django_db
 def test_connect_with_user_and_discover_people_reflects_connection(api, viewer):
     from connections.models import Connection
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { apiFetch, ApiError, ApiNetworkError, ApiTimeoutError } from "@/lib/api";
 
@@ -29,6 +30,29 @@ export async function activateOrgAction(_prevState: string | null, formData: For
   }
   revalidatePath(`/dashboard/${slug}`);
   return null;
+}
+
+/**
+ * The other end of activateOrgAction: the organisation is deleted for good.
+ * The typed name is checked again by the backend
+ * (orgs/views.py::OrgProfileView.delete) — sending it is what makes the
+ * request valid, not a courtesy.
+ */
+export async function deleteOrgAction(_prevState: string | null, formData: FormData) {
+  const slug = String(formData.get("slug"));
+  const confirm = String(formData.get("confirm") ?? "").trim();
+  try {
+    await apiFetch(`/orgs/${slug}/`, { method: "DELETE", body: { confirm } });
+  } catch (err) {
+    return firstErrorMessage(err, "Could not delete this organization.");
+  }
+  // The sidebar, the switcher and the profile all list the person's orgs.
+  revalidatePath("/feed");
+  revalidatePath("/dashboard");
+  revalidatePath("/profile");
+  // Outside the try: redirect() signals by throwing, and firstErrorMessage
+  // rethrows anything that isn't an ApiError.
+  redirect("/feed");
 }
 
 /** Camera affordance on My profile — uploads only the picture, nothing else. */

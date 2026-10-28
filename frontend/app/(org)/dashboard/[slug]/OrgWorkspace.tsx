@@ -87,6 +87,10 @@ export function OrgWorkspace({
     });
   }, [hashWantsLadder, effectiveActive]);
 
+  // Billing actions stay available to owners; everything else is read-only
+  // until the organisation has a plan (billing.has_access).
+  const canEdit = tabs.canManage && (billing?.has_access ?? true);
+
   return (
     <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[252px_minmax(0,1fr)]">
       <OrgWorkspaceNav {...identity} counts={counts} active={effectiveActive} onSelect={selectTab} />
@@ -110,7 +114,7 @@ export function OrgWorkspace({
               <OrgNarrative
                 name={hero.name}
                 content={narrative}
-                canManage={tabs.canManage}
+                canManage={canEdit}
                 onSelect={selectTab}
               />
               <OrgSignalLog signals={signals} onSelect={selectTab} />
@@ -120,7 +124,7 @@ export function OrgWorkspace({
                 name={hero.name}
                 slug={tabs.slug}
                 ladder={ladder}
-                canManage={tabs.canManage}
+                canManage={canEdit}
                 onSelect={selectTab}
               />
             )}
