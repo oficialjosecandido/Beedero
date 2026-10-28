@@ -48,10 +48,13 @@ def founder(db):
 
 @pytest.fixture
 def org(db, founder):
+    from billing.testing import grant_plan
+
     org = Organization.objects.create(
         name="WaveRent", slug="waverent", status=Organization.Status.LIVE
     )
     OrgMembership.objects.create(org=org, user=founder, role=OrgMembership.Role.OWNER)
+    grant_plan(org)
     return org
 
 

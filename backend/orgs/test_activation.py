@@ -33,6 +33,8 @@ def test_domain_match_does_not_verify_before_email_confirmed(api, owner_unverifi
 
     # Publishing is blocked until the owner's email is confirmed — the
     # domain-match verification must not have been granted at creation.
+    # A plan is required before other activate gates (email, ladder) run.
+    grant_plan(org)
     res = api.post(f"/api/orgs/{org.slug}/activate/")
     assert res.status_code == 403
     org.refresh_from_db()

@@ -205,8 +205,11 @@ def test_repeated_messages_update_the_same_notification_within_the_aggregation_w
 
 @pytest.fixture
 def org(db, alice):
+    from billing.testing import grant_plan
+
     organization = Organization.objects.create(name="Acme", slug="acme")
     OrgMembership.objects.create(org=organization, user=alice, role=OrgMembership.Role.OWNER)
+    grant_plan(organization)
     return organization
 
 

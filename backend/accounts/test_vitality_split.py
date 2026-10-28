@@ -2,7 +2,7 @@
 (what others confirmed), the posting cadence (a streak), and profile
 completion (self-declared fields)."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -196,9 +196,12 @@ def test_streak_survives_a_day_that_has_not_ended_yet(person):
 
 @pytest.mark.django_db
 def test_a_missed_day_breaks_the_streak_but_not_the_best(person):
-    now = timezone.now()
+    # Pin to Lisbon noon so a 24h timedelta never lands on the wrong calendar
+    # day around DST (CI failed with best_streak_days=2 when that happened).
+    today = timezone.now().astimezone(LISBON).date()
     for days_ago in (3, 4, 5):
-        post_at(person.user, now - timedelta(days=days_ago))
+        moment = datetime.combine(today - timedelta(days=days_ago), time(12, 0), tzinfo=LISBON)
+        post_at(person.user, moment)
     cadence = posting_cadence(person.user)
     assert cadence["streak_days"] == 0
     assert cadence["best_streak_days"] == 3
