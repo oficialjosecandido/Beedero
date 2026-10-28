@@ -14,6 +14,7 @@ from orgs.models import Organization, OrgMembership
 from .models import Application, CompensationKind, EngagementType, JobPost
 from .management.commands.expire_jobs import Command as ExpireJobsCommand
 from .services import apply_to_job, create_job, renew_job, set_application_status
+from billing.testing import grant_plan
 
 
 @pytest.fixture(autouse=True)
@@ -42,6 +43,7 @@ def candidate(db):
 def org(db, owner):
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=owner, role=OrgMembership.Role.OWNER)
+    grant_plan(org)
     return org
 
 
@@ -149,6 +151,7 @@ def test_apply_enforces_daily_rate_limit(owner, candidate):
             slug=f"org-{i}", name=f"Org {i}", status=Organization.Status.LIVE
         )
         OrgMembership.objects.create(org=job_org, user=owner, role=OrgMembership.Role.OWNER)
+        grant_plan(job_org)
         return create_job(job_org, created_by=None, **_job_kwargs(title=f"Job {i}"))
 
     for i in range(30):

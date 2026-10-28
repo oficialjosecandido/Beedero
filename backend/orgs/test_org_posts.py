@@ -8,6 +8,7 @@ from credibility.models import Verification, VerificationType
 from orgs.constants import SectionKind
 from orgs.models import Activity, OrgMembership, Organization
 from orgs.posting.freshness import discovery_score, recency_factor
+from billing.testing import grant_plan
 
 
 @pytest.fixture
@@ -17,7 +18,9 @@ def api():
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    grant_plan(org)
+    return org
 
 
 @pytest.fixture

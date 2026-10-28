@@ -1,116 +1,138 @@
-"""Stripe webhook (doc §6) — wired up but at rest: no paid plan is for sale
-yet, so nothing calls Stripe to generate these events in production.
+"""Billing endpoints for organisations, and the Stripe webhook.
 
-Being at rest is exactly why the endpoint has to be strict. It is public
-(`AllowAny`, no authentication class — Stripe cannot carry a Firebase token),
-it is exempt from the RLS middleware, and it writes to the subscription state
-machine that gates every paid entitlement. Unverified, it would let anyone who
-knows the URL hand us `{"type": "customer.subscription.updated", "data":
-{"object": {"id": "<any subscription>", "status": "active"}}}` and switch a
-plan on.
-
-So: the signature is verified against the raw body before the payload is
-parsed, deliveries are deduplicated by event id, and only the three event
-types this state machine understands are acted on. Without
-STRIPE_WEBHOOK_SECRET set, verification fails closed and every delivery is
-rejected.
+  GET  /api/billing/codes/<code>/              is this code usable?
+  GET  /api/orgs/<slug>/billing/               the plan, for any member
+  POST /api/orgs/<slug>/billing/checkout/      owners/admins → Stripe Checkout URL
+  POST /api/orgs/<slug>/billing/redeem/        owners/admins → free year with a code
+  POST /api/orgs/<slug>/billing/sync/          back from checkout → sync now
+  POST /api/orgs/<slug>/billing/portal/        owners/admins → Stripe customer portal
+  POST /api/billing/stripe/webhook/            Stripe, signature verified
 """
 
-import json
+import logging
 
-from django.conf import settings
-from django.db import transaction
+from django.core.exceptions import ImproperlyConfigured
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ProcessedWebhookEvent, Subscription
-from .webhook_signature import SignatureError, verify_signature
+from beedero.ratelimit import enforce_rate_limit
+from orgs.permissions import IsOrgMember, IsOrgOwnerOrAdmin, OrgLookupMixin
 
-# Everything else Stripe sends is acknowledged and dropped. An allowlist
-# rather than a chain of `if`s so a newly enabled event type can't fall
-# through into a handler that was written for a different shape of payload.
-HANDLED_EVENT_TYPES = frozenset(
-    {
-        "customer.subscription.created",
-        "customer.subscription.updated",
-        "customer.subscription.deleted",
-    }
-)
+from . import subscriptions
+from .access import org_billing_state
+from .gateway import BillingUnavailable, get_gateway
+from .plans import PLANS, TERMS_VERSION, public_prices
+
+logger = logging.getLogger(__name__)
+
+UNAVAILABLE = {"detail": "Payments are not available right now. Please try again later.", "code": "billing_unavailable"}
+
+
+def _choice(request) -> str:
+    choice = request.data.get("plan", "yearly")
+    return choice if choice in PLANS else "yearly"
+
+
+def billing_payload(org) -> dict:
+    return {**org_billing_state(org), "prices": public_prices(), "terms_version": TERMS_VERSION}
+
+
+class PromoCodeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, code):
+        enforce_rate_limit(f"promo-check:{request.user.id}", limit=30, window_seconds=3600)
+        found, problem = subscriptions.find_code(code)
+        if problem:
+            return Response({"valid": False, "detail": problem})
+        return Response({"valid": True, "code": found.code, "free_days": found.free_days})
+
+
+class OrgBillingView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgMember]
+
+    def get(self, request, slug):
+        return Response(billing_payload(self.get_org()))
+
+
+class OrgCheckoutView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        enforce_rate_limit(f"checkout:{org.id}", limit=20, window_seconds=3600)
+        try:
+            url = subscriptions.start_checkout(org, request.user, _choice(request))
+        except (BillingUnavailable, ImproperlyConfigured):
+            logger.exception("Checkout unavailable")
+            return Response(UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({"url": url})
+
+
+class OrgRedeemView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        enforce_rate_limit(f"redeem:{org.id}", limit=10, window_seconds=3600)
+        subscriptions.redeem_free_period(org, _choice(request), request.data.get("code", ""))
+        return Response(billing_payload(org))
+
+
+class OrgCheckoutSyncView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        session_id = request.data.get("session_id", "")
+        if session_id:
+            try:
+                subscriptions.sync_after_return(org, session_id)
+            except (BillingUnavailable, ImproperlyConfigured):
+                logger.exception("Checkout sync unavailable")
+        return Response(billing_payload(org))
+
+
+class OrgPortalView(OrgLookupMixin, APIView):
+    permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
+
+    def post(self, request, slug):
+        org = self.get_org()
+        try:
+            return Response({"url": subscriptions.portal_url(org)})
+        except (BillingUnavailable, ImproperlyConfigured):
+            logger.exception("Portal unavailable")
+            return Response(UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class StripeWebhookView(APIView):
+    """Stripe calls this; nothing in the payload is trusted until the
+    Stripe-Signature header checks out against STRIPE_WEBHOOK_SECRET.
+
+    Being public (`AllowAny`, no authentication class — Stripe cannot carry a
+    Firebase token) and exempt from the RLS middleware is exactly why: without
+    verification, anyone who knows the URL could hand us a `customer.
+    subscription.updated` and switch a plan on."""
+
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request):
-        # `request.body` before anything touches `request.data`: the signature
-        # covers these exact bytes, and DRF's parsers consume the stream.
-        payload = request.body
-
         try:
-            verify_signature(
-                payload,
-                request.headers.get("Stripe-Signature", ""),
-                settings.STRIPE_WEBHOOK_SECRET,
-            )
-        except SignatureError:
-            # No detail in the response: the caller is either Stripe (which
-            # does not read it) or someone probing, and "timestamp too old"
-            # versus "signature mismatch" tells a prober which half to fix.
+            # `request.body` before anything touches `request.data`: the
+            # signature covers these exact bytes, and DRF's parsers consume
+            # the stream.
+            event = get_gateway().verify_webhook(request.body, request.headers.get("Stripe-Signature"))
+        except (BillingUnavailable, ImproperlyConfigured):
+            logger.error("Stripe webhook received but billing is not configured")
+            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception:
+            # No detail: the caller is either Stripe (which does not read it)
+            # or someone probing, and "timestamp too old" versus "signature
+            # mismatch" tells a prober which half to fix.
             return Response({"detail": "Invalid signature."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            event = json.loads(payload)
-        except (ValueError, UnicodeDecodeError):
-            return Response({"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST)
-
         if not isinstance(event, dict):
             return Response({"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST)
-
-        event_id = str(event.get("id") or "")
-        event_type = str(event.get("type") or "")
-        if not event_id:
-            return Response({"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if event_type not in HANDLED_EVENT_TYPES:
-            # 2xx on purpose: a 4xx here would have Stripe retry an event we
-            # will never act on, for days.
-            return Response({"received": True, "handled": False}, status=status.HTTP_200_OK)
-
-        with transaction.atomic():
-            _row, created = ProcessedWebhookEvent.objects.get_or_create(
-                event_id=event_id, defaults={"event_type": event_type}
-            )
-            if not created:
-                return Response({"received": True, "duplicate": True}, status=status.HTTP_200_OK)
-            # Inside the same transaction as the idempotency row, so a handler
-            # that blows up doesn't leave the event marked as processed.
-            self._apply(event_type, event.get("data", {}).get("object", {}))
-
-        return Response({"received": True, "handled": True}, status=status.HTTP_200_OK)
-
-    def _apply(self, event_type, obj):
-        if not isinstance(obj, dict):
-            return
-        provider_ref = str(obj.get("id") or "")
-        if not provider_ref:
-            return
-
-        if event_type == "customer.subscription.deleted":
-            Subscription.objects.filter(provider_ref=provider_ref).update(
-                status=Subscription.Status.CANCELED
-            )
-            return
-
-        sub = Subscription.objects.filter(provider_ref=provider_ref).first()
-        if sub is None:
-            return
-        # Only a status this model actually declares: Stripe has more of them
-        # (`incomplete`, `trialing`, `unpaid`, ...) and writing one straight
-        # through would put a value in the column that no entitlement check
-        # knows how to read.
-        new_status = obj.get("status")
-        if new_status in Subscription.Status.values:
-            sub.status = new_status
-            sub.save(update_fields=["status"])
+        subscriptions.handle_event(event)
+        return Response({"received": True})

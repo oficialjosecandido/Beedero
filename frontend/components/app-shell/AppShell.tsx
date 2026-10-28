@@ -318,7 +318,7 @@ export function AppShell({ children, orgs = [] }: Props) {
                 <CreateOrgButton
                   variant="sidebar"
                   label="Join or create organisation"
-                  href="/organisations/new"
+                  href="/orgs/new"
                   className="mt-0"
                 />
               ) : (

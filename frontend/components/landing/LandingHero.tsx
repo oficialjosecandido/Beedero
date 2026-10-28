@@ -47,10 +47,13 @@ export function LandingHero({ primaryHref }: { primaryHref: string }) {
               href="/pricing"
               className="rounded-full border border-white/25 px-7 py-4 text-sm font-black uppercase transition hover:bg-white hover:text-beedero-black"
             >
-              It’s free to start
+              Pricing
             </Link>
           </div>
-          <p className="mt-5 text-sm text-white/45">Free to join. {SUPPORT_RESPONSE_SLA}</p>
+          <p className="mt-5 text-sm text-white/45">
+            Free for people. Organisations from €9 a month — first year free for early adopters.{" "}
+            {SUPPORT_RESPONSE_SLA}
+          </p>
         </div>
 
         <div className="border border-beedero-yellow/45 bg-beedero-yellow p-3 text-beedero-black">

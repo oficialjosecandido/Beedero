@@ -1,19 +1,23 @@
 from django.core.cache import cache
+from django.http import Http404
 import pytest
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APIClient
 
 from accounts.models import InvestorProfile, User
+from billing.access import has_access
 from messaging.models import Conversation, MessageReport, UserBlock
 from notifications.models import Notification
-from orgs.models import OrgMembership
+from orgs.create_flow import create_organization
+from orgs.models import OrgInvite, OrgMembership, Organization
 
 from .models import BuilderProfile, CofounderInterest, CofounderMatch, Strength
 from .recommendations import DAILY_LIMIT, build_deck, daily_deck
 from .services import (
     DENSITY_GATE,
-    create_org_from_match,
+    attach_org_to_match,
     density_status,
+    match_for_new_org,
     record_interest,
     set_outcome,
 )
@@ -254,21 +258,43 @@ def test_formed_org_outcome_cannot_be_set_by_hand(alice, bob):
         set_outcome(match, CofounderMatch.Outcome.FORMED_ORG)
 
 
-@pytest.mark.django_db
-def test_create_org_from_match_makes_creator_owner_and_invites_the_other(alice, bob):
+def _matched(alice, bob) -> CofounderMatch:
     make_builder(alice)
     make_builder(bob, strength=Strength.BUSINESS, looking_for=["technical"])
     record_interest(alice, bob, True)
     _, match = record_interest(bob, alice, True)
+    return match
 
-    org, invite = create_org_from_match(match, alice, "Northbound", "Freight, rebuilt.")
+
+@pytest.mark.django_db
+def test_an_org_from_a_match_chooses_a_plan_and_invites_the_other(api, alice, bob):
+    match = _matched(alice, bob)
+
+    # The only way in is the creation page, which asks for a plan like any
+    # other organisation — here the free year, so no card is needed.
+    api.force_authenticate(alice)
+    res = api.post(
+        "/api/org-onboarding/",
+        {
+            "name": "Northbound",
+            "one_liner": "Freight, rebuilt.",
+            "accept_terms": True,
+            "code": "EARLYADOPTER",
+            "match": match.id,
+        },
+        format="json",
+    )
+    assert res.status_code == 201
+    org = Organization.objects.get(slug=res.data["slug"])
     match.refresh_from_db()
 
     assert match.org_id == org.id
     assert match.outcome == CofounderMatch.Outcome.FORMED_ORG
+    assert has_access(org)
     assert OrgMembership.objects.get(org=org, user=alice).role == OrgMembership.Role.OWNER
     # Bob is invited, never silently added — consent stays explicit.
     assert not OrgMembership.objects.filter(org=org, user=bob).exists()
+    invite = OrgInvite.objects.get(org=org)
     assert invite.role == OrgMembership.Role.OWNER
     assert invite.max_uses == 1
     assert Notification.objects.filter(
@@ -277,26 +303,25 @@ def test_create_org_from_match_makes_creator_owner_and_invites_the_other(alice, 
 
 
 @pytest.mark.django_db
-def test_create_org_from_match_is_refused_twice(alice, bob):
-    make_builder(alice)
-    make_builder(bob, strength=Strength.BUSINESS, looking_for=["technical"])
-    record_interest(alice, bob, True)
-    _, match = record_interest(bob, alice, True)
+def test_a_match_forms_only_one_org(alice, bob):
+    match = _matched(alice, bob)
+    org = create_organization(alice, name="Northbound")
+    attach_org_to_match(match, alice, org)
 
-    create_org_from_match(match, alice, "Northbound")
+    # Checked before anything is created, so the second attempt never reaches
+    # checkout.
     with pytest.raises(ValidationError):
-        create_org_from_match(match, bob, "Southbound")
+        match_for_new_org(bob, match.id)
 
 
 @pytest.mark.django_db
-def test_create_org_from_match_refuses_a_stranger(alice, bob, carol):
-    make_builder(alice)
-    make_builder(bob, strength=Strength.BUSINESS, looking_for=["technical"])
-    record_interest(alice, bob, True)
-    _, match = record_interest(bob, alice, True)
+def test_a_stranger_cannot_form_an_org_from_someone_elses_match(alice, bob, carol):
+    match = _matched(alice, bob)
 
-    with pytest.raises(PermissionDenied):
-        create_org_from_match(match, carol, "Hijack")
+    # Http404, like every other match endpoint: it doesn't even confirm the
+    # match exists.
+    with pytest.raises(Http404):
+        match_for_new_org(carol, match.id)
 
 
 # --- density gate ----------------------------------------------------------

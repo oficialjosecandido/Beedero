@@ -37,6 +37,9 @@ def create_job(org, *, created_by, title, description, engagement_type, location
     rígidas")."""
     if org.status != Organization.Status.LIVE:
         raise ValidationError({"org": "Only live organizations can publish jobs."})
+    from billing.access import require_access
+
+    require_access(org)
 
     enforce_rate_limit(f"job-post:{org.id}", limit=DAILY_JOB_POST_LIMIT, window_seconds=86400)
 

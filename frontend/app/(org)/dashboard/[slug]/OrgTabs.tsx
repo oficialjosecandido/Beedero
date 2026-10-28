@@ -23,10 +23,12 @@ import { BadgeEmbedPanel, PresenceSignalsPanel } from "@/components/BadgePanels"
 import { OrgPostComposer, type PostingStatus } from "@/components/OrgPostComposer";
 import type { CalendarEvent, EventRoleFilter } from "@/components/EventsCalendar";
 import { CompanyRegistryCard } from "@/components/org-workspace/CompanyRegistryCard";
+import { OrgBillingPanel } from "@/components/org-workspace/OrgBilling";
 import type { OrgTabId } from "@/components/org-workspace/tabs";
 import { OrgLogoForm } from "./OrgLogoForm";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
+import type { OrgBilling } from "@/lib/billing";
 import type { OrgLadder } from "@/lib/org-ladder";
 import { SITE_URL } from "@/lib/site-metadata";
 import type {
@@ -1500,6 +1502,7 @@ export function OrgTabs({
   affiliations,
   teamInvites,
   inviteQuota,
+  billing,
   suggestedTitle,
   suggestedBody,
   active,
@@ -1523,6 +1526,7 @@ export function OrgTabs({
   affiliations: AffiliationSummary[];
   teamInvites: TeamInviteSummary[];
   inviteQuota: TeamInviteQuota | null;
+  billing: OrgBilling | null;
   suggestedTitle?: string;
   suggestedBody?: string;
   active: OrgTabId;
@@ -1638,6 +1642,10 @@ export function OrgTabs({
           fundraiseSections={fundraiseSections}
           roundHistory={roundHistory}
         />
+      )}
+
+      {active === "billing" && (
+        <OrgBillingPanel name={org.name} slug={slug} billing={billing} canManage={canManage} />
       )}
 
       {active === "share" && (

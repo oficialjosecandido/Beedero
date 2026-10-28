@@ -43,6 +43,9 @@ def _section_for_kind(org, activity_kind: str) -> OrgSection:
 
 
 def create_org_post(org, kind: str, data: dict, actor=None) -> Activity:
+    from billing.access import require_access
+
+    require_access(org)  # a paused organisation keeps its posts, but adds none
     rule = posting_rule(org)
     if kind not in rule["kinds"]:
         locked = next((item for item in locked_kinds(org) if item["kind"] == kind), None)

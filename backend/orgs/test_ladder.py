@@ -25,6 +25,7 @@ from orgs.ladder import (
 )
 from orgs.models import Activity, OrgField, Organization, OrgMembership, OrgSection
 from orgs.testing import unlock_org
+from billing.testing import grant_plan
 
 
 @pytest.fixture
@@ -224,8 +225,14 @@ def test_fifty_percent_from_the_wrong_rungs_does_not_unlock():
 def test_publishing_needs_the_gate_and_stamps_the_moment(api):
     owner = make_user("ana")
     api.force_authenticate(owner)
-    slug = api.post("/api/orgs/", {"name": "Acme", "one_liner": "We build things"}, format="json").data["slug"]
+    slug = api.post(
+        "/api/org-onboarding/",
+        {"name": "Acme", "one_liner": "We build things", "accept_terms": True},
+        format="json",
+    ).data["slug"]
     org = Organization.objects.get(slug=slug)
+    assert api.post(f"/api/orgs/{slug}/activate/").status_code == 402  # no plan yet
+    grant_plan(org)
 
     refused = api.post(f"/api/orgs/{slug}/activate/")
     assert refused.status_code == 400

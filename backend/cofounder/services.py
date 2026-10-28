@@ -7,7 +7,6 @@ import logging
 
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from beedero.ratelimit import enforce_rate_limit
@@ -206,11 +205,11 @@ def get_match_or_404(user, match_id: int) -> CofounderMatch:
 
 def set_outcome(match: CofounderMatch, outcome: str) -> CofounderMatch:
     """Either party records where the match went. formed_org is not settable
-    by hand — it's only ever written by create_org_from_match, so the mother
+    by hand — it's only ever written by attach_org_to_match, so the mother
     metric can't be inflated by a button."""
     if outcome == CofounderMatch.Outcome.FORMED_ORG:
         raise ValidationError(
-            {"outcome": "Use the create-org action — this outcome records a real organization."}
+            {"outcome": "Create the organization itself — this outcome records a real one."}
         )
     if outcome not in CofounderMatch.Outcome.values:
         raise ValidationError({"outcome": "Unknown outcome."})
@@ -219,60 +218,35 @@ def set_outcome(match: CofounderMatch, outcome: str) -> CofounderMatch:
     return match
 
 
+def match_for_new_org(by, match_id: int) -> CofounderMatch:
+    """Everything that has to be true before an organization is created from a
+    match. Split from attach_org_to_match because creating an organization now
+    goes through orgs/create_flow.py, which asks for a plan and may send the
+    person to Stripe: these checks run before anything exists, so a match that
+    can't form a company never reaches checkout.
+    """
+    match = get_match_or_404(by, match_id)
+    if match.org_id is not None:
+        raise ValidationError({"match": "You've already created an organization from this match."})
+    if is_blocked(by, match.other_user(by)):
+        raise PermissionDenied("You can't contact this user.")
+    return match
+
+
 @transaction.atomic
-def create_org_from_match(match: CofounderMatch, by, name: str, one_liner: str = ""):
-    """Closes the funnel (doc §6): the match becomes a real organization here,
-    with both people as founders. Returns (org, invite).
+def attach_org_to_match(match: CofounderMatch, by, org):
+    """Closes the funnel (doc §6): the organization that was just created is
+    this match's organization, with both people as founders. Returns the invite.
 
     The other founder is invited as an owner rather than silently inserted as
     a member — consent is the whole point of this platform, and the existing
     invite flow already handles accept/expire/revoke. The match is marked
-    formed_org at creation: the org exists and came from this match, which is
-    what the metric asks.
+    formed_org here: the org exists and came from this match, which is what
+    the metric asks.
     """
-    from orgs.models import OrgFollow, OrgInvite, OrgMembership, Organization
-    # Lives in orgs.views (its only caller until now); imported here rather
-    # than reimplemented so the slug rule has one definition.
-    from orgs.views import unique_org_slug
-
-    if by.id not in (match.user_a_id, match.user_b_id):
-        raise PermissionDenied("Only the two people in this match can do that.")
-    if match.org_id is not None:
-        raise ValidationError({"name": "You've already created an organization from this match."})
-
-    name = (name or "").strip()
-    if not name:
-        raise ValidationError({"name": "Name is required."})
+    from orgs.models import OrgInvite, OrgMembership
 
     other = match.other_user(by)
-    if is_blocked(by, other):
-        raise PermissionDenied("You can't contact this user.")
-
-    enforce_rate_limit(f"create_org:user:{by.id}", limit=5, window_seconds=3600)
-
-    org = None
-    for _attempt in range(5):
-        try:
-            with transaction.atomic():
-                org = Organization.objects.create(
-                    slug=unique_org_slug(name), name=name, one_liner=(one_liner or "").strip()[:140]
-                )
-            break
-        except IntegrityError:
-            continue
-    if org is None:
-        raise ValidationError({"name": "Could not create the organization, please try again."})
-
-    # Self-attested, like any founder's own row; the matched co-founder's row
-    # gets attested by `by` when they accept the invite created just below.
-    OrgMembership.objects.create(
-        org=org,
-        user=by,
-        role=OrgMembership.Role.OWNER,
-        details_confirmed_by=by,
-        details_confirmed_at=timezone.now(),
-    )
-    OrgFollow.objects.get_or_create(user=by, org=org)
     invite = OrgInvite.objects.create(
         org=org, role=OrgMembership.Role.OWNER, created_by=by, max_uses=1
     )
@@ -289,4 +263,4 @@ def create_org_from_match(match: CofounderMatch, by, name: str, one_liner: str =
         body="Accept the invite to join as a founder.",
         link=f"/invite/{invite.token}",
     )
-    return org, invite
+    return invite

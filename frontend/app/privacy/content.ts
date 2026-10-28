@@ -83,6 +83,18 @@ We are the **data controller** for the personal data described in this policy, u
 
 [LEGAL REVIEW: confirm e-Privacy/marketing framework where applicable.]
 
+### 2.7 Subscriptions and payments
+
+**What:** for organisations with a subscription — the plan and its status, the billing name, address and VAT number, the email of whoever manages it, payments and invoices. Card details are entered on Stripe's page and never reach us.
+
+**Why:** charging the subscription, issuing invoices and complying with tax and accounting obligations.
+
+**Legal basis:** performance of a contract (Art. 6(1)(b)); for invoices and accounting records, a legal obligation (Art. 6(1)(c)).
+
+**Retention:** invoices and accounting records — 10 years, as required by Portuguese tax law; the rest for as long as the organisation exists.
+
+[LEGAL REVIEW: confirm retention, and Stripe's role — processor for payment processing, independent controller for its own fraud-prevention and regulatory purposes.]
+
 ## 3. Cookies
 
 We use **strictly necessary** cookies only: session cookies for authentication (httpOnly). We do not use advertising cookies or third-party tracking cookies.
@@ -100,7 +112,7 @@ We do not sell personal data. We share only with:
 | Sub-processor | Service | Location |
 |---|---|---|
 | Microsoft Azure | Hosting, database, file storage, email delivery | {region — e.g. European Union (West Europe)} |
-| Stripe | Traction verification (read-only access authorised by you) | EU/US [LEGAL REVIEW: international transfers — SCCs/adequacy] |
+| Stripe | Subscription payments; traction verification (read-only access authorised by you) | EU/US [LEGAL REVIEW: international transfers — SCCs/adequacy] |
 | {Sentry or equivalent} | Error monitoring | {location} |
 | {Managed Redis, if applicable} | Cache | {location} |
 

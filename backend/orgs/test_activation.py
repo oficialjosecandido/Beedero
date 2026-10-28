@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from accounts.models import User
 from orgs.models import Organization, OrgMembership
 from orgs.testing import unlock_org
+from billing.testing import grant_plan
 
 
 @pytest.fixture
@@ -25,7 +26,7 @@ def _make_publish_ready(org):
 @pytest.mark.django_db
 def test_domain_match_does_not_verify_before_email_confirmed(api, owner_unverified):
     api.force_authenticate(owner_unverified)
-    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "We search things"}, format="json")
+    res = api.post("/api/org-onboarding/", {"name": "Google", "one_liner": "We search things", "accept_terms": True}, format="json")
     assert res.status_code == 201
     org = Organization.objects.get(slug=res.data["slug"])
     assert org.is_verified is False
@@ -41,7 +42,7 @@ def test_domain_match_does_not_verify_before_email_confirmed(api, owner_unverifi
 @pytest.mark.django_db
 def test_domain_match_verifies_only_after_email_confirmed_and_published(api, owner_unverified):
     api.force_authenticate(owner_unverified)
-    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "We search things"}, format="json")
+    res = api.post("/api/org-onboarding/", {"name": "Google", "one_liner": "We search things", "accept_terms": True}, format="json")
     org = Organization.objects.get(slug=res.data["slug"])
 
     owner_unverified.email_verified_at = timezone.now()
@@ -62,7 +63,7 @@ def test_non_matching_domain_never_verifies(api, db):
     owner.save(update_fields=["email_verified_at"])
     api.force_authenticate(owner)
 
-    res = api.post("/api/orgs/", {"name": "Google", "one_liner": "Not actually Google"}, format="json")
+    res = api.post("/api/org-onboarding/", {"name": "Google", "one_liner": "Not actually Google", "accept_terms": True}, format="json")
     org = Organization.objects.get(slug=res.data["slug"])
     _make_publish_ready(org)
 
@@ -75,11 +76,12 @@ def test_non_matching_domain_never_verifies(api, db):
 @pytest.mark.django_db
 def test_activate_requires_complete_profile(api, owner_unverified):
     api.force_authenticate(owner_unverified)
-    res = api.post("/api/orgs/", {"name": "Acme", "one_liner": "We build things"}, format="json")
+    res = api.post("/api/org-onboarding/", {"name": "Acme", "one_liner": "We build things", "accept_terms": True}, format="json")
     org = Organization.objects.get(slug=res.data["slug"])
 
     owner_unverified.email_verified_at = timezone.now()
     owner_unverified.save(update_fields=["email_verified_at"])
+    grant_plan(org)
 
     res = api.post(f"/api/orgs/{org.slug}/activate/")
     assert res.status_code == 400
@@ -90,7 +92,7 @@ def test_activate_requires_complete_profile(api, owner_unverified):
 @pytest.mark.django_db
 def test_org_member_can_read_onboarding(api, owner_unverified):
     api.force_authenticate(owner_unverified)
-    res = api.post("/api/orgs/", {"name": "Acme", "one_liner": "We build things"}, format="json")
+    res = api.post("/api/org-onboarding/", {"name": "Acme", "one_liner": "We build things", "accept_terms": True}, format="json")
     org = Organization.objects.get(slug=res.data["slug"])
 
     member = User.objects.create_user(username="member@acme.com", email="member@acme.com", password="x")

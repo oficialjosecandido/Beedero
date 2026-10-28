@@ -1,14 +1,14 @@
 import Link from "next/link";
 
 /**
- * CTA into the full-page create-org stepper. Never a modal — the wizard needs
- * the room of `/organisations/new`.
+ * Every "Create organisation" entry point goes to the same one-page
+ * onboarding (`/orgs/new`), where the plan and checkout come last.
  */
 export function CreateOrgButton({
   className = "mt-4",
   variant = "default",
   label = "Create organisation",
-  href = "/organisations/new",
+  href = "/orgs/new",
 }: {
   className?: string;
   /** `dark` / `sidebar` match the app shell; `default` is the light surfaces. */

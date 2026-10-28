@@ -7,7 +7,7 @@ export const LEGAL_ENTITY = {
   shareCapital: "100,00 €",
   privacyEmail: "privacy@beedero.com",
   contactEmail: "hello@beedero.com",
-  lastUpdated: "31 August 2026",
+  lastUpdated: "1 November 2026",
   profileViewRetention: "12 months",
   auditRetention: "24 months",
   verificationDocRetention: "24 months after verification or account deletion, whichever comes first",

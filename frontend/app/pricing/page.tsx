@@ -7,11 +7,11 @@ import { pageMetadata } from "@/lib/site-metadata";
 export const metadata = pageMetadata({
   title: "Pricing",
   description:
-    "Your professional identity is free. When your organisation is ready to be seen and discovered, launch it for €99 for the full first year.",
+    "Beedero is free for people. Organisations pay €99 a year or €9 a month, VAT included — and early adopters get the first year free.",
   path: "/pricing",
 });
 
-const INCLUDED = [
+const PERSONAL = [
   "Personal profile",
   "Network discovery",
   "Messaging after connection",
@@ -19,17 +19,37 @@ const INCLUDED = [
   "Follow people and organisations",
 ] as const;
 
-const ORGANISATION_INCLUDED = [
-  "One credible home for your organisation",
-  "Showcase your team, jobs and milestones",
-  "Build trust with verification signals",
-  "See how people discover your profile",
-  "Publish opportunities that attract the right people",
+const ORGANISATION = [
+  "Published and listed in Discover",
+  "Updates, milestones and events",
+  "Job posts",
+  "Verification ladder and badge",
+  "The team, confirmed by each person",
+] as const;
+
+const QUESTIONS = [
+  {
+    q: "Do I need a card for the free year?",
+    a: "No. With an early-adopter code the organisation is free for a year, with nothing to fill in. A month before the year ends we remind you; if you don't add a card, the organisation simply pauses.",
+  },
+  {
+    q: "What does “paused” mean?",
+    a: "The public page stays up and nothing is deleted. The organisation is hidden from Discover and can't post or publish jobs until it has a plan again.",
+  },
+  {
+    q: "Can I cancel?",
+    a: "Any time, from the workspace. The plan runs until the end of the period you paid for. Within 14 days of your first payment, you can ask for a full refund.",
+  },
+  {
+    q: "Do you issue invoices?",
+    a: "Yes. Stripe emails a receipt for every payment, and the fatura — with your company's VAT number, if you add it at checkout — follows by email.",
+  },
 ] as const;
 
 export default async function PricingPage() {
   const authed = Boolean((await getAccessToken()) || (await getRefreshToken()));
   const joinHref = authed ? "/feed" : "/register";
+  const orgHref = authed ? "/orgs/new" : "/register";
 
   return (
     <main className="min-h-screen bg-[#070806] px-5 pb-10 text-white sm:px-8">
@@ -46,23 +66,21 @@ export default async function PricingPage() {
       </header>
 
       <section className="mx-auto max-w-[1280px] py-16 sm:py-24">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
-          Start free. Step up when you&apos;re ready.
-        </p>
-        <h1 className="mt-6 max-w-4xl text-[clamp(3.5rem,8vw,7.5rem)] font-black uppercase leading-[0.82] tracking-[-0.02em]">
-          Build credibility
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">Pricing</p>
+        <h1 className="mt-6 max-w-4xl text-[clamp(3.2rem,7.5vw,7rem)] font-black uppercase leading-[0.84] tracking-[-0.02em]">
+          Free for people.
           <br />
-          before you need it.
+          Fair for companies.
         </h1>
         <p className="mt-7 max-w-xl text-lg leading-8 text-white/65">
-          Your professional identity is free. When your organisation is ready to be seen, trusted and
-          discovered, launch it for €99 for the full first year.
+          Your profile, your connections and your messages cost nothing. Organisations pay a small
+          subscription — a company on Beedero is a promise that real people stand behind it.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 border-y border-white/10 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-          <span>Personal profile · always free</span>
-          <span className="text-beedero-yellow">Organisation · €99 first year</span>
-          <span>One simple payment</span>
+          <span>People · always free</span>
+          <span className="text-beedero-yellow">Organisation · €99 a year</span>
+          <span>Early adopters · first year free</span>
         </div>
 
         <div className="mt-8 grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
@@ -76,7 +94,7 @@ export default async function PricingPage() {
               opportunities that move you forward.
             </p>
             <ul className="mt-9 space-y-3 border-t border-white/10 pt-6 text-sm">
-              {INCLUDED.map((item) => (
+              {PERSONAL.map((item) => (
                 <li className="flex gap-3" key={item}>
                   <span className="text-beedero-yellow">✓</span>
                   {item}
@@ -92,55 +110,62 @@ export default async function PricingPage() {
           </section>
 
           <section className="relative overflow-hidden border border-beedero-yellow bg-beedero-yellow p-7 text-beedero-black sm:p-9">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-black/55">
-                For your organisation
-              </p>
-              <span className="rounded-full border border-black/25 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em]">
-                Founding offer
-              </span>
-            </div>
-            <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-1">
-              <h2 className="text-6xl font-black uppercase tracking-[-0.02em]">€99</h2>
-              <p className="pb-2 text-xs font-black uppercase tracking-[0.12em] text-beedero-black/55">
-                full first year
-              </p>
-            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-black/55">
+              For your organisation
+            </p>
+            <h2 className="mt-6 flex flex-wrap items-baseline gap-x-3 font-black uppercase tracking-[-0.02em]">
+              <span className="text-6xl">€99</span>
+              <span className="text-xl">/ year</span>
+            </h2>
+            <p className="mt-2 text-sm font-bold">or €9 a month · VAT included</p>
             <p className="mt-4 max-w-md text-sm leading-6 text-beedero-black/70">
               Turn scattered proof into one credible record. Show the people, progress and signals
               that make your organisation worth knowing — and easier to trust.
             </p>
-            <div className="mt-6 bg-beedero-black p-5 text-white">
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-beedero-yellow">
-                Less than €2 per week
-              </p>
-              <p className="mt-2 max-w-lg text-2xl font-black leading-tight">
-                One year to build a record that keeps working long after the introduction.
-              </p>
-            </div>
             <ul className="mt-7 space-y-3 border-t border-black/15 pt-6 text-sm">
-              {ORGANISATION_INCLUDED.map((item) => (
+              {ORGANISATION.map((item) => (
                 <li className="flex gap-3" key={item}>
                   <span className="font-black">✓</span>
                   {item}
                 </li>
               ))}
             </ul>
+            <div className="mt-8 bg-beedero-black px-5 py-4 text-white">
+              <p className="text-sm font-black">Early adopter? Your first year is free.</p>
+              <p className="mt-1 text-xs leading-5 text-white/65">
+                Enter your code when you create the organisation. No card needed.
+              </p>
+            </div>
             <Link
-              href={joinHref}
+              href={orgHref}
               className="mt-8 flex w-full items-center justify-center rounded-full bg-beedero-black px-6 py-4 text-xs font-black uppercase text-white transition hover:bg-white hover:text-beedero-black"
             >
-              Secure early access — €99 →
+              Create organisation →
             </Link>
-            <p className="mt-4 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-beedero-black/55">
-              <LockKeyhole size={12} aria-hidden />
-              Sign in or create your personal account to continue.
-            </p>
+            {!authed && (
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-beedero-black/55">
+                <LockKeyhole size={12} aria-hidden />
+                Sign in or create your personal account to continue.
+              </p>
+            )}
           </section>
         </div>
 
-        <p className="mt-8 text-center text-xs text-white/45">
-          One payment. The complete organisation experience for your first year.
+        <div className="mt-16 grid gap-x-10 gap-y-8 border-t border-white/10 pt-10 md:grid-cols-2">
+          {QUESTIONS.map((item) => (
+            <div key={item.q}>
+              <h3 className="text-base font-black">{item.q}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/60">{item.a}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-12 text-center text-xs text-white/45">
+          Prices include VAT. Full conditions in the{" "}
+          <Link href="/terms#subscriptions" className="underline">
+            Terms
+          </Link>
+          .
         </p>
       </section>
     </main>

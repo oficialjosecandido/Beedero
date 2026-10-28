@@ -261,7 +261,9 @@ def test_org_create_auto_follows_owner(db):
     user = User.objects.create_user(username="creator", password="x")
     api = APIClient()
     api.force_authenticate(user)
-    res = api.post("/api/orgs/", {"name": "New Co", "one_liner": "We ship"}, format="json")
+    res = api.post(
+        "/api/org-onboarding/", {"name": "New Co", "one_liner": "We ship", "accept_terms": True}, format="json"
+    )
     assert res.status_code == 201
     org = Organization.objects.get(slug=res.data["slug"])
     assert OrgFollow.objects.filter(user=user, org=org).exists()

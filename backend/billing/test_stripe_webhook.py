@@ -1,5 +1,8 @@
 """The webhook endpoint is public and writes to the subscription state
-machine, so these tests are mostly about what it *refuses*."""
+machine, so these tests are about what it *refuses*.
+
+What it does with an event it accepts is tested in test_subscriptions.py,
+where the state machine itself lives."""
 
 import json
 import time
@@ -7,7 +10,7 @@ import time
 import pytest
 from rest_framework.test import APIClient
 
-from billing.models import ProcessedWebhookEvent, Subscription
+from billing.models import Subscription
 from billing.webhook_signature import (
     DEFAULT_TOLERANCE_SECONDS,
     SignatureError,
@@ -25,8 +28,12 @@ def api():
     return APIClient()
 
 
-@pytest.fixture(autouse=True)
-def secret(settings):
+@pytest.fixture
+def live_stripe(settings):
+    """The real gateway, so the signature is actually checked. Tests otherwise
+    run on the offline stub (conftest.py), which takes unsigned payloads."""
+    settings.STRIPE_SECRET_KEY = "sk_test_x"
+    settings.BILLING_STRIPE_STUB = False
     settings.STRIPE_WEBHOOK_SECRET = SECRET
     return SECRET
 
@@ -36,7 +43,7 @@ def subscription(db):
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.DRAFT)
     return Subscription.objects.create(
         org=org,
-        plan=Subscription.Plan.FOUNDER_PRO,
+        plan=Subscription.Plan.ORG_YEARLY,
         status=Subscription.Status.PAST_DUE,
         provider_ref="sub_123",
     )
@@ -44,18 +51,6 @@ def subscription(db):
 
 def event(event_type, obj, event_id="evt_1"):
     return {"id": event_id, "type": event_type, "data": {"object": obj}}
-
-
-def post(api, payload, *, header=None, timestamp=None):
-    body = json.dumps(payload).encode()
-    if header is None:
-        header = sign_payload(body, SECRET, timestamp=timestamp)
-    return api.post(
-        URL,
-        data=body,
-        content_type="application/json",
-        headers={"Stripe-Signature": header} if header else {},
-    )
 
 
 # --- signature verification ------------------------------------------------
@@ -125,7 +120,7 @@ def test_verify_fails_closed_without_a_secret():
 
 
 @pytest.mark.django_db
-def test_unsigned_request_cannot_change_a_subscription(api, subscription):
+def test_unsigned_request_cannot_change_a_subscription(api, subscription, live_stripe):
     response = api.post(
         URL,
         data=event("customer.subscription.updated", {"id": "sub_123", "status": "active"}),
@@ -137,7 +132,7 @@ def test_unsigned_request_cannot_change_a_subscription(api, subscription):
 
 
 @pytest.mark.django_db
-def test_forged_signature_cannot_change_a_subscription(api, subscription):
+def test_forged_signature_cannot_change_a_subscription(api, subscription, live_stripe):
     body = json.dumps(event("customer.subscription.updated", {"id": "sub_123", "status": "active"})).encode()
     response = api.post(
         URL,
@@ -151,7 +146,8 @@ def test_forged_signature_cannot_change_a_subscription(api, subscription):
 
 
 @pytest.mark.django_db
-def test_endpoint_rejects_everything_when_no_secret_is_configured(api, subscription, settings):
+def test_endpoint_rejects_everything_when_no_secret_is_configured(api, subscription, live_stripe, settings):
+    """Unconfigured is not the same as unverified: 503, never a write."""
     settings.STRIPE_WEBHOOK_SECRET = ""
     body = json.dumps(event("customer.subscription.updated", {"id": "sub_123", "status": "active"})).encode()
     response = api.post(
@@ -160,88 +156,13 @@ def test_endpoint_rejects_everything_when_no_secret_is_configured(api, subscript
         content_type="application/json",
         headers={"Stripe-Signature": sign_payload(body, SECRET)},
     )
-    assert response.status_code == 400
+    assert response.status_code == 503
     subscription.refresh_from_db()
     assert subscription.status == Subscription.Status.PAST_DUE
 
 
 @pytest.mark.django_db
-def test_signed_update_applies(api, subscription):
-    response = post(api, event("customer.subscription.updated", {"id": "sub_123", "status": "active"}))
-    assert response.status_code == 200
-    assert response.json() == {"received": True, "handled": True}
-    subscription.refresh_from_db()
-    assert subscription.status == Subscription.Status.ACTIVE
-
-
-@pytest.mark.django_db
-def test_signed_delete_cancels(api, subscription):
-    response = post(api, event("customer.subscription.deleted", {"id": "sub_123"}))
-    assert response.status_code == 200
-    subscription.refresh_from_db()
-    assert subscription.status == Subscription.Status.CANCELED
-
-
-@pytest.mark.django_db
-def test_redelivery_of_the_same_event_is_dropped(api, subscription):
-    payload = event("customer.subscription.updated", {"id": "sub_123", "status": "active"})
-    assert post(api, payload).json()["handled"] is True
-
-    subscription.status = Subscription.Status.PAST_DUE
-    subscription.save(update_fields=["status"])
-
-    second = post(api, payload)
-    assert second.status_code == 200
-    assert second.json() == {"received": True, "duplicate": True}
-    subscription.refresh_from_db()
-    # Still past_due: the handler did not run a second time.
-    assert subscription.status == Subscription.Status.PAST_DUE
-    assert ProcessedWebhookEvent.objects.filter(event_id="evt_1").count() == 1
-
-
-@pytest.mark.django_db
-def test_unhandled_event_type_is_acknowledged_but_not_recorded(api, subscription):
-    response = post(api, event("invoice.payment_failed", {"id": "sub_123", "status": "active"}))
-    assert response.status_code == 200
-    assert response.json() == {"received": True, "handled": False}
-    subscription.refresh_from_db()
-    assert subscription.status == Subscription.Status.PAST_DUE
-    assert not ProcessedWebhookEvent.objects.exists()
-
-
-@pytest.mark.django_db
-def test_status_outside_the_model_choices_is_ignored(api, subscription):
-    # Stripe has statuses this column does not declare (`trialing`,
-    # `incomplete`, ...) — writing one through would poison entitlements.
-    response = post(api, event("customer.subscription.updated", {"id": "sub_123", "status": "trialing"}))
-    assert response.status_code == 200
-    subscription.refresh_from_db()
-    assert subscription.status == Subscription.Status.PAST_DUE
-
-
-@pytest.mark.django_db
-def test_missing_event_id_is_rejected(api, subscription):
-    payload = {"type": "customer.subscription.updated", "data": {"object": {"id": "sub_123", "status": "active"}}}
-    response = post(api, payload)
-    assert response.status_code == 400
-    subscription.refresh_from_db()
-    assert subscription.status == Subscription.Status.PAST_DUE
-
-
-@pytest.mark.django_db
-def test_non_object_payload_is_rejected(api):
-    body = b'"just a string"'
-    response = api.post(
-        URL,
-        data=body,
-        content_type="application/json",
-        headers={"Stripe-Signature": sign_payload(body, SECRET)},
-    )
-    assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_invalid_json_is_rejected(api):
+def test_invalid_json_is_rejected(api, live_stripe):
     body = b"{not json"
     response = api.post(
         URL,
@@ -253,7 +174,12 @@ def test_invalid_json_is_rejected(api):
 
 
 @pytest.mark.django_db
-def test_an_unknown_subscription_is_a_noop(api):
-    response = post(api, event("customer.subscription.updated", {"id": "sub_nope", "status": "active"}))
-    assert response.status_code == 200
-    assert not Subscription.objects.exists()
+def test_non_object_payload_is_rejected(api, live_stripe):
+    body = b'"just a string"'
+    response = api.post(
+        URL,
+        data=body,
+        content_type="application/json",
+        headers={"Stripe-Signature": sign_payload(body, SECRET)},
+    )
+    assert response.status_code == 400

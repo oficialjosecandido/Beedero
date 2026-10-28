@@ -25,6 +25,13 @@ def _unfurl_inline(settings):
     settings.UNFURL_IN_BACKGROUND = False
 
 
+@pytest.fixture(autouse=True)
+def _offline_stripe(settings):
+    """Tests never reach Stripe: no key, the stub gateway (billing/gateway.py)."""
+    settings.STRIPE_SECRET_KEY = ""
+    settings.BILLING_STRIPE_STUB = True
+
+
 @pytest.fixture(scope="session")
 def _grant_app_role_on_test_db(django_db_setup, django_db_blocker):
     """Runs once per session, outside any per-test transaction: grants

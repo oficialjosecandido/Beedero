@@ -116,24 +116,5 @@ export async function blockBuilderAction(userId: number): Promise<{ ok: true } |
   return { ok: true };
 }
 
-export async function createOrgFromMatchAction(
-  matchId: number,
-  name: string,
-  oneLiner: string
-): Promise<{ slug: string; inviteToken: string } | { error: string }> {
-  try {
-    const result = await apiFetch<{
-      org: { slug: string; name: string };
-      invite_token: string;
-    }>(`/cofounder/matches/${matchId}/create-org/`, {
-      method: "POST",
-      body: { name, one_liner: oneLiner },
-    });
-    revalidatePath("/cofounder");
-    revalidatePath("/profile");
-  revalidatePath("/dashboard");
-    return { slug: result.org.slug, inviteToken: result.invite_token };
-  } catch (err) {
-    return { error: actionErrorMessage(err, "Could not create the organization.") };
-  }
-}
+// Creating the organisation itself lives on /orgs/new (app/(org)/orgs/new),
+// which carries the match: one creation path, and it asks for a plan.

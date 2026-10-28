@@ -3,7 +3,7 @@ import re
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date, parse_datetime
@@ -37,6 +37,7 @@ from .completeness import (
     is_refund_eligible,
     profile_strength_checklist,
 )
+from .create_flow import create_organization, enforce_creation_limits, unique_org_slug  # noqa: F401 — re-exported
 from .ladder import gate_missing, listed_in_discover, org_verification_ladder
 from .constants import FUNDRAISE_KINDS, SectionKind
 from connections import services as connections_services
@@ -100,13 +101,6 @@ FIELD_KEY_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 PROFILE_VIEW_DEDUPE_HOURS = 24
 
 
-def unique_org_slug(name: str) -> str:
-    from beedero.handles import compact_handle_base, unique_public_id
-
-    base = compact_handle_base(name) or "organization"
-    return unique_public_id(base, fallback="organization")
-
-
 def _owner_email_verifies_org(email: str, name: str) -> bool:
     """Auto-verify when the creator's email domain is an exact match for the
     org name as a domain (name="Google" + owner@google.com verifies; a
@@ -122,7 +116,7 @@ def _owner_email_verifies_org(email: str, name: str) -> bool:
 def ensure_default_beedero_follow(user):
     if OrgFollow.objects.filter(user=user).exists():
         return
-    org, _ = Organization.objects.get_or_create(
+    org, created = Organization.objects.get_or_create(
         slug="beedero",
         defaults={
             "name": "Beedero",
@@ -134,6 +128,10 @@ def ensure_default_beedero_follow(user):
             "is_verified": True,
         },
     )
+    if created:
+        from billing.subscriptions import grant_comp
+
+        grant_comp(org)  # Beedero's own organisation never needs a plan
     OrgFollow.objects.get_or_create(user=user, org=org)
 
 
@@ -175,9 +173,14 @@ class PublicOrgProfileView(APIView):
         return Response(public_profile(slug, viewer))
 
 
-class OrgListCreateView(APIView):
-    """Not in the §4 table, but indispensable: the founder needs to create
-    their org before there's anything to visit."""
+class OrgListView(APIView):
+    """The organisations this person belongs to — the sidebar, the switcher and
+    the profile all read it.
+
+    Creating one lives in orgs/create_flow.py (`POST /api/org-onboarding/`),
+    which is the only path that exists: every organisation chooses a plan
+    before it is born.
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -189,56 +192,6 @@ class OrgListCreateView(APIView):
                 for m in memberships
             ]
         )
-
-    def post(self, request):
-        """§2: creation is deliberately minimal — name is the only hard
-        requirement, draft by default. Everything else (one_liner, logo,
-        sector, identity sections) is filled in progressively from the
-        onboarding stepper/dashboard, never required upfront."""
-        enforce_rate_limit(f"create_org:user:{request.user.id}", limit=5, window_seconds=3600)
-        enforce_rate_limit(
-            f"create_org:ip:{request.META.get('REMOTE_ADDR')}", limit=10, window_seconds=3600
-        )
-        name = request.data.get("name")
-        one_liner = request.data.get("one_liner") or ""
-        if not name:
-            return Response({"detail": "name is required."}, status=400)
-
-        # unique_org_slug()'s own existence check is check-then-create, so two
-        # concurrent requests for the same name can both pass it before
-        # either commits. Each attempt gets its own savepoint (nested
-        # atomic(), since RLSViewerMiddleware already wraps the whole request
-        # in a transaction) so a collision only unwinds that one INSERT
-        # instead of poisoning the request's outer transaction.
-        org = None
-        for _attempt in range(5):
-            try:
-                with transaction.atomic():
-                    org = Organization.objects.create(
-                        slug=unique_org_slug(name),
-                        name=name,
-                        one_liner=one_liner,
-                        # is_verified stays at its False default here — domain-match
-                        # verification is only trustworthy once the owner's email is
-                        # confirmed, which is enforced at publish time (OrgActivateView).
-                    )
-                break
-            except IntegrityError:
-                continue
-        if org is None:
-            return Response({"detail": "Could not create organization, please try again."}, status=409)
-
-        # Founder's own row: confirmed, but self-attested — recording that keeps
-        # it from reading as an organisation vouching for them.
-        OrgMembership.objects.create(
-            org=org,
-            user=request.user,
-            role=OrgMembership.Role.OWNER,
-            details_confirmed_by=request.user,
-            details_confirmed_at=timezone.now(),
-        )
-        OrgFollow.objects.get_or_create(user=request.user, org=org)
-        return Response({"slug": org.slug, "name": org.name}, status=status.HTTP_201_CREATED)
 
 
 class OrgProfileView(OrgLookupMixin, APIView):
@@ -427,11 +380,11 @@ class OrgInsightView(OrgLookupMixin, APIView):
 class OrgActivateView(OrgLookupMixin, APIView):
     """POST /api/orgs/<slug>/activate/ — publish the org (draft -> live).
 
-    Freemium doc §7: publishing is free. The old anti-spam gate was a
-    commitment fee (`billing.services.confirm_payment`, still intact for a
-    possible future paid "featured" tier but no longer called here); the
-    replacement gate is a non-monetary one — the requesting owner/admin's
-    email must be verified.
+    Three checks, in this order: the requesting owner/admin's email is
+    verified; the organisation has a plan (billing/access.py — a free year,
+    a paid subscription or a complimentary one; 402 otherwise); and the
+    first four rungs of the verification ladder are done. The old one-off
+    commitment fee (`billing.services.confirm_payment`) stays unused.
     """
 
     permission_classes = [permissions.IsAuthenticated, IsOrgOwnerOrAdmin]
@@ -445,6 +398,9 @@ class OrgActivateView(OrgLookupMixin, APIView):
                 {"detail": "Verify your email before publishing.", "action": "verify_email"},
                 status=403,
             )
+        from billing.access import require_access
+
+        require_access(org)
         missing = gate_missing(org)
         if missing:
             return Response(

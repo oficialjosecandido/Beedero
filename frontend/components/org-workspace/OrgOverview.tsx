@@ -385,6 +385,12 @@ function ladderStatus(name: string, ladder: OrgLadder): string {
   const left = ladder.unlock_missing.length;
   const steps = `${left} ${left === 1 ? "step" : "steps"}`;
   if (ladder.listed) return `${name} is live and listed in Discover.`;
+  if (ladder.plan_active === false) {
+    if (ladder.status === "live") return `${name} is live, but hidden from Discover until it has a plan again.`;
+    return left === 0
+      ? `Ready — publishing ${name} needs a plan.`
+      : `${steps} and a plan before ${name} can be published and listed in Discover.`;
+  }
   if (ladder.status === "live") {
     return `${name} is live, but hidden from Discover until ${steps} ${left === 1 ? "is" : "are"} done again.`;
   }
@@ -449,6 +455,11 @@ export function OrgVerificationLadder({
       >
         <p className="min-w-0 flex-1 text-xs font-bold leading-5">{ladderStatus(name, ladder)}</p>
         {ladder.can_publish && canManage && <PublishButton slug={slug} />}
+        {ladder.plan_active === false && canManage && (
+          <button type="button" onClick={() => onSelect("billing")} className={orgInkButtonClass}>
+            Choose a plan
+          </button>
+        )}
         {ladder.can_publish && !canManage && (
           <p className="text-[10px] text-black/55">An owner or admin can publish.</p>
         )}

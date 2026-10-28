@@ -14,7 +14,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Is Beedero free to join?",
     answer:
-      "Yes. Creating a personal profile and joining the network is free. Organisation accounts are €99 for the full first year (founding offer) — see Pricing for what’s included.",
+      "Yes. Creating a personal profile and joining the network is free, and stays free. Organisations pay €99 a year or €9 a month, VAT included — and early adopters get the first year free, with no card. See Pricing for what’s included.",
   },
   {
     question: "How does verification work?",

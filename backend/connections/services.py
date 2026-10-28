@@ -165,7 +165,7 @@ def send_request(requester, recipient, note="") -> ConnectionRequest:
     # The existence check above is check-then-create, so two concurrent
     # requests between the same pair can both pass it before either commits.
     # The nested atomic() gives the INSERT its own savepoint (mirrors
-    # orgs/views.py::OrgListCreateView.post) so a uniq_pending_connection_request
+    # orgs/create_flow.py::create_organization) so a uniq_pending_connection_request
     # collision only unwinds this insert instead of poisoning the request's
     # outer transaction.
     try:

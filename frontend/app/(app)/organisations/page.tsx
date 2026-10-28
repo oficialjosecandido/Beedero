@@ -29,7 +29,7 @@ export default async function OrganisationsPage() {
         eyebrow="Your organisations"
         title="Organisations."
         actions={
-          <Link href="/organisations/new" className={btnPrimary}>
+          <Link href="/orgs/new" className={btnPrimary}>
             <Plus size={14} aria-hidden />
             Create organisation
           </Link>
@@ -39,7 +39,7 @@ export default async function OrganisationsPage() {
       {orgs.length === 0 ? (
         <EmptyPanel>
           You&apos;re not on any organisation yet.{" "}
-          <Link href="/organisations/new" className="font-bold text-beedero-yellow hover:underline">
+          <Link href="/orgs/new" className="font-bold text-beedero-yellow hover:underline">
             Create one
           </Link>{" "}
           to open a workspace.

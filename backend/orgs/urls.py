@@ -1,12 +1,14 @@
 from django.urls import path
 
 from . import public_seo_views, views
+from .create_flow import OrgOnboardView
 
 urlpatterns = [
     path("public/sitemap/", public_seo_views.PublicSitemapView.as_view()),
     path("public/discovery/", public_seo_views.PublicDiscoveryView.as_view()),
     path("public/orgs/<slug:slug>/", views.PublicOrgProfileView.as_view()),
-    path("orgs/", views.OrgListCreateView.as_view()),
+    path("orgs/", views.OrgListView.as_view()),
+    path("org-onboarding/", OrgOnboardView.as_view()),
     path("orgs/search/", views.OrgSearchView.as_view()),
     path("orgs/<slug:slug>/", views.OrgProfileView.as_view()),
     path("orgs/<slug:slug>/onboarding/", views.OrgOnboardingView.as_view()),

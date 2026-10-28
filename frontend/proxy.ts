@@ -72,6 +72,8 @@ export const config = {
     "/profile",
     "/profile/:path*",
     "/org/:path*",
+    // /orgs/new — creating an organisation (the public pages live under /o).
+    "/orgs/:path*",
     "/discovery/:path*",
     // /opportunities, not /jobs: /jobs is public and index-able (doc §3.2), so
     // guarding it here would bounce every crawler and every shared link to

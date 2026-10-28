@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   Coins,
+  CreditCard,
   FileCheck2,
   LayoutDashboard,
   Settings2,
@@ -30,6 +31,7 @@ export const ORG_NAV = [
   { id: "fundraising", label: "Fundraising", Icon: Coins },
   { id: "insights", label: "Insights", Icon: BarChart3 },
   { id: "affiliations", label: "Verification", Icon: FileCheck2 },
+  { id: "billing", label: "Plan", Icon: CreditCard },
   { id: "share", label: "Settings", Icon: Settings2 },
 ] as const satisfies readonly {
   id: string;

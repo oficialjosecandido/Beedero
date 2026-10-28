@@ -10,8 +10,10 @@ import {
   type NarrativeContent,
   type SignalItem,
 } from "@/components/org-workspace/OrgOverview";
+import { OrgPlanNotice, type BillingNotice } from "@/components/org-workspace/OrgBilling";
 import { OrgWorkspaceNav } from "@/components/org-workspace/OrgWorkspaceNav";
 import type { OrgNavCounts, OrgTabId } from "@/components/org-workspace/tabs";
+import type { OrgBilling } from "@/lib/billing";
 import type { OrgLadder } from "@/lib/org-ladder";
 
 import { OrgTabs } from "./OrgTabs";
@@ -42,6 +44,8 @@ export function OrgWorkspace({
   hero,
   narrative,
   ladder,
+  billing,
+  billingNotice,
   signals,
   counts,
   tabs,
@@ -51,6 +55,8 @@ export function OrgWorkspace({
   hero: Omit<ComponentProps<typeof OrgHero>, "onOpenLadder">;
   narrative: NarrativeContent;
   ladder: OrgLadder | null;
+  billing: OrgBilling | null;
+  billingNotice: BillingNotice;
   signals: SignalItem[];
   counts: OrgNavCounts;
   tabs: TabsProps;
@@ -86,6 +92,14 @@ export function OrgWorkspace({
       <OrgWorkspaceNav {...identity} counts={counts} active={effectiveActive} onSelect={selectTab} />
 
       <section className="min-w-0 p-4 sm:p-6 lg:p-8">
+        <OrgPlanNotice
+          name={hero.name}
+          slug={tabs.slug}
+          billing={billing}
+          notice={billingNotice}
+          canManage={tabs.canManage}
+          onSelect={selectTab}
+        />
         <OrgHero {...hero} onOpenLadder={openLadder} />
 
         {effectiveActive === "overview" && (

@@ -18,6 +18,7 @@ from orgs.models import Organization, OrgMembership
 
 from .models import Application, EngagementType, JobPost
 from .services import apply_to_job, close_job, create_job
+from billing.testing import grant_plan
 
 
 @pytest.fixture(autouse=True)
@@ -43,6 +44,7 @@ def owner(db):
 def org(db, owner):
     org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
     OrgMembership.objects.create(org=org, user=owner, role=OrgMembership.Role.OWNER)
+    grant_plan(org)
     return org
 
 

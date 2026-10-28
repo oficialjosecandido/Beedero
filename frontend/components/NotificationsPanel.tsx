@@ -36,6 +36,7 @@ const URGENT_KINDS = new Set([
   "affiliation_request",
   "investment_request",
   "connection_request",
+  "billing",
 ]);
 
 const PREFERENCE_ROWS: {

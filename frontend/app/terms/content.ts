@@ -40,11 +40,20 @@ Beedero, operated by {legal company name}, is an online platform where organisat
 
 Without prejudice to other rules: using the platform for unlawful purposes; publishing false or misleading information (including metrics); scraping or bulk-collecting other users' data; circumventing visibility or access controls; harassing other users; creating profiles for organisations you do not represent; using the platform for public offerings of securities outside the applicable legal frameworks.
 
-## 7. Paid plans
+## 7. Subscriptions
 
-The platform is currently free to use. If paid plans are introduced in the future, we will update these Terms and notify users before any charges apply.
+- **Who pays.** Personal accounts are free. Each organisation on Beedero needs a subscription: **€99 per year** or **€9 per month**. Prices include VAT.
+- **What it covers.** While an organisation has an active subscription — including a free period — it can be published and listed in Discover, post updates, milestones and events, and publish jobs. Personal profiles, connections and messages never depend on it.
+- **Free year.** A promotional code (such as EARLYADOPTER) gives an organisation its first year free, and organisations that already existed when subscriptions were introduced receive the same free year automatically. No payment method is needed. There is one free period per organisation. We remind owners and admins 30, 7 and 1 days before it ends. If no payment method has been added by then, the subscription pauses and nothing is charged.
+- **Payment and renewal.** Payments are processed by Stripe; we never see or store your card number. A paid subscription renews automatically at the end of each period (year or month) and is charged to the payment method on file until it is cancelled. If you add a payment method during the free year, the first charge is made on the day the free year ends.
+- **Failed payments and pauses.** If a payment fails, it is retried for a limited period and the organisation keeps working in the meantime. If the subscription is cancelled, ends or remains unpaid, the organisation is **paused**: its public page stays online, but it is hidden from Discover and cannot post or publish jobs. Its content and verification history are kept, and a new subscription resumes it.
+- **Cancellation.** Owners and admins can cancel at any time in the organisation's workspace (Plan → Manage billing). Cancellation takes effect at the end of the period already paid, without a refund for the remainder of that period, except as set out in the next point.
+- **14-day refund.** Within 14 days of the first payment of a subscription, you may cancel and receive a full refund by writing to {email}. This does not limit any right you have as a consumer.
+- **Invoices.** Payments are invoiced by {legal company name}. Stripe emails a receipt for each payment and the invoice (fatura) is sent by email. To have the organisation's VAT number on the invoice, add it at checkout or in Manage billing.
+- **Price changes.** We may change prices for future periods. We will notify owners at least 30 days before a new price applies to their organisation; they can cancel before it does.
+- **Authority.** Whoever creates an organisation or manages its subscription declares that they can act on its behalf.
 
-[LEGAL REVIEW: right of withdrawal (14 days) in distance contracts with consumers — assess applicability to founders/companies (B2B vs B2C) and the wording of consent to immediate performance.]
+[LEGAL REVIEW: (1) right of withdrawal in distance contracts with consumers (Decree-Law 24/2014) — the 14-day full refund on the first payment is meant to cover it; confirm the wording and whether express consent to immediate performance is still required at checkout; (2) automatic renewal, pausing and the price-change notice under Decree-Law 446/85 (unfair standard terms) and consumer law; (3) VAT-inclusive pricing for business customers in other EU member states (reverse charge) — confirm with the certified accountant; (4) Stripe receipts are not Portuguese invoices — confirm the certified invoicing process (faturação certificada).]
 
 ## 8. Suspension and termination
 

@@ -6,6 +6,8 @@ import type { SignalItem } from "@/components/org-workspace/OrgOverview";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { confirmationsCount, type OrgLadder } from "@/lib/org-ladder";
 import { OrgWorkspace } from "./OrgWorkspace";
+import type { BillingNotice } from "@/components/org-workspace/OrgBilling";
+import type { OrgBilling } from "@/lib/billing";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatDateTime } from "@/lib/format";
 import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
@@ -191,10 +193,24 @@ export default async function DashboardOrgPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ suggested_title?: string; suggested_body?: string; tab?: string }>;
+  searchParams: Promise<{
+    suggested_title?: string;
+    suggested_body?: string;
+    tab?: string;
+    welcome?: string;
+    checkout?: string;
+    session_id?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const { suggested_title: suggestedTitle, suggested_body: suggestedBody, tab } = await searchParams;
+  const {
+    suggested_title: suggestedTitle,
+    suggested_body: suggestedBody,
+    tab,
+    welcome,
+    checkout,
+    session_id: sessionId,
+  } = await searchParams;
   const initialTab = parseOrgTab(tab);
 
   let profile: OrgSummary;
@@ -207,8 +223,21 @@ export default async function DashboardOrgPage({
   let onboarding: Onboarding | null;
   let attendingEvents: AttendingEvent[];
   let postingStatus: PostingStatus;
+  let billing: OrgBilling | null;
+  // Back from Stripe Checkout: sync before anything else is read, rather
+  // than wait for the webhook, so the plan and the ladder already agree.
+  const synced =
+    checkout === "success" && sessionId
+      ? await safeFetch(
+          apiFetch<OrgBilling>(`/orgs/${slug}/billing/sync/`, {
+            method: "POST",
+            body: { session_id: sessionId },
+          }),
+          null
+        )
+      : null;
   try {
-    [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding, attendingEvents, postingStatus] =
+    [profile, sections, stats, members, me, { items: activities }, roundHistory, onboarding, attendingEvents, postingStatus, billing] =
       await Promise.all([
         apiFetch(`/orgs/${slug}/`) as Promise<OrgSummary>,
         apiFetch(`/orgs/${slug}/sections/`) as Promise<Section[]>,
@@ -226,6 +255,7 @@ export default async function DashboardOrgPage({
           apiFetch<PostingStatus>(`/orgs/${slug}/posting-status/`),
           POSTING_STATUS_FALLBACK()
         ),
+        synced ? Promise.resolve(synced) : safeFetch(apiFetch<OrgBilling>(`/orgs/${slug}/billing/`), null),
       ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) notFound();
@@ -310,6 +340,15 @@ export default async function DashboardOrgPage({
 
   const nextEvent = upcomingEvent(events);
 
+  const billingNotice: BillingNotice =
+    checkout === "success"
+      ? "checkout_success"
+      : checkout === "cancelled"
+        ? "checkout_cancelled"
+        : welcome
+          ? "welcome"
+          : null;
+
   const capitalRaised = roundHistory.reduce(
     (total, round) => total + (round.raised_amount ?? 0),
     0
@@ -364,6 +403,8 @@ export default async function DashboardOrgPage({
             : null,
         }}
         ladder={ladder}
+        billing={billing}
+        billingNotice={billingNotice}
         signals={signals}
         counts={{
           team: members.length,
@@ -391,6 +432,7 @@ export default async function DashboardOrgPage({
           affiliations: affiliations.items,
           teamInvites: teamInvites.items,
           inviteQuota: teamInvites.quota,
+          billing,
           suggestedTitle,
           suggestedBody,
         }}

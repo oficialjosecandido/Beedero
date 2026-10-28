@@ -306,3 +306,18 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
+
+# --- Billing: organisation subscriptions through Stripe (billing/gateway.py) --
+# Prices include VAT; the amounts live in Stripe, the ids here.
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+# STRIPE_WEBHOOK_SECRET is read above, with the note on failing closed.
+STRIPE_PRICE_YEARLY = os.environ.get("STRIPE_PRICE_YEARLY", "")
+STRIPE_PRICE_MONTHLY = os.environ.get("STRIPE_PRICE_MONTHLY", "")
+# Stripe Tax works out the VAT inside the price per customer; off until the
+# accountant confirms the setup (see the subscriptions md).
+STRIPE_AUTOMATIC_TAX = os.environ.get("STRIPE_AUTOMATIC_TAX", "false").lower() == "true"
+# Without a key, development uses the offline stub. Production never does —
+# the stub accepts unsigned webhooks, so it is tied to DEBUG and no
+# environment variable can switch it on there. With no key and no stub,
+# checkout answers "payments not configured".
+BILLING_STRIPE_STUB = DEBUG and os.environ.get("BILLING_STRIPE_STUB", "true").lower() == "true"

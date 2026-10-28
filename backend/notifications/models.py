@@ -27,6 +27,7 @@ class Notification(models.Model):
         INVESTMENT_REQUEST = "investment_request"
         INVESTMENT_UPDATE = "investment_update"
         COFOUNDER_MATCH = "cofounder_match"
+        BILLING = "billing"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE

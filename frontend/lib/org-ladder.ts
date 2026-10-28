@@ -42,9 +42,12 @@ export type OrgLadder = {
   next: string | null;
   level: number;
   status: "draft" | "live";
-  /** Live and past the gate: in Discover right now. */
+  /** The organisation has a plan (free year, paid or complimentary). Publishing
+   *  and being listed both need it — lib/billing.ts. */
+  plan_active?: boolean;
+  /** Live, past the gate and with a plan: in Discover right now. */
   listed: boolean;
-  /** Draft and past the gate: the Publish button works. */
+  /** Draft, past the gate and with a plan: the Publish button works. */
   can_publish: boolean;
 };
 

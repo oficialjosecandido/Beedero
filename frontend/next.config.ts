@@ -120,6 +120,13 @@ const nextConfig: NextConfig = {
         destination: "/o/:slug",
         permanent: true,
       },
+      {
+        // The multi-step wizard became one page under `(org)`; links and
+        // bookmarks to the old route still work.
+        source: "/organisations/new",
+        destination: "/orgs/new",
+        permanent: false,
+      },
       { source: "/sobre", destination: "/about", permanent: true },
       { source: "/litigios", destination: "/disputes", permanent: true },
       { source: "/termos", destination: "/terms", permanent: true },

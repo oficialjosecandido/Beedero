@@ -151,10 +151,14 @@ def with_org_unlock(queryset):
 
 
 def listed_in_discover(queryset):
-    """Live and past the gate — what every org listing reads."""
+    """Live, past the gate and with a plan — what every org listing reads.
+    The plan is not a rung: it is what keeps the organisation switched on
+    (billing/access.py)."""
+    from billing.access import with_billing_access
+
     from .models import Organization
 
-    return with_org_unlock(queryset.filter(status=Organization.Status.LIVE))
+    return with_billing_access(with_org_unlock(queryset.filter(status=Organization.Status.LIVE)))
 
 
 # --------------------------------------------------------------- rungs 5–8
@@ -337,6 +341,9 @@ def org_verification_ladder(org) -> dict:
     done = sum(1 for rung in rungs if rung["done"])
     unlock_missing = [r["key"] for r in rungs if r["key"] in UNLOCK_KEYS and not r["done"]]
     live = org.status == Organization.Status.LIVE
+    from billing.access import has_access
+
+    plan_active = has_access(org)
     return {
         "rungs": rungs,
         "done_count": done,
@@ -349,6 +356,7 @@ def org_verification_ladder(org) -> dict:
         "next": next((rung["key"] for rung in rungs if not rung["done"]), None),
         "level": done,
         "status": org.status,
-        "listed": live and not unlock_missing,
-        "can_publish": not live and not unlock_missing,
+        "plan_active": plan_active,
+        "listed": live and not unlock_missing and plan_active,
+        "can_publish": not live and not unlock_missing and plan_active,
     }

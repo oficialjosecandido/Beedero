@@ -57,6 +57,16 @@ function inlineNodes(text: string, keyPrefix: string): React.ReactNode[] {
   return nodes;
 }
 
+/** "7. Subscriptions" → "subscriptions", so sections can be linked to
+ *  (/terms#subscriptions). */
+function headingId(text: string): string {
+  return text
+    .replace(/^\d+(\.\d+)*\.?\s*/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function renderTable(block: string, key: string) {
   const rows = block.split("\n").filter((line) => line.trim().startsWith("|"));
   const [headerRow, , ...bodyRows] = rows;
@@ -137,7 +147,7 @@ function renderBlock(block: string, key: string): React.ReactNode {
     }
     if (level === 2) {
       return (
-        <h2 key={key} className="mt-10 text-2xl font-black tracking-[-0.02em]">
+        <h2 key={key} id={headingId(text)} className="mt-10 scroll-mt-24 text-2xl font-black tracking-[-0.02em]">
           {inlineNodes(text, key)}
         </h2>
       );

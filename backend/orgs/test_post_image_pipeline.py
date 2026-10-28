@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from accounts.models import User
 from orgs.models import Activity, OrgMembership, Organization
 from orgs.posting.imaging import MAX_DIMENSION, MAX_UPLOAD_SIZE_BYTES, process_post_image
+from billing.testing import grant_plan
 
 
 def _png_bytes(size=(10, 10), color="red"):
@@ -23,7 +24,9 @@ def api():
 
 @pytest.fixture
 def org(db):
-    return Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    org = Organization.objects.create(slug="acme", name="Acme", status=Organization.Status.LIVE)
+    grant_plan(org)
+    return org
 
 
 @pytest.fixture

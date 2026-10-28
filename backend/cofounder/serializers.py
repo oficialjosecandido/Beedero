@@ -94,10 +94,6 @@ class OutcomeSerializer(serializers.Serializer):
     outcome = serializers.ChoiceField(choices=CofounderMatch.Outcome.choices)
 
 
-class CreateOrgSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200)
-    one_liner = serializers.CharField(max_length=140, required=False, allow_blank=True, default="")
-
 
 def _profile(user) -> InvestorProfile | None:
     try:

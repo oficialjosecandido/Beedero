@@ -17,7 +17,6 @@ from .models import BuilderProfile
 from .recommendations import DAILY_LIMIT, daily_deck, invalidate_deck
 from .serializers import (
     BuilderProfileSerializer,
-    CreateOrgSerializer,
     InterestSerializer,
     OutcomeSerializer,
     builder_card,
@@ -140,32 +139,6 @@ class MatchOutcomeView(APIView):
         serializer.is_valid(raise_exception=True)
         match = services.set_outcome(match, serializer.validated_data["outcome"])
         return Response(match_summary(match, request.user))
-
-
-class MatchCreateOrgView(APIView):
-    """POST /api/cofounder/matches/<id>/create-org/ — the mother metric."""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk: int):
-        match = services.get_match_or_404(request.user, pk)
-        serializer = CreateOrgSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        org, invite = services.create_org_from_match(
-            match,
-            request.user,
-            serializer.validated_data["name"],
-            serializer.validated_data.get("one_liner", ""),
-        )
-        match.refresh_from_db()
-        return Response(
-            {
-                "org": {"slug": org.slug, "name": org.name},
-                "invite_token": str(invite.token),
-                "match": match_summary(match, request.user),
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class StatusView(APIView):

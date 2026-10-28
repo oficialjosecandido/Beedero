@@ -5,7 +5,9 @@
 organisation that is allowed to be listed. It only fills what is blank — a
 test that set a stage, a sector or a one-liner keeps it — and it never
 changes the status: pass `status=Organization.Status.LIVE` (or create the org
-live) when the test needs it published.
+live) when the test needs it published. It also gives the organisation a
+plan (billing/testing.py) unless `with_plan=False` — Discover lists only
+organisations that have one.
 
 The face behind it is one shared, already-unlocked person unless `person` is
 given, so a test that creates sixty organisations does not create sixty
@@ -30,7 +32,7 @@ def _shared_founder():
     return user
 
 
-def unlock_org(org, person=None, **fields):
+def unlock_org(org, person=None, with_plan=True, **fields):
     for field, value in fields.items():
         setattr(org, field, value)
     org.logo = org.logo or "org_logos/test.png"
@@ -55,4 +57,8 @@ def unlock_org(org, person=None, **fields):
         OrgField.objects.get_or_create(section=about, key=key, defaults={"value": value})
     products, _ = OrgSection.objects.get_or_create(org=org, kind=SectionKind.PRODUCTS)
     OrgField.objects.get_or_create(section=products, key="overview", defaults={"value": "The product."})
+    if with_plan:
+        from billing.testing import grant_plan
+
+        grant_plan(org)
     return org
