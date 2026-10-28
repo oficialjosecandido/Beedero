@@ -29,7 +29,6 @@ export type ShellOrg = { slug: string; name: string; logo?: string | null };
 
 type Props = {
   children: ReactNode;
-  showCofounder?: boolean;
   orgs?: ShellOrg[];
 };
 
@@ -318,7 +317,8 @@ export function AppShell({ children, orgs = [] }: Props) {
               {sidebarOrgs.length === 0 ? (
                 <CreateOrgButton
                   variant="sidebar"
-                  label="Join or Create Organization"
+                  label="Join or create organisation"
+                  href="/organisations/new"
                   className="mt-0"
                 />
               ) : (
@@ -363,6 +363,7 @@ export function AppShell({ children, orgs = [] }: Props) {
                   <CreateOrgButton
                     variant="sidebar"
                     label="Manage organisations"
+                    href="/organisations"
                     className="mt-2"
                   />
                 </>

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { LandingPrimaryLink } from "./LandingPrimaryLink";
 
 export function LandingStickyCta({
   primaryHref,
@@ -28,12 +29,12 @@ export function LandingStickyCta({
       }`}
       style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
-      <Link
+      <LandingPrimaryLink
         href={primaryHref}
-        className="flex w-full items-center justify-center rounded-full bg-beedero-yellow py-3.5 text-xs font-black uppercase text-beedero-black"
+        className="flex w-full items-center justify-center rounded-full bg-beedero-yellow py-3.5 text-sm font-black uppercase text-beedero-black"
       >
         {primaryLabel === "Enter Beedero" ? "Enter Beedero" : "Join free"} →
-      </Link>
+      </LandingPrimaryLink>
     </div>
   );
 }

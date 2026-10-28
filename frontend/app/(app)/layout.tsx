@@ -3,30 +3,24 @@ import { NavigationLoadingProvider } from "@/components/NavigationLoadingProvide
 import { SessionRefresh } from "@/components/SessionRefresh";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { WelcomeNudge } from "@/components/onboarding/WelcomeNudge";
-import { apiFetch, safeFetch } from "@/lib/api";
-import type { CofounderStatus } from "@/lib/cofounder-options";
 import { NetworkProvider } from "@/lib/network-context";
 import { NotificationsProvider } from "@/lib/notifications-context";
 import { noIndexMetadata } from "@/lib/site-metadata";
 
 export const metadata = noIndexMetadata;
 
-type Membership = { slug: string; name: string; logo?: string | null };
-
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [cofounderStatus, orgs] = await Promise.all([
-    safeFetch(apiFetch<CofounderStatus>("/cofounder/status/"), null),
-    safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
-  ]);
-  const showCofounder = Boolean(cofounderStatus?.show_entry_point);
-
+/**
+ * No server awaits here on purpose: Enter from the marketing site must paint
+ * the shell immediately. Orgs load client-side in AppShell / ProfileSwitcher.
+ */
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationsProvider>
       <NetworkProvider>
         <MessagingShell>
           <SessionRefresh />
           <NavigationLoadingProvider>
-            <AppShell showCofounder={showCofounder} orgs={orgs}>
+            <AppShell>
               {/* §6.4's nudge. Here rather than on each landing page because
                   three of the five first screens are inside this shell, and a
                   layout can't read search params itself — the component does

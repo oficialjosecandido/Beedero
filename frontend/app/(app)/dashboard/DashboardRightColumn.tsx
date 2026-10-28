@@ -168,7 +168,7 @@ function OrganisationsPanel({ orgs }: { orgs: Membership[] }) {
           ))}
         </ul>
       )}
-      <CreateOrgButton className="mt-4" variant="dark" />
+      <CreateOrgButton className="mt-4" variant="dark" href="/organisations" label="Manage organisations" />
     </section>
   );
 }

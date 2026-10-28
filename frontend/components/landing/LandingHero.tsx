@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
 
+import { LandingPrimaryLink } from "./LandingPrimaryLink";
 import { PEOPLE, type PersonKey } from "./landing-content";
 
 function Hex({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -36,12 +37,12 @@ export function LandingHero({ primaryHref }: { primaryHref: string }) {
             {current.copy}
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <Link
+            <LandingPrimaryLink
               href={primaryHref}
               className="rounded-full bg-beedero-yellow px-7 py-4 text-sm font-black uppercase text-beedero-black transition hover:-translate-y-0.5 hover:bg-white"
             >
               {current.action} →
-            </Link>
+            </LandingPrimaryLink>
             <Link
               href="/pricing"
               className="rounded-full border border-white/25 px-7 py-4 text-sm font-black uppercase transition hover:bg-white hover:text-beedero-black"

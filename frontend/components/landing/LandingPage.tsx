@@ -5,6 +5,7 @@ import { FAQ_ITEMS, SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
 import { COMPANY } from "@/lib/legal-content";
 
 import { LandingHero } from "./LandingHero";
+import { LandingPrimaryLink } from "./LandingPrimaryLink";
 import { LandingPrivacyDemo } from "./LandingPrivacyDemo";
 import { LandingStickyCta } from "./LandingStickyCta";
 import { BENEFITS } from "./landing-content";
@@ -25,26 +26,26 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
         <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
           Beedero
         </Link>
-        <nav className="hidden gap-7 text-xs font-bold uppercase text-white/65 md:flex">
-          <a href="#benefits" className="hover:text-white">
+        <nav className="hidden items-center gap-8 text-sm font-black uppercase tracking-[0.04em] text-white/75 md:flex">
+          <a href="#benefits" className="transition hover:text-white">
             Benefits
           </a>
-          <a href="#product" className="hover:text-white">
+          <a href="#product" className="transition hover:text-white">
             How it works
           </a>
-          <Link href="/cases" className="hover:text-white">
+          <Link href="/cases" className="transition hover:text-white">
             Cases
           </Link>
-          <Link href="/faq" className="hover:text-white">
+          <Link href="/faq" className="transition hover:text-white">
             FAQ
           </Link>
         </nav>
-        <Link
+        <LandingPrimaryLink
           href={primaryHref}
-          className="rounded-full bg-beedero-yellow px-5 py-2.5 text-xs font-black uppercase text-beedero-black transition hover:bg-white"
+          className="rounded-full bg-beedero-yellow px-5 py-2.5 text-sm font-black uppercase text-beedero-black transition hover:bg-white"
         >
           {primaryLabel === "Enter Beedero" ? "Enter" : "Join"}
-        </Link>
+        </LandingPrimaryLink>
       </header>
 
       {/*
@@ -203,12 +204,12 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
               easy to find.
             </h2>
           </div>
-          <Link
+          <LandingPrimaryLink
             href={primaryHref}
             className="rounded-full bg-beedero-black px-7 py-4 text-sm font-black uppercase text-white transition hover:bg-white hover:text-beedero-black"
           >
             {primaryLabel} →
-          </Link>
+          </LandingPrimaryLink>
         </div>
       </section>
 

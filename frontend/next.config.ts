@@ -20,13 +20,18 @@ function cspReportUri(): string | null {
 }
 
 /** Directives that cannot break a page that already works, so they go out
- * enforced. The rest of the policy ships report-only below. */
-const ENFORCED_CSP = [
+ * enforced. Shared with the report-only policy (minus upgrade-insecure-
+ * requests, which browsers ignore — and warn about — in report-only). */
+const ENFORCED_CSP_CORE = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
 ].join("; ");
+
+/** Enforced CSP. `upgrade-insecure-requests` only belongs here — it is not a
+ * reportable directive. */
+const ENFORCED_CSP = `${ENFORCED_CSP_CORE}; upgrade-insecure-requests`;
 
 /** The policy we intend to enforce. Report-only for now because the app has
  * never run under a CSP: Next inlines its own bootstrap scripts and Tailwind
@@ -63,8 +68,7 @@ function reportOnlyCsp(): string {
     "manifest-src 'self'",
     "media-src 'self'",
     "frame-src 'none'",
-    ENFORCED_CSP,
-    "upgrade-insecure-requests",
+    ENFORCED_CSP_CORE,
   ];
   const reportUri = cspReportUri();
   if (reportUri) directives.push(`report-uri ${reportUri}`);

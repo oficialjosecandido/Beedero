@@ -53,7 +53,7 @@ export default async function FeedPage() {
   } = { organizations: [] };
 
   try {
-    const [feed, meRes, posts, recRes] = await Promise.all([
+    const [feed, meRes, posts, recRes, vitalityRes] = await Promise.all([
       apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
       apiFetch<Me>("/auth/me/"),
       safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
@@ -63,6 +63,9 @@ export default async function FeedPage() {
         }>("/recommendations/"),
         { organizations: [] }
       ),
+      // Parallel with the rest — avoids a second round-trip when the profile
+      // is still incomplete (Enter → feed used to wait on this sequentially).
+      safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
       // Keep these warm in parallel — used lightly / reserved for later panels.
       safeFetch(apiFetch<{ items: TrendingItem[] }>("/trending/"), { items: [] }),
       safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
@@ -75,7 +78,7 @@ export default async function FeedPage() {
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
     if (!me.investor_profile?.is_complete) {
-      vitality = await safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null);
+      vitality = vitalityRes;
     }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
