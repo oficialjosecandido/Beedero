@@ -41,7 +41,6 @@ type PersonMembership = {
   started_on?: string;
   ended_on?: string | null;
   details_status?: "confirmed" | "pending";
-  attested_by_other?: boolean;
   skills: MembershipSkill[];
 };
 
@@ -118,7 +117,6 @@ export default async function ProfilePage({
       started_on: m.started_on!,
       ended_on: m.ended_on ?? null,
       details_status: m.details_status ?? "confirmed",
-      attestedByOther: m.attested_by_other ?? false,
       skills: m.skills,
     }));
   // Every dated record that carries skills, memberships included — the

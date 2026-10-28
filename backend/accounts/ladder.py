@@ -225,13 +225,18 @@ def _third_party_confirmation(user) -> tuple[str, str] | None:
             "Company registry" if via_registry else affiliation.org.name,
             f"{role} at {affiliation.org.name}",
         )
-    # A roster row counts only when someone else attested to it: confirming
-    # your own details is free (you get a confirmed row by creating the org),
-    # so OrgMembership.attested_by_other is the condition, not "confirmed".
+    # A confirmed roster row is the organisation vouching for the role —
+    # including the row you get by creating the org, whose owner is that
+    # organisation's voice (see OrgMembership.details_status).
     membership = (
-        OrgMembership.objects.filter(OrgMembership.ATTESTED_BY_OTHER, user=user)
+        OrgMembership.objects.filter(
+            user=user, details_status=OrgMembership.DetailsStatus.CONFIRMED
+        )
         .select_related("org")
-        .order_by("-details_confirmed_at")
+        # nulls_last: rows predating the confirmer column have no timestamp,
+        # and a descending sort would otherwise float them above a confirmation
+        # we can actually date.
+        .order_by(F("details_confirmed_at").desc(nulls_last=True), "-started_on")
         .first()
     )
     if membership:

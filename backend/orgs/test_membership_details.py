@@ -65,10 +65,9 @@ def test_member_edit_demotes_details_and_notifies_admins(api, org, owner, member
     assert membership.title == "Senior Engineer"
     assert membership.description == "Built the payments stack."
     assert membership.details_status == OrgMembership.DetailsStatus.PENDING
-    # The old attestation was for the old details and does not carry over.
+    # The old confirmation was for the old details and does not carry over.
     assert membership.details_confirmed_by_id is None
     assert membership.details_confirmed_at is None
-    assert membership.attested_by_other is False
     assert set(membership.skills_used.values_list("skill", flat=True)) == {"Python", "React"}
     assert Notification.objects.filter(
         user=owner, aggregate_key=f"membership_details:{membership.id}"
@@ -92,7 +91,6 @@ def test_admin_confirm_restores_verified_badge(api, org, owner, member):
     assert membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
     assert membership.details_confirmed_by_id == owner.id
     assert membership.details_confirmed_at is not None
-    assert membership.attested_by_other is True
 
 
 @pytest.mark.django_db
@@ -116,14 +114,12 @@ def test_admin_title_edit_keeps_confirmed(api, org, owner, member):
     assert membership.title == "Lead Engineer"
     assert membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
     assert membership.details_confirmed_by_id == owner.id
-    assert membership.attested_by_other is True
 
 
 @pytest.mark.django_db
-def test_an_admin_confirming_their_own_row_is_not_attestation(api, org, owner):
-    """The owner is an admin of their own org, so nothing stops them clicking
-    confirm on their own details — it just must not read as the organisation
-    vouching for them (accounts/ladder.py, rung 6)."""
+def test_an_owner_confirming_their_own_row_is_recorded_as_the_confirmer(api, org, owner):
+    """An owner is their organisation's voice, so confirming their own details
+    is the org confirming them. The audit column still names who did it."""
     membership = OrgMembership.objects.get(org=org, user=owner)
     membership.details_status = OrgMembership.DetailsStatus.PENDING
     membership.save(update_fields=["details_status"])
@@ -133,22 +129,23 @@ def test_an_admin_confirming_their_own_row_is_not_attestation(api, org, owner):
     membership.refresh_from_db()
     assert membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
     assert membership.details_confirmed_by_id == owner.id
-    assert membership.attested_by_other is False
 
 
 @pytest.mark.django_db
-def test_creating_an_org_only_self_attests_the_founder(api, member):
+def test_creating_an_org_confirms_the_founders_own_row(api, member):
+    """Creating an org is the one case where the member and the confirmer are
+    the same person, and it counts: the founder's row is org-confirmed from
+    the start (accounts/ladder.py rung 6, accounts/timeline.py badge)."""
     api.force_authenticate(member)
     res = api.post("/api/orgs/", {"name": "Bidroom"}, format="json")
     assert res.status_code == 201
     membership = OrgMembership.objects.get(org__slug=res.data["slug"], user=member)
     assert membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
     assert membership.details_confirmed_by_id == member.id
-    assert membership.attested_by_other is False
 
 
 @pytest.mark.django_db
-def test_accepting_an_invite_attests_to_whoever_wrote_it(api, org, owner, member):
+def test_accepting_an_invite_records_whoever_wrote_it(api, org, owner, member):
     invite = OrgInvite.objects.create(
         org=org, role=OrgMembership.Role.MEMBER, created_by=owner, max_uses=1
     )
@@ -157,4 +154,3 @@ def test_accepting_an_invite_attests_to_whoever_wrote_it(api, org, owner, member
     assert res.status_code == 200
     membership = OrgMembership.objects.get(org=org, user=member)
     assert membership.details_confirmed_by_id == owner.id
-    assert membership.attested_by_other is True

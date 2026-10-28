@@ -8,7 +8,6 @@ import {
   BellDot,
   BriefcaseBusiness,
   Building2,
-  ChevronRight,
   CircleUserRound,
   Home,
   MessageCircle,
@@ -361,12 +360,11 @@ export function AppShell({ children, orgs = [] }: Props) {
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    href="/profile"
-                    className="mt-2 flex items-center gap-2 px-3 text-xs font-bold text-beedero-yellow"
-                  >
-                    Manage organisations <ChevronRight size={14} aria-hidden />
-                  </Link>
+                  <CreateOrgButton
+                    variant="sidebar"
+                    label="Manage organisations"
+                    className="mt-2"
+                  />
                 </>
               )}
             </div>

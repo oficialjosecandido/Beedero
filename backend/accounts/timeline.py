@@ -51,9 +51,9 @@ def person_timeline(profile, viewer) -> list[dict]:
     )
     for membership in memberships:
         org_is_live = membership.org.status == Organization.Status.LIVE
-        # Only a confirmation by someone other than the member is attestation;
-        # see OrgMembership.attested_by_other.
-        attested = membership.attested_by_other
+        # The organisation stands behind a confirmed row, whoever in it
+        # confirmed; see OrgMembership.details_status.
+        details_confirmed = membership.details_status == OrgMembership.DetailsStatus.CONFIRMED
         bands.append(
             {
                 "org_name": membership.org.name,
@@ -64,8 +64,8 @@ def person_timeline(profile, viewer) -> list[dict]:
                 "description": membership.description,
                 "started_on": membership.started_on.isoformat(),
                 "ended_on": membership.ended_on.isoformat() if membership.ended_on else None,
-                "verified": attested,
-                "verified_via": "org_membership" if attested else None,
+                "verified": details_confirmed,
+                "verified_via": "org_membership" if details_confirmed else None,
                 "skills": [
                     {"skill": s.skill, "status": s.status} for s in membership.skills_used.all()
                 ],
@@ -143,9 +143,9 @@ def verified_facts_count(user) -> int:
     from credibility.models import ProfessionalCredential
 
     memberships = OrgMembership.objects.filter(
-        OrgMembership.ATTESTED_BY_OTHER,
         user_id=user.id,
         org__status=Organization.Status.LIVE,
+        details_status=OrgMembership.DetailsStatus.CONFIRMED,
     ).count()
     verified_affiliations = Affiliation.objects.filter(
         user=user, org__status=Organization.Status.LIVE, status=Affiliation.Status.VERIFIED

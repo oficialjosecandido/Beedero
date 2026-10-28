@@ -23,9 +23,8 @@ def org(db):
 
 @pytest.fixture
 def admin(db):
-    """Somebody other than `user`. Only a confirmation by another person is
-    attestation, so roster rows need one to read as verified — see
-    OrgMembership.attested_by_other."""
+    """Somebody other than `user`, to stand in the confirmer column when the
+    point of a test is that the organisation — not the member — confirmed."""
     return User.objects.create_user(username="admin", email="admin@example.com", password="x")
 
 
@@ -87,16 +86,28 @@ class TestVerifiedFactsCount:
 
         assert verified_facts_count(user) == 0
 
-    def test_excludes_membership_nobody_else_confirmed(self, user, org):
-        """"Independently verified" means somebody else attested to it. A row
-        you confirmed yourself — which is what creating an org hands you — and
-        a row that predates the confirmer column are both unattested."""
+    def test_counts_the_row_at_an_org_the_person_created(self, user, org):
+        """An owner is their organisation's voice, so the confirmed row you get
+        by creating an org counts like any other — the check against invented
+        orgs is the org's own ladder, not this count."""
         OrgMembership.objects.create(
             org=org,
             user=user,
             role=OrgMembership.Role.OWNER,
             details_confirmed_by=user,
             details_confirmed_at=timezone.now(),
+        )
+
+        assert verified_facts_count(user) == 1
+
+    def test_excludes_a_row_the_member_edited_and_nobody_confirmed(self, user, org):
+        """A member editing their own title drops the row to pending, and a
+        pending row is nobody's claim but theirs."""
+        OrgMembership.objects.create(
+            org=org,
+            user=user,
+            role=OrgMembership.Role.MEMBER,
+            details_status=OrgMembership.DetailsStatus.PENDING,
         )
 
         assert verified_facts_count(user) == 0
@@ -128,10 +139,10 @@ class TestPersonTimeline:
         assert bands[0]["verified_via"] == "org_membership"
         assert bands[0]["org_slug"] is None
 
-    def test_a_membership_only_the_person_confirmed_reads_as_self_declared(self, user):
-        """Creating an org makes you its owner with a confirmed roster row, so
-        a confirmed row alone proves nothing. The band must say so, or the
-        badge would claim more than rung 6 of the ladder grants."""
+    def test_a_membership_at_an_org_the_person_created_reads_as_verified(self, user):
+        """The founder's own row is the organisation speaking, so the band is
+        not self-declared — it carries the org badge like rung 6 of the ladder
+        grants (OrgMembership.details_status)."""
         profile, _ = InvestorProfile.objects.get_or_create(user=user)
         org = Organization.objects.create(
             slug="bidroom", name="BidRoom", status=Organization.Status.LIVE
@@ -150,6 +161,28 @@ class TestPersonTimeline:
 
         assert len(bands) == 1
         assert bands[0]["title"] == "Founder"
+        assert bands[0]["verified"] is True
+        assert bands[0]["verified_via"] == "org_membership"
+
+    def test_a_membership_the_member_edited_reads_as_unverified(self, user):
+        """Until an admin confirms the member's own edit the row is pending,
+        and a pending row carries no badge."""
+        profile, _ = InvestorProfile.objects.get_or_create(user=user)
+        org = Organization.objects.create(
+            slug="bidroom", name="BidRoom", status=Organization.Status.LIVE
+        )
+        OrgMembership.objects.create(
+            org=org,
+            user=user,
+            role=OrgMembership.Role.MEMBER,
+            title="Engineer",
+            started_on=date(2024, 1, 1),
+            details_status=OrgMembership.DetailsStatus.PENDING,
+        )
+
+        bands = person_timeline(profile, viewer=user)
+
+        assert len(bands) == 1
         assert bands[0]["verified"] is False
         assert bands[0]["verified_via"] is None
 

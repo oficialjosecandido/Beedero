@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { Search, X } from "lucide-react";
+
 import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
 
 type Tab = "people" | "organizations";
@@ -165,6 +167,46 @@ export function DiscoveryFilters({
 
   return (
     <>
+      {/* Uncontrolled and submitted on Enter, like JobFilters: a push per
+          keystroke would re-run the server page — and the API call behind it —
+          for every character. Keyed on `q` so back/forward re-seeds the box. */}
+      <form
+        key={q}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          push({ q: String(data.get("q") ?? "").trim() });
+        }}
+        className="mb-3"
+      >
+        <label className="flex max-w-2xl items-center gap-3 border border-white/15 bg-white/[0.02] px-4 py-3 text-white/40 focus-within:border-beedero-yellow">
+          <Search size={17} strokeWidth={1.8} aria-hidden />
+          <input
+            name="q"
+            defaultValue={q}
+            // Each tab matches different columns (backend: orgs/discovery.py),
+            // so the placeholder promises only what that tab actually searches.
+            placeholder={
+              tab === "people"
+                ? "Search people by name, handle or headline"
+                : "Search organisations by name or one-liner"
+            }
+            aria-label={tab === "people" ? "Search people" : "Search organisations"}
+            className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => push({ q: "" })}
+              aria-label="Clear search"
+              className="shrink-0 text-white/40 transition hover:text-white"
+            >
+              <X size={16} strokeWidth={2} aria-hidden />
+            </button>
+          )}
+        </label>
+      </form>
+
       <div className="mb-7 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <FilterDropdown
           id="kind"
@@ -223,15 +265,6 @@ export function DiscoveryFilters({
           <p className="mr-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/40">
             More filters
           </p>
-          {q && (
-            <button
-              type="button"
-              onClick={() => push({ q: "" })}
-              className="border border-beedero-yellow bg-beedero-yellow px-3 py-2 text-xs font-bold text-beedero-black"
-            >
-              Clear “{q}” ✓
-            </button>
-          )}
           <button
             type="button"
             onClick={() => push({ fundraising: fundraising ? "" : "true" })}

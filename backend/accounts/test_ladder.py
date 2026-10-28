@@ -363,10 +363,10 @@ def test_a_roster_row_an_admin_confirmed_confirms_the_person():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("confirmer", ["self", "nobody"])
-def test_a_roster_row_nobody_else_vouched_for_confirms_nothing(confirmer):
-    """Creating an org hands you a confirmed row on your own roster, and rows
-    that predate the confirmer column have no attester we can name. Neither is
-    somebody else vouching for you."""
+def test_a_roster_row_at_an_org_the_person_created_confirms_them(confirmer):
+    """An owner is their organisation's voice, so the confirmed row you get by
+    creating an org climbs this rung. Rows predating the confirmer column have
+    no attester we can name and still count: they are org-confirmed too."""
     profile = unlock(make_user("ana"))
     org = Organization.objects.create(name="Alma Labs", slug="alma-labs")
     OrgMembership.objects.create(
@@ -375,6 +375,24 @@ def test_a_roster_row_nobody_else_vouched_for_confirms_nothing(confirmer):
         role=OrgMembership.Role.OWNER,
         details_confirmed_by=profile.user if confirmer == "self" else None,
         details_confirmed_at=timezone.now() if confirmer == "self" else None,
+    )
+    confirmed = rung(verification_ladder(profile), "confirmed")
+    assert confirmed["done"] is True
+    assert confirmed["attested_by"] == "Alma Labs"
+
+
+@pytest.mark.django_db
+def test_a_roster_row_the_member_edited_confirms_nothing():
+    """Editing your own title drops the row to pending — your own unconfirmed
+    claim about yourself, which is what this rung exists to rule out."""
+    profile = unlock(make_user("ana"))
+    org = Organization.objects.create(name="Alma Labs", slug="alma-labs")
+    OrgMembership.objects.create(
+        org=org,
+        user=profile.user,
+        role=OrgMembership.Role.MEMBER,
+        title="Engineer",
+        details_status=OrgMembership.DetailsStatus.PENDING,
     )
     assert rung(verification_ladder(profile), "confirmed")["done"] is False
 

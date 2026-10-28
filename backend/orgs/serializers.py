@@ -209,7 +209,6 @@ class OrgMembershipSerializer(serializers.ModelSerializer):
             "started_on",
             "ended_on",
             "details_status",
-            "attested_by_other",
             "skills",
         ]
         read_only_fields = [

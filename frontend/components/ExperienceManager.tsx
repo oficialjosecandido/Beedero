@@ -67,9 +67,6 @@ export type OrgMembershipExperience = {
   started_on: string;
   ended_on?: string | null;
   details_status?: "confirmed" | "pending";
-  /** Someone other than this member confirmed the details — the only thing
-   *  that earns the verified badge (backend: OrgMembership.attested_by_other). */
-  attestedByOther?: boolean;
   skills: { id: number; skill: string; status: string }[];
 };
 
@@ -448,28 +445,15 @@ function MembershipRecord({
     },
   });
 
-  // Three states, not two: a confirmed row whose confirmer was the member
-  // themselves (you get one by creating the org) is no better evidence than a
-  // self-declared record, and the ladder's rung 6 treats it the same way.
+  // A roster row is never self-declared: there is a real organisation behind
+  // it, and a confirmed row is that organisation speaking — including the row
+  // you get by creating it. Only the member's own unconfirmed edit waits.
   const awaitingOrg = membership.details_status === "pending";
-  const attested = membership.attestedByOther === true;
   const headline = membership.title || membership.roleLabel || membership.role;
   const period = formatPeriod(membership.started_on, membership.ended_on);
-  const statusLabel = attested
-    ? "Verified by organisation"
-    : awaitingOrg
-      ? "Pending confirmation"
-      : "Self-declared";
-  const statusClass = attested
-    ? STATUS_STYLES.verified
-    : awaitingOrg
-      ? STATUS_STYLES.pending
-      : STATUS_STYLES.self_declared;
-  const statusTextClass = attested
-    ? "text-emerald-400/80"
-    : awaitingOrg
-      ? "text-sky-300/80"
-      : "text-white/55";
+  const statusLabel = awaitingOrg ? "Pending confirmation" : "Verified by organisation";
+  const statusClass = awaitingOrg ? STATUS_STYLES.pending : STATUS_STYLES.verified;
+  const statusTextClass = awaitingOrg ? "text-sky-300/80" : "text-emerald-400/80";
 
   const membershipIcon =
     ROLE_ICONS[MEMBERSHIP_FILTER_TYPES[membership.role] ?? ""] ?? BriefcaseBusiness;

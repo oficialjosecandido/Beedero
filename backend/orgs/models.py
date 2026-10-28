@@ -74,15 +74,23 @@ class OrgMembership(models.Model):
     # the way to mark an engagement concluded while keeping it in the timeline.
     started_on = models.DateField(default=date.today)
     ended_on = models.DateField(null=True, blank=True)
+    # Confirmed means the organisation is speaking: an org's owner is its
+    # voice, so the row you get by creating one counts the same as a row an
+    # admin confirmed for you. The "verified by organisation" badge
+    # (accounts/timeline.py) and rung 6 of the person's ladder
+    # (accounts/ladder.py) both read this field and nothing else, so they
+    # cannot disagree. What stops a made-up org from minting credibility is
+    # the org's own ladder (orgs/ladder.py), not this field.
     details_status = models.CharField(
         max_length=12,
         choices=DetailsStatus.choices,
         default=DetailsStatus.CONFIRMED,
         db_index=True,
     )
-    # Who attested the details above, and when. Null means nobody we can name:
-    # the row predates this field. Confirming your own row is self-attestation
-    # — you get one by creating an org — so "confirmed" alone proves nothing.
+    # Audit trail: who confirmed the details above, and when. Null means nobody
+    # we can name — the row predates these columns. Not a gate: a row at an org
+    # you created counts as org-confirmed (see details_status), by product
+    # decision; this records *who* said so, for display and for disputes.
     details_confirmed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="+",
@@ -94,29 +102,6 @@ class OrgMembership(models.Model):
 
     class Meta:
         unique_together = ("org", "user")
-
-    # Queryset counterpart of attested_by_other, for the places that count or
-    # look up attested rows instead of inspecting one (accounts/ladder.py,
-    # accounts/timeline.py). Keeping both forms here keeps them in step.
-    ATTESTED_BY_OTHER = models.Q(
-        details_status=DetailsStatus.CONFIRMED,
-        details_confirmed_by__isnull=False,
-    ) & ~models.Q(details_confirmed_by=models.F("user"))
-
-    @property
-    def attested_by_other(self) -> bool:
-        """True when someone other than the member confirmed these details.
-
-        The single source for both the "verified by organisation" badge and
-        rung 6 of the person's ladder (accounts/ladder.py), so the two can
-        never disagree about what counts as third-party attestation.
-        Use ATTESTED_BY_OTHER to ask the same question of a queryset.
-        """
-        return (
-            self.details_status == self.DetailsStatus.CONFIRMED
-            and self.details_confirmed_by_id is not None
-            and self.details_confirmed_by_id != self.user_id
-        )
 
 
 class MembershipSkill(models.Model):
