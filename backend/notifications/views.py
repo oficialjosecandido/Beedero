@@ -85,32 +85,33 @@ class NotificationUnreadCountView(APIView):
 class NotificationPreferenceView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @staticmethod
+    def _payload(pref):
+        return {
+            "digest_email": pref.digest_email,
+            "inapp_engagement": pref.inapp_engagement,
+            "push_enabled": pref.push_enabled,
+            "newsletter_opt_in": pref.newsletter_opt_in,
+        }
+
     def get(self, request):
         pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
-        return Response(
-            {
-                "digest_email": pref.digest_email,
-                "inapp_engagement": pref.inapp_engagement,
-                "push_enabled": pref.push_enabled,
-            }
-        )
+        return Response(self._payload(pref))
 
     def patch(self, request):
         pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
         fields = []
-        for field in ("digest_email", "inapp_engagement", "push_enabled"):
+        for field in ("digest_email", "inapp_engagement", "push_enabled", "newsletter_opt_in"):
             if field in request.data:
                 setattr(pref, field, bool(request.data[field]))
                 fields.append(field)
+        if "newsletter_opt_in" in fields:
+            # The consent record: when it was given; cleared when withdrawn.
+            pref.newsletter_opt_in_at = timezone.now() if pref.newsletter_opt_in else None
+            fields.append("newsletter_opt_in_at")
         if fields:
             pref.save(update_fields=fields)
-        return Response(
-            {
-                "digest_email": pref.digest_email,
-                "inapp_engagement": pref.inapp_engagement,
-                "push_enabled": pref.push_enabled,
-            }
-        )
+        return Response(self._payload(pref))
 
 
 class PushTokenView(APIView):

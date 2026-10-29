@@ -1,0 +1,22 @@
+name: Ensure Nexus admins
+
+# Grants is_staff to the Nexus admin allowlist (backend/beedero/admin_access.py),
+# which is what the outer gate on /beedero-nexus checks. Also runs on every
+# container start from startup.sh — run it here when an admin's first sign-in
+# happens between deploys, since that sign-in is what creates the row to promote.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ensure_nexus_admins
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: ensure_nexus_admins"

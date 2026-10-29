@@ -237,6 +237,16 @@ class VisibilityGrant(models.Model):
         return (self.principal_type, self.principal_id) in principals
 
 
+class VisibleActivityManager(models.Manager):
+    """Every read of posts goes through this: a post removed by Beedero staff
+    (beedero-nexus) disappears from feeds, profiles, counts and the ladders at
+    once, without each of the ~30 queries having to remember to filter it.
+    `Activity.all_objects` still sees them — the Nexus and the admin only."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(removed_at__isnull=True)
+
+
 class Activity(models.Model):
     """A feed post — org update or investor post. Replaces OrgField-as-post
     (key startswith 'post_') and accounts.InvestorPost, unified so reactions
@@ -285,6 +295,17 @@ class Activity(models.Model):
     # Uniqueness makes the backfill migration idempotent/re-runnable.
     source_org_field_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
     source_investor_post_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
+
+    # Removed by Beedero staff (nexus/posts.py). Kept, not deleted: the author
+    # is told why, an admin can restore it, and the audit trail points at it.
+    removed_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    removed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="+", on_delete=models.SET_NULL
+    )
+    removal_reason = models.CharField(max_length=30, blank=True, default="")
+
+    objects = VisibleActivityManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "Post"

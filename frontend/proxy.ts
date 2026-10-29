@@ -74,6 +74,9 @@ export const config = {
     "/org/:path*",
     // /orgs/new — creating an organisation (the public pages live under /o).
     "/orgs/:path*",
+    // The staff dashboard. The API still decides who gets in (404 for others).
+    "/beedero-nexus",
+    "/beedero-nexus/:path*",
     "/discovery/:path*",
     // /opportunities, not /jobs: /jobs is public and index-able (doc §3.2), so
     // guarding it here would bounce every crawler and every shared link to

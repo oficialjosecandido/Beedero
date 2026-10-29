@@ -109,6 +109,7 @@ def is_unlocked(profile) -> bool:
         return False
     return (
         profile.user.is_email_verified
+        and profile.user.is_active
         and _who_you_are(profile)
         and _face_and_story(profile)
         and _record_started(profile)
@@ -175,6 +176,7 @@ def with_unlock(queryset):
         .annotate(_all_skills_n=F("_skills_n") + F("_exp_skills_n") + F("_mem_skills_n"))
         .filter(
             Q(user__email_verified_at__isnull=False)
+            & Q(user__is_active=True)  # suspended people leave Discover at once
             & ~Q(full_name="")
             & ~Q(headline="")
             & ~Q(country="")

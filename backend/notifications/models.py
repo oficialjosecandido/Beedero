@@ -28,6 +28,7 @@ class Notification(models.Model):
         INVESTMENT_UPDATE = "investment_update"
         COFOUNDER_MATCH = "cofounder_match"
         BILLING = "billing"
+        MODERATION = "moderation"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE
@@ -67,6 +68,11 @@ class NotificationPreference(models.Model):
     # behind it, so users never clicked it and never got the permission
     # prompt at all.
     push_enabled = models.BooleanField(default=False)
+    # The Beedero newsletter is marketing, so it needs consent (Privacy §2.6):
+    # off until the person turns it on, with the moment recorded. Service
+    # announcements (terms, pricing, security) don't depend on it.
+    newsletter_opt_in = models.BooleanField(default=False)
+    newsletter_opt_in_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"prefs for {self.user_id}"

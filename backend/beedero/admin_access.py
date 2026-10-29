@@ -10,7 +10,13 @@ from functools import wraps
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden
 
-KPI_ADMIN_EMAILS = {"josevcandido@gmail.com", "pt.bidnow@gmail.com"}
+# The founding admin: the account the Nexus is handed to before anyone else
+# has it. Its own constant because KPI_ADMIN_EMAILS is a set — unordered, so
+# "first" cannot be read off it — and because ensure_nexus_admins promotes
+# this address by name.
+FIRST_ADMIN_EMAIL = "josevcandido@gmail.com"
+
+KPI_ADMIN_EMAILS = {FIRST_ADMIN_EMAIL, "pt.bidnow@gmail.com"}
 
 
 def kpi_admin_required(view):

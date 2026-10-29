@@ -34,6 +34,7 @@ def public_person_profile(handle: str, viewer) -> dict:
     profile = get_object_or_404(
         InvestorProfile.objects.select_related("user"),
         handle=handle,
+        user__is_active=True,  # a suspended person's page is gone while suspended
     )
     if not profile.is_complete:
         from django.http import Http404

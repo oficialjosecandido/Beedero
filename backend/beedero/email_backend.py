@@ -36,14 +36,19 @@ class AzureCommunicationEmailBackend(BaseEmailBackend):
                     if alt_type == "text/html":
                         content["html"] = alt_body
                         break
-                poller = self._client.begin_send(
-                    {
-                        "senderAddress": message.from_email,
-                        "recipients": {"to": [{"address": addr} for addr in message.to]},
-                        "content": content,
-                    }
-                )
-                poller.result()
+                payload = {
+                    "senderAddress": message.from_email,
+                    "recipients": {"to": [{"address": addr} for addr in message.to]},
+                    "content": content,
+                }
+                if message.extra_headers:
+                    # e.g. List-Unsubscribe on newsletters (newsletter/sending.py).
+                    payload["headers"] = dict(message.extra_headers)
+                poller = self._client.begin_send(payload)
+                # Bulk sends only need Azure to accept the message; waiting for
+                # each one's final status would make a newsletter batch crawl.
+                if getattr(message, "wait_for_delivery", True):
+                    poller.result()
                 sent += 1
             except Exception:
                 if not self.fail_silently:

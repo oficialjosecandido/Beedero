@@ -78,7 +78,7 @@ class ActivityAdmin(admin.ModelAdmin):
         "reaction_count",
         "comment_count",
     ]
-    list_filter = ["kind", "visibility"]
+    list_filter = ["kind", "visibility", ("removed_at", admin.EmptyFieldListFilter)]
     search_fields = ["title", "body", "org__slug", "org__name", "author__email", "author__username"]
     ordering = ["-occurred_at", "-id"]
     date_hierarchy = "occurred_at"
@@ -99,6 +99,9 @@ class ActivityAdmin(admin.ModelAdmin):
         "payload",
         "source_org_field_id",
         "source_investor_post_id",
+        "removed_at",
+        "removed_by",
+        "removal_reason",
     ]
     fieldsets = (
         (None, {"fields": ("kind", "title", "body", "image", "visibility")}),
@@ -109,7 +112,12 @@ class ActivityAdmin(admin.ModelAdmin):
             {"fields": ("reaction_count", "comment_count", "feed_impression_count")},
         ),
         ("Metadata", {"fields": ("payload", "source_org_field_id", "source_investor_post_id")}),
+        ("Moderation", {"fields": ("removed_at", "removed_by", "removal_reason")}),
     )
+
+    def get_queryset(self, request):
+        # Removed posts stay reachable here (the default manager hides them).
+        return Activity.all_objects.select_related("org", "author")
 
     @admin.display(description="Subject")
     def subject_display(self, obj: Activity):

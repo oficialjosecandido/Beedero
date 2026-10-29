@@ -1,0 +1,21 @@
+name: Finish newsletter sends
+
+# The Nexus sends while its page is open. This daily run finishes any send
+# whose page was closed before the last batch; run it by hand if needed.
+on:
+  schedule:
+    - cron: "50 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run send_newsletters
+        run: |
+          curl -fsS -X POST "${{ secrets.BEEDERO_API_URL }}/api/internal/run-job/" \
+            -H "X-Management-Secret: ${{ secrets.MANAGEMENT_SECRET }}" \
+            -H "X-Management-Job: send_newsletters"

@@ -21,6 +21,11 @@ python manage.py migrate --noinput
 # a later boot once the extension exists. See the command's docstring.
 python manage.py ensure_trigram_indexes
 
+# The Nexus admin allowlist (beedero/admin_access.py) needs `is_staff` in the
+# database to get past the outer gate, and Firebase never sets it. Idempotent;
+# reports and skips an address whose owner has not signed in yet.
+python manage.py ensure_nexus_admins
+
 # Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
 # Runs on the migrate role when set — the runtime role may be read/write-
 # limited enough that INSERT into accounts_* fails silently after a partial

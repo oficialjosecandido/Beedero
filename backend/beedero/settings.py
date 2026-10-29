@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "affiliations",
     "investments",
     "cofounder",
+    "nexus",
 ]
 
 MIDDLEWARE = [

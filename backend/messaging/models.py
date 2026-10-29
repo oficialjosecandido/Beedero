@@ -134,5 +134,18 @@ class MessageReport(models.Model):
     details = models.CharField(max_length=1000, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    # Handled in the Nexus (nexus/reports.py). Open while resolved_at is null.
+    class Resolution(models.TextChoices):
+        NO_ACTION = "no_action", "No action needed"
+        WARNED = "warned", "Person warned"
+        SUSPENDED = "suspended", "Account suspended"
+
+    resolved_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="+", on_delete=models.SET_NULL
+    )
+    resolution = models.CharField(max_length=20, choices=Resolution.choices, blank=True, default="")
+    resolution_note = models.CharField(max_length=1000, blank=True, default="")
+
     def __str__(self):
         return f"report {self.pk}: {self.reporter_id} -> {self.reported_user_id} ({self.reason})"

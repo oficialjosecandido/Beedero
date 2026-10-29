@@ -1,5 +1,7 @@
 import "server-only";
 
+import { redirect } from "next/navigation";
+
 import { refreshFirebaseSession } from "./firebase-auth";
 import { clearSession, getAccessToken, getRefreshToken, setSession } from "./session";
 
@@ -191,7 +193,16 @@ export async function apiFetch<T = unknown>(
     if (!refreshed) throw new ApiError(401, null);
     ({ res, text } = await doFetch(path, options, refreshed)); // retry exactly once
   }
-  return parse(res, text) as T;
+  try {
+    return parse(res, text) as T;
+  } catch (err) {
+    // Suspended in the Nexus: every call answers 403 `account_suspended`.
+    // One page that says so, instead of every page failing its own way.
+    if (err instanceof ApiError && err.status === 403 && (err.body as { code?: string } | null)?.code === "account_suspended") {
+      redirect("/suspended");
+    }
+    throw err;
+  }
 }
 
 /** Every Server Action re-renders the page it was invoked from to build its

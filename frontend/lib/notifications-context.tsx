@@ -27,12 +27,15 @@ export type NotificationPreferences = {
   digest_email: boolean;
   inapp_engagement: boolean;
   push_enabled: boolean;
+  /** The Beedero newsletter — marketing, so off until the person opts in. */
+  newsletter_opt_in: boolean;
 };
 
 const DEFAULT_PREFS: NotificationPreferences = {
   digest_email: true,
   inapp_engagement: true,
   push_enabled: false,
+  newsletter_opt_in: false,
 };
 
 type NotificationsContextValue = {

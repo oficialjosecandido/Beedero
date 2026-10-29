@@ -59,6 +59,11 @@ const PREFERENCE_ROWS: {
     label: "Push on this device",
     detail: "Needs your browser's permission to deliver",
   },
+  {
+    key: "newsletter_opt_in",
+    label: "Beedero newsletter",
+    detail: "What's new on Beedero, about once a month",
+  },
 ];
 
 function notificationHref(item: NotificationItem): string {

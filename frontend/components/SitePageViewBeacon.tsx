@@ -8,7 +8,8 @@ export function SitePageViewBeacon() {
   const lastSent = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pathname || pathname.startsWith("/api")) return;
+    // The Nexus is staff using an internal tool, not traffic to the site.
+    if (!pathname || pathname.startsWith("/api") || pathname.startsWith("/beedero-nexus")) return;
     if (lastSent.current === pathname) return;
     lastSent.current = pathname;
 

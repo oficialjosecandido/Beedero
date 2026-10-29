@@ -1,5 +1,5 @@
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 
 from beedero.firebase import get_firebase_app
 
@@ -102,6 +102,12 @@ class FirebaseIDTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed("Firebase account has no verified email address.")
 
         user = get_or_provision_firebase_user(claims)
+        if not user.is_active:
+            # Suspended in the Nexus. 403 with a code, not 401: a 401 sends the
+            # browser to /login, which would sign them straight back in here.
+            raise PermissionDenied(
+                {"detail": "This account is suspended.", "code": "account_suspended"}
+            )
         record_presence(user)
         return (user, token)
 

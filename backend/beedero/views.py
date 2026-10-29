@@ -39,12 +39,18 @@ def run_management_job(request):
         "expire_jobs": ("expire_jobs", []),
         "team_invite_upkeep": ("team_invite_upkeep", []),
         "billing_reminders": ("billing_reminders", []),
+        "nexus_rollup": ("nexus_rollup", []),
+        "send_newsletters": ("send_newsletters", []),
         # One-off (re-runnable): reconstructs active days from before presence
         # tracking existed. Triggered by hand from manual-backfill-active-days.yml.
         "backfill_active_days": ("backfill_active_days", []),
         # Stable /p/lighthouse-demo for SEO/perf audits. Also runs from startup.sh;
         # exposed here so ops can re-seed without restarting the app.
         "ensure_lighthouse_demo_person": ("ensure_lighthouse_demo_person", []),
+        # is_staff for the Nexus admin allowlist. Also runs from startup.sh;
+        # exposed here because an admin's first sign-in is what creates the row
+        # to promote, and that will not line up with a deploy.
+        "ensure_nexus_admins": ("ensure_nexus_admins", []),
     }
     if job not in allowed:
         return JsonResponse({"detail": "Unknown job"}, status=400)
