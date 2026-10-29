@@ -203,8 +203,16 @@ export function NewsletterEditor({ initial, segments }: { initial: NewsletterSen
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {(
                 [
-                  ["newsletter", "Newsletter", "Marketing. Only people who opted in, plus contacts. Has an unsubscribe link."],
-                  ["announcement", "Service announcement", "A change to the service (terms, prices, security). Every account. Use sparingly."],
+                  [
+                    "newsletter",
+                    "Newsletter",
+                    "Marketing. Only people who opted in, plus contacts. Has an unsubscribe link.",
+                  ],
+                  [
+                    "announcement",
+                    "Service announcement",
+                    "Service changes (terms, prices, security). Choose All users or All organisations below. Use sparingly — no opt-in needed.",
+                  ],
                 ] as const
               ).map(([key, label, hint]) => (
                 <label

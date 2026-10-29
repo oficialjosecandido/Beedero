@@ -5,7 +5,7 @@ from django.core import mail
 
 from newsletter import audience
 from newsletter.models import NewsletterDelivery, NewsletterRecipient, NewsletterSend
-from newsletter.render import render_markdown
+from newsletter.render import footer_for, render_markdown
 from newsletter.sending import unsubscribe_token
 from notifications.models import NotificationPreference
 
@@ -46,6 +46,9 @@ def test_the_newsletter_only_reaches_people_who_asked(make_user):
     assert [r[0] for r in audience.recipients("contacts")] == ["fan@example.org"]
     # A service announcement goes to every account, opted in or not.
     assert {r[0] for r in audience.recipients("all_accounts")} == {"yes@example.com", "no@example.com"}
+    labels = {row["key"]: row["label"] for row in audience.segment_counts()}
+    assert labels["all_accounts"] == "All users"
+    assert labels["org_owners"] == "All organisations"
 
 
 @pytest.mark.django_db
@@ -55,6 +58,15 @@ def test_markdown_is_escaped_and_only_safe_links_survive():
     assert "&lt;script&gt;" in html and "<script>" not in html
     assert 'href="https://beedero.com"' in html and "javascript:" not in html.split("[bad]")[0]
     assert "<ul" in html and html.count("<li>") == 2
+
+
+def test_newsletter_footer_offers_unsubscribe_and_manage_preferences(settings):
+    settings.FRONTEND_URL = "https://beedero.com"
+    html = footer_for("newsletter", "https://beedero.com/unsubscribe/x")
+    assert "Unsubscribe" in html and 'href="https://beedero.com/unsubscribe/x"' in html
+    assert "Manage preferences" in html
+    assert 'href="https://beedero.com/profile#email-preferences"' in html
+    assert "Manage preferences" not in footer_for("announcement", None)
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ http(s) or mailto.
 import re
 from html import escape
 
-from beedero.email_brand import wrap_email
+from beedero.email_brand import frontend_url, wrap_email
 
 P_STYLE = "margin:0 0 16px;font-size:15px;line-height:1.6"
 H_STYLE = "margin:24px 0 8px;font-size:18px;line-height:1.3;font-weight:700"
@@ -46,13 +46,24 @@ def render_markdown(source: str) -> str:
 
 def footer_for(kind: str, unsubscribe_url: str | None) -> str:
     style = "margin:0;font-size:12px;line-height:1.6;color:#8a8a8a"
+    link_style = "color:#8a8a8a;text-decoration:underline"
     if kind == "announcement":
         return (
             f'<p style="{style}">You are receiving this because you have a Beedero account. '
             "It is a service announcement — a change to how Beedero works — not marketing.</p>"
         )
-    link = f' <a href="{escape(unsubscribe_url)}" style="color:#8a8a8a">Unsubscribe</a>.' if unsubscribe_url else ""
-    return f'<p style="{style}">You are receiving the Beedero newsletter because you asked for it.{link}</p>'
+    prefs = (
+        f'<a href="{escape(frontend_url("profile#email-preferences"))}" style="{link_style}">'
+        "Manage preferences</a>"
+    )
+    parts = []
+    if unsubscribe_url:
+        parts.append(f'<a href="{escape(unsubscribe_url)}" style="{link_style}">Unsubscribe</a>')
+    parts.append(prefs)
+    return (
+        f'<p style="{style}">You are receiving the Beedero newsletter because you asked for it. '
+        f'{" · ".join(parts)}</p>'
+    )
 
 
 def newsletter_html(*, kind: str, subject: str, body: str, unsubscribe_url: str | None = None) -> str:

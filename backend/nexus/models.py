@@ -14,6 +14,7 @@ class NexusAction(models.Model):
         USER_REACTIVATED = "user.reactivated", "Reactivated an account"
         USER_INTERNAL = "user.internal", "Changed internal flag"
         USER_VERIFIED = "user.verified", "Changed Beedero verification (person)"
+        USER_DELETED = "user.deleted", "Deleted an account"
         ORG_COMP = "org.comp", "Changed complimentary plan"
         ORG_FREE_EXTENDED = "org.free_extended", "Extended free period"
         ORG_VERIFIED = "org.verified", "Changed Beedero verification (organisation)"

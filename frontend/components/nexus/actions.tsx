@@ -36,6 +36,7 @@ export function ReasonAction({
   confirmLabel,
   tone = "default",
   done,
+  redirectTo,
 }: {
   label: ReactNode;
   title: string;
@@ -50,6 +51,8 @@ export function ReasonAction({
   confirmLabel: string;
   tone?: Tone;
   done?: string;
+  /** After success, leave this page (e.g. delete → users list). */
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -87,6 +90,10 @@ export function ReasonAction({
       setReason("");
       setChoice("");
       toast.success(done ?? "Done.");
+      if (redirectTo) {
+        router.push(redirectTo);
+        return;
+      }
       router.refresh();
     });
   }

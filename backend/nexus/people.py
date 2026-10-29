@@ -1,5 +1,5 @@
 """People: find anyone, see their whole picture, and — admins — suspend,
-reactivate, mark as internal or give Beedero's own verification."""
+reactivate, delete, mark as internal or give Beedero's own verification."""
 
 from datetime import timedelta
 
@@ -208,6 +208,31 @@ def suspend(user, actor, reason: str) -> None:
     )
 
 
+def delete_user(user, actor, reason: str) -> dict:
+    """Hard-delete the account and everything Django cascades with it.
+
+    Recorded in the audit log first — the row keeps the email even after the
+    user row is gone. Staff and the actor themselves are refused the same way
+    as suspend: take staff away in Django admin before deleting.
+    """
+    if user.pk == actor.pk:
+        raise ValidationError({"detail": "You can't delete yourself."})
+    if user.is_staff:
+        raise ValidationError({"detail": "Remove staff access first (Django admin), then delete."})
+    email = user.email
+    user_id = user.id
+    audit.record(
+        actor,
+        NexusAction.Action.USER_DELETED,
+        target_type="user",
+        target_id=user_id,
+        label=email,
+        reason=reason,
+    )
+    user.delete()
+    return {"deleted": True, "id": user_id, "email": email}
+
+
 class UserActionView(APIView):
     """POST /nexus/users/<id>/<action>/ — admins only."""
 
@@ -256,6 +281,8 @@ class UserActionView(APIView):
                 reason=reason,
                 value=value,
             )
+        elif action == "delete":
+            return Response(delete_user(user, request.user, required_reason(request)))
         else:
             return Response(status=404)
         user.refresh_from_db()

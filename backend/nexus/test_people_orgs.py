@@ -9,7 +9,7 @@ from django.utils import timezone
 from firebase_admin import auth as firebase_auth
 
 from accounts.ladder import verification_ladder, with_unlock
-from accounts.models import InvestorProfile
+from accounts.models import InvestorProfile, User
 from accounts.testing import unlock
 from billing.access import has_access, org_billing_state
 from billing.models import Subscription
@@ -116,6 +116,32 @@ def test_a_suspended_person_cannot_sign_in(api, ana):
 def test_nobody_suspends_themselves_or_other_staff(as_admin, admin, staff):
     assert as_admin.post(f"/api/nexus/users/{admin.id}/suspend/", {"reason": "x"}).status_code == 400
     assert as_admin.post(f"/api/nexus/users/{staff.id}/suspend/", {"reason": "x"}).status_code == 400
+
+
+@pytest.mark.django_db
+def test_deleting_needs_a_reason_and_removes_the_account(as_admin, admin, ana):
+    assert as_admin.post(f"/api/nexus/users/{ana.id}/delete/", {}).status_code == 400
+    response = as_admin.post(
+        f"/api/nexus/users/{ana.id}/delete/", {"reason": "Test account / spam signup"}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json() == {"deleted": True, "id": ana.id, "email": "ana@lumen.pt"}
+    assert not User.objects.filter(pk=ana.id).exists()
+    action = NexusAction.objects.get(action="user.deleted")
+    assert (action.actor, action.target_id, action.reason, action.target_label) == (
+        admin,
+        str(ana.id),
+        "Test account / spam signup",
+        "ana@lumen.pt",
+    )
+
+
+@pytest.mark.django_db
+def test_nobody_deletes_themselves_or_staff(as_admin, admin, staff, ana):
+    assert as_admin.post(f"/api/nexus/users/{admin.id}/delete/", {"reason": "x"}).status_code == 400
+    assert as_admin.post(f"/api/nexus/users/{staff.id}/delete/", {"reason": "x"}).status_code == 400
+    assert User.objects.filter(pk__in=[admin.id, staff.id]).count() == 2
+    assert as_admin.post(f"/api/nexus/users/{ana.id}/delete/", {"reason": "gone"}).status_code == 200
 
 
 @pytest.mark.django_db

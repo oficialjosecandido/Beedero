@@ -34,8 +34,19 @@ SEGMENTS = [
     Segment("subscribed_founders", NEWSLETTER, "Subscribed founders", "Opted-in owners and admins of an organisation."),
     Segment("subscribed_investors", NEWSLETTER, "Subscribed investors", "Opted-in accounts that said they invest."),
     Segment("contacts", NEWSLETTER, "Contacts only", "Newsletter contacts without an account."),
-    Segment("all_accounts", ANNOUNCEMENT, "Every account", "Every active account. Service announcements only."),
-    Segment("org_owners", ANNOUNCEMENT, "Organisation owners", "Owners and admins of an organisation."),
+    # Service announcements — no marketing opt-in required. Use sparingly.
+    Segment(
+        "all_accounts",
+        ANNOUNCEMENT,
+        "All users",
+        "Every active account with a confirmed email. For service changes (terms, prices, security), not marketing.",
+    ),
+    Segment(
+        "org_owners",
+        ANNOUNCEMENT,
+        "All organisations",
+        "Owners and admins of every organisation — one email per person, not one per organisation.",
+    ),
 ]
 SEGMENTS_BY_KEY = {segment.key: segment for segment in SEGMENTS}
 

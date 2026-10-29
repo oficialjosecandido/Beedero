@@ -9,6 +9,7 @@ import type { Experience, OrgMembershipExperience } from "@/components/Experienc
 import { ExperienceManager } from "@/components/ExperienceManager";
 import { LinkedInImport } from "@/components/LinkedInImport";
 import { AccountSection } from "@/components/profile/AccountSection";
+import { EmailPreferencesSection } from "@/components/profile/EmailPreferencesSection";
 import { ProfileEditorProvider } from "@/components/profile/ProfileEditorContext";
 import {
   AboutSection,
@@ -177,6 +178,7 @@ export default async function ProfilePage({
           </div>
           <SkillsSection profile={profile} practised={practised} memberships={memberships} />
           {invests && <InvestmentFocusSection profile={profile} />}
+          <EmailPreferencesSection />
           <AccountSection email={me.email} />
         </div>
         <ProfileAside

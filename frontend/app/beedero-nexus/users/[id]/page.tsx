@@ -80,6 +80,16 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
                     done="Reactivated."
                   />
                 )}
+                <ReasonAction
+                  label="Delete"
+                  title={`Delete ${user.name}`}
+                  description="Permanent. The account, profile, messages, connections and everything else tied to them are removed. Organisations they own are left behind without their membership. This cannot be undone."
+                  path={`${base}/delete/`}
+                  confirmLabel="Delete forever"
+                  tone="danger"
+                  done="Deleted."
+                  redirectTo="/beedero-nexus/users"
+                />
               </>
             )}
           </>
