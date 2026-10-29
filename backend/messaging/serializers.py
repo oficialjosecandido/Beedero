@@ -41,7 +41,17 @@ class ReportConversationSerializer(serializers.Serializer):
 
 
 class ReportUserSerializer(ReportConversationSerializer):
-    user_id = serializers.IntegerField()
+    """Either a person (`user_id`) or a feed post (`activity_id`). Org posts
+    have no author in the feed payload, so the post id is what the UI can
+    send; the view resolves who to attach the report to."""
+
+    user_id = serializers.IntegerField(required=False)
+    activity_id = serializers.IntegerField(required=False)
+
+    def validate(self, attrs):
+        if not attrs.get("user_id") and not attrs.get("activity_id"):
+            raise serializers.ValidationError("Provide user_id or activity_id.")
+        return attrs
 
 
 class MessageSendSerializer(serializers.Serializer):

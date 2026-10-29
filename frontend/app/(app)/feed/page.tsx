@@ -2,8 +2,6 @@ import { FeedHome } from "./FeedHome";
 import { FeedRightColumn } from "./FeedRightColumn";
 import type { FeedItem } from "./types";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
-import type { TrendingItem } from "@/components/TrendingPanel";
-import type { RecentOrgUpdateItem } from "@/components/RecentOrgUpdatesPanel";
 import { redirect } from "next/navigation";
 
 type InvestorPost = {
@@ -17,7 +15,6 @@ type InvestorPost = {
 
 type ChecklistItem = { key: string; done: boolean; hint: string; weight: number };
 type Vitality = { completeness: number; checklist: ChecklistItem[] };
-type Membership = { slug: string; name: string; role: string; logo?: string | null };
 type InvestorProfile = {
   full_name?: string;
   headline?: string;
@@ -53,33 +50,34 @@ export default async function FeedPage() {
   } = { organizations: [] };
 
   try {
-    const [feed, meRes, posts, recRes, vitalityRes] = await Promise.all([
-      apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/"),
-      apiFetch<Me>("/auth/me/"),
-      safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []),
-      safeFetch(
-        apiFetch<{
-          organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[];
-        }>("/recommendations/"),
-        { organizations: [] }
-      ),
-      // Parallel with the rest — avoids a second round-trip when the profile
-      // is still incomplete (Enter → feed used to wait on this sequentially).
-      safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null),
-      // Keep these warm in parallel — used lightly / reserved for later panels.
-      safeFetch(apiFetch<{ items: TrendingItem[] }>("/trending/"), { items: [] }),
-      safeFetch(apiFetch<{ items: RecentOrgUpdateItem[] }>("/recent-org-updates/"), { items: [] }),
-      safeFetch(apiFetch<Membership[]>("/orgs/"), [] as Membership[]),
+    // Start the critical path together. /auth/me resolves first so we can
+    // skip the heavy vitality call for complete profiles; unused warm-up
+    // fetches (trending / recent-org-updates / orgs) used to sit in this
+    // Promise.all and stretch feed?_rsc to the slowest of eight backends.
+    const mePromise = apiFetch<Me>("/auth/me/");
+    const feedPromise = apiFetch<{ items: FeedItem[]; next_cursor: string | null }>("/feed/");
+    const postsPromise = safeFetch(apiFetch<InvestorPost[]>("/investors/me/posts/"), []);
+    const recPromise = safeFetch(
+      apiFetch<{
+        organizations: { slug: string; name: string; one_liner?: string; logo?: string | null }[];
+      }>("/recommendations/"),
+      { organizations: [] }
+    );
+
+    me = await mePromise;
+    const needsVitality = !me.investor_profile?.is_complete;
+    const [feed, posts, recRes, vitalityRes] = await Promise.all([
+      feedPromise,
+      postsPromise,
+      recPromise,
+      needsVitality ? safeFetch(apiFetch<Vitality>("/investors/me/vitality/"), null) : Promise.resolve(null),
     ]);
     ({ items, next_cursor } = feed);
-    me = meRes;
     myPosts = posts;
     recommendations = recRes;
+    vitality = vitalityRes;
     const today = new Date().toISOString().slice(0, 10);
     hasPostedToday = myPosts.some((post) => post.created_at.slice(0, 10) === today);
-    if (!me.investor_profile?.is_complete) {
-      vitality = vitalityRes;
-    }
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) redirect("/login");
     throw err;

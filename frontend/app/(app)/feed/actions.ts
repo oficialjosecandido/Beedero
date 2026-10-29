@@ -146,6 +146,25 @@ export async function postCommentAction(
   });
 }
 
+/** Feed "Report post" — lands in the same Nexus queue as DM / co-founder
+ * reports. `activity_id` lets org posts (no author in the feed payload) still
+ * resolve to someone staff can review. */
+export async function reportPostAction(
+  activityId: number,
+  reason: string,
+  details: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await apiFetch("/reports/", {
+      method: "POST",
+      body: { activity_id: activityId, reason, details },
+    });
+  } catch (err) {
+    return { error: actionErrorMessage(err, "Could not send this report.") };
+  }
+  return { ok: true };
+}
+
 export async function setEventParticipationAction(
   activityId: number,
   participating: boolean

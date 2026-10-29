@@ -389,19 +389,44 @@ class ConversationReportView(APIView):
 
 class UserReportView(APIView):
     """POST /api/reports/ — flag a person with no conversation to point at,
-    e.g. a co-founder card seen in the daily deck. Shares the rate-limit
-    bucket with ConversationReportView: it's the same person filing the same
-    kind of report, so the budget is the person's, not the surface's."""
+    e.g. a co-founder card or a feed post. Shares the rate-limit bucket with
+    ConversationReportView: it's the same person filing the same kind of
+    report, so the budget is the person's, not the surface's."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        from orgs.models import OrgMembership
+        from social.services import get_visible_activity_or_404
+
         serializer = ReportUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        target_id = serializer.validated_data["user_id"]
-        if target_id == request.user.id:
+        details = serializer.validated_data["details"]
+        activity_id = serializer.validated_data.get("activity_id")
+
+        if activity_id is not None:
+            activity = get_visible_activity_or_404(request.user, activity_id)
+            if activity.author_id:
+                target = activity.author
+            elif activity.org_id:
+                owner = (
+                    OrgMembership.objects.filter(org_id=activity.org_id, role=OrgMembership.Role.OWNER)
+                    .select_related("user")
+                    .order_by("id")
+                    .first()
+                )
+                if owner is None:
+                    return Response({"detail": "This post can't be reported."}, status=400)
+                target = owner.user
+            else:
+                return Response({"detail": "This post can't be reported."}, status=400)
+            post_line = f"Feed post #{activity.id}"
+            details = f"{post_line}\n{details}".strip() if details else post_line
+        else:
+            target = get_object_or_404(User, pk=serializer.validated_data["user_id"])
+
+        if target.id == request.user.id:
             return Response({"detail": "You can't report yourself."}, status=400)
-        target = get_object_or_404(User, pk=target_id)
 
         enforce_rate_limit(
             f"report-conversation:{request.user.id}", limit=REPORTS_PER_DAY, window_seconds=86400
@@ -410,6 +435,6 @@ class UserReportView(APIView):
             reporter=request.user,
             reported_user=target,
             reason=serializer.validated_data["reason"],
-            details=serializer.validated_data["details"],
+            details=details,
         )
         return Response(status=201)

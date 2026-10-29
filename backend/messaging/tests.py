@@ -381,6 +381,40 @@ def test_report_user_without_conversation(api, alice, bob):
 
 
 @pytest.mark.django_db
+def test_report_feed_post_by_activity_id(api, alice, bob):
+    """Org feed posts omit author in the payload — the report still needs a
+    person for Nexus, so activity_id resolves to the org owner."""
+    from django.utils import timezone
+
+    from billing.testing import grant_plan
+    from orgs.models import Activity
+
+    organization = Organization.objects.create(name="Reported Co", slug="reported-co")
+    OrgMembership.objects.create(org=organization, user=bob, role=OrgMembership.Role.OWNER)
+    grant_plan(organization)
+    activity = Activity.objects.create(
+        org=organization,
+        kind=Activity.Kind.NEWS,
+        title="Spam",
+        body="Buy now",
+        occurred_at=timezone.now(),
+    )
+    api.force_authenticate(alice)
+
+    res = api.post(
+        "/api/reports/",
+        {"activity_id": activity.id, "reason": "scam", "details": "Looks fake"},
+        format="json",
+    )
+    assert res.status_code == 201
+
+    report = MessageReport.objects.get()
+    assert report.reported_user_id == bob.id
+    assert report.details.startswith(f"Feed post #{activity.id}")
+    assert "Looks fake" in report.details
+
+
+@pytest.mark.django_db
 def test_report_user_requires_authentication(api, bob):
     res = api.post("/api/reports/", {"user_id": bob.id, "reason": "scam"}, format="json")
     assert res.status_code in (401, 403)

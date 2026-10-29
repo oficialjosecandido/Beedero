@@ -55,7 +55,9 @@ function FeedMessagesSidebar() {
     }
   }, []);
 
-  useVisiblePolling({ onPoll: poll, intervalMs: 45_000 });
+  // Defer past first paint — conversations competed with feed?_rsc and link
+  // previews for the same cold Django + auth budget (~1.7s on production).
+  useVisiblePolling({ onPoll: poll, intervalMs: 45_000, deferMs: 1_500 });
 
   return (
     <section className="border border-white/10 bg-[#15181f]">

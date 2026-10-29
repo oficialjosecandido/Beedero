@@ -17,6 +17,7 @@ type PreviewState = { status: "loading" } | { status: "unavailable" } | PreviewR
 
 /** `pending` means the unfurl is in flight server-side — poll, don't give up. */
 type PreviewResult = PreviewReady | { status: "pending" } | { status: "unavailable" };
+type ResolvedPreview = PreviewReady | { status: "unavailable" };
 
 type PreviewPayload = {
   status?: string;
@@ -26,6 +27,17 @@ type PreviewPayload = {
   image_url?: string;
   site_name?: string;
 };
+
+/** Gaps between polls while the preview is pending. The unfurl happens off
+ * the request thread (backend/social/unfurl.py) and the service gets up to
+ * ten seconds to answer, so these start tight — a warm link is ready almost
+ * at once — and spread out to cover that budget in six calls. */
+const POLL_DELAYS_MS = [400, 800, 1500, 2500, 4000];
+
+/** One in-flight poll loop per URL across every card on the page — without
+ * this, ten posts linking the same article fire ten parallel proxy chains. */
+const resolvedByUrl = new Map<string, ResolvedPreview>();
+const inflightByUrl = new Map<string, Promise<ResolvedPreview>>();
 
 async function fetchPreview(url: string): Promise<PreviewResult> {
   const res = await fetch(`/api/links/preview?url=${encodeURIComponent(url)}`);
@@ -43,11 +55,36 @@ async function fetchPreview(url: string): Promise<PreviewResult> {
   };
 }
 
-/** Gaps between polls while the preview is pending. The unfurl happens off
- * the request thread (backend/social/unfurl.py) and the service gets up to
- * ten seconds to answer, so these start tight — a warm link is ready almost
- * at once — and spread out to cover that budget in six calls. */
-const POLL_DELAYS_MS = [400, 800, 1500, 2500, 4000];
+function resolvePreview(url: string): Promise<ResolvedPreview> {
+  const cached = resolvedByUrl.get(url);
+  if (cached) return Promise.resolve(cached);
+
+  const existing = inflightByUrl.get(url);
+  if (existing) return existing;
+
+  const promise = (async (): Promise<ResolvedPreview> => {
+    try {
+      for (let attempt = 0; ; attempt += 1) {
+        const next = await fetchPreview(url);
+        if (next.status !== "pending") {
+          resolvedByUrl.set(url, next);
+          return next;
+        }
+        if (attempt >= POLL_DELAYS_MS.length) {
+          // Out of patience for this mount. Don't cache: the next card can
+          // retry once the background unfurl has finished.
+          return { status: "unavailable" };
+        }
+        await new Promise((resolve) => setTimeout(resolve, POLL_DELAYS_MS[attempt]));
+      }
+    } finally {
+      inflightByUrl.delete(url);
+    }
+  })();
+
+  inflightByUrl.set(url, promise);
+  return promise;
+}
 
 /** Lazily unfurls the first http(s) link in a post/comment body into a rich
  * preview card (spec §A2). Fetched via a same-origin proxy backed by a
@@ -68,34 +105,19 @@ export function LinkPreviewCard({
 }
 
 function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dark" }) {
-  const [state, setState] = useState<PreviewState>({ status: "loading" });
+  const [state, setState] = useState<PreviewState>(() => resolvedByUrl.get(url) ?? { status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
+    const cached = resolvedByUrl.get(url);
+    if (cached) {
+      setState(cached);
+      return;
+    }
 
-    void (async () => {
-      try {
-        for (let attempt = 0; ; attempt += 1) {
-          const next = await fetchPreview(url);
-          if (cancelled) return;
-          if (next.status !== "pending") {
-            setState(next);
-            return;
-          }
-          if (attempt >= POLL_DELAYS_MS.length) {
-            // Out of patience: drop the skeleton rather than leave it
-            // pulsing in the feed. The fetch carries on server-side, so the
-            // next mount of this card finds the row ready.
-            setState({ status: "unavailable" });
-            return;
-          }
-          await new Promise((resolve) => setTimeout(resolve, POLL_DELAYS_MS[attempt]));
-          if (cancelled) return;
-        }
-      } catch {
-        if (!cancelled) setState({ status: "unavailable" });
-      }
-    })();
+    void resolvePreview(url).then((next) => {
+      if (!cancelled) setState(next);
+    });
 
     return () => {
       cancelled = true;
@@ -179,5 +201,5 @@ function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dar
 export function prefetchLinkPreview(body: string) {
   const url = extractFirstUrl(body);
   if (!url || typeof window === "undefined") return;
-  void fetch(`/api/links/preview?url=${encodeURIComponent(url)}`).catch(() => undefined);
+  void resolvePreview(url);
 }

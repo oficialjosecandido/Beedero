@@ -15,6 +15,7 @@ import { SECTION_LABELS } from "@/lib/types";
 import { loadMoreFeedAction } from "./actions";
 import { CommentThread } from "./CommentThread";
 import { ReactionBar } from "./ReactionBar";
+import { ReportPostDialog } from "./ReportPostDialog";
 import { feedPostShareUrl, shareFeedPost } from "./share-post";
 import type { FeedItem } from "./types";
 
@@ -36,6 +37,7 @@ function initialsFrom(name: string) {
 function FeedCard({ item }: { item: FeedItem }) {
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const isLongBody = (item.value.body?.length ?? 0) > BODY_TRUNCATE_THRESHOLD;
   const isOrg = item.type === "org";
@@ -168,7 +170,10 @@ function FeedCard({ item }: { item: FeedItem }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportOpen(true);
+                  }}
                   className="block w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-white/5"
                 >
                   Report post
@@ -177,6 +182,14 @@ function FeedCard({ item }: { item: FeedItem }) {
             )}
           </div>
         </header>
+
+        {reportOpen && (
+          <ReportPostDialog
+            activityId={item.id}
+            subjectName={name}
+            onClose={() => setReportOpen(false)}
+          />
+        )}
 
         {item.value.title && item.value.title !== "Update" && (
           <h2 className="mt-4 text-lg font-bold leading-7 text-white">{item.value.title}</h2>
