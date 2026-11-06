@@ -16,6 +16,7 @@ from .access import CAPABILITIES, IsNexusAdmin, IsNexusStaff, nexus_role
 from .common import paginate, person
 from .kpis import overview
 from .models import NexusAction
+from .posts import flagged_queue
 
 
 class MeView(APIView):
@@ -48,6 +49,7 @@ class HomeView(APIView):
                     "oldest_report_days": (now - oldest_report).days if oldest_report else None,
                     "verifications_pending": pending.count(),
                     "oldest_verification_days": (now - oldest).days if oldest else None,
+                    "posts_flagged": flagged_queue().count(),
                     "posts_24h": Activity.objects.filter(
                         Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True), created_at__gte=now - timedelta(hours=24)
                     ).count(),

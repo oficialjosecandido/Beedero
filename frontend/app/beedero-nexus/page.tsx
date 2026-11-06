@@ -75,12 +75,19 @@ export default async function NexusHome() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Queue
           label="Reports to review"
           value={q.reports_open}
           note={q.oldest_report_days !== null ? `Oldest: ${q.oldest_report_days} days` : "Nothing waiting"}
           href="/beedero-nexus/reports"
+          urgent
+        />
+        <Queue
+          label="Flagged photos"
+          value={q.posts_flagged}
+          note={q.posts_flagged ? "Live — screening asked for a person" : "Nothing waiting"}
+          href="/beedero-nexus/posts?state=flagged"
           urgent
         />
         <Queue

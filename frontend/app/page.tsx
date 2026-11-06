@@ -4,9 +4,9 @@ import { getAccessToken, getRefreshToken } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
 
 /**
- * Lighthouse / SEO: audit this page (`/`) and `/p/lighthouse-demo` (seeded via
- * `manage.py ensure_lighthouse_demo_person`). Do not audit `/login` for SEO —
- * it is intentionally noindex.
+ * Lighthouse / SEO: audit `/` and `/lighthouse-demo` (static public dashboard).
+ * Seeded `/o/lighthouse-demo` and `/p/lighthouse-demo` are secondary. Do not
+ * audit `/login` for SEO — it is intentionally noindex.
  */
 export const metadata = pageMetadata({
   title: "The network for people in motion",

@@ -5,12 +5,11 @@ import { Avatar, Badge, Empty, FilterTabs, PageHeader, Pager, SearchForm, When }
 import { nexusFetch } from "@/lib/nexus-server";
 import { query, type Paged, type PostRow } from "@/lib/nexus";
 
-type PostsPage = Paged<PostRow> & { reasons: { key: string; label: string }[]; can_restore: boolean };
-
-const STATES = [
-  { key: "live", label: "Published" },
-  { key: "removed", label: "Removed" },
-];
+type PostsPage = Paged<PostRow> & {
+  reasons: { key: string; label: string }[];
+  can_restore: boolean;
+  flagged_open: number;
+};
 
 const SCOPES = [
   { key: "", label: "All" },
@@ -26,21 +25,45 @@ export default async function PostsPage({
   const { q, state = "live", scope = "", page } = await searchParams;
   const data = await nexusFetch<PostsPage>(`/nexus/posts/${query({ q, state, scope, page })}`);
 
+  const states = [
+    { key: "live", label: "Published" },
+    // The count is the whole queue, so the tab says how much is waiting even
+    // while you're looking at another one.
+    { key: "flagged", label: data.flagged_open ? `Flagged (${data.flagged_open})` : "Flagged" },
+    { key: "removed", label: "Removed" },
+  ];
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Posts"
-        title={state === "removed" ? "Removed posts." : "Everything public, newest first."}
-        description="You see what any visitor sees. Posts an organisation shares only with its members stay private, here too. Removing a post hides it everywhere at once; the author is told why."
+        title={
+          state === "removed"
+            ? "Removed posts."
+            : state === "flagged"
+              ? "Photos the screener wasn't sure about."
+              : "Everything public, newest first."
+        }
+        description={
+          state === "flagged"
+            ? "Automatic screening asks; it doesn't decide. These posts are live and visible. Remove the post, or clear the flag once you've looked — either one empties this queue."
+            : "You see what any visitor sees. Posts an organisation shares only with its members stay private, here too. Removing a post hides it everywhere at once; the author is told why."
+        }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SearchForm action="/beedero-nexus/posts" value={q} placeholder="Words, organisation or author" hidden={{ state, scope }} />
-        <FilterTabs base="/beedero-nexus/posts" current={state} options={STATES} keep={{ q, scope }} param="state" />
+        <FilterTabs base="/beedero-nexus/posts" current={state} options={states} keep={{ q, scope }} param="state" />
       </div>
       <FilterTabs base="/beedero-nexus/posts" current={scope} options={SCOPES} keep={{ q, state }} param="scope" />
 
       {data.results.length === 0 ? (
-        <Empty>{state === "removed" ? "Nothing has been removed." : "No posts match."}</Empty>
+        <Empty>
+          {state === "removed"
+            ? "Nothing has been removed."
+            : state === "flagged"
+              ? "Nothing is waiting. Every flagged photo has been looked at."
+              : "No posts match."}
+        </Empty>
       ) : (
         <ul className="grid gap-3 xl:grid-cols-2">
           {data.results.map((post) => (
@@ -76,6 +99,12 @@ export default async function PostsPage({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={post.image} alt="" className="mt-3 max-h-48 w-full object-cover" />
               )}
+              {post.flagged && !post.removed && (
+                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-beedero-yellow">
+                  <Badge tone="warn">Flagged</Badge>
+                  {post.flagged.reason_label} · <When at={post.flagged.at} />
+                </p>
+              )}
               <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
                 <span className="text-[11px] text-white/40">
                   {post.reactions} reactions · {post.comments} comments · {post.impressions} views
@@ -107,21 +136,35 @@ export default async function PostsPage({
                     )}
                   </span>
                 ) : (
-                  <ReasonAction
-                    label="Remove"
-                    title="Remove this post"
-                    description={
-                      <>
-                        <b className="text-white">“{post.title}”</b> disappears from feeds and profiles at once. The author gets a
-                        notification and an email with the reason you pick.
-                      </>
-                    }
-                    path={`/nexus/posts/${post.id}/remove/`}
-                    choices={data.reasons}
-                    confirmLabel="Remove post"
-                    tone="danger"
-                    done="Post removed."
-                  />
+                  <span className="flex flex-wrap items-center gap-2">
+                    {post.flagged && (
+                      <ReasonAction
+                        label="Clear flag"
+                        title="Clear the flag"
+                        description="The post stays exactly as it is and leaves the flagged queue. Nobody is told — there is nothing to tell them."
+                        path={`/nexus/posts/${post.id}/clear_flag/`}
+                        reasonField="note"
+                        reasonRequired={false}
+                        confirmLabel="Clear flag"
+                        done="Flag cleared."
+                      />
+                    )}
+                    <ReasonAction
+                      label="Remove"
+                      title="Remove this post"
+                      description={
+                        <>
+                          <b className="text-white">“{post.title}”</b> disappears from feeds and profiles at once. The author gets a
+                          notification and an email with the reason you pick.
+                        </>
+                      }
+                      path={`/nexus/posts/${post.id}/remove/`}
+                      choices={data.reasons}
+                      confirmLabel="Remove post"
+                      tone="danger"
+                      done="Post removed."
+                    />
+                  </span>
                 )}
               </div>
             </li>

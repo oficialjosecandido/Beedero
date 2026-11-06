@@ -304,6 +304,13 @@ class Activity(models.Model):
     )
     removal_reason = models.CharField(max_length=30, blank=True, default="")
 
+    # Raised by automatic image screening (orgs/posting/moderation.py), which
+    # is a question, not an answer: a flagged post is live and visible, and
+    # only waits in the Nexus queue for someone to look. Removal above is the
+    # answer — a person's decision, with their name on it.
+    flagged_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    flagged_reason = models.CharField(max_length=40, blank=True, default="")
+
     objects = VisibleActivityManager()
     all_objects = models.Manager()
 

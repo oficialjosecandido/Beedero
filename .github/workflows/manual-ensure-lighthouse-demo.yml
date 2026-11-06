@@ -1,7 +1,8 @@
-name: Ensure Lighthouse demo person
+name: Ensure Lighthouse demo fixtures
 
-# Seeds /p/lighthouse-demo on production for SEO/perf audits.
-# Run after deploy if that URL still 404s (Azure may not restart, or
+# Seeds /p/lighthouse-demo and /o/lighthouse-demo on production.
+# Prefer auditing the static /lighthouse-demo dashboard (no seed required).
+# Run after deploy if the seeded URLs still 404 (Azure may not restart, or
 # startup.sh may not have been the App Service command).
 
 on:

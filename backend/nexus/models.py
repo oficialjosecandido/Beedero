@@ -20,6 +20,7 @@ class NexusAction(models.Model):
         ORG_VERIFIED = "org.verified", "Changed Beedero verification (organisation)"
         POST_REMOVED = "post.removed", "Removed a post"
         POST_RESTORED = "post.restored", "Restored a post"
+        POST_FLAG_CLEARED = "post.flag_cleared", "Cleared an image flag"
         REPORT_RESOLVED = "report.resolved", "Resolved a report"
         NEWSLETTER_TEST = "newsletter.test", "Sent a test email"
         NEWSLETTER_SENT = "newsletter.sent", "Sent an email campaign"

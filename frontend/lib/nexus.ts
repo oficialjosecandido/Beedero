@@ -69,6 +69,7 @@ export type Home = {
     oldest_report_days: number | null;
     verifications_pending: number;
     oldest_verification_days: number | null;
+    posts_flagged: number;
     posts_24h: number;
     orgs_24h: number;
   };
@@ -212,6 +213,8 @@ export type PostRow = {
   comments: number;
   impressions: number;
   removed: { at: string; by: string; reason: string; reason_label: string } | null;
+  /** Raised by automatic image screening. The post is live; it's a question. */
+  flagged: { at: string; reason: string; reason_label: string } | null;
   public_url: string | null;
 };
 

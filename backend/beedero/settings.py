@@ -322,3 +322,16 @@ STRIPE_AUTOMATIC_TAX = os.environ.get("STRIPE_AUTOMATIC_TAX", "false").lower() =
 # environment variable can switch it on there. With no key and no stub,
 # checkout answers "payments not configured".
 BILLING_STRIPE_STUB = DEBUG and os.environ.get("BILLING_STRIPE_STUB", "true").lower() == "true"
+
+# --- Image screening: Azure AI Content Safety (orgs/posting/moderation.py) ---
+# Scores every feed photo for nudity, violence, hate and self-harm. Without
+# an endpoint and key, screening is simply off and photos post as before —
+# nothing fails closed here, because a dead screener must not close posting.
+CONTENT_SAFETY_ENDPOINT = os.environ.get("CONTENT_SAFETY_ENDPOINT", "")
+CONTENT_SAFETY_KEY = os.environ.get("CONTENT_SAFETY_KEY", "")
+CONTENT_SAFETY_API_VERSION = os.environ.get("CONTENT_SAFETY_API_VERSION", "2024-09-01")
+# Azure's severities come in steps of two: 0 none, 2 low, 4 medium, 6 high.
+# Refuse at medium, ask a person at low. Both are env-tunable so the
+# thresholds can be moved without a deploy if the queue is too noisy.
+CONTENT_SAFETY_BLOCK_AT = int(os.environ.get("CONTENT_SAFETY_BLOCK_AT", "4"))
+CONTENT_SAFETY_FLAG_AT = int(os.environ.get("CONTENT_SAFETY_FLAG_AT", "2"))

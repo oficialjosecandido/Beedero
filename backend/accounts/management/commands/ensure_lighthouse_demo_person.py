@@ -1,13 +1,19 @@
-"""Stable public personal profile for Lighthouse / SEO / perf audits.
+"""Stable public fixtures for Lighthouse / SEO / perf audits.
 
-Creates or refreshes a fixture person at /p/lighthouse-demo — the same route
-Google and Lighthouse hit for real profiles. Run once per environment:
+Creates or refreshes:
+  - Person profile at /p/lighthouse-demo
+  - Organisation at /o/lighthouse-demo (public org page)
+
+Also prefer the static frontend dashboard at /lighthouse-demo — that route
+never depends on this seed and is the primary audit URL.
 
   python manage.py ensure_lighthouse_demo_person
 
 Audit URLs (mobile Lighthouse):
+  - https://<host>/lighthouse-demo     (static public dashboard — preferred)
   - https://<host>/                    (homepage — indexable)
-  - https://<host>/p/lighthouse-demo   (this profile — indexable)
+  - https://<host>/o/lighthouse-demo   (this org — indexable once seeded)
+  - https://<host>/p/lighthouse-demo   (this profile — indexable once seeded)
 Do not use /login for SEO audits: it is intentionally noindex.
 """
 
@@ -18,10 +24,14 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import InvestorProfile, SelfDeclaredExperience
+from billing.testing import grant_plan
+from orgs.constants import SectionKind
+from orgs.models import Activity, Organization, OrgField, OrgMembership, Visibility
 
 User = get_user_model()
 
 HANDLE = "lighthouse-demo"
+ORG_SLUG = "lighthouse-demo"
 EMAIL = "lighthouse-demo@beedero.invalid"
 FULL_NAME = "Lighthouse Demo"
 HEADLINE = "Founder building in public — Lighthouse fixture"
@@ -29,15 +39,28 @@ BIO = (
     "Stable public profile used for SEO and performance audits. "
     "Safe to re-run ensure_lighthouse_demo_person; it upserts this handle."
 )
+ORG_NAME = "Lighthouse Demo"
+ORG_ONE_LINER = "Public organisation dashboard fixture for Lighthouse and SEO audits."
 
 
 class Command(BaseCommand):
     help = (
-        f"Ensure InvestorProfile handle={HANDLE!r} exists for public /p/{HANDLE} "
-        "Lighthouse and SEO tests."
+        f"Ensure public fixtures handle/slug={HANDLE!r} for /p/{HANDLE}, "
+        f"/o/{ORG_SLUG}, and Lighthouse / SEO tests."
     )
 
     def handle(self, *args, **options):
+        user = self._ensure_person()
+        org = self._ensure_org(user)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Public fixtures ready: /lighthouse-demo (static), "
+                f"/p/{HANDLE}, /o/{org.slug} (user={user.email}). "
+                f"Prefer /lighthouse-demo for audits — not /login."
+            )
+        )
+
+    def _ensure_person(self):
         user, created_user = User.objects.get_or_create(
             email=EMAIL,
             defaults={
@@ -91,11 +114,64 @@ class Command(BaseCommand):
                 "skills": ["Product", "Growth"],
             },
         )
+        return user
 
-        action = "Created" if created_user else "Updated"
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"{action} public profile /p/{HANDLE} (user={user.email}). "
-                f"Audit this URL and / — not /login."
-            )
+    def _ensure_org(self, owner):
+        org, created = Organization.objects.get_or_create(
+            slug=ORG_SLUG,
+            defaults={
+                "name": ORG_NAME,
+                "one_liner": ORG_ONE_LINER,
+                "status": Organization.Status.LIVE,
+                "stage": "seed",
+                "sector": "marketplace",
+                "geo": "lisbon",
+            },
         )
+        if not created:
+            org.name = ORG_NAME
+            org.one_liner = ORG_ONE_LINER
+            org.status = Organization.Status.LIVE
+            org.stage = org.stage or "seed"
+            org.sector = org.sector or "marketplace"
+            org.geo = org.geo or "lisbon"
+            org.save()
+
+        OrgMembership.objects.update_or_create(
+            org=org,
+            user=owner,
+            defaults={"role": OrgMembership.Role.OWNER, "title": "Founder"},
+        )
+        grant_plan(org)
+
+        about = org.sections.get(kind=SectionKind.ABOUT)
+        OrgField.objects.update_or_create(
+            section=about,
+            key="summary",
+            defaults={
+                "value": (
+                    "Public organisation dashboard fixture for Lighthouse, SEO and "
+                    "performance audits. Safe to re-run; content is upserted."
+                ),
+                "visibility": Visibility.PUBLIC,
+            },
+        )
+        OrgField.objects.update_or_create(
+            section=about,
+            key="mission",
+            defaults={
+                "value": "Give auditors a stable Beedero public org surface that never looks empty.",
+                "visibility": Visibility.PUBLIC,
+            },
+        )
+
+        if not Activity.objects.filter(org=org, title="Opened the seed round").exists():
+            Activity.objects.create(
+                org=org,
+                kind=Activity.Kind.NEWS,
+                title="Opened the seed round",
+                body="Fixture update for public audits — not a real fundraise.",
+                occurred_at=timezone.now(),
+                visibility=Visibility.PUBLIC,
+            )
+        return org

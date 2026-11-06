@@ -9,6 +9,8 @@ from PIL import Image, ImageOps
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 
+from . import moderation
+
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
 MAX_DIMENSION = 1600
 WEBP_QUALITY = 80
@@ -62,7 +64,13 @@ class PostImageValidationMixin:
     """Mix into any serializer with an `image = serializers.ImageField(...)`
     to recompress it on the way in — shared by orgs.posting.payloads (org
     updates/events) and accounts.serializers.InvestorPostSerializer, which
-    both write into the same orgs.Activity.image field."""
+    both write into the same orgs.Activity.image field.
+
+    Also the one place every feed photo is screened for prohibited imagery
+    (see `moderation`), which is why it recompresses first: screening the
+    downscaled copy keeps the request small and the bill at zero."""
 
     def validate_image(self, value):
-        return process_post_image(value) if value else value
+        if not value:
+            return value
+        return moderation.screen_upload(process_post_image(value))

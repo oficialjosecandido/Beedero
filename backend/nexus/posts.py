@@ -1,6 +1,11 @@
 """Posts: everything public, newest first, and the one moderation action
 staff have — remove, with a reason the author is told. Admins can restore.
 
+`?state=flagged` is the queue automatic image screening fills (see
+orgs/posting/moderation.py). Those posts are live: the screening was unsure,
+not certain, so it published them and asked for a person. Either outcome
+empties the queue — remove the post, or clear the flag.
+
 Staff see what any visitor sees: public posts and personal posts. Posts an
 organisation shares only with its members stay private to it (row-level
 security), here as everywhere else.
@@ -39,6 +44,33 @@ REASONS = {
     "other": "Breaks the Terms of Service",
 }
 
+# What the automatic screener thought it saw. Its stored reason is
+# "<category>:<severity>", or "unscreened" when screening itself failed.
+FLAG_LABELS = {
+    "sexual": "Possible nudity or sexual content",
+    "violence": "Possible violence or gore",
+    "hate": "Possible hateful imagery",
+    "selfharm": "Possible self-harm",
+    "unscreened": "Not screened — the image service was unavailable",
+}
+
+
+def flag_label(reason: str) -> str:
+    category, _, severity = reason.partition(":")
+    label = FLAG_LABELS.get(category, category)
+    return f"{label} (severity {severity})" if severity else label
+
+
+def flagged_queue():
+    """Everything automatic screening is still waiting on a person for —
+    live, flagged, and inside what the Nexus can see at all. Shared with the
+    home page's queue counts."""
+    return Activity.all_objects.filter(
+        Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True),
+        removed_at__isnull=True,
+        flagged_at__isnull=False,
+    )
+
 
 def _row(post: Activity) -> dict:
     return {
@@ -62,6 +94,13 @@ def _row(post: Activity) -> dict:
         }
         if post.removed_at
         else None,
+        "flagged": {
+            "at": iso(post.flagged_at),
+            "reason": post.flagged_reason,
+            "reason_label": flag_label(post.flagged_reason),
+        }
+        if post.flagged_at
+        else None,
         "public_url": _public_url(post),
     }
 
@@ -83,9 +122,14 @@ class PostsView(APIView):
             .order_by("-created_at", "-id")
         )
         state = request.query_params.get("state", "live")
-        queryset = (
-            queryset.filter(removed_at__isnull=False) if state == "removed" else queryset.filter(removed_at__isnull=True)
-        )
+        if state == "removed":
+            queryset = queryset.filter(removed_at__isnull=False)
+        elif state == "flagged":
+            # Live, and waiting for a person — removing it or clearing the
+            # flag takes it out of here.
+            queryset = queryset.filter(removed_at__isnull=True, flagged_at__isnull=False)
+        else:
+            queryset = queryset.filter(removed_at__isnull=True)
         scope = request.query_params.get("scope")
         if scope == "orgs":
             queryset = queryset.filter(org__isnull=False)
@@ -109,6 +153,8 @@ class PostsView(APIView):
                 "results": [_row(post) for post in rows],
                 "reasons": [{"key": key, "label": label} for key, label in REASONS.items()],
                 "can_restore": nexus_role(request.user) == "admin",
+                # For the badge on the flagged tab: the whole queue, not this page.
+                "flagged_open": flagged_queue().count(),
                 **page,
             }
         )
@@ -185,6 +231,23 @@ class PostActionView(APIView):
                     author=post.author_id,
                 )
                 _tell_removed(post, reason)
+        elif action == "clear_flag":
+            # "I looked, it's fine." Staff-level, like removing: both are a
+            # person answering the same question the screener asked.
+            if post.flagged_at is not None:
+                reason = post.flagged_reason
+                post.flagged_at = None
+                post.flagged_reason = ""
+                post.save(update_fields=["flagged_at", "flagged_reason"])
+                audit.record(
+                    request.user,
+                    NexusAction.Action.POST_FLAG_CLEARED,
+                    target_type="post",
+                    target_id=post.id,
+                    label=post.title,
+                    reason=(request.data.get("note") or "").strip()[:300],
+                    flag=reason,
+                )
         elif action == "restore":
             require(request.user, "posts.restore")
             if post.removed_at is not None:

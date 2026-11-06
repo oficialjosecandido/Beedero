@@ -26,10 +26,9 @@ python manage.py ensure_trigram_indexes
 # reports and skips an address whose owner has not signed in yet.
 python manage.py ensure_nexus_admins
 
-# Stable public person for Lighthouse / SEO audits at /p/lighthouse-demo.
-# Runs on the migrate role when set — the runtime role may be read/write-
-# limited enough that INSERT into accounts_* fails silently after a partial
-# boot. Idempotent upsert; safe every start.
+# Stable public person + org for Lighthouse / SEO audits (/p and /o
+# lighthouse-demo). Prefer the static /lighthouse-demo frontend page for
+# audits — it needs no seed. Runs on the migrate role when set. Idempotent.
 python manage.py ensure_lighthouse_demo_person
 
 if [ -n "$MIGRATE_DATABASE_URL" ]; then

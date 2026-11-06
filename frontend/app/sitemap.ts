@@ -13,6 +13,8 @@ type SitemapPayload = {
 function staticEntries(lastModified: Date): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, lastModified, changeFrequency: "weekly", priority: 1 },
+    // Public test dashboard for Lighthouse / SEO audits (no backend seed).
+    { url: `${SITE_URL}/lighthouse-demo`, lastModified, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/startups`, lastModified, changeFrequency: "daily", priority: 0.95 },
     { url: `${SITE_URL}/jobs`, lastModified, changeFrequency: "daily", priority: 0.95 },
     { url: `${SITE_URL}/register`, lastModified, changeFrequency: "monthly", priority: 0.8 },

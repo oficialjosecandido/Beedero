@@ -90,6 +90,65 @@ def test_only_admins_restore(as_staff, api, admin, lumen, ana):
     assert Activity.objects.filter(pk=target.pk).exists()
 
 
+@pytest.mark.django_db
+def test_flagged_posts_are_a_queue_of_their_own(as_staff, lumen, ana):
+    flagged = post(lumen, ana, "Odd photo")
+    flagged.flagged_at = timezone.now()
+    flagged.flagged_reason = "sexual:2"
+    flagged.save(update_fields=["flagged_at", "flagged_reason"])
+    post(lumen, ana, "Ordinary news")
+
+    live = as_staff.get("/api/nexus/posts/").json()
+    assert {row["title"] for row in live["results"]} == {"Odd photo", "Ordinary news"}
+    assert live["flagged_open"] == 1
+
+    queue = as_staff.get("/api/nexus/posts/", {"state": "flagged"}).json()["results"]
+    assert [row["title"] for row in queue] == ["Odd photo"]
+    assert queue[0]["flagged"]["reason_label"] == "Possible nudity or sexual content (severity 2)"
+
+
+@pytest.mark.django_db
+def test_clearing_a_flag_empties_the_queue_and_leaves_the_post_alone(as_staff, lumen, ana):
+    target = post(lumen, ana, "Fine after all")
+    target.flagged_at = timezone.now()
+    target.flagged_reason = "violence:2"
+    target.save(update_fields=["flagged_at", "flagged_reason"])
+
+    response = as_staff.post(f"/api/nexus/posts/{target.id}/clear_flag/", {"note": "A rugby tackle"}, format="json")
+    assert response.status_code == 200
+    assert response.json()["flagged"] is None
+
+    target.refresh_from_db()
+    assert target.flagged_at is None and target.flagged_reason == ""
+    assert Activity.objects.filter(pk=target.pk).exists()
+    assert as_staff.get("/api/nexus/posts/", {"state": "flagged"}).json()["results"] == []
+    action = NexusAction.objects.get(action="post.flag_cleared", target_id=str(target.id))
+    assert action.reason == "A rugby tackle" and action.data["flag"] == "violence:2"
+
+
+@pytest.mark.django_db
+def test_removing_a_flagged_post_also_takes_it_out_of_the_queue(as_staff, lumen, ana):
+    target = post(lumen, ana, "Not fine")
+    target.flagged_at = timezone.now()
+    target.flagged_reason = "sexual:2"
+    target.save(update_fields=["flagged_at", "flagged_reason"])
+
+    as_staff.post(f"/api/nexus/posts/{target.id}/remove/", {"reason": "inappropriate"}, format="json")
+
+    assert as_staff.get("/api/nexus/posts/", {"state": "flagged"}).json()["results"] == []
+    # The flag stays on the row, so the removed list still shows what was seen.
+    assert Activity.all_objects.get(pk=target.pk).flagged_reason == "sexual:2"
+
+
+@pytest.mark.django_db
+def test_the_home_page_counts_the_flagged_queue(as_staff, lumen, ana):
+    assert as_staff.get("/api/nexus/home/").json()["queues"]["posts_flagged"] == 0
+    target = post(lumen, ana)
+    target.flagged_at = timezone.now()
+    target.save(update_fields=["flagged_at"])
+    assert as_staff.get("/api/nexus/home/").json()["queues"]["posts_flagged"] == 1
+
+
 # ---------------------------------------------------------------- reports
 
 

@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
           "/",
           "/o/",
           "/p/",
+          "/lighthouse-demo",
           "/verify/",
           "/startups",
           "/jobs",

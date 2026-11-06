@@ -3,7 +3,10 @@
 (they still differ in permissions/validation/daily-cap subject), but both
 land in the same Activity row shape."""
 
+from django.utils import timezone
+
 from .models import Activity, Organization, OrgMembership
+from .posting import moderation
 
 
 def create_activity(
@@ -14,6 +17,10 @@ def create_activity(
     posts aren't attributed to an individual member) but `actor` is still
     the member who submitted the post, so @-mentions in the body resolve
     and notify correctly."""
+    # Image screening ran during serializer validation and left its verdict on
+    # the file. Here is where it becomes a row, because this is the only place
+    # an Activity is created.
+    flag = moderation.flag_on(image)
     activity = Activity.objects.create(
         org=org,
         author=author,
@@ -25,6 +32,8 @@ def create_activity(
         ends_at=ends_at,
         visibility=visibility,
         payload=payload or {},
+        flagged_at=timezone.now() if flag else None,
+        flagged_reason=flag,
     )
     mention_actor = actor or author
     if body and mention_actor is not None:
