@@ -7,6 +7,7 @@ import { closeJobAction, deleteJobAction, renewJobAction } from "@/app/(app)/das
 import { EmptyState } from "@/components/EmptyState";
 import { formatDate } from "@/lib/format";
 import { engagementTypeLabel, locationTypeLabel } from "@/lib/job-options";
+import type { OrgKind } from "@/lib/org-kinds";
 import type { JobSummary } from "@/lib/types";
 
 import { ApplicationsList } from "./ApplicationsList";
@@ -20,12 +21,14 @@ const STATUS_STYLES: Record<JobSummary["status"], string> = {
   closed: "bg-zinc-800 text-beedero-white",
 };
 
-function JobRow({ slug, job }: { slug: string; job: JobSummary }) {
+type FormMode = "jobs" | "cofounders";
+
+function JobRow({ slug, job, kind, mode }: { slug: string; job: JobSummary; kind: OrgKind; mode: FormMode }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   if (editing) {
-    return <JobForm slug={slug} job={job} onDone={() => setEditing(false)} />;
+    return <JobForm slug={slug} job={job} kind={kind} mode={mode} onDone={() => setEditing(false)} />;
   }
 
   return (
@@ -119,14 +122,31 @@ function JobRow({ slug, job }: { slug: string; job: JobSummary }) {
   );
 }
 
-export function JobsTab({ slug, jobs, canManage }: { slug: string; jobs: JobSummary[]; canManage: boolean }) {
+/**
+ * The roles an organisation has posted. `mode="cofounders"` is a startup's
+ * Co-founders section: the same roles board, only for co-founder roles.
+ */
+export function JobsTab({
+  slug,
+  jobs,
+  canManage,
+  kind = "company",
+  mode = "jobs",
+}: {
+  slug: string;
+  jobs: JobSummary[];
+  canManage: boolean;
+  kind?: OrgKind;
+  mode?: FormMode;
+}) {
   const [creating, setCreating] = useState(false);
+  const cofounders = mode === "cofounders";
 
   if (!canManage) {
     return (
       <EmptyState
-        title="Jobs"
-        description="Job management is only available to organization owners and admins."
+        title={cofounders ? "Co-founder roles" : "Jobs"}
+        description={`${cofounders ? "Co-founder roles are" : "Job management is"} only available to organization owners and admins.`}
       />
     );
   }
@@ -134,26 +154,30 @@ export function JobsTab({ slug, jobs, canManage }: { slug: string; jobs: JobSumm
   return (
     <div className="flex flex-col gap-4">
       {creating ? (
-        <JobForm slug={slug} onDone={() => setCreating(false)} />
+        <JobForm slug={slug} kind={kind} mode={mode} onDone={() => setCreating(false)} />
       ) : (
         <button
           type="button"
           onClick={() => setCreating(true)}
           className="self-start rounded-xl bg-beedero-black px-5 py-2.5 text-sm font-bold text-beedero-yellow shadow-sm hover:bg-beedero-yellow hover:text-beedero-black"
         >
-          + New job
+          {cofounders ? "+ New co-founder role" : "+ New job"}
         </button>
       )}
 
       {jobs.length === 0 ? (
         <EmptyState
-          title="No jobs yet"
-          description="Publish your first job to start receiving applications."
+          title={cofounders ? "No co-founder roles yet" : "No jobs yet"}
+          description={
+            cofounders
+              ? "Say who you're looking for. The role goes on the jobs board, where people apply."
+              : "Publish your first job to start receiving applications."
+          }
         />
       ) : (
         <div className="flex flex-col gap-3">
           {jobs.map((job) => (
-            <JobRow key={job.id} slug={slug} job={job} />
+            <JobRow key={job.id} slug={slug} job={job} kind={kind} mode={mode} />
           ))}
         </div>
       )}

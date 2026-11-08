@@ -19,7 +19,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException
 
 from .models import Subscription
-from .plans import ACCESS_PLANS, choice_for_plan
+from .plans import ACCESS_PLANS, choice_for_plan, kind_for_plan
 
 REMINDER_WINDOW_DAYS = 30
 
@@ -70,6 +70,9 @@ def org_billing_state(org) -> dict:
         "state": "needs_plan",
         "has_access": False,
         "plan": None,
+        # The kind the plan is priced for. It trails the organisation's own
+        # kind for a while after a change (billing/subscriptions.reprice).
+        "plan_kind": None,
         "until": None,
         "days_left": None,
         "managed_by_stripe": managed,
@@ -81,6 +84,7 @@ def org_billing_state(org) -> dict:
         return state
 
     state["plan"] = choice_for_plan(sub.plan) if sub.plan != Subscription.Plan.COMP else "comp"
+    state["plan_kind"] = kind_for_plan(sub.plan)
     granted = Subscription.objects.filter(access_q(now), pk=sub.pk).exists()
     state["has_access"] = granted
 

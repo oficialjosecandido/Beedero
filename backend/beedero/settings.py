@@ -312,8 +312,16 @@ CORS_ALLOW_CREDENTIALS = True
 # Prices include VAT; the amounts live in Stripe, the ids here.
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 # STRIPE_WEBHOOK_SECRET is read above, with the note on failing closed.
+# Companies (€99/year, €9/month) — the names predate startups.
 STRIPE_PRICE_YEARLY = os.environ.get("STRIPE_PRICE_YEARLY", "")
 STRIPE_PRICE_MONTHLY = os.environ.get("STRIPE_PRICE_MONTHLY", "")
+# Startups (€33/year, €3/month) — billing/plans.py.
+STRIPE_PRICE_STARTUP_YEARLY = os.environ.get("STRIPE_PRICE_STARTUP_YEARLY", "")
+STRIPE_PRICE_STARTUP_MONTHLY = os.environ.get("STRIPE_PRICE_STARTUP_MONTHLY", "")
+# Optional: one customer-portal configuration per kind, so switching between
+# monthly and yearly only offers that kind's prices (billing/subscriptions.py).
+STRIPE_PORTAL_CONFIGURATION_STARTUP = os.environ.get("STRIPE_PORTAL_CONFIGURATION_STARTUP", "")
+STRIPE_PORTAL_CONFIGURATION_COMPANY = os.environ.get("STRIPE_PORTAL_CONFIGURATION_COMPANY", "")
 # Stripe Tax works out the VAT inside the price per customer; off until the
 # accountant confirms the setup (see the subscriptions md).
 STRIPE_AUTOMATIC_TAX = os.environ.get("STRIPE_AUTOMATIC_TAX", "false").lower() == "true"

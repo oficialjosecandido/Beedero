@@ -38,8 +38,10 @@ def create_job(org, *, created_by, title, description, engagement_type, location
     if org.status != Organization.Status.LIVE:
         raise ValidationError({"org": "Only live organizations can publish jobs."})
     from billing.access import require_access
+    from orgs.kinds import check_job
 
     require_access(org)
+    check_job(org, engagement_type=engagement_type, compensation_kinds=[c["kind"] for c in compensation_kinds])
 
     enforce_rate_limit(f"job-post:{org.id}", limit=DAILY_JOB_POST_LIMIT, window_seconds=86400)
 
@@ -62,6 +64,18 @@ def create_job(org, *, created_by, title, description, engagement_type, location
 
 @transaction.atomic
 def update_job(job, *, compensation_kinds=None, **fields):
+    from orgs.kinds import check_job
+
+    # Only what changes is checked: a role posted before the organisation
+    # changed kind can still be edited.
+    engagement = fields.get("engagement_type")
+    current = set(job.compensation.values_list("kind", flat=True))
+    added = [c["kind"] for c in compensation_kinds or [] if c["kind"] not in current]
+    check_job(
+        job.org,
+        engagement_type=engagement if engagement != job.engagement_type else None,
+        compensation_kinds=added,
+    )
     for key, value in fields.items():
         setattr(job, key, value)
     job.save()

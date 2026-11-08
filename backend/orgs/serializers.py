@@ -43,6 +43,7 @@ def _org_summary(org):
         "name": org.name,
         "one_liner": org.one_liner,
         "status": org.status,
+        "kind": org.kind,
         "stage": org.stage,
         "sector": org.sector,
         "geo": org.geo,

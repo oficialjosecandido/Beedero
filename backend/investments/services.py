@@ -17,6 +17,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from notifications.models import Notification
 from notifications.services import notify
+from orgs.kinds import check_investment
 from orgs.models import Organization, OrgMembership
 
 from .models import InvestmentRecord
@@ -64,6 +65,8 @@ def declare_investment_as_investor(
 ) -> InvestmentRecord:
     if org.status != Organization.Status.LIVE:
         raise ValidationError({"org": "Only live organizations can be recorded."})
+    # A startup has no company yet to receive an investment (orgs/kinds.py).
+    check_investment(org)
     _check_daily_limit(org)
 
     record = InvestmentRecord.objects.create(
@@ -103,6 +106,8 @@ def declare_investment_as_startup(
 ) -> InvestmentRecord:
     if org.status != Organization.Status.LIVE:
         raise ValidationError({"org": "Only live organizations can be recorded."})
+    # A startup has no company yet to receive an investment (orgs/kinds.py).
+    check_investment(org)
     if bool(investor_user) == bool(investor_external_name):
         raise ValidationError({"investor": "Provide exactly one of investor_user or investor_external_name."})
     _check_daily_limit(org)

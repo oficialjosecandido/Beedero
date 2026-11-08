@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
 import { fieldErrors } from "@/lib/billing-errors";
 import type { PlanChoice } from "@/lib/billing";
+import type { OrgKind } from "@/lib/org-kinds";
 
 export type CodeCheck = { valid: boolean; code?: string; free_days?: number; detail?: string };
 
@@ -20,6 +21,7 @@ export async function checkCodeAction(code: string): Promise<CodeCheck> {
 }
 
 export type OnboardingInput = {
+  kind: OrgKind;
   name: string;
   one_liner: string;
   sector: string;

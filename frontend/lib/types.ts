@@ -3,6 +3,8 @@ export type OrgSummary = {
   name: string;
   one_liner?: string;
   status?: "draft" | "live";
+  /** Startup (not incorporated yet) or company — lib/org-kinds.ts. */
+  kind?: "startup" | "company";
   logo?: string | null;
   stage?: string;
   sector?: string;

@@ -11,6 +11,7 @@ Use this after deploying the launch-readiness changes.
 | `SENTRY_DSN` | API | Backend error monitoring |
 | `NEXT_PUBLIC_SENTRY_DSN` | Web | Frontend error monitoring |
 | `NEXT_PUBLIC_SITE_URL` | Web | Canonical URL for Open Graph (`https://beedero.com`) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | GitHub Actions → Variables (build) | GA4 measurement ID (`G-…`). Must be a repo **variable**, not an Azure App Setting — `NEXT_PUBLIC_*` is baked in at build time. |
 
 ## Scheduled jobs (GitHub Actions)
 

@@ -34,11 +34,14 @@ async function matchContext(id: string | undefined): Promise<MatchContext | null
 }
 
 /**
- * Creating an organisation: one page, checkout at the end. The basics, the
- * plan, an optional code and the terms — then either the workspace (a code
- * gave the free year) or Stripe Checkout. Everything else (logo, about,
- * team) is added later from the workspace, where the verification ladder
- * asks for it.
+ * Creating an organisation: one page, checkout at the end. Startup or
+ * company (it sets the price), the basics, the plan, an optional code and
+ * the terms — then either the workspace (a code gave the free year) or
+ * Stripe Checkout. Everything else (logo, about, team) is added later from
+ * the workspace, where the verification ladder asks for it.
+ *
+ * `?kind=startup` preselects the answer — the co-founder flow arrives that
+ * way, since two people who just met have no company yet.
  */
 export default async function NewOrganisationPage({
   searchParams,
@@ -53,7 +56,7 @@ export default async function NewOrganisationPage({
     throw err;
   }
 
-  const { match } = await searchParams;
+  const { match, kind } = await searchParams;
 
   return (
     <main className="min-h-screen bg-org-ground text-org-ink">
@@ -61,7 +64,10 @@ export default async function NewOrganisationPage({
         personName={me.investor_profile?.full_name || me.email}
         personPicture={me.investor_profile?.profile_picture}
       />
-      <OrgOnboardingForm match={await matchContext(match)} />
+      <OrgOnboardingForm
+        match={await matchContext(match)}
+        initialKind={kind === "startup" || kind === "company" ? kind : null}
+      />
     </main>
   );
 }

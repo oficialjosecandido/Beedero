@@ -38,6 +38,7 @@ from .completeness import (
     profile_strength_checklist,
 )
 from .create_flow import create_organization, enforce_creation_limits, unique_org_slug  # noqa: F401 — re-exported
+from .kinds import check_round, open_fundraise_sections
 from .ladder import gate_missing, listed_in_discover, org_verification_ladder
 from .constants import FUNDRAISE_KINDS, SectionKind
 from connections import services as connections_services
@@ -971,22 +972,13 @@ class RoundOpenView(OrgLookupMixin, APIView):
 
         serializer = FundraiseRoundSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Startups raise pre-seed, without a valuation (orgs/kinds.py).
+        check_round(org, request.data)
         round_ = serializer.save(org=org)
 
         org.is_fundraising = True
         org.save(update_fields=["is_fundraising"])
-
-        for kind in FUNDRAISE_KINDS:
-            section, _ = OrgSection.objects.get_or_create(org=org, kind=kind)
-            if section.archived_at is not None:
-                section.archived_at = None
-                section.save(update_fields=["archived_at"])
-            VisibilityGrant.objects.get_or_create(
-                org=org,
-                section=section,
-                principal_type=VisibilityGrant.Principal.ROLE,
-                principal_id="verified_investor",
-            )
+        open_fundraise_sections(org)
 
         return Response(FundraiseRoundSerializer(round_).data, status=status.HTTP_201_CREATED)
 

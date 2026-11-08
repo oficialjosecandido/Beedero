@@ -1,27 +1,19 @@
 import { LandingPage } from "@/components/landing/LandingPage";
 import { WebsiteJsonLd } from "@/components/WebsiteJsonLd";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_KEYWORDS } from "@/lib/seo-content";
 import { getAccessToken, getRefreshToken } from "@/lib/session";
 import { pageMetadata } from "@/lib/site-metadata";
 
 /**
  * Lighthouse / SEO: audit `/` and `/lighthouse-demo` (static public dashboard).
- * Seeded `/o/lighthouse-demo` and `/p/lighthouse-demo` are secondary. Do not
- * audit `/login` for SEO — it is intentionally noindex.
+ * Persona landings (/for-founders, /for-professionals, /for-startups,
+ * /for-companies) carry the value-prop keywords. Do not audit `/login` for SEO.
  */
 export const metadata = pageMetadata({
-  title: "The network for people in motion",
-  description:
-    "Beedero is where founders, professionals, companies and investors move forward — with profiles, discovery and privacy controls that keep trust intact.",
+  title: DEFAULT_TITLE,
+  description: DEFAULT_DESCRIPTION,
   path: "/",
-  keywords: [
-    "professional network",
-    "startup network",
-    "founders",
-    "investors",
-    "advisors",
-    "startup discovery",
-    "verified company profile",
-  ],
+  keywords: [...SITE_KEYWORDS],
 });
 
 export default async function Home() {

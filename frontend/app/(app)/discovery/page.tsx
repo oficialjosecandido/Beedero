@@ -60,7 +60,7 @@ export default async function DiscoveryPage({
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.city) query.set("city", params.city);
-  for (const key of ["stage", "sector", "geo", "fundraising", "min_credibility"]) {
+  for (const key of ["kind", "stage", "sector", "geo", "fundraising", "min_credibility"]) {
     if (params[key]) query.set(key, params[key]!);
   }
 

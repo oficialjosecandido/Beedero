@@ -140,7 +140,9 @@ def test_creating_an_org_confirms_the_founders_own_row(api, member):
     the same person, and it counts: the founder's row is org-confirmed from
     the start (accounts/ladder.py rung 6, accounts/timeline.py badge)."""
     api.force_authenticate(member)
-    res = api.post("/api/org-onboarding/", {"name": "Bidroom", "accept_terms": True}, format="json")
+    res = api.post(
+        "/api/org-onboarding/", {"kind": "company", "name": "Bidroom", "accept_terms": True}, format="json"
+    )
     assert res.status_code == 201
     membership = OrgMembership.objects.get(org__slug=res.data["slug"], user=member)
     assert membership.details_status == OrgMembership.DetailsStatus.CONFIRMED

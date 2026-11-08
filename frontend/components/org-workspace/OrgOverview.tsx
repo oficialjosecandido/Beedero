@@ -399,7 +399,8 @@ function ladderStatus(name: string, ladder: OrgLadder): string {
 }
 
 /**
- * Eight rungs in three bands. The first band is the gate: four things the
+ * Eight rungs in three bands (seven for a startup, which has no registry to
+ * check). The first band is the gate: four things the
  * team does alone, in minutes, that together are 50% and make the
  * organisation publishable — and, once live, listed in Discover. Above that,
  * every rung needs somebody outside the team, or a week of showing up.

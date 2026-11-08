@@ -12,6 +12,13 @@ ends. Stripe's subscription then takes over and the local row is closed.
 Every Stripe write to our database goes through `sync_stripe_subscription`,
 from the webhook and from the browser coming back from checkout alike, so
 the two can arrive in any order.
+
+The price follows the organisation's kind (orgs/kinds.py). When the kind
+changes, `reprice` moves the plan: local free periods at once (nothing is
+charged), Stripe subscriptions from their next renewal — straight away when
+the price goes down, and only 30 days after the change when it goes up, so
+the owners always hear about a higher price at least 30 days before it is
+charged. The daily `billing_reminders` job retries anything still waiting.
 """
 
 import logging
@@ -22,6 +29,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
 
@@ -31,7 +39,7 @@ from orgs.models import Organization, OrgMembership
 from .access import current_subscription, has_access
 from .gateway import BillingUnavailable, get_gateway
 from .models import PaidInvoice, PromoCode, StripeCustomer, StripeEvent, Subscription
-from .plans import PLANS, plan_for_price
+from .plans import PAID_PLANS, choice_for_plan, kind_for_plan, plan_for, plan_for_price, price_text
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +93,7 @@ def redeem_free_period(org, choice: str, raw_code: str) -> Subscription:
         with transaction.atomic():
             return Subscription.objects.create(
                 org=org,
-                plan=PLANS[choice]["plan"],
+                plan=plan_for(org.kind, choice),
                 status=Subscription.Status.TRIALING,
                 source=Subscription.Source.PROMO,
                 promo_code=code,
@@ -102,7 +110,7 @@ def grant_launch_year(org, now=None) -> Subscription | None:
         return None
     return Subscription.objects.create(
         org=org,
-        plan=Subscription.Plan.ORG_YEARLY,
+        plan=plan_for(org.kind, "yearly"),
         status=Subscription.Status.TRIALING,
         source=Subscription.Source.LAUNCH,
         trial_end=now + timedelta(days=LAUNCH_FREE_DAYS),
@@ -148,11 +156,16 @@ def start_checkout(org, user, choice: str) -> str:
 
 
 def portal_url(org) -> str:
+    """Stripe's customer portal. With a portal configuration per kind
+    (STRIPE_PORTAL_CONFIGURATION_STARTUP / _COMPANY) a customer switching
+    between monthly and yearly only sees its own kind's prices; without one,
+    Stripe's default applies and `reprice_due` puts any other price right."""
     customer = StripeCustomer.objects.filter(org=org).first()
     if customer is None:
         raise ValidationError({"detail": "This organisation has no billing account yet."})
+    configuration = getattr(settings, f"STRIPE_PORTAL_CONFIGURATION_{org.kind.upper()}", "") or None
     return get_gateway().create_portal_session(
-        customer.provider_ref, frontend_url(f"dashboard/{org.slug}?tab=billing")
+        customer.provider_ref, frontend_url(f"dashboard/{org.slug}?tab=billing"), configuration=configuration
     )
 
 
@@ -242,7 +255,7 @@ def sync_stripe_subscription(data: dict, org=None) -> Subscription | None:
 
     items = (data.get("items") or {}).get("data") or [{}]
     item = items[0]
-    plan = plan_for_price(_id(item.get("price"))) or (existing.plan if existing else Subscription.Plan.ORG_YEARLY)
+    plan = plan_for_price(_id(item.get("price"))) or (existing.plan if existing else plan_for(org.kind, "yearly"))
     status = data.get("status")
     if status not in Subscription.Status.values:
         status = existing.status if existing else Subscription.Status.INCOMPLETE
@@ -321,6 +334,117 @@ def record_paid_invoice(invoice: dict) -> PaidInvoice | None:
         },
     )
     return row
+
+
+# ---------------------------------------------------------------- kinds
+
+# A higher price is never charged sooner than this after the owners are told.
+PRICE_RISE_NOTICE = timedelta(days=30)
+STRIPE_LIVE = (Subscription.Status.ACTIVE, Subscription.Status.TRIALING, Subscription.Status.PAST_DUE)
+
+
+def price_rise_date(org):
+    """From when a Stripe subscription may move to the company price."""
+    changed = org.kind_changed_at or org.created_at or timezone.now()
+    return changed + PRICE_RISE_NOTICE
+
+
+def reprice(org, now=None) -> str:
+    """Bring the organisation's plan in line with its kind. Returns what it did:
+    "unchanged", "local" (free periods moved, nothing charged), "stripe"
+    (the Stripe subscription renews at the new price) or "waiting" (a higher
+    price whose 30 days of notice are still running)."""
+    now = now or timezone.now()
+    result = "unchanged"
+    local = Subscription.objects.filter(org=org, provider_ref="", plan__in=PAID_PLANS)
+    for sub in local:
+        target = plan_for(org.kind, choice_for_plan(sub.plan))
+        if sub.plan != target:
+            sub.plan = target
+            sub.save(update_fields=["plan", "updated_at"])
+            result = "local"
+
+    managed = Subscription.objects.filter(org=org, plan__in=PAID_PLANS, status__in=STRIPE_LIVE).exclude(
+        provider_ref=""
+    )
+    for sub in managed:
+        if kind_for_plan(sub.plan) == org.kind:
+            continue
+        rising = org.kind == "company"
+        if rising and now < price_rise_date(org):
+            result = "waiting"
+            continue
+        data = get_gateway().change_price(sub.provider_ref, org.kind, choice_for_plan(sub.plan))
+        sync_stripe_subscription(data, org=org)
+        result = "stripe"
+    return result
+
+
+def reprice_due(now=None) -> dict:
+    """Daily: every organisation whose plan doesn't match its kind yet."""
+    now = now or timezone.now()
+    mismatched = (
+        Subscription.objects.filter(plan__in=PAID_PLANS)
+        .filter(
+            Q(org__kind="startup", plan__in=[plan_for("company", c) for c in ("yearly", "monthly")])
+            | Q(org__kind="company", plan__in=[plan_for("startup", c) for c in ("yearly", "monthly")])
+        )
+        .exclude(status__in=[Subscription.Status.CANCELED, Subscription.Status.INCOMPLETE_EXPIRED])
+        .values_list("org_id", flat=True)
+        .distinct()
+    )
+    counts = {"repriced": 0, "waiting": 0, "failed": 0}
+    for org in Organization.objects.filter(pk__in=list(mismatched)):
+        try:
+            done = reprice(org, now)
+        except Exception as exc:  # one organisation never stops the others
+            sentry_sdk.capture_exception(exc)
+            counts["failed"] += 1
+            continue
+        if done == "waiting":
+            counts["waiting"] += 1
+        elif done != "unchanged":
+            counts["repriced"] += 1
+    return counts
+
+
+def kind_changed(org) -> None:
+    """After a change of kind: move the plan and tell the owners what it
+    means for the price. Never fails the change itself."""
+    try:
+        done = reprice(org)
+    except Exception as exc:
+        # The daily job tries again; the kind has changed either way.
+        sentry_sdk.capture_exception(exc)
+        done = "failed"
+    if done == "failed":
+        logger.warning("Plan for %s not repriced yet; billing_reminders will retry", org.slug)
+    managed = (
+        Subscription.objects.filter(org=org, plan__in=PAID_PLANS, status__in=STRIPE_LIVE)
+        .exclude(provider_ref="")
+        .exists()
+    )
+    prices = price_text(org.kind)
+    if org.kind == "company":
+        title = f"{org.name} is now a company"
+        if managed:
+            body = (
+                f"The company plan applies: {prices}, VAT included. Nothing changes before "
+                f"{price_rise_date(org):%d %B %Y} — the new price starts at your first renewal after that date. "
+                "Stock options, full rounds and recorded investments are now open in the workspace."
+            )
+        else:
+            body = (
+                f"The company plan applies: {prices}, VAT included, when it's time to pay. "
+                "Stock options, full rounds and recorded investments are now open in the workspace."
+            )
+    else:
+        title = f"{org.name} is now a startup"
+        body = f"The startup plan applies: {prices}, VAT included" + (
+            " — your next renewal is charged at the startup price." if managed else "."
+        )
+    stamp = (org.kind_changed_at or timezone.now()).strftime("%Y%m%d%H%M%S")
+    tell_owners(org, key=f"kind:{org.kind}:{stamp}", title=title, body=body)
 
 
 # ---------------------------------------------------------------- webhook

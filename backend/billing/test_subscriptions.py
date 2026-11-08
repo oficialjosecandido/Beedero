@@ -38,7 +38,13 @@ def owner(db):
 
 def onboard(api, user, **extra):
     api.force_authenticate(user)
-    body = {"name": "Lumen Credit", "one_liner": "Credit for small shops.", "plan": "yearly", "accept_terms": True}
+    body = {
+        "kind": "company",
+        "name": "Lumen Credit",
+        "one_liner": "Credit for small shops.",
+        "plan": "yearly",
+        "accept_terms": True,
+    }
     body.update(extra)
     return api.post("/api/org-onboarding/", body, format="json")
 
@@ -61,7 +67,7 @@ def free_org(owner, slug="lumen", days_left=200):
     return org
 
 
-def stripe_subscription(org, *, status="active", price="price_stub_yearly", ref="sub_123", **extra):
+def stripe_subscription(org, *, status="active", price="price_stub_company_yearly", ref="sub_123", **extra):
     data = {
         "id": ref,
         "object": "subscription",

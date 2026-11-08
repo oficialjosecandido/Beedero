@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
 
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  SITE_KEYWORDS,
+  SITE_NAME,
+} from "@/lib/seo-content";
+
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://beedero.com").replace(/\/$/, "");
 
-const SITE_NAME = "Beedero";
-
-const DEFAULT_DESCRIPTION =
-  "Structured startup profiles, verified credibility, and a live feed for founders, investors, and researchers.";
+export { SITE_NAME };
 
 export const OG_IMAGE = {
   url: "/og.png",
   width: 1200,
   height: 630,
-  alt: "Beedero — structured startup profiles for founders and investors",
+  alt: "Beedero — verified network for founders, talent and companies",
 } as const;
 
 export const SITE_ICONS = {
@@ -97,7 +101,7 @@ export function pageMetadata({
 export const siteMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Startup discovery for founders and investors`,
+    default: `${SITE_NAME} — ${DEFAULT_TITLE}`,
     template: `%s · ${SITE_NAME}`,
   },
   description: DEFAULT_DESCRIPTION,
@@ -109,15 +113,7 @@ export const siteMetadata: Metadata = {
     title: SITE_NAME,
     statusBarStyle: "black-translucent",
   },
-  keywords: [
-    "startup profiles",
-    "startup discovery",
-    "founders",
-    "investors",
-    "verified startups",
-    "credibility",
-    "fundraising",
-  ],
+  keywords: [...SITE_KEYWORDS],
   alternates: {
     canonical: "/",
   },
@@ -125,14 +121,14 @@ export const siteMetadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     locale: "en_US",
-    title: `${SITE_NAME} — Startup discovery for founders and investors`,
+    title: `${SITE_NAME} — ${DEFAULT_TITLE}`,
     description: DEFAULT_DESCRIPTION,
     url: SITE_URL,
     images: [normalizeOgImage(OG_IMAGE)],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Startup discovery for founders and investors`,
+    title: `${SITE_NAME} — ${DEFAULT_TITLE}`,
     description: DEFAULT_DESCRIPTION,
     images: [absoluteUrl(OG_IMAGE.url)],
   },
@@ -152,7 +148,7 @@ export function orgProfileMetadata(org: {
   const title = org.name;
   const description =
     org.one_liner?.trim() ||
-    `View ${org.name}'s structured startup profile, credibility signals, and public updates on Beedero.`;
+    `View ${org.name} on Beedero — a verified organisation page with team, updates and credibility signals.`;
   const path = `/o/${org.slug}`;
   const image = org.logo
     ? { url: org.logo, alt: `${org.name} logo on Beedero` }
@@ -163,7 +159,7 @@ export function orgProfileMetadata(org: {
     description,
     path,
     image,
-    keywords: [org.name, "startup profile", "Beedero", org.slug],
+    keywords: [org.name, "verified organisation", "startup profile", "Beedero", org.slug],
   });
 }
 
@@ -176,7 +172,7 @@ export function personProfileMetadata(person: {
   const title = person.full_name;
   const description =
     person.headline?.trim() ||
-    `${person.full_name}'s professional profile on Beedero — experience, skills, and platform-attested credibility.`;
+    `${person.full_name}'s verified professional profile on Beedero — organisation-confirmed roles, skills and credibility.`;
   const path = `/p/${person.handle}`;
   const image = person.profile_picture
     ? { url: person.profile_picture, alt: `${person.full_name} profile photo` }
@@ -188,7 +184,7 @@ export function personProfileMetadata(person: {
     path,
     image,
     openGraphType: "profile",
-    keywords: [person.full_name, "professional profile", "Beedero", person.handle],
+    keywords: [person.full_name, "verified professional profile", "Beedero", person.handle],
   });
 }
 
@@ -201,7 +197,7 @@ export function verifyPageMetadata(org: {
   const title = `${org.name} — Beedero verification`;
   const description =
     org.one_liner?.trim() ||
-    `Check ${org.name}'s public credibility and verification status on Beedero.`;
+    `Check ${org.name}'s public credibility and verification ladder on Beedero.`;
   const path = `/verify/${org.slug}`;
   const image = org.logo
     ? { url: org.logo, alt: `${org.name} verification on Beedero` }
@@ -212,7 +208,7 @@ export function verifyPageMetadata(org: {
     description,
     path,
     image,
-    keywords: [org.name, "startup verification", "credibility", "Beedero"],
+    keywords: [org.name, "startup verification", "company verification", "credibility", "Beedero"],
   });
 }
 

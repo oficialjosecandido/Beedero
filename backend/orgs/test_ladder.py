@@ -230,7 +230,7 @@ def test_publishing_needs_the_gate_and_stamps_the_moment(api):
     api.force_authenticate(owner)
     slug = api.post(
         "/api/org-onboarding/",
-        {"name": "Acme", "one_liner": "We build things", "accept_terms": True},
+        {"kind": "company", "name": "Acme", "one_liner": "We build things", "accept_terms": True},
         format="json",
     ).data["slug"]
     org = Organization.objects.get(slug=slug)

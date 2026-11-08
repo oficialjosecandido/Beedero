@@ -9,10 +9,17 @@ import { pageMetadata } from "@/lib/site-metadata";
 import { safeRef } from "@/lib/signup-ref";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Create account",
+  title: "Join Beedero free — verified founder and professional profiles",
   description:
-    "Join Beedero — then connect to your startup or start investing. Build structured profiles and discover verified opportunities.",
+    "Create a free Beedero account. Prove founder status, get organisation-confirmed roles, find co-founders, and discover verified startups and jobs — without cold spam.",
   path: "/register",
+  keywords: [
+    "join Beedero",
+    "free professional profile",
+    "verified founder",
+    "co-founder matching",
+    "startup network signup",
+  ],
 });
 
 export default async function RegisterPage({
@@ -41,9 +48,10 @@ export default async function RegisterPage({
           <p className="inline-flex rounded-full bg-beedero-black px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-beedero-yellow">
             Beedero
           </p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Join Beedero</h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Join Beedero free</h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Founders, experts, investors and the organisations they build. Free to join.
+            Founders, talent, advisors and investors — free personal profiles with organisation-confirmed
+            credibility. Organisations start from €33/year.
           </p>
         </div>
         <EmailLinkForm

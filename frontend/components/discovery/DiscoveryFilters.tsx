@@ -140,6 +140,8 @@ export function DiscoveryFilters({
   const geo = searchParams.get("geo") ?? "";
   const city = searchParams.get("city") ?? "";
   const fundraising = searchParams.get("fundraising") === "true";
+  // Startup (not incorporated yet) or company — lib/org-kinds.ts.
+  const orgKind = searchParams.get("kind") ?? "";
   const minCredibility = searchParams.get("min_credibility") ?? "";
   const q = searchParams.get("q") ?? "";
 
@@ -159,9 +161,12 @@ export function DiscoveryFilters({
 
   function setTab(nextTab: Tab) {
     const next: Record<string, string> = { tab: nextTab === "people" ? "" : "organizations" };
-    // Location meaning differs per tab — clear the other key.
-    if (nextTab === "people") next.geo = "";
-    else next.city = "";
+    // Location meaning differs per tab — clear the other key. Startup or
+    // company is an organisation filter, so it goes with it.
+    if (nextTab === "people") {
+      next.geo = "";
+      next.kind = "";
+    } else next.city = "";
     push(next);
   }
 
@@ -277,6 +282,28 @@ export function DiscoveryFilters({
           >
             Fundraising {fundraising && "✓"}
           </button>
+          {tab === "organizations" &&
+            ([
+              ["startup", "Startups"],
+              ["company", "Companies"],
+            ] as const).map(([value, label]) => {
+              const active = orgKind === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => push({ kind: active ? "" : value })}
+                  aria-pressed={active}
+                  className={`border px-3 py-2 text-xs font-bold transition ${
+                    active
+                      ? "border-beedero-yellow bg-beedero-yellow text-beedero-black"
+                      : "border-white/15 text-white/60"
+                  }`}
+                >
+                  {label} {active && "✓"}
+                </button>
+              );
+            })}
           {(["", "1", "2", "3", "4"] as const).map((level) => {
             const label = level === "" ? "Any credibility" : `Level ${level}+`;
             const active = minCredibility === level || (level === "" && !minCredibility);

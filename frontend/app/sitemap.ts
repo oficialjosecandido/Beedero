@@ -13,16 +13,21 @@ type SitemapPayload = {
 function staticEntries(lastModified: Date): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, lastModified, changeFrequency: "weekly", priority: 1 },
-    // Public test dashboard for Lighthouse / SEO audits (no backend seed).
-    { url: `${SITE_URL}/lighthouse-demo`, lastModified, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/for-founders`, lastModified, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${SITE_URL}/for-professionals`, lastModified, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${SITE_URL}/for-startups`, lastModified, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${SITE_URL}/for-companies`, lastModified, changeFrequency: "monthly", priority: 0.95 },
+    { url: `${SITE_URL}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/startups`, lastModified, changeFrequency: "daily", priority: 0.95 },
     { url: `${SITE_URL}/jobs`, lastModified, changeFrequency: "daily", priority: 0.95 },
-    { url: `${SITE_URL}/register`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/register`, lastModified, changeFrequency: "monthly", priority: 0.85 },
     { url: `${SITE_URL}/cases`, lastModified, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/faq`, lastModified, changeFrequency: "monthly", priority: 0.75 },
+    // Public test dashboard for Lighthouse / SEO audits (no backend seed).
+    { url: `${SITE_URL}/lighthouse-demo`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/cookies`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/disputes`, lastModified, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_URL}/about`, lastModified, changeFrequency: "yearly", priority: 0.35 },
+    { url: `${SITE_URL}/about`, lastModified, changeFrequency: "yearly", priority: 0.4 },
     { url: `${SITE_URL}/terms`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.2 },
   ];

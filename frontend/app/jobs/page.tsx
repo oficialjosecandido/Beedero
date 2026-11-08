@@ -60,10 +60,10 @@ export async function generateMetadata({
   const described = describeFilters(params);
 
   return pageMetadata({
-    title: described ? `Open roles — ${described}` : "Open startup roles",
+    title: described ? `Open roles — ${described}` : "Jobs at verified startups and companies",
     description: described
-      ? `Open ${described} at verified startups on Beedero. Apply with a minimal profile — no CV upload required.`
-      : "Browse open roles at verified startups on Beedero — engineering, design, growth and co-founder positions. Free to browse, quick to apply.",
+      ? `Open ${described} at verified startups and companies on Beedero — including co-founder roles. Free to browse and apply.`
+      : "Browse jobs at verified startups and companies on Beedero — engineering, design, growth and co-founder roles. Free personal accounts; credibility over vanity.",
     // Canonical to the filtered path, never to the cursor: page two of a keyset
     // walk is the same list a bit further down, and a cursor is not an address
     // anyone should be linked to.
@@ -74,6 +74,8 @@ export async function generateMetadata({
     follow: true,
     keywords: [
       "startup jobs",
+      "co-founder jobs",
+      "verified company careers",
       "startup careers Portugal",
       "remote startup jobs",
       "Beedero",

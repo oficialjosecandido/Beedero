@@ -67,6 +67,8 @@ def discover(viewer, params: dict):
             | Q(slug_key__contains=query)
         )
 
+    if params.get("kind") in Organization.Kind.values:
+        qs = qs.filter(kind=params["kind"])
     if params.get("stage"):
         qs = qs.filter(stage=params["stage"])
     if params.get("sector"):

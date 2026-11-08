@@ -22,7 +22,7 @@ from orgs.permissions import IsOrgMember, IsOrgOwnerOrAdmin, OrgLookupMixin
 from . import subscriptions
 from .access import org_billing_state
 from .gateway import BillingUnavailable, get_gateway
-from .plans import PLANS, TERMS_VERSION, public_prices
+from .plans import CHOICES, TERMS_VERSION, public_prices
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +31,27 @@ UNAVAILABLE = {"detail": "Payments are not available right now. Please try again
 
 def _choice(request) -> str:
     choice = request.data.get("plan", "yearly")
-    return choice if choice in PLANS else "yearly"
+    return choice if choice in CHOICES else "yearly"
+
+
+def price_change(org, state: dict) -> dict | None:
+    """A Stripe plan still on the other kind's price: which price comes, and
+    from when (None: from the next renewal)."""
+    if not state["managed_by_stripe"] or not state["plan_kind"] or state["plan_kind"] == org.kind:
+        return None
+    rising = org.kind == "company"
+    return {"kind": org.kind, "from": subscriptions.price_rise_date(org).isoformat() if rising else None}
 
 
 def billing_payload(org) -> dict:
-    return {**org_billing_state(org), "prices": public_prices(), "terms_version": TERMS_VERSION}
+    state = org_billing_state(org)
+    return {
+        **state,
+        "kind": org.kind,
+        "prices": public_prices(org.kind),
+        "price_change": price_change(org, state),
+        "terms_version": TERMS_VERSION,
+    }
 
 
 class PromoCodeView(APIView):

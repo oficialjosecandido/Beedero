@@ -72,6 +72,8 @@ export type Home = {
     posts_flagged: number;
     posts_24h: number;
     orgs_24h: number;
+    /** Startups past the gate that Beedero hasn't confirmed yet. */
+    startups_to_confirm: number;
   };
   recent_actions: AuditRow[];
 };
@@ -148,6 +150,7 @@ export type OrgRow = {
   logo: string | null;
   one_liner: string;
   status: "draft" | "live";
+  kind: "startup" | "company";
   created_at: string;
   members: number;
   followers: number;
@@ -164,6 +167,8 @@ export type OrgDetail = {
   logo: string | null;
   one_liner: string;
   status: "draft" | "live";
+  kind: "startup" | "company";
+  kind_changed_at: string | null;
   stage: string;
   sector: string;
   geo: string;
@@ -269,6 +274,8 @@ export type Billing = {
     paying_orgs: number;
     paying_yearly: number;
     paying_monthly: number;
+    paying_startups: number;
+    paying_companies: number;
     mrr_cents: number;
     mrr_net_cents: number;
     arr_cents: number;

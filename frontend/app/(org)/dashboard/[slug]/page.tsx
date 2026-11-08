@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { OrgWorkspaceHeader } from "@/components/org-workspace/OrgWorkspaceHeader";
-import { parseOrgTab } from "@/components/org-workspace/tabs";
+import { parseOrgTab, tabFor } from "@/components/org-workspace/tabs";
 import type { SignalItem } from "@/components/org-workspace/OrgOverview";
 import { ApiError, apiFetch, safeFetch } from "@/lib/api";
 import { confirmationsCount, type OrgLadder } from "@/lib/org-ladder";
@@ -11,6 +11,7 @@ import type { OrgBilling } from "@/lib/billing";
 import type { PostingStatus } from "@/components/OrgPostComposer";
 import { formatDateTime } from "@/lib/format";
 import { GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
+import { kindLabel, type OrgKind } from "@/lib/org-kinds";
 import type {
   AffiliationSummary,
   JobSummary,
@@ -35,6 +36,7 @@ type OrgSummary = {
     name: string;
     one_liner: string;
     status: "draft" | "live";
+    kind: OrgKind;
     stage: string;
     sector: string;
     geo: string;
@@ -299,6 +301,10 @@ export default async function DashboardOrgPage({
   ]);
 
   const postingStatusData = postingStatus;
+  const kind: OrgKind = profile.org.kind ?? "company";
+  // A startup's co-founder roles live in their own section, not under Jobs.
+  const cofounderRoles = jobs.items.filter((job) => job.engagement_type === "cofounder");
+  const jobCount = kind === "startup" ? jobs.items.length - cofounderRoles.length : jobs.items.length;
 
   const createdEvents = activities
     .filter((activity) => activity.kind === "events")
@@ -364,11 +370,12 @@ export default async function DashboardOrgPage({
       <OrgWorkspaceHeader personName={myName} personPicture={myMembership?.profile_picture} />
 
       <OrgWorkspace
-        initialTab={suggestedTitle ? "activity" : (initialTab ?? "overview")}
+        initialTab={suggestedTitle ? "activity" : tabFor(kind, initialTab ?? "overview")}
         identity={{
           name: profile.org.name,
           logo: profile.org.logo,
           slug,
+          kind,
           isVerified: profile.org.is_verified,
           myRole: myRoleLabel(myMembership?.title, myRole),
           verification,
@@ -384,6 +391,7 @@ export default async function DashboardOrgPage({
           isDraft: profile.org.status === "draft",
           isFundraising: profile.org.is_fundraising,
           meta: [
+            kindLabel(kind),
             optionLabel(GEO_OPTIONS, profile.org.geo),
             [optionLabel(SECTOR_OPTIONS, profile.org.sector), optionLabel(STAGE_OPTIONS, profile.org.stage)]
               .filter(Boolean)
@@ -410,7 +418,8 @@ export default async function DashboardOrgPage({
           team: members.length,
           updates: activities.length,
           events: events.length,
-          jobs: jobs.items.length,
+          jobs: jobCount,
+          cofounders: kind === "startup" ? cofounderRoles.length : 0,
         }}
         tabs={{
           slug,

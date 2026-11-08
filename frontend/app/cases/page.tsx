@@ -6,11 +6,11 @@ import { CASE_STUDIES } from "@/lib/cases-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Cases & results",
+  title: "Cases & results — credibility over vanity",
   description:
-    "How founders, hiring teams and professionals use Beedero’s verified record — concrete outcomes, not vanity metrics.",
+    "How founders, hiring teams and professionals use Beedero’s verified record — organisation-confirmed roles, registry-backed trust and outcomes without vanity metrics.",
   path: "/cases",
-  keywords: ["Beedero cases", "startup network results", "verified profiles"],
+  keywords: ["Beedero cases", "verified profiles", "startup network results", "credibility"],
 });
 
 export default function CasesPage() {

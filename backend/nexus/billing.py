@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from billing.access import access_q, org_billing_state
 from billing.models import PaidInvoice, PromoCode, Subscription
-from billing.plans import PLANS, choice_for_plan
+from billing.plans import PAID_PLANS, choice_for_plan, kind_for_plan, monthly_cents
 from orgs.models import Organization
 
 from . import audit
@@ -31,22 +31,16 @@ PAYING = (Subscription.Status.ACTIVE, Subscription.Status.PAST_DUE)
 FREE_SOURCES = (Subscription.Source.PROMO, Subscription.Source.LAUNCH, Subscription.Source.ADMIN)
 
 
-def _monthly_cents(plan: str) -> float:
-    spec = PLANS[choice_for_plan(plan)]
-    return spec["amount_cents"] / 12 if spec["interval"] == "year" else spec["amount_cents"]
-
-
 def stripe_rows():
-    return Subscription.objects.exclude(provider_ref="").filter(
-        plan__in=[Subscription.Plan.ORG_YEARLY, Subscription.Plan.ORG_MONTHLY]
-    )
+    return Subscription.objects.exclude(provider_ref="").filter(plan__in=PAID_PLANS)
 
 
 def revenue_summary(now=None) -> dict:
     now = now or timezone.now()
     paying = list(stripe_rows().filter(status__in=PAYING).values_list("org_id", "plan"))
-    mrr = sum(_monthly_cents(plan) for _, plan in paying)
-    yearly = sum(1 for _, plan in paying if plan == Subscription.Plan.ORG_YEARLY)
+    mrr = sum(monthly_cents(plan) for _, plan in paying)
+    yearly = sum(1 for _, plan in paying if choice_for_plan(plan) == "yearly")
+    startups = sum(1 for _, plan in paying if kind_for_plan(plan) == "startup")
     free_now = Subscription.objects.filter(
         provider_ref="", status=Subscription.Status.TRIALING, trial_end__gt=now, source__in=FREE_SOURCES
     )
@@ -65,6 +59,9 @@ def revenue_summary(now=None) -> dict:
         "paying_orgs": len({org_id for org_id, _ in paying}),
         "paying_yearly": yearly,
         "paying_monthly": len(paying) - yearly,
+        # By the price being paid, which trails a change of kind by up to 30 days.
+        "paying_startups": startups,
+        "paying_companies": len(paying) - startups,
         "mrr_cents": round(mrr),
         "mrr_net_cents": round(mrr / (1 + VAT)),
         "arr_cents": round(mrr * 12),

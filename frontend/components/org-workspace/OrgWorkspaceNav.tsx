@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { BadgeCheck, ChevronRight, CircleUserRound } from "lucide-react";
 
-import { ORG_NAV, type OrgNavCounts, type OrgTabId } from "./tabs";
+import { kindLabel, kindShort, type OrgKind } from "@/lib/org-kinds";
+
+import { orgNavFor, type OrgNavCounts, type OrgTabId } from "./tabs";
 import { OrgMark } from "./ui";
 
 /**
@@ -15,6 +17,7 @@ export function OrgWorkspaceNav({
   name,
   logo,
   slug,
+  kind,
   isVerified,
   myRole,
   verification,
@@ -27,6 +30,7 @@ export function OrgWorkspaceNav({
   name: string;
   logo: string | null;
   slug: string;
+  kind: OrgKind;
   isVerified: boolean;
   myRole: string;
   /** Verification ladder, 0–100 (lib/org-ladder.ts). */
@@ -50,13 +54,16 @@ export function OrgWorkspaceNav({
               </span>
             )}
             <p className="mt-1 text-[10px] text-black/50">
+              <b className="text-black/75">{kindLabel(kind)}</b> · {kindShort(kind)}
+            </p>
+            <p className="mt-0.5 text-[10px] text-black/50">
               Your role: <b className="text-black/75">{myRole}</b>
             </p>
           </div>
         </div>
 
         <nav className="mt-5 grid gap-1" aria-label="Organisation workspace">
-          {ORG_NAV.map(({ id, label, Icon, ...item }) => {
+          {orgNavFor(kind).map(({ id, label, Icon, ...item }) => {
             const countKey = "countKey" in item ? item.countKey : undefined;
             const count = countKey ? counts[countKey] : undefined;
             const current = active === id;

@@ -75,7 +75,7 @@ export default async function NexusHome() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Queue
           label="Reports to review"
           value={q.reports_open}
@@ -100,6 +100,13 @@ export default async function NexusHome() {
           }
           href={djangoAdmin("credibility/verification/?status__exact=pending")}
           external
+          urgent
+        />
+        <Queue
+          label="Startups to confirm"
+          value={q.startups_to_confirm}
+          note={isAdmin ? "No registry to check — confirm by hand" : "Admins confirm them"}
+          href="/beedero-nexus/orgs?filter=to_confirm"
           urgent
         />
         <Queue label="Public posts (24h)" value={q.posts_24h} note="Read and moderate" href="/beedero-nexus/posts" />

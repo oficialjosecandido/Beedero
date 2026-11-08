@@ -31,7 +31,11 @@ export default async function BillingPage() {
   const cards: [string, string, string?][] = [
     ["MRR", euros(s.mrr_cents), `${euros(s.mrr_net_cents)} without VAT`],
     ["ARR", euros(s.arr_cents), "MRR × 12"],
-    ["Paying", String(s.paying_orgs), `${s.paying_yearly} yearly · ${s.paying_monthly} monthly`],
+    [
+      "Paying",
+      String(s.paying_orgs),
+      `${s.paying_yearly} yearly · ${s.paying_monthly} monthly · ${s.paying_startups} startups · ${s.paying_companies} companies`,
+    ],
     ["Free year", String(s.free_periods_active), `${s.free_periods_ending_30d} end in 30 days · ${s.card_on_file_in_free_year} with a card`],
     ["Free year → paid", s.conversion_pct === null ? "—" : `${s.conversion_pct}%`, `${s.free_periods_converted_12m} of ${s.free_periods_ended_12m} that ended (12 months)`],
     ["Without a plan", String(s.orgs_without_plan), `${s.past_due} with a failing payment`],

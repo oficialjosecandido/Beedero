@@ -8,11 +8,18 @@ import { COMPANY } from "@/lib/legal-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "FAQ",
+  title: "FAQ — verification, pricing, founder status and support",
   description:
-    "Answers about Beedero accounts, verification, pricing and support — including our 24-hour response commitment.",
+    "Answers about free Beedero accounts, certidão permanente founder verification, organisation pricing (€33/€99), Discover, LinkedIn import and 24-hour support.",
   path: "/faq",
-  keywords: ["Beedero FAQ", "verification", "support", "startup network"],
+  keywords: [
+    "Beedero FAQ",
+    "founder verification",
+    "certidão permanente",
+    "EARLYADOPTER",
+    "startup pricing",
+    "professional network support",
+  ],
 });
 
 export default function FaqPage() {

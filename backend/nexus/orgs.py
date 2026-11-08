@@ -1,6 +1,10 @@
 """Organisations: find any, see members, ladder, plan, verifications and
-history; admins can give a complimentary plan, extend a free period and
-change Beedero's own verification."""
+history; admins can give a complimentary plan, extend a free period, change
+Beedero's own verification and make an organisation a startup or a company.
+
+Startups have no registry to check, so Beedero confirms them by hand here:
+the "to_confirm" filter is that queue — startups past the ladder's gate that
+nobody has confirmed yet."""
 
 from datetime import timedelta
 
@@ -14,10 +18,12 @@ from rest_framework.views import APIView
 from analytics.models import ProfileView
 from billing.access import access_q, org_billing_state
 from billing.models import PaidInvoice, Subscription
+from billing.plans import plan_for
 from billing.subscriptions import grant_comp
 from credibility.models import Verification
 from jobs.models import JobPost
-from orgs.ladder import listed_in_discover, org_verification_ladder
+from orgs.kinds import change_kind
+from orgs.ladder import listed_in_discover, org_verification_ladder, with_org_unlock
 from orgs.models import Activity, Organization, OrgMembership
 
 from . import audit
@@ -60,7 +66,19 @@ def _filtered(queryset, key: str, now):
         return queryset.exclude(has_plan)
     if key == "verified":
         return queryset.filter(is_verified=True)
+    if key == "startups":
+        return queryset.filter(kind=Organization.Kind.STARTUP)
+    if key == "companies":
+        return queryset.filter(kind=Organization.Kind.COMPANY)
+    if key == "to_confirm":
+        return startups_to_confirm(queryset)
     return queryset
+
+
+def startups_to_confirm(queryset=None):
+    """Startups past the gate (rungs 1–4) that Beedero hasn't confirmed yet."""
+    queryset = Organization.objects.all() if queryset is None else queryset
+    return with_org_unlock(queryset.filter(kind=Organization.Kind.STARTUP, is_verified=False))
 
 
 def _owner(org):
@@ -78,6 +96,7 @@ def _row(org, listed: set) -> dict:
         "logo": file_url(org.logo),
         "one_liner": org.one_liner,
         "status": org.status,
+        "kind": org.kind,
         "created_at": iso(org.created_at),
         "members": org.members_n,
         "followers": org.followers_n,
@@ -118,6 +137,8 @@ def _detail(org, viewer) -> dict:
         "logo": file_url(org.logo),
         "one_liner": org.one_liner,
         "status": org.status,
+        "kind": org.kind,
+        "kind_changed_at": iso(org.kind_changed_at),
         "stage": org.stage,
         "sector": org.sector,
         "geo": org.geo,
@@ -227,6 +248,10 @@ class OrgActionView(APIView):
             audit.record(
                 request.user, NexusAction.Action.ORG_VERIFIED, target_type="org", target_id=org.slug, label=org.name, reason=reason, value=value
             )
+        elif action == "kind":
+            # Audited inside change_kind, which every path goes through.
+            if not change_kind(org, str(request.data.get("value") or ""), reason=reason, actor=request.user):
+                raise ValidationError({"value": [f"{org.name} already is a {org.kind}."]})
         else:
             return Response(status=404)
         org.refresh_from_db()
@@ -253,7 +278,7 @@ def extend_free_period(org, days: int):
         return running.trial_end
     row = Subscription.objects.create(
         org=org,
-        plan=Subscription.Plan.ORG_YEARLY,
+        plan=plan_for(org.kind, "yearly"),
         status=Subscription.Status.TRIALING,
         source=Subscription.Source.ADMIN,
         trial_end=now + timedelta(days=days),

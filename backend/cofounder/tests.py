@@ -276,6 +276,7 @@ def test_an_org_from_a_match_chooses_a_plan_and_invites_the_other(api, alice, bo
     res = api.post(
         "/api/org-onboarding/",
         {
+            "kind": "startup",
             "name": "Northbound",
             "one_liner": "Freight, rebuilt.",
             "accept_terms": True,

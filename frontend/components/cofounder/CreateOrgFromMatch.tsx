@@ -8,14 +8,18 @@ import type { CofounderMatch } from "@/lib/cofounder-options";
  *
  * The organisation is created on /orgs/new, carrying the match: there is one
  * way to create an organisation and it chooses a plan, this one included. The
- * other founder is invited as an owner once it exists. */
+ * other founder is invited as an owner once it exists.
+ *
+ * It arrives as a startup (`?kind=startup`): two people who have just met to
+ * build something have no company yet. The form still asks, so a pair who
+ * already incorporated can say so. */
 export function CreateOrgFromMatch({ match }: { match: CofounderMatch }) {
   return (
     <Link
-      href={`/orgs/new?match=${match.id}`}
+      href={`/orgs/new?match=${match.id}&kind=startup`}
       className="self-start rounded-xl border-2 border-beedero-black px-4 py-2 text-sm font-bold text-beedero-black hover:bg-beedero-black hover:text-beedero-white"
     >
-      Create an organization together
+      Start a startup together
     </Link>
   );
 }

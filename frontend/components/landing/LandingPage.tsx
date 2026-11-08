@@ -27,14 +27,14 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
           Beedero
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-black uppercase tracking-[0.04em] text-white/75 md:flex">
-          <a href="#benefits" className="transition hover:text-white">
-            Benefits
-          </a>
-          <a href="#product" className="transition hover:text-white">
-            How it works
-          </a>
-          <Link href="/cases" className="transition hover:text-white">
-            Cases
+          <Link href="/for-founders" className="transition hover:text-white">
+            Founders
+          </Link>
+          <Link href="/for-startups" className="transition hover:text-white">
+            Startups
+          </Link>
+          <Link href="/pricing" className="transition hover:text-white">
+            Pricing
           </Link>
           <Link href="/faq" className="transition hover:text-white">
             FAQ
@@ -80,17 +80,20 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
             </p>
           </div>
           <div className="mt-12 grid border-y border-black/20 sm:grid-cols-2 lg:grid-cols-4">
-            {BENEFITS.map(([number, title, copy]) => (
-              <article
+            {BENEFITS.map(([number, title, copy, href]) => (
+              <Link
                 key={title}
+                href={href}
                 className="group border-b border-black/20 p-5 last:border-0 sm:border-r sm:[&:nth-child(2)]:border-r-0 lg:border-b-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0"
               >
                 <p className="text-4xl font-black tracking-[-0.02em] text-beedero-black/35">
                   {number}
                 </p>
-                <h3 className="mt-9 text-lg font-black uppercase tracking-[-0.02em]">{title}</h3>
+                <h3 className="mt-9 text-lg font-black uppercase tracking-[-0.02em] group-hover:underline">
+                  {title}
+                </h3>
                 <p className="mt-3 max-w-[220px] text-sm leading-6 text-beedero-black/65">{copy}</p>
-              </article>
+              </Link>
             ))}
           </div>
         </div>
@@ -222,14 +225,26 @@ export function LandingPage({ primaryHref, primaryLabel }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-3 text-[11px] font-bold uppercase text-white/55">
+            <Link href="/for-founders" className="hover:text-white">
+              Founders
+            </Link>
+            <Link href="/for-professionals" className="hover:text-white">
+              Professionals
+            </Link>
+            <Link href="/for-startups" className="hover:text-white">
+              Startups
+            </Link>
+            <Link href="/for-companies" className="hover:text-white">
+              Companies
+            </Link>
+            <Link href="/pricing" className="hover:text-white">
+              Pricing
+            </Link>
             <Link href="/startups" className="hover:text-white">
               Discover
             </Link>
             <Link href="/jobs" className="hover:text-white">
               Open roles
-            </Link>
-            <Link href="/cases" className="hover:text-white">
-              Cases
             </Link>
             <Link href="/faq" className="hover:text-white">
               FAQ

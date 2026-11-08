@@ -9,10 +9,11 @@ import { publicFetch } from "@/lib/api";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "About Beedero",
+  title: "About Beedero — verified network based in Portugal",
   description:
-    "Meet the team behind Beedero, our registered office in Portugal, and how to reach us — we reply within 24 hours on business days.",
+    "Beedero is a verified professional network for founders, talent and companies, built in Portugal. Meet the team, registered office and support — we reply within 24 hours on business days.",
   path: "/about",
+  keywords: ["About Beedero", "Portugal startup network", "verified professional network", "pt.bidnow"],
 });
 
 const MAPS_URL =

@@ -23,10 +23,21 @@ class Organization(models.Model):
         DRAFT = "draft"
         LIVE = "live"
 
+    class Kind(models.TextChoices):
+        STARTUP = "startup", "Startup"
+        COMPANY = "company", "Company"
+
     slug = models.SlugField(unique=True)  # beedero.com/o/<slug>
     name = models.CharField(max_length=200)
     one_liner = models.CharField(max_length=140, blank=True, default="")
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    # A startup has no company yet; a company is incorporated. It sets the
+    # price (billing/plans.py), the ladder (orgs/ladder.py) and the tools in
+    # the workspace (orgs/kinds.py). Organisations created before the split
+    # are companies. Chosen when the organisation is created; it only
+    # changes through orgs.kinds.change_kind().
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.COMPANY, db_index=True)
+    kind_changed_at = models.DateTimeField(null=True, blank=True)
     logo = models.ImageField(upload_to="org_logos/", blank=True, null=True)
     is_verified = models.BooleanField(default=False, db_index=True)
     is_fundraising = models.BooleanField(default=False, db_index=True)

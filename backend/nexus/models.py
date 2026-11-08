@@ -18,6 +18,7 @@ class NexusAction(models.Model):
         ORG_COMP = "org.comp", "Changed complimentary plan"
         ORG_FREE_EXTENDED = "org.free_extended", "Extended free period"
         ORG_VERIFIED = "org.verified", "Changed Beedero verification (organisation)"
+        ORG_KIND = "org.kind", "Changed startup / company"
         POST_REMOVED = "post.removed", "Removed a post"
         POST_RESTORED = "post.restored", "Restored a post"
         POST_FLAG_CLEARED = "post.flag_cleared", "Cleared an image flag"

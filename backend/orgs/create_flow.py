@@ -1,9 +1,10 @@
 """Creating an organisation: one page, checkout at the end.
 
 This is the only way an organisation is born. `POST /api/org-onboarding/`
-receives the whole page at once — the basics, the plan, an optional code, the
-acceptance of the subscription terms and, when it comes from a co-founder
-match, that match — and answers where the browser goes next:
+receives the whole page at once — what the organisation is (a startup, or an
+incorporated company: it sets the price), the basics, the plan, an optional
+code, the acceptance of the subscription terms and, when it comes from a
+co-founder match, that match — and answers where the browser goes next:
 
   - with a valid code: the organisation exists with its free year, and the
     browser goes straight to the workspace (no card, no Stripe page);
@@ -83,6 +84,11 @@ def enforce_creation_limits(request) -> None:
 
 
 class OrgOnboardingSerializer(serializers.Serializer):
+    # No default: the answer sets the price, so it is always asked.
+    kind = serializers.ChoiceField(
+        choices=Organization.Kind.choices,
+        error_messages={"required": "Choose whether this is a startup or a company.", "null": "Choose whether this is a startup or a company."},
+    )
     name = serializers.CharField(max_length=200, trim_whitespace=True)
     one_liner = serializers.CharField(max_length=140, required=False, allow_blank=True, default="")
     stage = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
@@ -108,7 +114,7 @@ class OrgOnboardView(APIView):
         from billing import subscriptions
         from billing.gateway import BillingUnavailable
         from billing.models import BillingAgreement
-        from billing.plans import PLANS, TERMS_VERSION
+        from billing.plans import TERMS_VERSION, plan_for
 
         enforce_creation_limits(request)
         serializer = OrgOnboardingSerializer(data=request.data)
@@ -136,6 +142,7 @@ class OrgOnboardView(APIView):
                 request.user,
                 name=data["name"],
                 one_liner=data["one_liner"],
+                kind=data["kind"],
                 stage=data["stage"],
                 sector=data["sector"],
                 geo=data["geo"],
@@ -143,7 +150,7 @@ class OrgOnboardView(APIView):
             if org is None:
                 return Response({"detail": "Could not create organization, please try again."}, status=409)
             BillingAgreement.objects.create(
-                org=org, user=request.user, terms_version=TERMS_VERSION, plan=PLANS[data["plan"]]["plan"]
+                org=org, user=request.user, terms_version=TERMS_VERSION, plan=plan_for(data["kind"], data["plan"])
             )
             if match is not None:
                 from cofounder.services import attach_org_to_match

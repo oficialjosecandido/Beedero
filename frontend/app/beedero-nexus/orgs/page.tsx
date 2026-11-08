@@ -18,6 +18,9 @@ import { query, type OrgRow, type Paged } from "@/lib/nexus";
 
 const FILTERS = [
   { key: "all", label: "All" },
+  { key: "to_confirm", label: "Startups to confirm" },
+  { key: "startups", label: "Startups" },
+  { key: "companies", label: "Companies" },
   { key: "live", label: "Live" },
   { key: "draft", label: "Drafts" },
   { key: "listed", label: "In Discover" },
@@ -42,7 +45,11 @@ export default async function OrgsPage({
       <PageHeader
         eyebrow="Organisations"
         title="Every organisation."
-        description="“Live, hidden” are published but out of Discover: below the 50% gate, or without a plan."
+        description={
+          filter === "to_confirm"
+            ? "Startups past the 50% gate that Beedero hasn't confirmed. They have no registry to check: look at the team and the page, then confirm the startup on its page here."
+            : "“Live, hidden” are published but out of Discover: below the 50% gate, or without a plan."
+        }
       />
       <SearchForm action="/beedero-nexus/orgs" value={q} placeholder="Name, slug or one-liner" hidden={{ filter }} />
       <FilterTabs base="/beedero-nexus/orgs" current={filter} options={FILTERS} keep={{ q }} />
@@ -91,6 +98,7 @@ export default async function OrgsPage({
                   </td>
                   <td className={tdClass}>
                     <span className="flex flex-wrap gap-1">
+                      <Badge tone={org.kind === "startup" ? "warn" : "neutral"}>{org.kind}</Badge>
                       <Badge tone={org.status === "live" ? "good" : "neutral"}>{org.status}</Badge>
                       {org.listed && <Badge tone="good">In Discover</Badge>}
                       {org.is_verified && <Badge tone="good">Verified</Badge>}

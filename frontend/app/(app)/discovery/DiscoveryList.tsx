@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { EmptyPanel, Seal } from "@/components/app-shell/ui";
 import { geoLabel, sectorLabel, stageLabel } from "@/lib/org-filters";
+import { kindLabel } from "@/lib/org-kinds";
 import type { OrgSummary } from "@/lib/types";
 
 import { loadMoreDiscoveryAction } from "./actions";
@@ -12,6 +13,7 @@ import { loadMoreDiscoveryAction } from "./actions";
 function OrgCard({ org }: { org: OrgSummary }) {
   const detail = org.one_liner || (org.sector ? sectorLabel(org.sector) : null);
   const meta = [
+    org.kind ? kindLabel(org.kind) : null,
     org.stage ? stageLabel(org.stage) : null,
     org.geo ? geoLabel(org.geo) : null,
   ]

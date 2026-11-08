@@ -3,14 +3,19 @@
 import { useActionState } from "react";
 
 import { submitVerificationAction } from "@/app/(app)/dashboard/actions";
-import type { OrgLadderRung } from "@/lib/org-ladder";
+import { kindPriceLine } from "@/lib/billing";
+import type { RegistryState } from "@/lib/org-ladder";
+import type { OrgKind } from "@/lib/org-kinds";
 import { useActionToast } from "@/lib/use-action-toast";
 
 const fieldClass =
   "w-full rounded-xl border border-beedero-border bg-white px-3 py-2.5 text-sm text-beedero-black outline-none transition-colors focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60";
 
 /**
- * Rung 6 of the organisation's ladder: the company registry check.
+ * Rung 6 of a company's ladder: the company registry check. For a startup
+ * it is not a rung but the way it becomes a company — confirming the
+ * registry switches the kind (backend orgs/kinds.py), so the card says what
+ * changes, the price included.
  *
  * Only the NIF and the certidão permanente's access code — no document
  * upload. The code opens the certificate on the registry's own website, so
@@ -18,10 +23,21 @@ const fieldClass =
  * review is manual (Django admin, credibility app), and the owners get an
  * email when it is decided.
  */
-export function CompanyRegistryCard({ slug, rung }: { slug: string; rung: OrgLadderRung }) {
+export function CompanyRegistryCard({
+  slug,
+  rung,
+  kind = "company",
+  name = "",
+}: {
+  slug: string;
+  rung: RegistryState;
+  kind?: OrgKind;
+  name?: string;
+}) {
   const [error, formAction, pending] = useActionState(submitVerificationAction, null);
   useActionToast(error, pending, { successMessage: "Sent for review." });
   const showForm = !rung.pending && (!rung.done || Boolean(rung.warning));
+  const startup = kind === "startup";
 
   return (
     <section
@@ -30,7 +46,7 @@ export function CompanyRegistryCard({ slug, rung }: { slug: string; rung: OrgLad
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="registry-title" className="font-extrabold text-zinc-900">
-          Company registry
+          {startup ? "Incorporated now?" : "Company registry"}
         </h3>
         <span
           className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
@@ -48,8 +64,17 @@ export function CompanyRegistryCard({ slug, rung }: { slug: string; rung: OrgLad
       <p className="mt-1.5 text-sm text-zinc-600">
         {rung.done
           ? rung.detail
-          : "Send the access code of your certidão permanente. We open it on the commercial registry's website — you don't upload any document."}
+          : startup
+            ? `Once ${name || "the startup"} is a registered company, send the access code of its certidão permanente. We open it on the commercial registry's website — you don't upload any document.`
+            : "Send the access code of your certidão permanente. We open it on the commercial registry's website — you don't upload any document."}
       </p>
+      {startup && !rung.done && (
+        <p className="mt-2 text-sm text-zinc-600">
+          When we confirm it, {name || "the startup"} becomes a company: the registry joins your ladder, and
+          Seed and Series A rounds, stock options and recorded investments open. The plan moves to the company
+          price, {kindPriceLine("company")} — you hear about it at least 30 days before paying more.
+        </p>
+      )}
       {rung.pending && (
         <p className="mt-2 text-sm text-zinc-600">
           We&apos;re checking it. The owners get an email as soon as it&apos;s decided.

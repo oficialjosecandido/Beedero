@@ -18,6 +18,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
   }
   const base = `/nexus/orgs/${org.slug}`;
   const isComp = org.billing.state === "comp";
+  const startup = org.kind === "startup";
 
   return (
     <div className="flex flex-col gap-5">
@@ -30,6 +31,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
         description={
           <span className="flex flex-wrap items-center gap-2">
             {org.one_liner || "No one-liner"}
+            <Badge tone={startup ? "warn" : "neutral"}>{startup ? "Startup · not incorporated" : "Company"}</Badge>
             <Badge tone={org.status === "live" ? "good" : "neutral"}>{org.status}</Badge>
             {org.listed ? <Badge tone="good">In Discover</Badge> : <Badge>Not in Discover</Badge>}
             {org.is_verified && <Badge tone="good">Verified by Beedero</Badge>}
@@ -46,13 +48,36 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             {org.can_manage && (
               <>
                 <ReasonAction
-                  label={org.is_verified ? "Remove verification" : "Verify"}
-                  title={org.is_verified ? "Remove Beedero's verification" : "Verify this organisation"}
-                  description="The “Verified by Beedero” step of its ladder. Say what you checked."
+                  label={org.is_verified ? "Remove verification" : startup ? "Confirm startup" : "Verify"}
+                  title={
+                    org.is_verified
+                      ? "Remove Beedero's verification"
+                      : startup
+                        ? "Confirm this startup"
+                        : "Verify this organisation"
+                  }
+                  description={
+                    startup
+                      ? "A startup has no registry to check, so this is the check: the team, their profiles and the page. Say what you looked at. It confirms the organisation — never who founded it."
+                      : "The “Verified by Beedero” step of its ladder. Say what you checked."
+                  }
                   path={`${base}/verify/`}
                   body={{ value: !org.is_verified }}
-                  confirmLabel={org.is_verified ? "Remove" : "Verify"}
+                  confirmLabel={org.is_verified ? "Remove" : startup ? "Confirm" : "Verify"}
                   done="Saved."
+                />
+                <ReasonAction
+                  label={startup ? "Make it a company" : "Make it a startup"}
+                  title={startup ? "This startup is a company" : "This company is a startup"}
+                  description={
+                    startup
+                      ? "For a startup that is already incorporated. Its ladder gains the registry step, and the company price (€99/year or €9/month) applies from the first renewal at least 30 days after the owners are told — they get an email now. Confirming its certidão permanente does this on its own."
+                      : "For an organisation with no company yet. The registry step leaves its ladder and the startup price (€33/year or €3/month) applies from its next renewal. The owners get an email."
+                  }
+                  path={`${base}/kind/`}
+                  body={{ value: startup ? "company" : "startup" }}
+                  confirmLabel={startup ? "Make it a company" : "Make it a startup"}
+                  done="Changed."
                 />
                 {!org.billing.managed_by_stripe && !isComp && (
                   <ReasonAction

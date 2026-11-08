@@ -10,16 +10,18 @@ import {
   startCheckoutAction,
 } from "@/app/(org)/dashboard/[slug]/billing-actions";
 import {
-  DEFAULT_PRICES,
   PLAN_LABELS,
+  PRICES_BY_KIND,
   billingDate,
   billingSummary,
   formatEuros,
+  kindPriceLine,
   priceLine,
   welcomeLine,
   type OrgBilling,
   type PlanChoice,
 } from "@/lib/billing";
+import { kindLabel, kindShort } from "@/lib/org-kinds";
 
 import type { OrgTabId } from "./tabs";
 import { OrgCard, OrgCardHeading, orgEyebrowClass, orgInkButtonClass, orgOutlineButtonClass } from "./ui";
@@ -88,7 +90,7 @@ export function PlanPicker({
   billing: OrgBilling;
   onDark?: boolean;
 }) {
-  const prices = billing.prices.length > 0 ? billing.prices : DEFAULT_PRICES;
+  const prices = billing.prices.length > 0 ? billing.prices : PRICES_BY_KIND[billing.kind ?? "company"];
   const [plan, setPlan] = useState<PlanChoice>(billing.plan === "monthly" ? "monthly" : "yearly");
   const { go, error, busy } = useGoTo();
   const freeYear = billing.state === "free_year";
@@ -373,8 +375,13 @@ export function OrgBillingPanel({
     );
   }
 
-  const prices = billing.prices.length > 0 ? billing.prices : DEFAULT_PRICES;
-  const price = billing.plan && billing.plan !== "comp" ? prices.find((item) => item.choice === billing.plan) : null;
+  const kind = billing.kind ?? "company";
+  // What is charged now: the plan's own kind, which trails a change of kind
+  // until the next renewal (or 30 days, when the price goes up).
+  const chargedPrices = PRICES_BY_KIND[billing.plan_kind ?? kind] ?? billing.prices;
+  const price =
+    billing.plan && billing.plan !== "comp" ? chargedPrices.find((item) => item.choice === billing.plan) : null;
+  const change = billing.price_change ?? null;
   const dateLabel =
     billing.state === "free_year" || billing.state === "trialing"
       ? "Free until"
@@ -384,9 +391,21 @@ export function OrgBillingPanel({
 
   const rows: [string, string][] = [
     ["Status", STATE_LABELS[billing.state]],
+    ["Type", `${kindLabel(kind)} · ${kindShort(kind)}`],
     ["Plan", billing.plan ? PLAN_LABELS[billing.plan] : "—"],
   ];
   if (price) rows.push(["Price", `${priceLine(price)} · VAT included`]);
+  if (change && price) {
+    const next = PRICES_BY_KIND[change.kind].find((item) => item.choice === price.choice);
+    if (next) {
+      rows.push([
+        `${kindLabel(change.kind)} price`,
+        `${priceLine(next)} · ${
+          change.from ? `from the first renewal after ${billingDate(change.from)}` : "from the next renewal"
+        }`,
+      ]);
+    }
+  }
   if (billing.until && billing.has_access) rows.push([dateLabel, billingDate(billing.until)]);
   if (billing.promo_code) rows.push(["Code", billing.promo_code]);
 
@@ -404,6 +423,11 @@ export function OrgBillingPanel({
           </span>
         </div>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-black/65">{billingSummary(name, billing)}</p>
+        <p className="mt-2 max-w-2xl text-xs leading-5 text-black/55">
+          {kind === "startup"
+            ? `The startup plan: ${kindPriceLine("startup")}. Once ${name} is incorporated, confirm its registry under Verification and it becomes a company (${kindPriceLine("company")}).`
+            : `The company plan: ${kindPriceLine("company")}.`}
+        </p>
 
         <dl className="mt-5 divide-y divide-black/10 border-y border-black/10 text-sm">
           {rows.map(([label, value]) => (

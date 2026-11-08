@@ -1,4 +1,4 @@
-"""Everything that talks to Stripe, behind seven calls.
+"""Everything that talks to Stripe, behind eight calls.
 
 `get_gateway()` returns the real Stripe gateway when STRIPE_SECRET_KEY is
 set. Without a key it returns the stub only if BILLING_STRIPE_STUB is on
@@ -58,10 +58,14 @@ class StripeGateway:
             return existing
         return StripeCustomer.objects.create(org=org, provider_ref=customer.id)
 
-    def create_checkout_session(self, org, user, choice: str, trial_end=None) -> dict:
-        price = price_id(choice)
+    def _price(self, kind: str, choice: str) -> str:
+        price = price_id(kind, choice)
         if not price or price.startswith("price_stub_"):
-            raise ImproperlyConfigured(f"{PLANS[choice]['price_setting']} is not set.")
+            raise ImproperlyConfigured(f"{PLANS[(kind, choice)]['price_setting']} is not set.")
+        return price
+
+    def create_checkout_session(self, org, user, choice: str, trial_end=None) -> dict:
+        price = self._price(org.kind, choice)
         customer = self.ensure_customer(org, user)
         success, cancel = checkout_urls(org)
         subscription_data = {"metadata": {"org_id": str(org.id), "org_slug": org.slug}}
@@ -107,8 +111,24 @@ class StripeGateway:
             if getattr(err, "code", "") != "resource_missing":
                 raise
 
-    def create_portal_session(self, customer_ref: str, return_url: str) -> str:
-        return self.stripe.billing_portal.Session.create(customer=customer_ref, return_url=return_url).url
+    def change_price(self, subscription_id: str, kind: str, choice: str) -> dict:
+        """Move a subscription to another Price from its next renewal: no
+        proration, no charge now, same billing date (same interval)."""
+        price = self._price(kind, choice)
+        current = self.stripe.Subscription.retrieve(subscription_id)
+        item_id = current["items"]["data"][0]["id"]
+        updated = self.stripe.Subscription.modify(
+            subscription_id,
+            items=[{"id": item_id, "price": price}],
+            proration_behavior="none",
+        )
+        return updated.to_dict()
+
+    def create_portal_session(self, customer_ref: str, return_url: str, configuration: str | None = None) -> str:
+        params = {"customer": customer_ref, "return_url": return_url}
+        if configuration:
+            params["configuration"] = configuration
+        return self.stripe.billing_portal.Session.create(**params).url
 
     def verify_webhook(self, payload: bytes, signature: str | None) -> dict:
         # Our own verifier rather than `stripe.WebhookSignature`: same scheme,
@@ -150,7 +170,11 @@ class StubGateway:
             "subscription": self._subscription(org_id, choice, int(trial)),
         }
 
-    def _subscription(self, org_id: str, choice: str, trial: int) -> dict:
+    def _subscription(self, org_id: str, choice: str, trial: int, kind: str | None = None) -> dict:
+        from orgs.models import Organization
+
+        if kind is None:
+            kind = Organization.objects.filter(pk=org_id).values_list("kind", flat=True).first() or "company"
         now = timezone.now()
         period = timedelta(days=365 if choice == "yearly" else 30)
         return {
@@ -164,7 +188,8 @@ class StubGateway:
             "items": {
                 "data": [
                     {
-                        "price": {"id": price_id(choice)},
+                        "id": f"si_stub_{org_id}",
+                        "price": {"id": price_id(kind, choice)},
                         "current_period_end": int((now + period).timestamp()),
                     }
                 ]
@@ -178,7 +203,24 @@ class StubGateway:
     def cancel_subscription(self, subscription_ref: str) -> None:
         """Nothing to cancel: a stub subscription was never created anywhere."""
 
-    def create_portal_session(self, customer_ref: str, return_url: str) -> str:
+    def change_price(self, subscription_id: str, kind: str, choice: str) -> dict:
+        """The same subscription, now on the other Price — status, trial and
+        billing date as they were."""
+        from .models import Subscription
+
+        row = Subscription.objects.filter(provider_ref=subscription_id).first()
+        org_id = str(row.org_id) if row else subscription_id.split("_")[2]
+        data = self._subscription(org_id, choice, 0, kind=kind)
+        data["id"] = subscription_id
+        if row:
+            data["status"] = row.status
+            data["trial_end"] = int(row.trial_end.timestamp()) if row.trial_end else None
+            data["cancel_at_period_end"] = row.cancel_at_period_end
+            if row.current_period_end:
+                data["items"]["data"][0]["current_period_end"] = int(row.current_period_end.timestamp())
+        return data
+
+    def create_portal_session(self, customer_ref: str, return_url: str, configuration: str | None = None) -> str:
         return return_url
 
     def verify_webhook(self, payload: bytes, signature: str | None) -> dict:

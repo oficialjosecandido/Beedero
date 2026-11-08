@@ -6,8 +6,9 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 
 import { OrgCard, orgEyebrowClass } from "@/components/org-workspace/ui";
-import { DEFAULT_PRICES, billingDate, formatEuros, type PlanChoice } from "@/lib/billing";
+import { PRICES_BY_KIND, billingDate, formatEuros, type PlanChoice } from "@/lib/billing";
 import { GEO_FIELD_LABEL, GEO_OPTIONS, SECTOR_OPTIONS, STAGE_OPTIONS } from "@/lib/org-filters";
+import { KIND_OPTIONS, kindLabel, type OrgKind } from "@/lib/org-kinds";
 import { clearProfileSwitcherCache } from "@/lib/profile-switcher-client";
 
 import { checkCodeAction, createOrganisationAction } from "./actions";
@@ -80,11 +81,88 @@ function StepTitle({ number, title }: { number: number; title: string }) {
   );
 }
 
-export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
+/**
+ * Startup or company — first, because it sets the price. Each card carries
+ * its own price so the choice is never made blind.
+ */
+function KindPicker({
+  value,
+  onChange,
+  error,
+}: {
+  value: OrgKind | null;
+  onChange: (kind: OrgKind) => void;
+  error?: string;
+}) {
+  return (
+    <div>
+      <div role="radiogroup" aria-label="What is it?" className="mt-5 grid gap-3 sm:grid-cols-2">
+        {KIND_OPTIONS.map((option) => {
+          const selected = option.value === value;
+          const [yearly, monthly] = PRICES_BY_KIND[option.value];
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(option.value)}
+              className={`flex min-w-0 flex-col items-start border-2 p-4 text-left transition ${
+                selected
+                  ? "border-org-ink bg-org-chip shadow-[4px_4px_0_#17191f]"
+                  : "border-black/20 bg-white hover:border-org-ink"
+              }`}
+            >
+              <span className="flex w-full items-center justify-between gap-3">
+                <span className="text-lg font-black tracking-[-0.03em]">{option.label}</span>
+                <span
+                  aria-hidden
+                  className={`grid size-5 shrink-0 place-items-center border-2 border-org-ink ${
+                    selected ? "bg-org-ink text-white" : "bg-white"
+                  }`}
+                >
+                  {selected && <Check size={12} strokeWidth={3} />}
+                </span>
+              </span>
+              <span className={`${orgEyebrowClass} mt-1 text-black/55`}>{option.short}</span>
+              <span className="mt-2 text-xs leading-5 text-black/65">{option.description}</span>
+              <ul className="mt-3 space-y-1 text-xs text-black/70">
+                {option.points.map((point) => (
+                  <li key={point} className="flex gap-2">
+                    <Check size={12} strokeWidth={3} className="mt-0.5 shrink-0" aria-hidden />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+              <span className="mt-4 border-t border-black/15 pt-3 text-sm font-black">
+                {formatEuros(yearly.amount_cents)}/year
+                <span className="font-bold text-black/55"> · or {formatEuros(monthly.amount_cents)}/month</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="mt-2 text-xs font-bold text-[#b3261e]">{error}</p>}
+      <p className="mt-3 text-[11px] leading-4 text-black/55">
+        A startup becomes a company once its certidão permanente is confirmed — from Verification, in the
+        workspace.
+      </p>
+    </div>
+  );
+}
+
+export function OrgOnboardingForm({
+  match,
+  initialKind = null,
+}: {
+  match: MatchContext | null;
+  initialKind?: OrgKind | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [leaving, setLeaving] = useState(false);
 
+  const [kind, setKind] = useState<OrgKind | null>(initialKind);
   const [name, setName] = useState("");
   const [oneLiner, setOneLiner] = useState("");
   const [sector, setSector] = useState("");
@@ -97,7 +175,8 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
   const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const price = DEFAULT_PRICES.find((item) => item.choice === plan) ?? DEFAULT_PRICES[0];
+  const prices = kind ? PRICES_BY_KIND[kind] : null;
+  const price = prices ? (prices.find((item) => item.choice === plan) ?? prices[0]) : null;
   const free = codeState.status === "valid";
   const busy = pending || leaving;
 
@@ -122,10 +201,11 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
   function submit(event: FormEvent) {
     event.preventDefault();
     const local: Record<string, string> = {};
+    if (!kind) local.kind = "Choose whether this is a startup or a company.";
     if (!name.trim()) local.name = "Give the organisation a name.";
     if (!accepted) local.accept_terms = "Tick the box to continue.";
     setErrors(local);
-    if (Object.keys(local).length > 0) return;
+    if (Object.keys(local).length > 0 || !kind) return;
 
     startTransition(async () => {
       // A code typed but never checked is checked now, so the button never
@@ -137,6 +217,7 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
         if (current.status === "invalid") return;
       }
       const result = await createOrganisationAction({
+        kind,
         name: name.trim(),
         one_liner: oneLiner.trim(),
         sector,
@@ -163,7 +244,11 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
     });
   }
 
-  let buttonLabel = free ? "Create organisation — free for a year" : `Continue to payment — ${formatEuros(price.amount_cents)}`;
+  let buttonLabel = free
+    ? `Create ${kind ?? "organisation"} — free for a year`
+    : price
+      ? `Continue to payment — ${formatEuros(price.amount_cents)}`
+      : "Continue to payment";
   if (busy) buttonLabel = free ? "Creating…" : "Opening payment…";
 
   return (
@@ -176,7 +261,7 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
       </Link>
       <p className={`${orgEyebrowClass} mt-6`}>{match ? "Start it together" : "New organisation"}</p>
       <h1 className="mt-2 max-w-2xl text-4xl font-black leading-[0.95] tracking-[-0.05em] sm:text-5xl">
-        Put your company on the record.
+        Put your startup or company on the record.
       </h1>
       <p className="mt-3 max-w-xl text-sm leading-6 text-black/65">
         One page. The logo, the story and the team come later, from the workspace.
@@ -195,7 +280,23 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
       >
         <div className="flex min-w-0 flex-col gap-6">
           <OrgCard>
-            <StepTitle number={1} title="The organisation" />
+            <StepTitle number={1} title="What is it?" />
+            <KindPicker
+              value={kind}
+              onChange={(value) => {
+                setKind(value);
+                setErrors((previous) => {
+                  const next = { ...previous };
+                  delete next.kind;
+                  return next;
+                });
+              }}
+              error={errors.kind}
+            />
+          </OrgCard>
+
+          <OrgCard>
+            <StepTitle number={2} title="The organisation" />
             <div className="mt-5 flex flex-col gap-4">
               <Field label="Name" error={errors.name}>
                 <input
@@ -235,9 +336,14 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
           </OrgCard>
 
           <OrgCard>
-            <StepTitle number={2} title="Plan" />
-            <div role="radiogroup" aria-label="Plan" className="mt-5 grid gap-3 sm:grid-cols-2">
-              {DEFAULT_PRICES.map((option) => {
+            <StepTitle number={3} title={kind ? `${kindLabel(kind)} plan` : "Plan"} />
+            {!prices && (
+              <p className="mt-4 border-2 border-dashed border-black/20 px-4 py-3 text-xs font-bold text-black/55">
+                Choose startup or company above to see the price.
+              </p>
+            )}
+            <div role="radiogroup" aria-label="Plan" className={`mt-5 grid gap-3 sm:grid-cols-2 ${prices ? "" : "hidden"}`}>
+              {(prices ?? []).map((option) => {
                 const selected = option.choice === plan;
                 return (
                   <button
@@ -326,16 +432,20 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
 
         <aside className="lg:sticky lg:top-24">
           <OrgCard tone="ink">
-            <p className={`${orgEyebrowClass} text-beedero-yellow`}>3 · Confirm</p>
+            <p className={`${orgEyebrowClass} text-beedero-yellow`}>4 · Confirm</p>
             <dl className="mt-4 divide-y divide-white/10 text-sm">
               <div className="flex justify-between gap-4 py-2">
                 <dt className="text-white/55">Organisation</dt>
                 <dd className="truncate font-bold">{name.trim() || "—"}</dd>
               </div>
               <div className="flex justify-between gap-4 py-2">
+                <dt className="text-white/55">Type</dt>
+                <dd className="font-bold">{kind ? kindLabel(kind) : "—"}</dd>
+              </div>
+              <div className="flex justify-between gap-4 py-2">
                 <dt className="text-white/55">Plan</dt>
                 <dd className="font-bold">
-                  {PLAN_COPY[plan].title} · {formatEuros(price.amount_cents)}/{price.interval}
+                  {price ? `${PLAN_COPY[plan].title} · ${formatEuros(price.amount_cents)}/${price.interval}` : "—"}
                 </dd>
               </div>
               {match && (
@@ -356,13 +466,13 @@ export function OrgOnboardingForm({ match }: { match: MatchContext | null }) {
               <p className="flex items-baseline justify-between">
                 <span className={`${orgEyebrowClass} text-white/70`}>Due today</span>
                 <b className="text-4xl font-black tracking-[-0.04em]">
-                  {free ? "€0" : formatEuros(price.amount_cents)}
+                  {free ? "€0" : price ? formatEuros(price.amount_cents) : "—"}
                 </b>
               </p>
               <p className="mt-2 text-xs leading-5 text-white/65">
                 {free
                   ? `Free until ${codeState.freeUntil}. Nothing is charged unless you add a card — we'll remind you a month before the year ends.`
-                  : `You'll pay on Stripe's secure page. Renews every ${price.interval} until you cancel. A refund is yours if you ask within 14 days.`}
+                  : `You'll pay on Stripe's secure page. Renews every ${price?.interval ?? "period"} until you cancel. A refund is yours if you ask within 14 days.`}
               </p>
             </div>
 

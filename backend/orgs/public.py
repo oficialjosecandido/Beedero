@@ -36,6 +36,7 @@ def public_profile(slug: str, viewer=None) -> dict:
             "slug": org.slug,
             "name": org.name,
             "one_liner": org.one_liner,
+            "kind": org.kind,
             "logo": org.logo.url if org.logo else None,
             "is_verified": org.is_verified,
             "is_fundraising": org.is_fundraising,

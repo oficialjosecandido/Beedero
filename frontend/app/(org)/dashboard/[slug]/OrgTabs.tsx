@@ -31,6 +31,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
 import type { OrgBilling } from "@/lib/billing";
 import type { OrgLadder } from "@/lib/org-ladder";
+import { ROUND_STAGES, type OrgKind } from "@/lib/org-kinds";
 import { SITE_URL } from "@/lib/site-metadata";
 import type {
   AffiliationSummary,
@@ -52,6 +53,7 @@ type Section = { id: number; kind: string; visibility: string; fields: SectionFi
 type OrgBasics = {
   slug: string;
   name: string;
+  kind: OrgKind;
   one_liner: string;
   stage: string;
   sector: string;
@@ -156,6 +158,9 @@ const AffiliationsTab = dynamic(() =>
   import("@/components/affiliations/AffiliationsTab").then((mod) => mod.AffiliationsTab)
 );
 const JobsTab = dynamic(() => import("@/components/jobs/JobsTab").then((mod) => mod.JobsTab));
+const CofoundersTab = dynamic(() =>
+  import("@/components/org-workspace/CofoundersTab").then((mod) => mod.CofoundersTab)
+);
 
 const FUNDRAISE_KINDS = ["valuation", "ask", "use_of_funds", "financials", "dataroom", "cap_table"];
 const ROLE_OPTIONS = ["owner", "admin", "member"];
@@ -1269,17 +1274,21 @@ const ROUND_STAGE_LABELS: Record<string, string> = {
 
 function FundraisingTab({
   slug,
+  kind,
   isFundraising,
   fundraiseSections,
   roundHistory,
   canEdit = true,
 }: {
   slug: string;
+  kind: OrgKind;
   isFundraising: boolean;
   fundraiseSections: Section[];
   roundHistory: FundraiseRound[];
   canEdit?: boolean;
 }) {
+  // A startup raises pre-seed, without a valuation (backend orgs/kinds.py).
+  const startup = kind === "startup";
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl border-2 border-beedero-border bg-beedero-white p-5 shadow-sm">
@@ -1289,6 +1298,12 @@ function FundraisingTab({
             <p className="mt-1 text-sm text-zinc-500">
               {isFundraising ? "A round is currently open." : "No round is open right now."}
             </p>
+            {startup && (
+              <p className="mt-1 text-xs text-zinc-500">
+                Startups raise pre-seed, with the ask and the use of funds. A valuation, Seed and Series A
+                rounds, and investments recorded on your page open once you&apos;re a company.
+              </p>
+            )}
           </div>
           {canEdit && isFundraising && (
             <form action={closeRoundAction} className="flex items-end gap-2">
@@ -1314,20 +1329,24 @@ function FundraisingTab({
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
               Stage
               <select name="stage" className="rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60">
-                <option value="pre_seed">Pre-seed</option>
-                <option value="seed">Seed</option>
-                <option value="series_a">Series A</option>
+                {ROUND_STAGES[kind].map((stage) => (
+                  <option key={stage.value} value={stage.value}>
+                    {stage.label}
+                  </option>
+                ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
-              Valuation
-              <input
-                name="valuation"
-                type="number"
-                placeholder="Valuation"
-                className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
-              />
-            </label>
+            {!startup && (
+              <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
+                Valuation
+                <input
+                  name="valuation"
+                  type="number"
+                  placeholder="Valuation"
+                  className="w-32 rounded-lg border border-beedero-border px-2.5 py-1.5 text-sm outline-none focus:border-beedero-black focus:ring-2 focus:ring-beedero-yellow/60"
+                />
+              </label>
+            )}
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600">
               Ask
               <input
@@ -1651,7 +1670,17 @@ export function OrgTabs({
   const marketSection = sections.find((s) => s.kind === "market_thesis");
   const fundraiseSections = sections.filter((s) => FUNDRAISE_KINDS.includes(s.kind));
   const linksSection = sections.find((s) => s.kind === "links");
-  const registryRung = onboarding.ladder?.rungs.find((rung) => rung.key === "registry_confirmed");
+  const kind: OrgKind = org.kind ?? "company";
+  // A company's registry is a rung of its ladder; a startup's is how it
+  // becomes a company, so it comes from the ladder's `registry` instead.
+  const registryRung =
+    kind === "startup"
+      ? onboarding.ladder?.registry
+      : onboarding.ladder?.rungs.find((rung) => rung.key === "registry_confirmed");
+  // A startup's co-founder roles are a section of their own, so they leave
+  // the jobs board (components/org-workspace/CofoundersTab.tsx).
+  const cofounderRoles = jobs.filter((job) => job.engagement_type === "cofounder");
+  const listedJobs = kind === "startup" ? jobs.filter((job) => job.engagement_type !== "cofounder") : jobs;
   // Owners keep billing actions; the rest of the workspace is read-only until
   // the organisation has a plan (billing.has_access).
   const canEdit = canManage && (billing?.has_access ?? true);
@@ -1752,15 +1781,22 @@ export function OrgTabs({
             inviteQuota={inviteQuota}
             canManage={canEdit}
           />
-          {canEdit && registryRung && <CompanyRegistryCard slug={slug} rung={registryRung} />}
+          {canEdit && registryRung && (
+            <CompanyRegistryCard slug={slug} rung={registryRung} kind={kind} name={org.name} />
+          )}
         </div>
       )}
 
-      {active === "jobs" && <JobsTab slug={slug} jobs={jobs} canManage={canEdit} />}
+      {active === "cofounders" && kind === "startup" && (
+        <CofoundersTab slug={slug} name={org.name} roles={cofounderRoles} canManage={canEdit} />
+      )}
+
+      {active === "jobs" && <JobsTab slug={slug} jobs={listedJobs} canManage={canEdit} kind={kind} />}
 
       {active === "fundraising" && (
         <FundraisingTab
           slug={slug}
+          kind={kind}
           isFundraising={isFundraising}
           canEdit={canEdit}
           fundraiseSections={fundraiseSections}

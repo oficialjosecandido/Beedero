@@ -6,6 +6,7 @@ import { RichText } from "@/components/RichText";
 import type { ResolvedMention } from "@/lib/richtext";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatAtHandle } from "@/lib/handles";
+import { kindLabel, kindShort } from "@/lib/org-kinds";
 import { OrgProfile as OrgProfileData, OrgTeamMember, SECTION_LABELS } from "@/lib/types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -177,6 +178,14 @@ export function OrgProfile({ data }: { data: OrgProfileData }) {
           )}
           <h1 className="text-3xl font-extrabold">{data.org.name}</h1>
           <CredibilityBadge level={data.org.credibility_level ?? 0} />
+          {data.org.kind && (
+            <span
+              className="rounded-full border border-beedero-border px-2 py-0.5 text-xs font-bold text-zinc-700"
+              title={kindShort(data.org.kind)}
+            >
+              {kindLabel(data.org.kind)}
+            </span>
+          )}
           {data.org.is_verified && (
             <span className="rounded-full bg-beedero-yellow px-2 py-0.5 text-xs font-bold text-beedero-black">
               Verified

@@ -16,6 +16,7 @@ from .access import CAPABILITIES, IsNexusAdmin, IsNexusStaff, nexus_role
 from .common import paginate, person
 from .kpis import overview
 from .models import NexusAction
+from .orgs import startups_to_confirm
 from .posts import flagged_queue
 
 
@@ -54,6 +55,7 @@ class HomeView(APIView):
                         Q(visibility=Visibility.PUBLIC) | Q(org__isnull=True), created_at__gte=now - timedelta(hours=24)
                     ).count(),
                     "orgs_24h": Organization.objects.filter(created_at__gte=now - timedelta(hours=24)).count(),
+                    "startups_to_confirm": startups_to_confirm().count(),
                 },
                 "recent_actions": [
                     audit.serialize(row)

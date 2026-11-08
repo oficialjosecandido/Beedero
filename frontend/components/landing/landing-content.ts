@@ -32,8 +32,8 @@ export const PEOPLE = {
 export type PersonKey = keyof typeof PEOPLE;
 
 export const BENEFITS = [
-  ["01", "Founders", "Get discovered for the work you’re actually doing."],
-  ["02", "Professionals", "Turn experience into roles, advisory and board opportunities."],
-  ["03", "Companies", "Build a presence your team can grow into."],
-  ["04", "Investors", "Meet companies with context, not just a deck."],
+  ["01", "Founders", "Get discovered for the work you’re actually doing.", "/for-founders"],
+  ["02", "Professionals", "Turn experience into roles, advisory and board opportunities.", "/for-professionals"],
+  ["03", "Startups", "Verified without paperwork — priced for the beginning.", "/for-startups"],
+  ["04", "Companies", "Registry-confirmed pages for fundraising and hiring.", "/for-companies"],
 ] as const;

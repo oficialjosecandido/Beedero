@@ -44,8 +44,8 @@ export async function generateMetadata({
       : "Startup directory";
 
   const description = query
-    ? `Search results for “${query}” in the Beedero startup directory — verified company profiles for investors and researchers.`
-    : "Browse verified startup profiles on Beedero — structured company records for founders, investors, and researchers.";
+    ? `Search results for “${query}” in the Beedero directory — registry-confirmed companies and hand-verified startups for founders and investors.`
+    : "Browse verified startups and companies on Beedero — verification ladder, public updates, and profiles investors can trust.";
 
   return pageMetadata({
     title,
@@ -53,8 +53,10 @@ export async function generateMetadata({
     path: startupsPath(params, page),
     keywords: [
       "startup directory",
-      "startup profiles",
       "verified startups",
+      "verified companies",
+      "startup discovery",
+      "certidão permanente",
       "Beedero",
       ...(query ? [query] : []),
     ],

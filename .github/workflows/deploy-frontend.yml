@@ -45,6 +45,8 @@ jobs:
           # Unset today, so client-side Sentry stays off exactly as it is now.
           # Setting the repo variable is all it takes to turn it back on.
           NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          # GA4 measurement ID (G-…). Empty = analytics script stays off.
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
 
       - name: Assemble deploy package
         working-directory: frontend

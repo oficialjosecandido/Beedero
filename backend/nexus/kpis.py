@@ -170,6 +170,10 @@ def overview(now=None) -> dict:
     in_discover = with_unlock(InvestorProfile.objects.filter(user__in=base)).count()
     orgs_live = Organization.objects.filter(status=Organization.Status.LIVE).count()
     orgs_new_7 = Organization.objects.filter(created_at__gte=week_ago).count()
+    startups_live = Organization.objects.filter(
+        status=Organization.Status.LIVE, kind=Organization.Kind.STARTUP
+    ).count()
+    startups_new_7 = Organization.objects.filter(created_at__gte=week_ago, kind=Organization.Kind.STARTUP).count()
     orgs_listed = listed_in_discover(Organization.objects.all()).count()
 
     # ---- engagement (active days)
@@ -257,6 +261,13 @@ def overview(now=None) -> dict:
                 _card("orgs_live", "Live organisations", orgs_live),
                 _card("orgs_listed", "Organisations in Discover", orgs_listed, hint="Live, past the gate, with a plan."),
                 _card("orgs_new_7", "New organisations (7d)", orgs_new_7),
+                _card(
+                    "startups_live",
+                    "Live startups",
+                    startups_live,
+                    hint=f"Not incorporated yet. The other {orgs_live - startups_live} live are companies.",
+                ),
+                _card("startups_new_7", "New startups (7d)", startups_new_7, hint=f"Of {orgs_new_7} new organisations."),
             ],
         },
         {
@@ -318,7 +329,12 @@ def overview(now=None) -> dict:
             "cards": [
                 _card("mrr", "MRR", revenue["mrr_cents"], unit="cents", hint="VAT included."),
                 _card("mrr_net", "MRR without VAT", revenue["mrr_net_cents"], unit="cents"),
-                _card("paying_orgs", "Paying organisations", revenue["paying_orgs"]),
+                _card(
+                    "paying_orgs",
+                    "Paying organisations",
+                    revenue["paying_orgs"],
+                    hint=f"{revenue['paying_startups']} at the startup price, {revenue['paying_companies']} at the company price.",
+                ),
                 _card("free_periods", "In their free year", revenue["free_periods_active"]),
                 _card(
                     "free_ending",

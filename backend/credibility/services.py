@@ -130,6 +130,11 @@ def approve_verification(verification: Verification, reviewer) -> Verification:
 
     if verification.type == VerificationType.ANNUAL_ACCOUNTS:
         _write_financial_fields(verification.org, verification)
+    if verification.type == VerificationType.COMPANY_REGISTRY and verification.org.kind == "startup":
+        # A confirmed registry means the startup is incorporated now.
+        from orgs.kinds import COMPANY, change_kind
+
+        change_kind(verification.org, COMPANY, reason="Registry confirmed", actor=reviewer)
 
     type_label = verification.get_type_display()
     message = f"Your '{type_label}' verification was confirmed. {verification.org.name} just got stronger."

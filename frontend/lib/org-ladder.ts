@@ -4,7 +4,12 @@
  * person's (lib/person-vitality.ts): eight rungs, and the first four (the
  * "team" band) are the gate. All four = 50% = the organisation can be
  * published, and only then is it listed in Discover.
+ *
+ * A startup (lib/org-kinds.ts) has seven: no registry rung, and Beedero
+ * confirms it by hand. Its gate is still exactly 50%.
  */
+
+import type { OrgKind } from "./org-kinds";
 
 export type OrgLadderBand = "team" | "others" | "record";
 
@@ -30,12 +35,18 @@ export type OrgLadderRung = {
   progress: number | null;
 };
 
+/** The company registry check, outside the rungs — for a startup it is how
+ *  it becomes a company. */
+export type RegistryState = Pick<OrgLadderRung, "done" | "pending" | "detail" | "warning">;
+
 export type OrgLadder = {
   rungs: OrgLadderRung[];
   done_count: number;
   total_count: number;
-  /** done / total, floored — exactly 50 at the gate. */
+  /** The team band is half, the rest the other half — exactly 50 at the gate. */
   percent: number;
+  kind?: OrgKind;
+  registry?: RegistryState;
   /** Rungs 1–4 done. */
   unlocked: boolean;
   unlock_missing: string[];

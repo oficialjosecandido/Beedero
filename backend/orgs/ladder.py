@@ -9,6 +9,11 @@ The same shape as the person's (accounts/ladder.py), so the two read alike:
                         registry, and Beedero.
   8    The record     — seven days in a row with an update.
 
+A startup (orgs/kinds.py) has no company to look up, so its ladder has seven
+rungs: no registry, and Beedero confirms it by hand in the Nexus. The four
+team rungs are still exactly 50% — each band is weighed on its own (see
+`_percent`), so the gate sits in the same place for both kinds.
+
 Rung 4 ties the two ladders together: an organisation is only listed when at
 least one person on its team has passed their *own* gate. Nothing faceless
 gets into Discover.
@@ -225,6 +230,21 @@ def longest_daily_run(org) -> int:
 # ------------------------------------------------------------------ ladder
 
 
+def _percent(rungs: list[dict]) -> int:
+    """The team band is the first half, everything above it the second, each
+    split evenly among its rungs. With eight rungs that is 12.5 points each —
+    the same as done/total — and with a startup's seven the gate is still at
+    exactly 50."""
+    team = [rung for rung in rungs if rung["band"] == "team"]
+    above = [rung for rung in rungs if rung["band"] != "team"]
+    score = 0.0
+    if team:
+        score += 50 * sum(rung["done"] for rung in team) / len(team)
+    if above:
+        score += 50 * sum(rung["done"] for rung in above) / len(above)
+    return math.floor(score + 1e-9)
+
+
 def org_verification_ladder(org) -> dict:
     from affiliations.models import Affiliation
 
@@ -235,6 +255,34 @@ def org_verification_ladder(org) -> dict:
     confirmed = Affiliation.objects.filter(org=org, status=Affiliation.Status.VERIFIED).count()
     registry = _registry_state(org)
     run = longest_daily_run(org)
+
+    startup = org.kind == Organization.Kind.STARTUP
+    if startup:
+        beedero_rung = {
+            "key": "beedero_verified",
+            "band": "others",
+            "label": "Verified by Beedero",
+            "hint": "We check by hand that the startup and the people behind it are real — no documents "
+            "needed. It starts once the first four steps are done.",
+            "done": org.is_verified,
+            # In our queue (the Nexus) from the moment the gate is passed.
+            "pending": not org.is_verified and not gate_missing(org),
+            "attested_by": "Beedero",
+            "action": None,
+            "detail": "",
+        }
+    else:
+        beedero_rung = {
+            "key": "beedero_verified",
+            "band": "others",
+            "label": "Verified by Beedero",
+            "hint": "We confirm the organisation is who it says it is: automatically when the owner's "
+            "email domain matches its name, otherwise by hand once the registry is confirmed.",
+            "done": org.is_verified,
+            "attested_by": "Beedero",
+            "action": None,
+            "detail": "",
+        }
 
     def face_detail() -> str:
         if not faces:
@@ -310,17 +358,7 @@ def org_verification_ladder(org) -> dict:
             "detail": registry["detail"],
             "warning": registry["warning"],
         },
-        {
-            "key": "beedero_verified",
-            "band": "others",
-            "label": "Verified by Beedero",
-            "hint": "We confirm the organisation is who it says it is: automatically when the owner's "
-            "email domain matches its name, otherwise by hand once the registry is confirmed.",
-            "done": org.is_verified,
-            "attested_by": "Beedero",
-            "action": None,
-            "detail": "",
-        },
+        beedero_rung,
         {
             "key": "daily_week",
             "band": "record",
@@ -333,6 +371,8 @@ def org_verification_ladder(org) -> dict:
             "progress": min(run, DAILY_STREAK_DAYS),
         },
     ]
+    if startup:
+        rungs = [rung for rung in rungs if rung["key"] != "registry_confirmed"]
     for rung in rungs:
         rung.setdefault("progress", None)
         rung.setdefault("pending", False)
@@ -349,7 +389,11 @@ def org_verification_ladder(org) -> dict:
         "done_count": done,
         "total_count": len(rungs),
         # Floored, so it never overstates: exactly 50 at the gate.
-        "percent": 100 * done // len(rungs),
+        "percent": _percent(rungs),
+        "kind": org.kind,
+        # The registry check on its own, for both kinds: for a startup it is
+        # how it becomes a company (orgs/kinds.py), not a rung.
+        "registry": {key: registry[key] for key in ("done", "pending", "detail", "warning")},
         # True exactly when is_org_unlocked(org) is — the same four checks.
         "unlocked": not unlock_missing,
         "unlock_missing": unlock_missing,

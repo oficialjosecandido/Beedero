@@ -24,8 +24,12 @@ class Subscription(models.Model):
     class Plan(models.TextChoices):
         FREE = "free"  # legacy, never grants access
         FOUNDER_PRO = "founder_pro"  # legacy, dormant
-        ORG_YEARLY = "org_yearly", "Yearly"
-        ORG_MONTHLY = "org_monthly", "Monthly"
+        # The company plans keep their original values: every row before
+        # the startup/company split was a company.
+        ORG_YEARLY = "org_yearly", "Company, yearly"
+        ORG_MONTHLY = "org_monthly", "Company, monthly"
+        STARTUP_YEARLY = "startup_yearly", "Startup, yearly"
+        STARTUP_MONTHLY = "startup_monthly", "Startup, monthly"
         COMP = "comp", "Complimentary"
 
     class Status(models.TextChoices):

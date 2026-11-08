@@ -9,17 +9,37 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "What is Beedero?",
     answer:
-      "Beedero is a professional network for founders, operators, investors and organisations. You build a structured profile, get discovered for the work you’re doing, and grow credibility through organisation-confirmed roles and milestones.",
+      "Beedero is a verified professional network for founders, talent, advisors, investors, startups and companies. Personal profiles are free. Organisations get a public page, verification ladder, jobs and private fundraising — without cold spam.",
   },
   {
     question: "Is Beedero free to join?",
     answer:
-      "Yes. Creating a personal profile and joining the network is free, and stays free. Organisations pay €99 a year or €9 a month, VAT included — and early adopters get the first year free, with no card. See Pricing for what’s included.",
+      "Yes. Personal accounts are free and stay free. Startups pay €33 a year or €3 a month; companies pay €99 a year or €9 a month, VAT included. With the EARLYADOPTER code, an organisation’s first year is free with no card. See Pricing for what’s included.",
   },
   {
-    question: "How does verification work?",
+    question: "How does founder verification work?",
     answer:
-      "Self-declared experience starts as just that. When an organisation on Beedero confirms your role — or when you sit on its team roster — that fact becomes verified by the organisation. Founder claims via company registry follow a separate review path.",
+      "Founder status is verified against the company’s certidão permanente from the commercial registry — not self-declared. Pre-incorporation startups are confirmed by hand so you can be credible before you incorporate.",
+  },
+  {
+    question: "How are professional roles verified?",
+    answer:
+      "Your roles are confirmed by the organisations you work with on Beedero. That confirmation turns self-declared experience into attested credibility on your profile.",
+  },
+  {
+    question: "When do I appear in Discover?",
+    answer:
+      "A verification ladder shows what’s confirmed about you. From 50% you appear in Discover and can send connection requests.",
+  },
+  {
+    question: "Can I import my LinkedIn profile?",
+    answer:
+      "Yes. Import from LinkedIn to set up your Beedero profile in minutes instead of starting from scratch.",
+  },
+  {
+    question: "Who can see fundraising details?",
+    answer:
+      "Asks, valuation, financials, data room and cap table are shared only with verified investors — not with the public network.",
   },
   {
     question: "Who can see my profile?",
@@ -33,6 +53,6 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "How do I delete my account?",
     answer:
-      "You can request deletion from account settings or by emailing pt.bidnow@gmail.com. We’ll confirm and process the request under our Privacy Policy.",
+      "You can request deletion from account settings or by emailing pt.bidnow@gmail.com. We’ll confirm and process the request under our Privacy Policy. Your data is also easy to export while your account is active.",
   },
 ];
