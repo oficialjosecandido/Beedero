@@ -105,16 +105,14 @@ export function LinkPreviewCard({
 }
 
 function LinkPreviewCardInner({ url, tone }: { url: string; tone: "light" | "dark" }) {
+  // Remount via key={url} above resets this; read the module cache in the
+  // initializer so a warm URL never needs a sync setState inside an effect.
   const [state, setState] = useState<PreviewState>(() => resolvedByUrl.get(url) ?? { status: "loading" });
 
   useEffect(() => {
-    let cancelled = false;
-    const cached = resolvedByUrl.get(url);
-    if (cached) {
-      setState(cached);
-      return;
-    }
+    if (resolvedByUrl.has(url)) return;
 
+    let cancelled = false;
     void resolvePreview(url).then((next) => {
       if (!cancelled) setState(next);
     });
