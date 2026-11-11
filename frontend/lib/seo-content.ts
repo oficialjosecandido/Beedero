@@ -1,30 +1,51 @@
 /**
- * Canonical SEO copy — titles, descriptions, keywords and persona landing
- * content. Kept in one place so meta tags, JSON-LD and crawlable pages stay
- * aligned with the product value props.
+ * Canonical public copy — the one-line description, titles, descriptions,
+ * keywords and the four audience pages.
+ *
+ * Two rules, because the site lost them once and read as filler:
+ *  1. `ONE_LINER` is the only sentence that says what Beedero is. Every place
+ *     that needs that sentence imports it instead of writing its own.
+ *  2. Nothing here claims something the product does not do today. The
+ *     registry check covers Portugal, investors are verified by hand, and
+ *     there is no data export — so none of those are promised otherwise.
  */
 
 export const SITE_NAME = "Beedero";
 
-export const DEFAULT_TITLE =
-  "Verified professional network for founders, talent and companies";
+/** The description of Beedero. Used verbatim everywhere one is needed. */
+export const ONE_LINER =
+  "Beedero is a network for startups where companies, teams and investors are verified.";
 
-export const DEFAULT_DESCRIPTION =
-  "Beedero is the verified network for founders, professionals, startups and companies. Free personal profiles, organisation-confirmed roles, registry-backed founder status, co-founder matching and private fundraising — without cold spam.";
+/** Where the registry check works today. Said once per page that sells it. */
+export const REGISTRY_SCOPE =
+  "Company verification currently works for companies registered in Portugal.";
+
+export const DEFAULT_TITLE =
+  "A network for startups where companies, teams and investors are verified";
+
+export const DEFAULT_DESCRIPTION = `${ONE_LINER} Personal accounts are free. Startups pay €33 a year, companies €99 a year, VAT included. ${REGISTRY_SCOPE}`;
+
+/**
+ * Where Beedero actually is. The home page and both empty directories read
+ * this, so someone who lands on an empty Discover gets the real reason
+ * instead of "check back soon".
+ *
+ * No counts on purpose: publishing "4 startups" would be worse than saying
+ * beta. If you want real numbers, or the month Beedero opened, this sentence
+ * is the only place that changes.
+ */
+export const BETA_STATUS =
+  "Beedero is in beta. The first startups are setting up their pages now, so there is not much here yet — that is the honest state of it rather than a soft launch.";
 
 export const SITE_KEYWORDS = [
   "Beedero",
-  "verified professional network",
+  "verified startup network",
   "startup network",
-  "founder verification",
+  "company verification",
   "certidão permanente",
   "co-founder matching",
-  "verified startups",
   "startup jobs",
-  "company verification",
-  "fundraising platform",
-  "professional profile",
-  "startup discovery",
+  "pre-seed fundraising",
   "verified investors",
   "EARLYADOPTER",
 ] as const;
@@ -33,7 +54,6 @@ export type SeoPersona = {
   slug: "for-founders" | "for-professionals" | "for-startups" | "for-companies";
   path: string;
   navLabel: string;
-  eyebrow: string;
   /** Page <title> (site name appended by pageMetadata). */
   title: string;
   /** Meta description ≤ ~160 chars for SERP snippets. */
@@ -43,7 +63,9 @@ export type SeoPersona = {
   lead: string;
   ctaLabel: string;
   ctaHref: string;
+  /** Three at most. Each one says a different thing. */
   points: { title: string; body: string }[];
+  /** Questions people actually ask — not the points asked back. */
   faqs: { question: string; answer: string }[];
 };
 
@@ -52,10 +74,9 @@ export const SEO_PERSONAS: SeoPersona[] = [
     slug: "for-founders",
     path: "/for-founders",
     navLabel: "Founders",
-    eyebrow: "For founders",
-    title: "Verified founder profiles — proven, not claimed",
+    title: "Verified founder profiles",
     description:
-      "Prove founder status with certidão permanente verification. Free Beedero profile, verification ladder, LinkedIn import, co-founder matching and no cold spam.",
+      "Beedero checks founder status against the company's certidão permanente — nothing to upload. Free profile, LinkedIn import and co-founder matching. Currently for companies registered in Portugal.",
     keywords: [
       "verified founder profile",
       "founder verification",
@@ -63,60 +84,50 @@ export const SEO_PERSONAS: SeoPersona[] = [
       "co-founder matching",
       "LinkedIn import profile",
       "startup founder network",
-      "Beedero founders",
     ],
-    h1: "Your founder status is proven, not claimed.",
-    lead: "Verified against the company’s certidão permanente — not self-declared. Build credibility on a free profile, find a co-founder you can trust, and get reached only through real connections.",
-    ctaLabel: "Build my founder profile",
+    h1: "Verified founder profiles",
+    // The one place on the site where the registry check is explained at
+    // length, because this is the page about it.
+    lead: "Beedero checks your founder status against your company's certidão permanente — the certificate the Portuguese commercial registry issues for every company. We read it ourselves, so there is nothing for you to upload and nothing for anyone to fake. For a startup with no company yet, we verify by hand instead.",
+    ctaLabel: "Join",
     ctaHref: "/register",
     points: [
       {
-        title: "Verified against the registry",
-        body: "Founder status is checked against the company’s certidão permanente, not typed in by you.",
-      },
-      {
-        title: "A free profile that builds credibility",
-        body: "A verification ladder shows what’s confirmed about you. From 50% you appear in Discover and can send connection requests.",
+        title: "Checked against the registry",
+        body: "We read your company's certidão permanente from the commercial registry.",
       },
       {
         title: "Set up in minutes",
-        body: "Import your profile from LinkedIn instead of starting from scratch.",
+        body: "Import your profile from LinkedIn instead of typing it again.",
       },
       {
         title: "Find a co-founder",
-        body: "Co-founder matching with people who are who they say they are.",
-      },
-      {
-        title: "No cold spam",
-        body: "People reach you only through real connections.",
+        body: "Matching with people whose profiles went through the same checks as yours.",
       },
     ],
     faqs: [
       {
-        question: "How does Beedero verify founders?",
-        answer:
-          "Founder status is verified against the company’s certidão permanente from the commercial registry — not a self-declared checkbox.",
+        question: "Do I need a Portuguese company?",
+        answer: `${REGISTRY_SCOPE} If your company is registered elsewhere, you can still have a profile and a page — tell us and we will verify it by hand while we add your country.`,
       },
       {
-        question: "When do I appear in Discover?",
+        question: "What if I haven't incorporated yet?",
         answer:
-          "When your verification ladder reaches 50%, you appear in Discover and can send connection requests.",
+          "Create a startup instead of a company. We verify it by hand, and when you do incorporate you confirm the certidão permanente and keep the page you already built.",
       },
       {
         question: "Can I import my LinkedIn profile?",
-        answer:
-          "Yes. Import from LinkedIn to set up your Beedero profile in minutes instead of starting from scratch.",
+        answer: "Yes. Import from LinkedIn instead of typing everything again.",
       },
     ],
   },
   {
     slug: "for-professionals",
     path: "/for-professionals",
-    navLabel: "Talent & advisors",
-    eyebrow: "For everyone on Beedero",
-    title: "Free verified professional profiles — roles confirmed by organisations",
+    navLabel: "Professionals",
+    title: "Free profiles with roles your employer confirmed",
     description:
-      "Free Beedero accounts with organisation-confirmed roles, verified startups to explore, better jobs including co-founder roles, and credibility without vanity metrics.",
+      "Personal accounts on Beedero are free and stay free. The organisations you work with confirm your roles, and you can apply to roles at startups and companies, co-founder roles included.",
     keywords: [
       "free professional network",
       "verified professional profile",
@@ -124,50 +135,40 @@ export const SEO_PERSONAS: SeoPersona[] = [
       "startup jobs",
       "co-founder roles",
       "advisor network",
-      "investor network",
-      "Beedero professionals",
     ],
-    h1: "A profile that means something.",
-    lead: "Personal accounts are free, always. Your roles are confirmed by the organisations you work with. Trust every startup and company you find — and apply to roles worth your time.",
-    ctaLabel: "Create my free profile",
+    h1: "Roles your employer confirmed",
+    lead: "Personal accounts are free and stay free. The organisations you work with confirm your roles on Beedero, so a role on your profile carries their name as well as yours. Until one of them confirms it, the profile says so.",
+    ctaLabel: "Join",
     ctaHref: "/register",
     points: [
       {
         title: "Free, always",
-        body: "Personal accounts cost nothing.",
+        body: "Personal accounts cost nothing. Only organisations pay.",
       },
       {
-        title: "Roles confirmed by organisations",
-        body: "Your experience is confirmed by the organisations you work with, not typed in only by you.",
+        title: "Roles confirmed by the organisation",
+        body: "The company or startup you worked with confirms the role, and the profile shows which ones are confirmed.",
       },
       {
-        title: "Trust what you see",
-        body: "Every startup and company you find has been through a verification ladder.",
-      },
-      {
-        title: "Better jobs",
-        body: "Apply to roles at verified startups and companies, including co-founder roles.",
-      },
-      {
-        title: "Credibility over vanity",
-        body: "No public likes, no inbox noise, and your data is easy to export.",
+        title: "Roles worth applying to",
+        body: "Apply to jobs at startups and companies on Beedero, co-founder roles included.",
       },
     ],
     faqs: [
       {
-        question: "Is a Beedero personal account free?",
+        question: "Is a personal account really free?",
         answer:
-          "Yes. Personal accounts are free and stay free. Organisations pay a separate subscription.",
+          "Yes, and it stays free. Organisations pay a subscription; people never do.",
       },
       {
-        question: "How are roles verified?",
+        question: "What happens if an organisation doesn't confirm my role?",
         answer:
-          "Organisations on Beedero confirm your roles. That confirmation is what turns self-declared experience into attested credibility.",
+          "The role stays on your profile as your own statement, marked as unconfirmed. Nothing is deleted and nothing pretends to be verified.",
       },
       {
         question: "Can I apply to jobs without paying?",
         answer:
-          "Yes. Browse and apply to roles at verified startups and companies — including co-founder roles — from a free personal account.",
+          "Yes. Browsing and applying are free, including co-founder roles.",
       },
     ],
   },
@@ -175,10 +176,9 @@ export const SEO_PERSONAS: SeoPersona[] = [
     slug: "for-startups",
     path: "/for-startups",
     navLabel: "Startups",
-    eyebrow: "For startups not yet incorporated",
-    title: "Startup profiles from €33/year — verified without paperwork",
+    title: "Startup pages from €33 a year",
     description:
-      "Launch a Beedero startup workspace from €33/year or €3/month (VAT included). Hand verification without incorporation, co-founder roles, private pre-seed asks and weekly momentum. First year free with EARLYADOPTER.",
+      "A verified startup page before you incorporate: €33 a year or €3 a month, VAT included, first year free with EARLYADOPTER. Co-founder roles and a pre-seed ask only verified investors see.",
     keywords: [
       "startup profile",
       "pre-seed fundraising",
@@ -186,54 +186,40 @@ export const SEO_PERSONAS: SeoPersona[] = [
       "startup verification",
       "startup workspace",
       "EARLYADOPTER",
-      "€33 year startup",
-      "Beedero startups",
     ],
-    h1: "Verified without paperwork.",
-    lead: "Beedero confirms your startup by hand, so you don’t need a company to be credible. Post co-founder roles, raise pre-seed in private, show momentum early — then grow into a company without starting over.",
-    ctaLabel: "Create my startup",
-    ctaHref: "/register",
+    h1: "A verified page before you incorporate",
+    lead: "A startup has no company for anyone to look up, so we verify it by hand: we read the page and check whether a company of that name already exists. €33 a year or €3 a month, VAT included — and with the code EARLYADOPTER the first year is free, with no card.",
+    ctaLabel: "Create a startup",
+    ctaHref: "/orgs/new?kind=startup",
     points: [
       {
-        title: "Priced for the beginning",
-        body: "€33/year or €3/month, VAT included. With the code EARLYADOPTER, the first year is free.",
+        title: "Verified before there is a company",
+        body: "We confirm the startup by hand, so the page can be credible before the paperwork exists.",
       },
       {
-        title: "Verified without paperwork",
-        body: "Beedero confirms your startup by hand, so you don’t need a company to be credible.",
+        title: "Co-founder roles",
+        body: "Post the role you need a co-founder for, and use co-founder matching from the same workspace.",
       },
       {
-        title: "A Co-founders section",
-        body: "Post co-founder roles and use co-founder matching, both from your workspace.",
-      },
-      {
-        title: "Raise pre-seed in private",
-        body: "Your ask and use of funds are seen only by verified investors.",
-      },
-      {
-        title: "Show momentum early",
-        body: "Weekly updates, events and jobs build a record investors can follow.",
-      },
-      {
-        title: "Grow into a company without starting over",
-        body: "When you incorporate, confirm your certidão permanente and keep all your history.",
+        title: "A pre-seed ask that stays private",
+        body: "Your ask and use of funds are visible only to investors Beedero has verified by hand.",
       },
     ],
     faqs: [
       {
-        question: "How much does a startup workspace cost on Beedero?",
+        question: "How much does it cost?",
         answer:
-          "€33 per year or €3 per month, VAT included. With the promotional code EARLYADOPTER, the first year is free and no card is required.",
+          "€33 a year or €3 a month, VAT included. With the code EARLYADOPTER the first year is free and no card is required.",
       },
       {
-        question: "Can I be verified before incorporation?",
+        question: "What happens when I incorporate?",
         answer:
-          "Yes. Beedero verifies pre-incorporation startups by hand, so you can build credibility before you have a company.",
+          "Confirm the certidão permanente from your workspace and the page becomes a company page, keeping everything you built. The company price applies from a renewal at least 30 days after we tell you.",
       },
       {
         question: "Who can see my fundraising ask?",
         answer:
-          "Your ask and use of funds are visible only to verified investors — not to the public network.",
+          "Only investors Beedero has verified. Investor verification is done by hand, one person at a time.",
       },
     ],
   },
@@ -241,10 +227,9 @@ export const SEO_PERSONAS: SeoPersona[] = [
     slug: "for-companies",
     path: "/for-companies",
     navLabel: "Companies",
-    eyebrow: "For incorporated companies",
-    title: "Registry-confirmed company pages — fundraising, hiring and trust",
+    title: "Company pages confirmed against the commercial registry",
     description:
-      "Beedero company pages confirmed via certidão permanente. Full fundraising rounds, investor-confirmed track records, hiring with stock options and Insights. €99/year or €9/month; first year free with EARLYADOPTER.",
+      "Beedero confirms your company against its certidão permanente. Fundraising rounds and a cap table only verified investors see, hiring with stock options, €99 a year or €9 a month.",
     keywords: [
       "company verification",
       "certidão permanente",
@@ -253,54 +238,39 @@ export const SEO_PERSONAS: SeoPersona[] = [
       "cap table",
       "hire with stock options",
       "verified company page",
-      "Beedero companies",
-      "€99 year company",
     ],
-    h1: "Registry-confirmed. One link that does the work.",
-    lead: "Your certidão permanente is checked against the commercial registry — no PDF uploads. Run full fundraising rounds, hire with stock options, and share a verified page investors, partners and candidates can trust.",
-    ctaLabel: "Create my company page",
-    ctaHref: "/register",
+    h1: "Confirmed against the commercial registry",
+    lead: `We check your company against its certidão permanente, so the page says what the registry says. Run a fundraising round, hire, and share one page investors, partners and candidates can look up. €99 a year or €9 a month, VAT included. ${REGISTRY_SCOPE}`,
+    ctaLabel: "Create a company",
+    ctaHref: "/orgs/new?kind=company",
     points: [
       {
-        title: "Registry-confirmed",
-        body: "Your certidão permanente is checked against the commercial registry, with no PDF uploads.",
+        title: "Confirmed against the registry",
+        body: "We read your certidão permanente ourselves. There is nothing to upload.",
       },
       {
-        title: "Full fundraising rounds",
-        body: "Pre-seed, seed and Series A, with valuation, financials, data room and cap table shared only with verified investors.",
+        title: "A round only verified investors see",
+        body: "Valuation, financials, data room and cap table go to investors Beedero has verified, not to the network.",
       },
       {
-        title: "A track record no one can fake",
-        body: "Investments count only when the investor confirms them.",
-      },
-      {
-        title: "Hire with stock options",
-        body: "Post every kind of role on a page candidates can trust.",
-      },
-      {
-        title: "One link that does the work",
-        body: "A verified page for investors, partners and candidates, with Insights on who’s paying attention.",
-      },
-      {
-        title: "Simple pricing",
-        body: "€99/year or €9/month, VAT included. With the code EARLYADOPTER, the first year is free.",
+        title: "Hiring, stock options included",
+        body: "Job posts can state the equity on offer, on a page a candidate can look up before replying.",
       },
     ],
     faqs: [
       {
-        question: "How are companies verified on Beedero?",
-        answer:
-          "Incorporated companies are confirmed against the commercial registry via certidão permanente. There are no PDF uploads to fake.",
+        question: "How are companies verified?",
+        answer: `We check the company against its certidão permanente from the commercial registry. ${REGISTRY_SCOPE}`,
       },
       {
         question: "Who sees valuation, financials and the data room?",
         answer:
-          "Fundraising materials — valuation, financials, data room and cap table — are shared only with verified investors.",
+          "Only investors Beedero has verified by hand. Nothing in the fundraising section is public.",
       },
       {
-        question: "How much does a company workspace cost?",
+        question: "How much does it cost?",
         answer:
-          "€99 per year or €9 per month, VAT included. With EARLYADOPTER, the first year is free.",
+          "€99 a year or €9 a month, VAT included. With EARLYADOPTER the first year is free.",
       },
     ],
   },

@@ -132,7 +132,10 @@ const nextConfig: NextConfig = {
       { source: "/termos", destination: "/terms", permanent: true },
       { source: "/privacidade", destination: "/privacy", permanent: true },
       { source: "/perguntas", destination: "/faq", permanent: true },
-      { source: "/casos", destination: "/cases", permanent: true },
+      // /cases claimed outcomes that did not exist, so it is gone. Both the
+      // English and Portuguese paths were indexed and linked; they land home.
+      { source: "/cases", destination: "/", permanent: true },
+      { source: "/casos", destination: "/", permanent: true },
       { source: "/obrigado", destination: "/thanks", permanent: true },
     ];
   },

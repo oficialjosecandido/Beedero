@@ -8,6 +8,7 @@ import { PublicJobFilters } from "@/components/jobs/PublicJobFilters";
 import { publicFetch } from "@/lib/api";
 import { engagementTypeLabel, locationTypeLabel } from "@/lib/job-options";
 import { jsonLdHtml } from "@/lib/json-ld";
+import { BETA_STATUS } from "@/lib/seo-content";
 import { pageMetadata, SITE_URL } from "@/lib/site-metadata";
 import type { PublicJobsPage } from "@/lib/types";
 
@@ -163,7 +164,7 @@ export default async function PublicJobsPage({
                   .
                 </>
               ) : (
-                "No open roles right now. Postings last seven days, so this page changes often — check back soon."
+                `No open roles right now. ${BETA_STATUS}`
               )}
             </div>
           ) : (

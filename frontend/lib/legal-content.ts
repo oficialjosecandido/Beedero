@@ -5,8 +5,16 @@ export const LEGAL_ENTITY = {
   registryLocation: "Conservatória do Registo Comercial de Lisboa",
   nif: "517988615",
   shareCapital: "100,00 €",
-  privacyEmail: "pt.bidnow@gmail.com",
-  contactEmail: "pt.bidnow@gmail.com",
+  // One address for the whole site — support, legal identification and
+  // privacy. If this mailbox ever changes, it changes here and nowhere else.
+  //
+  // This is a mailbox that is actually read, which matters more than the
+  // domain it sits on. Worth revisiting: an alias hello@beedero.com →
+  // jose@afterburnertek.com would put the same inbox behind the site's own
+  // name, so the only two names a visitor meets are Beedero and the legal
+  // entity above.
+  privacyEmail: "jose@afterburnertek.com",
+  contactEmail: "jose@afterburnertek.com",
   lastUpdated: "1 November 2026",
   profileViewRetention: "12 months",
   auditRetention: "24 months",
@@ -48,7 +56,7 @@ export function prepareLegalMarkdown(source: string): string {
     .replace(/\{24m\}/g, "24 months")
     .replace(
       /\{path in the app \/ by request to email\}/g,
-      "your account settings or by email to pt.bidnow@gmail.com",
+      `your account settings or by email to ${LEGAL_ENTITY.contactEmail}`,
     );
 
   text = text.replace(/\[LEGAL REVIEW:[^\]]*\]\n?/g, "");

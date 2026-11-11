@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LockKeyhole } from "lucide-react";
 
+import { PublicHeader } from "@/components/PublicHeader";
 import { jsonLdHtml } from "@/lib/json-ld";
 import { getAccessToken, getRefreshToken } from "@/lib/session";
 import { pageMetadata, SITE_URL } from "@/lib/site-metadata";
@@ -33,11 +33,12 @@ const ORG_PLANS = [
   {
     kind: "startup",
     label: "Startup",
+    plural: "startups",
     short: "Not incorporated yet",
     yearly: "€33",
     monthly: "€3",
     href: "/for-startups",
-    description: "Verified by hand — you don’t need a company to be credible.",
+    description: "Verified by hand, because there is no company to look up yet.",
     extras: [
       "Co-founder roles and matching",
       "Private pre-seed ask for verified investors",
@@ -48,15 +49,19 @@ const ORG_PLANS = [
   {
     kind: "company",
     label: "Company",
+    // Spelled out because "company" + "s" is how the page used to say
+    // "companys" to every visitor.
+    plural: "companies",
     short: "Incorporated",
     yearly: "€99",
     monthly: "€9",
     href: "/for-companies",
-    description: "Registry-confirmed via certidão permanente — no PDF uploads.",
+    description:
+      "Confirmed against its certidão permanente at the commercial registry. Portugal for now.",
     extras: [
       "Full fundraising rounds with data room",
       "Investor-confirmed track record",
-      "Hire with stock options",
+      "Job posts that can state the equity on offer",
       "Verified page with Insights",
     ],
   },
@@ -88,7 +93,6 @@ const QUESTIONS = [
 export default async function PricingPage() {
   const authed = Boolean((await getAccessToken()) || (await getRefreshToken()));
   const joinHref = authed ? "/feed" : "/register";
-  const orgHref = authed ? "/orgs/new" : "/register";
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -127,47 +131,26 @@ export default async function PricingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdHtml(productJsonLd) }}
       />
-      <main className="min-h-screen bg-[#070806] px-5 pb-10 text-white sm:px-8">
-        <header className="mx-auto flex max-w-[1280px] items-center justify-between pb-5 pt-[max(2rem,env(safe-area-inset-top))] sm:py-5">
-          <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
-            Beedero
-          </Link>
-          <Link
-            href={joinHref}
-            className="rounded-full bg-beedero-yellow px-5 py-2.5 text-xs font-black uppercase text-beedero-black"
-          >
-            Get started
-          </Link>
-        </header>
+      <main className="min-h-screen bg-[#070806] text-white">
+        <PublicHeader current="/pricing" />
 
-        <section className="mx-auto max-w-[1280px] py-16 sm:py-24">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">Pricing</p>
-          <h1 className="mt-6 max-w-4xl text-[clamp(3.2rem,7.5vw,7rem)] font-black uppercase leading-[0.84] tracking-[-0.02em]">
-            Free for people.
-            <br />
-            Fair for organisations.
+        <section className="mx-auto max-w-[1280px] px-5 py-12 sm:px-8 sm:py-16">
+          <h1 className="max-w-3xl text-[clamp(2.3rem,5.4vw,4rem)] font-black leading-[1.03] tracking-[-0.025em]">
+            Pricing
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-white/65">
-            Your profile, connections and messages cost nothing. Startups and companies pay a small
-            subscription so every organisation on Beedero is a promise real people stand behind.
+          <p className="mt-6 max-w-xl text-lg leading-8 text-white/65">
+            People pay nothing — profile, connections and messages. An organisation pays a
+            subscription, priced by what it is: a startup that has not incorporated yet, or a
+            company that has.
           </p>
-
-          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 border-y border-white/10 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-            <span>People · always free</span>
-            <span className="text-beedero-yellow">Startups · €33 / year</span>
-            <span className="text-beedero-yellow">Companies · €99 / year</span>
-            <span>EARLYADOPTER · first year free</span>
-          </div>
 
           <div className="mt-8 grid gap-3 lg:grid-cols-[0.75fr_1.25fr]">
             <section className="border border-white/15 bg-white/5 p-7 sm:p-9">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-beedero-yellow">
-                For you
-              </p>
-              <h2 className="mt-6 text-5xl font-black uppercase tracking-[-0.02em]">Free</h2>
+              <p className="text-sm font-black text-beedero-yellow">People</p>
+              <h2 className="mt-4 text-5xl font-black tracking-[-0.02em]">Free</h2>
               <p className="mt-4 max-w-md text-sm leading-6 text-white/65">
-                A profile that means something — organisation-confirmed roles, verified companies to
-                explore, and jobs worth applying to. No public likes, no inbox noise.
+                A personal account is free: profile, roles your organisation confirms, connections,
+                messages and job applications.
               </p>
               <ul className="mt-9 space-y-3 border-t border-white/10 pt-6 text-sm">
                 {PERSONAL.map((item) => (
@@ -179,9 +162,9 @@ export default async function PricingPage() {
               </ul>
               <Link
                 href={joinHref}
-                className="mt-10 inline-block rounded-full bg-beedero-yellow px-6 py-3.5 text-xs font-black uppercase text-beedero-black"
+                className="mt-10 inline-block rounded-full bg-beedero-yellow px-6 py-3.5 text-sm font-black text-beedero-black"
               >
-                Start your free profile →
+                {authed ? "Enter Beedero" : "Join"}
               </Link>
               <p className="mt-4 text-xs text-white/40">
                 Also see{" "}
@@ -207,13 +190,13 @@ export default async function PricingPage() {
                   }
                 >
                   <p
-                    className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-                      plan.kind === "company" ? "text-beedero-black/55" : "text-beedero-yellow"
+                    className={`text-sm font-black ${
+                      plan.kind === "company" ? "text-beedero-black/70" : "text-beedero-yellow"
                     }`}
                   >
                     {plan.label} · {plan.short}
                   </p>
-                  <h2 className="mt-5 flex flex-wrap items-baseline gap-x-2 font-black uppercase tracking-[-0.02em]">
+                  <h2 className="mt-4 flex flex-wrap items-baseline gap-x-2 font-black tracking-[-0.02em]">
                     <span className="text-5xl">{plan.yearly}</span>
                     <span className="text-base">/ year</span>
                   </h2>
@@ -248,23 +231,23 @@ export default async function PricingPage() {
                   <div className="mt-6 flex flex-col gap-2">
                     <Link
                       href={authed ? `/orgs/new?kind=${plan.kind}` : "/register"}
-                      className={`inline-block self-start rounded-full px-5 py-3 text-xs font-black uppercase ${
+                      className={`inline-block self-start rounded-full px-5 py-3 text-sm font-black ${
                         plan.kind === "company"
                           ? "bg-beedero-black text-white"
                           : "bg-beedero-yellow text-beedero-black"
                       }`}
                     >
-                      Create {plan.kind === "company" ? "a company" : "a startup"} →
+                      Create {plan.kind === "company" ? "a company" : "a startup"}
                     </Link>
                     <Link
                       href={plan.href}
-                      className={`inline-block text-xs font-black uppercase ${
+                      className={`inline-block text-sm font-bold ${
                         plan.kind === "company"
                           ? "text-beedero-black underline decoration-2 underline-offset-4"
                           : "text-beedero-yellow hover:underline"
                       }`}
                     >
-                      Why {plan.label.toLowerCase()}s choose Beedero →
+                      What {plan.plural} get
                     </Link>
                   </div>
                 </section>
@@ -272,27 +255,15 @@ export default async function PricingPage() {
             </div>
           </div>
 
-          <div className="mt-6 border border-white/10 bg-white/[0.03] px-6 py-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
-            <div>
-              <p className="text-sm font-black">Early adopter? Your first year is free.</p>
-              <p className="mt-1 text-xs leading-5 text-white/55">
-                Enter <span className="text-beedero-yellow">EARLYADOPTER</span> when you create the
-                organisation. No card needed.
-              </p>
-            </div>
-            <Link
-              href={orgHref}
-              className="mt-4 inline-flex rounded-full bg-beedero-yellow px-6 py-3.5 text-xs font-black uppercase text-beedero-black sm:mt-0"
-            >
-              Create organisation →
-            </Link>
-          </div>
-          {!authed && (
-            <p className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-white/45">
-              <LockKeyhole size={12} aria-hidden />
-              Sign in or create your personal account to continue.
+          {/* Information, not a third button — the two cards above already
+              carry the only CTA this page needs. */}
+          <div className="mt-6 border border-white/10 bg-white/[0.03] px-6 py-5">
+            <p className="text-sm font-black">The first year is free.</p>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-white/55">
+              Enter <span className="text-beedero-yellow">EARLYADOPTER</span> when you create the
+              organisation. No card needed.
             </p>
-          )}
+          </div>
 
           <div className="mt-16 grid gap-x-10 gap-y-8 border-t border-white/10 pt-10 md:grid-cols-2">
             {QUESTIONS.map((item) => (
@@ -303,7 +274,7 @@ export default async function PricingPage() {
             ))}
           </div>
 
-          <p className="mt-12 text-center text-xs text-white/45">
+          <p className="mt-12 text-sm text-white/45">
             Prices include VAT. Full conditions in the{" "}
             <Link href="/terms#subscriptions" className="underline">
               Terms

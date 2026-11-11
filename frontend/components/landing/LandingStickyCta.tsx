@@ -31,9 +31,9 @@ export function LandingStickyCta({
     >
       <LandingPrimaryLink
         href={primaryHref}
-        className="flex w-full items-center justify-center rounded-full bg-beedero-yellow py-3.5 text-sm font-black uppercase text-beedero-black"
+        className="flex w-full items-center justify-center rounded-full bg-beedero-yellow py-3.5 text-sm font-black text-beedero-black"
       >
-        {primaryLabel === "Enter Beedero" ? "Enter Beedero" : "Join free"} →
+        {primaryLabel === "Enter Beedero" ? "Enter Beedero" : "Join"}
       </LandingPrimaryLink>
     </div>
   );

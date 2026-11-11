@@ -1,39 +1,39 @@
-export const PEOPLE = {
-  founders: {
-    tab: "Founders",
-    line: "Build the thing.\nFind your people.",
-    copy: "A profile that turns your progress into introductions, hires and investor conversations.",
-    action: "Build my profile",
-    meta: "Build · hire · raise",
-  },
-  professionals: {
-    tab: "Professionals",
-    line: "Your next role\nknows your name.",
-    copy: "Put your experience in front of founders and teams looking for exactly what you know.",
-    action: "Show my work",
-    meta: "Advise · join · contribute",
-  },
-  companies: {
-    tab: "Companies",
-    line: "Be worth\nlooking up.",
-    copy: "Give your organisation a credible home for its story, team, jobs and milestones.",
-    action: "Create an organisation",
-    meta: "Tell · attract · grow",
-  },
-  investors: {
-    tab: "Investors",
-    line: "Find the signal\nbefore the noise.",
-    copy: "See the context around the companies and people worth meeting next.",
-    action: "Discover the network",
-    meta: "Find · meet · back",
-  },
+/**
+ * Home-page copy. Short on purpose: the earlier version said what Beedero is
+ * eight different ways, showed results that did not exist, and repeated the
+ * FAQ. Everything here is either true today or renders nothing.
+ */
+
+/**
+ * José's own note, for the second block of the home page and for /about.
+ *
+ * His words, his reason — tightened, not written for him. Both places render
+ * nothing while `body` is empty, so this stays the one piece of copy on the
+ * site that nobody but him can supply.
+ */
+export const FOUNDER_NOTE = {
+  name: "José Cândido",
+  role: "Founder",
+  body:
+    "Many times I've seen LinkedIn profiles that are not true to the person, and companies claiming to be something they are not. That is why I built Beedero. It is a work in progress, and it needs people on it — not an AI tool — to be worth anything.",
+  linkedin: "https://www.linkedin.com/in/jvcandido",
 } as const;
 
-export type PersonKey = keyof typeof PEOPLE;
-
-export const BENEFITS = [
-  ["01", "Founders", "Get discovered for the work you’re actually doing.", "/for-founders"],
-  ["02", "Professionals", "Turn experience into roles, advisory and board opportunities.", "/for-professionals"],
-  ["03", "Startups", "Verified without paperwork — priced for the beginning.", "/for-startups"],
-  ["04", "Companies", "Registry-confirmed pages for fundraising and hiring.", "/for-companies"],
+/**
+ * What the product does today. Three, because there are three worth showing —
+ * and each one is something you can go and use after signing up.
+ */
+export const WHAT_WORKS = [
+  {
+    title: "A profile your employer signs off",
+    body: "Add a role and the organisation confirms it. Anything unconfirmed says so on the page, so nobody has to take your word for it.",
+  },
+  {
+    title: "A page that can be looked up",
+    body: "A company is checked against its certidão permanente at the commercial registry. A startup with no company yet is verified by hand.",
+  },
+  {
+    title: "A round investors see and nobody else does",
+    body: "Your ask, valuation, data room and cap table go only to investors we have verified. Nothing of it is public.",
+  },
 ] as const;

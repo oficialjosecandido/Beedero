@@ -3,11 +3,11 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-/** Marketing landing pages ship their own dark footer; hide the global one
- *  there — and in the Nexus, which is an internal tool, not a page of the site. */
+/** One footer on every public page (components/Footer.tsx) — the landing used
+ *  to ship a second one of its own. The Nexus is an internal tool, not a page
+ *  of the site, so it has none. */
 export function SiteFooterGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/pricing" || pathname === "/cases") return null;
   if (pathname.startsWith("/beedero-nexus")) return null;
   return children;
 }

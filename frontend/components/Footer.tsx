@@ -1,15 +1,16 @@
 import Link from "next/link";
 
+import { SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
 import { COMPANY } from "@/lib/legal-content";
+import { ONE_LINER, SEO_PERSONAS } from "@/lib/seo-content";
 
 const PRODUCT_LINKS = [
+  ...SEO_PERSONAS.map((persona) => ({ href: persona.path, label: persona.navLabel })),
+  { href: "/pricing", label: "Pricing" },
   { href: "/startups", label: "Discover" },
   // On every page, which is how a crawler finds /jobs without waiting for the
   // sitemap — and how a visitor who came for a company finds the roles.
   { href: "/jobs", label: "Open roles" },
-  { href: "/cases", label: "Cases & results" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/#product", label: "How it works" },
 ] as const;
 
 const LEGAL_LINKS = [
@@ -17,13 +18,13 @@ const LEGAL_LINKS = [
   { href: "/terms", label: "Terms & Conditions" },
   { href: "/cookies", label: "Cookie Policy" },
   { href: "/disputes", label: "Dispute Resolution" },
-  { href: "/about", label: "Legal Information" },
+  { href: "/legal-information", label: "Legal Information" },
 ] as const;
 
 const COMPANY_LINKS = [
   { href: "/about", label: "About" },
-  { href: "/faq", label: "Support (24h reply)" },
-  { href: `mailto:${COMPANY.contactEmail}`, label: "Contact", external: false },
+  { href: "/faq", label: "FAQ" },
+  { href: `mailto:${COMPANY.contactEmail}`, label: COMPANY.contactEmail },
   {
     href: "https://www.livroreclamacoes.pt/inicio",
     label: "Complaints Book",
@@ -78,6 +79,14 @@ function FooterNav({
   );
 }
 
+/**
+ * The one footer, on every public page. The landing had a second one with a
+ * different tagline and a different set of links; both said something
+ * different about what Beedero is, so both now say `ONE_LINER`.
+ *
+ * This is also the one place that states the support promise, so it is not
+ * repeated three times on the way down a page.
+ */
 export function Footer() {
   const year = new Date().getFullYear();
 
@@ -89,8 +98,9 @@ export function Footer() {
             <Link href="/" className="text-lg font-black uppercase tracking-[-0.02em]">
               Beedero
             </Link>
-            <p className="mt-3 max-w-xs text-sm leading-6 text-beedero-black/75">
-              The trust network for startups and investors.
+            <p className="mt-3 max-w-xs text-sm leading-6 text-beedero-black/75">{ONE_LINER}</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-beedero-black/60">
+              {SUPPORT_RESPONSE_SLA}
             </p>
           </div>
 

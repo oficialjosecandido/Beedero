@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { EmailLinkForm } from "@/components/EmailLinkForm";
-import { SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
 import { safeNextPath } from "@/lib/firebase-auth";
 import { COMPANY } from "@/lib/legal-content";
 import { pageMetadata } from "@/lib/site-metadata";
@@ -38,7 +37,7 @@ export default async function ThanksPage({
           </p>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight">Thanks for joining.</h1>
           <p className="mt-2 text-sm text-zinc-600">
-            One code away from your professional record. {SUPPORT_RESPONSE_SLA}
+            Enter the code we emailed you and the account is ready.
           </p>
         </div>
 
@@ -71,8 +70,7 @@ export default async function ThanksPage({
             className="font-medium underline decoration-beedero-yellow decoration-2 underline-offset-4"
           >
             {COMPANY.contactEmail}
-          </a>{" "}
-          · {SUPPORT_RESPONSE_SLA}
+          </a>
         </p>
       </div>
     </main>

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 
+import { COMPANY } from "@/lib/legal-content";
+
 import { unsubscribeAction } from "./actions";
 
 /** A button, not an automatic unsubscribe on page load: link scanners in
@@ -39,7 +41,11 @@ export function UnsubscribeButton({ token }: { token: string }) {
       >
         {pending ? "…" : "Unsubscribe from the newsletter"}
       </button>
-      {state === "failed" && <p className="text-sm text-[#ff8d82]">This link doesn&apos;t work. Write to hello@beedero.com and we&apos;ll do it.</p>}
+      {state === "failed" && (
+        <p className="text-sm text-[#ff8d82]">
+          This link doesn&apos;t work. Write to {COMPANY.contactEmail} and we&apos;ll do it.
+        </p>
+      )}
     </div>
   );
 }

@@ -2,57 +2,32 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { FOUNDER_NOTE } from "@/components/landing/landing-content";
 import { LegalPageShell } from "@/components/LegalPageShell";
-import { SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
-import { COMPANY, LEGAL_ENTITY } from "@/lib/legal-content";
-import { publicFetch } from "@/lib/api";
+import { loadFounder } from "@/lib/founder";
+import { COMPANY } from "@/lib/legal-content";
+import { ONE_LINER } from "@/lib/seo-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "About Beedero — verified network based in Portugal",
-  description:
-    "Beedero is a verified professional network for founders, talent and companies, built in Portugal. Meet the team, registered office and support — we reply within 24 hours on business days.",
+  title: "About Beedero",
+  description: `${ONE_LINER} Built in Portugal. Who is behind it, and how to reach us.`,
   path: "/about",
-  keywords: ["About Beedero", "Portugal startup network", "verified professional network", "pt.bidnow"],
+  keywords: ["About Beedero", "Portugal startup network", "verified startup network"],
 });
 
-const MAPS_URL =
-  "https://www.google.com/maps/search/?api=1&query=" +
-  encodeURIComponent(COMPANY.address);
-
-type PublicPerson = {
-  person: {
-    full_name: string;
-    headline?: string;
-    profile_picture?: string | null;
-    handle: string;
-  };
-};
-
-async function loadFounderPhoto(): Promise<PublicPerson["person"] | null> {
-  try {
-    const data = await publicFetch<PublicPerson>("/public/people/josecandido/", 3600);
-    return data.person;
-  } catch {
-    return null;
-  }
-}
-
 export default async function AboutPage() {
-  const founder = await loadFounderPhoto();
+  const founder = await loadFounder();
 
   return (
-    <LegalPageShell title="About Beedero">
+    <LegalPageShell title="About Beedero" current="/about">
       <div className="mb-8">
         <Breadcrumbs items={[{ label: "About" }]} />
       </div>
 
-      <p>
-        Beedero is the trust network for startups and investors — verified profiles, discovery, and
-        a feed for sharing milestones, events, and updates.
-      </p>
+      <p>{ONE_LINER}</p>
 
-      <h2>The team</h2>
+      <h2>Who is behind it</h2>
       <div className="not-prose mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
         {founder?.profile_picture ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -68,63 +43,51 @@ export default async function AboutPage() {
             className="grid size-28 shrink-0 place-items-center rounded-2xl border border-beedero-border bg-zinc-100 text-2xl font-black text-beedero-black"
             aria-hidden
           >
-            JV
+            JC
           </span>
         )}
         <div>
           <p className="text-base font-extrabold text-zinc-900">
-            {founder?.full_name ?? "José Vicente Candido"}
+            {founder?.full_name ?? FOUNDER_NOTE.name}
           </p>
-          <p className="mt-1 text-sm text-zinc-600">
-            {founder?.headline ?? "Founder · Beedero"}
+          <p className="mt-1 text-sm text-zinc-600">{founder?.headline ?? FOUNDER_NOTE.role}</p>
+          <p className="mt-3 flex flex-wrap gap-4 text-sm font-semibold">
+            {founder?.handle && (
+              <Link
+                href={`/p/${founder.handle}`}
+                className="text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+              >
+                Profile on Beedero
+              </Link>
+            )}
+            {FOUNDER_NOTE.linkedin && (
+              <a
+                href={FOUNDER_NOTE.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
+              >
+                LinkedIn
+              </a>
+            )}
           </p>
-          {founder?.handle && (
-            <Link
-              href={`/p/${founder.handle}`}
-              className="mt-3 inline-block text-sm font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
-            >
-              Public profile →
-            </Link>
-          )}
         </div>
       </div>
 
+      {/* Renders once there is a real note — see components/landing/landing-content.ts. */}
+      {FOUNDER_NOTE.body && <p className="mt-6">{FOUNDER_NOTE.body}</p>}
+
       <h2>How to reach us</h2>
       <p>
-        <strong>Email:</strong>{" "}
-        <a href={`mailto:${COMPANY.contactEmail}`}>{COMPANY.contactEmail}</a>
+        <a href={`mailto:${COMPANY.contactEmail}`}>{COMPANY.contactEmail}</a> — support, privacy and
+        anything else. It is one mailbox and it is read.
       </p>
-      <p>{SUPPORT_RESPONSE_SLA}</p>
+
+      <h2>The company</h2>
       <p>
-        <strong>Privacy:</strong>{" "}
-        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>
+        Beedero is run by {COMPANY.name}, registered in Portugal.{" "}
+        <Link href="/legal-information">Registered office and legal details</Link>.
       </p>
-
-      <h2>Registered office</h2>
-      <p>{COMPANY.address}</p>
-      <p>
-        <a href={MAPS_URL} target="_blank" rel="noopener noreferrer">
-          Open in Google Maps — directions
-        </a>
-      </p>
-
-      <h2>Legal information</h2>
-      <ul>
-        <li>
-          <strong>Legal name:</strong> {COMPANY.name}
-        </li>
-        <li>
-          <strong>Tax ID (NIF):</strong> {COMPANY.nif}
-        </li>
-        <li>
-          <strong>Share capital:</strong> {COMPANY.capital}
-        </li>
-        <li>
-          <strong>Commercial registry:</strong> {COMPANY.registry}
-        </li>
-      </ul>
-
-      <p className="text-xs text-zinc-500">Last updated: {LEGAL_ENTITY.lastUpdated}.</p>
     </LegalPageShell>
   );
 }

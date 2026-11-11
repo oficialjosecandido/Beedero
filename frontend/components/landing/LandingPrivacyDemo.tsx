@@ -12,6 +12,12 @@ function Hex({ children, className = "" }: { children: ReactNode; className?: st
   );
 }
 
+/**
+ * A made-up number, labelled as one. It used to be headed "Product preview"
+ * with a fake company name and a "Live MRR" of €84,600, which read as a real
+ * customer's real revenue — on a site whose whole argument is that nothing
+ * here is made up. Same control, no pretending.
+ */
 export function LandingPrivacyDemo() {
   const [access, setAccess] = useState<"Public" | "Verified only" | "Private">("Verified only");
 
@@ -19,10 +25,12 @@ export function LandingPrivacyDemo() {
     <div className="border border-white/15 bg-white/5 p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-beedero-yellow">
-            Product preview
+          <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-black text-white/70">
+            Example
           </p>
-          <p className="mt-1 text-sm text-white/55">Alma Labs · Monthly revenue</p>
+          <p className="mt-2 text-sm text-white/55">
+            How one private number works on a startup&rsquo;s page
+          </p>
         </div>
         <Hex className="h-12 w-12 bg-beedero-yellow text-xs font-black text-beedero-black">✓</Hex>
       </div>
@@ -43,7 +51,7 @@ export function LandingPrivacyDemo() {
         ))}
       </div>
       <div className="border border-white/15 p-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Live MRR</p>
+        <p className="text-[11px] font-bold text-white/45">Monthly revenue</p>
         <p
           className={`mt-3 text-5xl font-black tracking-[-0.02em] ${
             access === "Private" ? "select-none blur-md" : ""
@@ -63,7 +71,8 @@ export function LandingPrivacyDemo() {
         </p>
       </div>
       <p className="mt-4 text-xs leading-5 text-white/45">
-        Click the audience to see how privacy changes without removing the value of your profile.
+        Click an audience. You choose who sees each part of a page: everyone, verified investors, or
+        no one.
       </p>
     </div>
   );

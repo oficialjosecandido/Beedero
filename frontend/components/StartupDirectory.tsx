@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CredibilityBadge } from "@/components/CredibilityBadge";
 import { geoLabel, sectorLabel, stageLabel } from "@/lib/org-filters";
+import { BETA_STATUS } from "@/lib/seo-content";
 import type { OrgSummary } from "@/lib/types";
 
 function StartupCard({ org }: { org: OrgSummary }) {
@@ -69,9 +70,24 @@ export function StartupDirectory({
   };
 
   if (items.length === 0) {
+    // A filter that matches nothing and a directory that is genuinely short
+    // are two different facts. "Check back as more join Beedero" said neither.
+    const filtered = Array.from(new URLSearchParams(queryString).keys()).some(
+      (key) => key !== "page",
+    );
     return (
       <div className="rounded-3xl border-2 border-dashed border-beedero-border bg-beedero-white p-8 text-sm text-zinc-500">
-        No startups to show yet — check back as more join Beedero.
+        {filtered ? (
+          <>
+            No startups match these filters.{" "}
+            <Link href="/startups" className="font-semibold text-beedero-black underline">
+              See every startup
+            </Link>
+            .
+          </>
+        ) : (
+          BETA_STATUS
+        )}
       </div>
     );
   }

@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { FAQ_ITEMS, SUPPORT_RESPONSE_SLA } from "@/lib/faq-content";
+import { PublicHeader } from "@/components/PublicHeader";
+import { FAQ_ITEMS } from "@/lib/faq-content";
 import { jsonLdHtml } from "@/lib/json-ld";
 import { COMPANY } from "@/lib/legal-content";
 import { pageMetadata } from "@/lib/site-metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "FAQ — verification, pricing, founder status and support",
+  title: "Questions about Beedero",
   description:
-    "Answers about free Beedero accounts, certidão permanente founder verification, organisation pricing (€33/€99), Discover, LinkedIn import and 24-hour support.",
+    "Answers about free personal accounts, certidão permanente company verification, startup verification by hand, organisation pricing (€33/€99), Discover and LinkedIn import.",
   path: "/faq",
   keywords: [
     "Beedero FAQ",
@@ -40,22 +41,19 @@ export default function FaqPage() {
         dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
       />
       <main className="flex flex-1 flex-col bg-beedero-white text-beedero-black">
-        <div className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
+        <PublicHeader current="/faq" tone="light" />
+        <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-14 sm:px-8">
           <Breadcrumbs items={[{ label: "FAQ" }]} />
-          <p className="mt-8 text-[10px] font-black uppercase tracking-[0.18em] text-beedero-black/45">
-            Help
-          </p>
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.02em] sm:text-5xl">
-            Questions, answered.
-          </h1>
+          <h1 className="mt-8 text-4xl font-black tracking-[-0.02em]">Questions</h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-600">
-            {SUPPORT_RESPONSE_SLA}{" "}
+            If the answer is not here, write to{" "}
             <a
               href={`mailto:${COMPANY.contactEmail}`}
               className="font-semibold text-beedero-black underline decoration-beedero-yellow decoration-2 underline-offset-4"
             >
               {COMPANY.contactEmail}
             </a>
+            .
           </p>
 
           <div className="mt-10 divide-y divide-beedero-border border-y border-beedero-border">
@@ -73,15 +71,13 @@ export default function FaqPage() {
           </div>
 
           <p className="mt-10 text-sm text-zinc-600">
-            Still stuck?{" "}
-            <Link href="/register" className="font-semibold underline decoration-beedero-yellow decoration-2 underline-offset-4">
+            <Link
+              href="/register"
+              className="font-semibold underline decoration-beedero-yellow decoration-2 underline-offset-4"
+            >
               Join Beedero
             </Link>{" "}
-            or read how{" "}
-            <Link href="/cases" className="font-semibold underline decoration-beedero-yellow decoration-2 underline-offset-4">
-              teams use the record
-            </Link>
-            .
+            — a personal account is free.
           </p>
         </div>
       </main>
